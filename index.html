@@ -10,9 +10,8 @@
         let recordedChunks = [];
         let isRecording = false;
 
-        async function init() {
+        function init() {
             videoElement = document.getElementById('video-bg');
-            await setupCamera();
 
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -32,33 +31,36 @@
             camera.position.z = 3;
 
             window.addEventListener('resize', onWindowResize);
+            document.getElementById('perm-btn').addEventListener('click', startCameraManual);
             document.getElementById('file-input').addEventListener('change', handleFileImport);
             document.getElementById('export-btn').addEventListener('click', exportPhoto);
             document.getElementById('cam-switch-btn').addEventListener('click', switchCamera);
             document.getElementById('record-btn').addEventListener('click', toggleRecording);
 
+            startCameraManual();
             animate();
         }
 
-        async function setupCamera() {
+        async function startCameraManual() {
             if (mediaStream) {
                 mediaStream.getTracks().forEach(track => track.stop());
             }
             const constraints = {
-                video: { facingMode: useFrontCamera ? 'user' : 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+                video: { facingMode: useFrontCamera ? 'user' : 'environment' },
                 audio: true
             };
             try {
                 mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
                 videoElement.srcObject = mediaStream;
+                document.getElementById('perm-btn').style.display = 'none';
             } catch (err) {
-                alert('Camera permission denied or not supported.');
+                alert('Please allow camera and microphone permissions in your browser settings.');
             }
         }
 
         async function switchCamera() {
             useFrontCamera = !useFrontCamera;
-            await setupCamera();
+            await startCameraManual();
         }
 
         function createDefaultModel() {
@@ -87,9 +89,8 @@
             if (!file) return;
 
             const reader = new FileReader();
-            const fileName = file.name.toLowerCase();
-
-            if (fileName.endsWith('.obj')) {reader.readAsText(file);
+            const fileName = file.name.toLowerCase();if (fileName.endsWith('.obj')) {
+                reader.readAsText(file);
                 reader.onload = function (e) {
                     const loader = new THREE.OBJLoader();
                     const obj = loader.parse(e.target.result);
@@ -134,6 +135,10 @@
         function toggleRecording() {
             const btn = document.getElementById('record-btn');
             if (!isRecording) {
+                if (!mediaStream) {
+                    alert('Camera stream not active. Please tap "Tap to Enable Camera" first.');
+                    return;
+                }
                 try {
                     mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'video/webm;codecs=vp9,opus' });
                 } catch (e) {
