@@ -1,4 +1,4 @@
-// कैमरा चालू करने का फंक्शन
+// Start camera function
 async function startCamera() {
 try {
 if (mediaStream) {
@@ -9,25 +9,25 @@ video: { facingMode: currentFacingMode, width: { ideal: 1280 }, height: { ideal:
 audio: true
 });
 video.srcObject = mediaStream;
-message("कैमरा सफलतापूर्वक शुरू हो गया है।");
+message("Camera started successfully.");
 $("start").disabled = true;
 $("switchCam").disabled = false;
 $("record").disabled = false;
 $("stop").disabled = false;
 } catch (err) {
 console.error(err);
-message("कैमरा शुरू करने में त्रुटि: " + err.message);
+message("Error starting camera: " + err.message);
 }
 }
 
-// कैमरा बंद करने का फंक्शन
+// Stop camera function
 function stopCamera() {
 if (mediaStream) {
 mediaStream.getTracks().forEach(track => track.stop());
 mediaStream = null;
 }
 video.srcObject = null;
-message("कैमरा बंद कर दिया गया है।");
+message("Camera stopped.");
 $("start").disabled = false;
 $("switchCam").disabled = true;
 $("record").disabled = true;
@@ -41,13 +41,13 @@ currentFacingMode = currentFacingMode === "user" ? "environment" : "user";
 startCamera();
 });
 
-// पेज लोड होते ही बटन इनेबल करना
+// Enable button on DOM content loaded
 window.addEventListener("DOMContentLoaded", () => {
 $("start").disabled = false;
-message("लाइब्रेरी लोड हो गई हैं। कृपया 'Camera Start' पर क्लिक करें।");
+message("Libraries loaded. Please click 'Camera Start'.");
 });
 
-// एनीमेशन लूप
+// Animation loop
 function animate() {
 requestAnimationFrame(animate);
 renderer.render(scene, camera);
