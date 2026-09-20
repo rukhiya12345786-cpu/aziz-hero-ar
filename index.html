@@ -1,54 +1,95 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aziz Hero AR App</title>
-    <style>
-        body { margin: 0; overflow: hidden; background: #111; font-family: sans-serif; }
-        #info {
-            position: absolute; top: 20px; width: 100%; text-align: center;
-            color: #fff; font-size: 18px; z-index: 10; text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+window.addEventListener('resize', onWindowResize);
+            document.getElementById('file-input').addEventListener('change', handleFileImport);
+            document.getElementById('export-btn').addEventListener('click', exportScene);
+            document.getElementById('cam-switch-btn').addEventListener('click', switchCamera);
+            document.getElementById('record-btn').addEventListener('click', toggleRecording);
+
+            animate();
         }
-    </style>
-</head>
-<body>
-    <div id="info">Aziz Hero AR App - Running Successfully!</div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    
-    <script>
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
-
-        const light = new THREE.DirectionalLight(0xffffff, 1);
-        light.position.set(5, 5, 5);
-        scene.add(light);
-        scene.add(new THREE.AmbientLight(0x555555));
-
-        const geometry = new THREE.BoxGeometry(1.5, 1.5, 1.5);
-        const material = new THREE.MeshStandardMaterial({ color: 0xff0055, roughness: 0.3 });
-        const cube = new THREE.Mesh(geometry, material);
-        scene.add(cube);
-
-        camera.position.z = 4;
+        function createDefaultMemojiHead() {
+            const geometry = new THREE.BoxGeometry(1.2, 1.5, 1.2);
+            const material = new THREE.MeshStandardMaterial({ color: 0xffccaa, roughness: 0.4 });
+            currentModel = new THREE.Mesh(geometry, material);
+            scene.add(currentModel);
+        }
 
         function animate() {
             requestAnimationFrame(animate);
-            cube.rotation.x += 0.015;
-            cube.rotation.y += 0.015;
+            if (currentModel) {
+                currentModel.rotation.y += 0.008;
+            }
             renderer.render(scene, camera);
         }
-        animate();
 
-        window.addEventListener('resize', () => {
+        function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-    </script>
-</body>
-</html>
+        }
+
+        function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            const fileName = file.name.toLowerCase();
+
+            if (fileName.endsWith('.obj')) {
+                reader.readAsText(file);
+                reader.onload = function (e) {
+                    const loader = new THREE.OBJLoader();
+                    const obj = loader.parse(e.target.result);
+                    replaceModel(obj);
+                };
+            } else if (fileName.endsWith('.gltf') || fileName.endsWith('.glb')) {
+                reader.readAsArrayBuffer(file);
+                reader.onload = function (e) {
+                    const loader = new THREE.GLTFLoader();
+                    loader.parse(e.target.result, '', function (gltf) {
+                        replaceModel(gltf.scene);
+                    }, function (error) {
+                        alert('Error loading model file');
+                    });
+                };
+            } else {
+                alert('Please upload .obj, .gltf, or .glb format files.');
+            }
+        }
+
+        function replaceModel(newObj) {
+            if (currentModel) scene.remove(currentModel);
+            currentModel = newObj;
+            currentModel.scale.set(1.5, 1.5, 1.5);
+            scene.add(currentModel);
+        }
+
+        function exportScene() {
+            const link = document.createElement('a');
+            link.download = 'aziz-hero-snapshot.png';
+            link.href = renderer.domElement.toDataURL('image/png');
+            link.click();
+        }
+
+        function switchCamera() {
+            useFrontCamera = !useFrontCamera;
+            alert(useFrontCamera ? "Switched to Front Camera Mode" : "Switched to Rear Camera Mode");
+        }
+
+        function toggleRecording() {
+            const btn = document.getElementById('record-btn');
+            if (!isRecording) {
+                const stream = renderer.domElement.captureStream(30);
+                try {
+                    mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
+                } catch (e) {
+                    mediaRecorder = new MediaRecorder(stream);
+                }
+
+                recordedChunks = [];
+                mediaRecorder.ondataavailable = function (e) {
+                    if (e.data.size > 0) recordedChunks.push(e.data);
+                };
+
+                mediaRecorder.onstop = function () {
+                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
