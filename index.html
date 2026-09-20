@@ -8,7 +8,7 @@
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; }
         #video-bg { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; z-index: 1; background: #000; }
         #canvas-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2; pointer-events: none; }
-    
+        
         #ui-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 10; pointer-events: none; display: flex; flex-direction: column;
@@ -69,7 +69,9 @@
                 <button id="record-btn" title="Record Video"></button>
             </div>
         </div>
-    </div><script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
@@ -89,7 +91,7 @@
                 await initAR();
                 document.getElementById('permission-screen').style.display = 'none';
             } catch (err) {
-                errorBox.innerText = "Error: " + err.message + " (Make sure site is on HTTPS and camera permission is allowed)";
+                errorBox.innerText = "Error: " + err.message + " (Check camera permission in browser settings)";
             }
         });
 
@@ -166,3 +168,100 @@
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
+
+        function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            const fileName = file.name.toLowerCase();
+
+            if (fileName.endsWith('.obj')) {
+                reader.readAsText(file);
+                reader.onload = function (e) {
+                    const loader = new THREE.OBJLoader();
+                    const obj = loader.parse(e.target.result);
+                    replaceModel(obj);
+                };
+            } else if (fileName.endsWith('.gltf') || fileName.endsWith('.glb')) {
+                reader.readAsArrayBuffer(file);
+                reader.onload = function (e) {
+                    const loader = new THREE.GLTFLoader();
+                    loader.parse(e.target.result, '', function (gltf) {
+                        replaceModel(gltf.scene);
+                    }, function (error) {
+                        alert('Error loading 3D model file');
+                    });
+                };
+            } else {
+                alert('Please select .obj, .gltf or .glb format.');
+            }
+        }
+
+        function replaceModel(newObj) {
+            if (currentModel) scene.remove(currentModel);
+            currentModel = newObj;
+            currentModel.scale.set(1.2, 1.2, 1.2);
+            scene.add(currentModel);
+        }
+
+        function exportPhoto() {
+            const canvas = document.createElement('canvas');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+            ctx.drawImage(renderer.domElement, 0, 0, canvas.width, canvas.height);
+
+            const link = document.createElement('a');
+            link.download = 'aziz-ar-snapshot.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        function toggleRecording() {
+            const btn = document.getElementById('record-btn');
+            if (!isRecording) {
+                if (!mediaStream) {
+                    alert('Camera not ready yet.');
+                    return;
+                }
+                try {
+                    mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'video/webm;codecs=vp9,opus' });
+                } catch (e) {
+                    try {
+                        mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'video/mp4' });
+                    } catch (err) {
+                        mediaRecorder = new MediaRecorder(mediaStream);
+                    }
+                }
+
+                recordedChunks = [];
+                mediaRecorder.ondataavailable = function (e) {
+                    if (e.data.size > 0) recordedChunks.push(e.data);
+                };
+
+                mediaRecorder.onstop = function () {
+                    const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || 'video/webm' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = 'aziz-ar-recording.webm';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                btn.classList.add('recording');
+            } else {
+                mediaRecorder.stop();
+                isRecording = false;
+                btn.classList.remove('recording');
+            }
+        }
+    </script>
+</body>
+</html>
