@@ -1,73 +1,143 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aziz Hero AR - Memoji Studio</title>
-    <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; }
-        #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
-        
-        #ui-layer {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 10; pointer-events: none; display: flex; flex-direction: column;
-            justify-content: space-between; padding: 15px; box-sizing: border-box;
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
+    <script>
+        let scene, camera, renderer, currentModel;
+        let useFrontCamera = true;
+        let videoElement, mediaStream;
+        let mediaRecorder;
+        let recordedChunks = [];
+        let isRecording = false;
+
+        async function init() {
+            videoElement = document.getElementById('video-bg');
+            await setupCamera();
+
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+            directionalLight.position.set(0, 10, 10);
+            scene.add(directionalLight);
+
+            createDefaultModel();
+            camera.position.z = 3;
+
+            window.addEventListener('resize', onWindowResize);
+            document.getElementById('file-input').addEventListener('change', handleFileImport);
+            document.getElementById('export-btn').addEventListener('click', exportPhoto);
+            document.getElementById('cam-switch-btn').addEventListener('click', switchCamera);
+            document.getElementById('record-btn').addEventListener('click', toggleRecording);
+
+            animate();
         }
-        .control-group { pointer-events: auto; display: flex; gap: 10px; flex-wrap: wrap; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; }
-        button, label.btn {
-            background: #ff0055; color: white; border: none; padding: 10px 15px;
-            font-size: 14px; border-radius: 5px; cursor: pointer; font-weight: bold;
+
+        async function setupCamera() {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+            }
+            const constraints = {
+                video: { facingMode: useFrontCamera ? 'user' : 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+                audio: true
+            };
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+                videoElement.srcObject = mediaStream;
+            } catch (err) {
+                alert('Camera permission denied or not supported.');
+            }
         }
-        button:active, label.btn:active { background: #cc0044; }
-        input[type="file"] { display: none; }
-        #top-bar { display: flex; justify-content: space-between; align-items: center; }
-        #bottom-bar { display: flex; justify-content: center; align-items: center; gap: 15px; }
-        #record-btn { background: #ff3333; width: 60px; height: 60px; border-radius: 50%; border: 3px solid white; }
-        #record-btn.recording { background: #333; animation: pulse 1s infinite; }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
-    </style>
-</head>
-<body>
 
-    <div id="canvas-container"></div>
+        async function switchCamera() {
+            useFrontCamera = !useFrontCamera;
+            await setupCamera();
+        }
 
-    <div id="ui-layer">
-        <div id="top-bar">
-            <div class="control-group">
-                <label class="btn" for="file-input">Import 3D Model</label>
-                <input type="file" id="file-input" accept=".obj,.gltf,.glb">
-                <button id="export-btn">Export Snapshot</button>
-            </div>
-            <div class="control-group">
-                <button id="cam-switch-btn">Switch Camera</button>
-            </div>
-        </div>
+        function createDefaultModel() {
+            const geometry = new THREE.BoxGeometry(1.2, 1.5, 1.2);
+            const material = new THREE.MeshStandardMaterial({ color: 0xffccaa, roughness: 0.4 });
+            currentModel = new THREE.Mesh(geometry, material);
+            scene.add(currentModel);
+        }
 
-        <div id="bottom-bar">
-            <div class="control-group">
-                <button id="record-btn" title="Start/Stop Video Recording"></button>
-            </div>
-        </div>
-    </div>function exportScene() {
+        function animate() {
+            requestAnimationFrame(animate);
+            if (currentModel) {
+                currentModel.rotation.y += 0.008;
+            }
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            const fileName = file.name.toLowerCase();
+
+            if (fileName.endsWith('.obj')) {reader.readAsText(file);
+                reader.onload = function (e) {
+                    const loader = new THREE.OBJLoader();
+                    const obj = loader.parse(e.target.result);
+                    replaceModel(obj);
+                };
+            } else if (fileName.endsWith('.gltf') || fileName.endsWith('.glb')) {
+                reader.readAsArrayBuffer(file);
+                reader.onload = function (e) {
+                    const loader = new THREE.GLTFLoader();
+                    loader.parse(e.target.result, '', function (gltf) {
+                        replaceModel(gltf.scene);
+                    }, function (error) {
+                        alert('Error loading model file');
+                    });
+                };
+            } else {
+                alert('Please upload .obj, .gltf, or .glb files.');
+            }
+        }
+
+        function replaceModel(newObj) {
+            if (currentModel) scene.remove(currentModel);
+            currentModel = newObj;
+            currentModel.scale.set(1.5, 1.5, 1.5);
+            scene.add(currentModel);
+        }
+
+        function exportPhoto() {
+            const canvas = document.createElement('canvas');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+            ctx.drawImage(renderer.domElement, 0, 0, canvas.width, canvas.height);
+
             const link = document.createElement('a');
             link.download = 'aziz-hero-snapshot.png';
-            link.href = renderer.domElement.toDataURL('image/png');
+            link.href = canvas.toDataURL('image/png');
             link.click();
-        }
-
-        function switchCamera() {
-            useFrontCamera = !useFrontCamera;
-            alert(useFrontCamera ? "Switched to Front Camera Mode" : "Switched to Rear Camera Mode");
         }
 
         function toggleRecording() {
             const btn = document.getElementById('record-btn');
             if (!isRecording) {
-                const stream = renderer.domElement.captureStream(30);
                 try {
-                    mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
+                    mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'video/webm;codecs=vp9,opus' });
                 } catch (e) {
-                    mediaRecorder = new MediaRecorder(stream);
+                    mediaRecorder = new MediaRecorder(mediaStream);
                 }
 
                 recordedChunks = [];
