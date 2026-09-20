@@ -14,7 +14,7 @@
             z-index: 10; pointer-events: none; display: flex; flex-direction: column;
             justify-content: space-between; padding: 15px; box-sizing: border-box;
         }
-        .control-group { pointer-events: auto; display: flex; gap: 8px; flex-wrap: wrap; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 10px; backdrop-filter: blur(5px); }
+        .control-group { pointer-events: auto; display: flex; gap: 8px; flex-wrap: wrap; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 10px; }
         button, label.btn {
             background: #ff0055; color: white; border: none; padding: 10px 14px;
             font-size: 13px; border-radius: 6px; cursor: pointer; font-weight: bold; text-align: center;
@@ -29,19 +29,24 @@
         
         #permission-screen {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(0,0,0,0.9); z-index: 100; display: flex; flex-direction: column;
-            justify-content: center; align-items: center; color: white; text-align: center; padding: 20px; box-sizing: border-box;
+            background: rgba(0,0,0,0.98); z-index: 9999; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; color: white; text-align: center; padding: 25px; box-sizing: border-box;
         }
-        #start-app-btn { background: #00cc66; font-size: 18px; padding: 15px 30px; border-radius: 8px; margin-top: 20px; }
+        #start-app-btn { 
+            background: #ffffff; color: #000000; font-size: 18px; font-weight: bold; 
+            padding: 16px 30px; border-radius: 10px; margin-top: 20px; border: none;
+            cursor: pointer; box-shadow: 0 5px 15px rgba(255,255,255,0.3); pointer-events: auto;
+        }
+        #error-box { margin-top: 15px; font-size: 13px; color: #ff4444; max-width: 90%; word-break: break-all; }
     </style>
 </head>
 <body>
 
-    <!-- Camera Permission / Start Overlay to fix white screen issues -->
     <div id="permission-screen">
-        <h2>Aziz Hero AR Studio</h2>
-        <p>Tap below to start camera & 3D environment</p>
-        <button id="start-app-btn">Start Camera & AR</button>
+        <h1 style="margin: 0 0 10px 0; font-size: 24px;">Aziz Hero AR Studio</h1>
+        <p style="margin: 0; color: #aaa;">Tap the button below to allow camera access</p>
+        <button id="start-app-btn">TAP TO START CAMERA</button>
+        <div id="error-box"></div>
     </div>
 
     <video id="video-bg" autoplay playsinline muted></video>
@@ -64,7 +69,14 @@
                 <button id="record-btn" title="Record Video"></button>
             </div>
         </div>
-    </div>if (fileName.endsWith('.obj')) {
+    </div>function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            const fileName = file.name.toLowerCase();
+
+            if (fileName.endsWith('.obj')) {
                 reader.readAsText(file);
                 reader.onload = function (e) {
                     const loader = new THREE.OBJLoader();
