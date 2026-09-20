@@ -23,6 +23,7 @@
         input[type="file"] { display: none; }
         #top-bar { display: flex; justify-content: space-between; align-items: flex-start; width: 100%; }
         #bottom-bar { display: flex; justify-content: center; align-items: center; width: 100%; margin-bottom: 10px; }
+        
         #record-btn { background: #ff3333; width: 65px; height: 65px; border-radius: 50%; border: 4px solid white; pointer-events: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
         #record-btn.recording { background: #222; animation: pulse 1s infinite; border-color: #ff3333; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
@@ -33,11 +34,11 @@
             justify-content: center; align-items: center; color: white; text-align: center; padding: 25px; box-sizing: border-box;
         }
         #start-app-btn { 
-            background: #ffffff; color: #000000; font-size: 18px; font-weight: bold; 
+            background: #00ff88; color: #000000; font-size: 18px; font-weight: bold; 
             padding: 16px 30px; border-radius: 10px; margin-top: 20px; border: none;
-            cursor: pointer; box-shadow: 0 5px 15px rgba(255,255,255,0.3); pointer-events: auto;
+            cursor: pointer; box-shadow: 0 5px 15px rgba(0,255,136,0.4); pointer-events: auto;
         }
-        #error-box { margin-top: 15px; font-size: 12px; color: #ff4444; max-width: 90%; word-break: break-all; line-height: 1.4; }
+        #error-msg { margin-top: 15px; font-size: 13px; color: #ff4444; max-width: 90%; word-break: break-all; }
     </style>
 </head>
 <body>
@@ -45,8 +46,8 @@
     <div id="permission-screen">
         <h1 style="margin: 0 0 10px 0; font-size: 24px;">Aziz Hero AR Studio</h1>
         <p style="margin: 0; color: #aaa;">Click below to start camera & AR</p>
-        <button id="start-app-btn">TAP TO START CAMERA</button>
-        <div id="error-box"></div>
+        <button id="start-app-btn">START CAMERA</button>
+        <div id="error-msg"></div>
     </div>
 
     <video id="video-bg" autoplay playsinline muted></video>
@@ -55,9 +56,9 @@
     <div id="ui-layer">
         <div id="top-bar">
             <div class="control-group">
-                <label class="btn" for="file-input">Import 3D Model</label>
+                <label class="btn" for="file-input">Import Model</label>
                 <input type="file" id="file-input" accept=".obj,.gltf,.glb">
-                <button id="export-btn">Snapshot</button>
+                <button id="snapshot-btn">Snapshot</button>
             </div>
             <div class="control-group">
                 <button id="cam-switch-btn">Flip Cam</button>
@@ -71,35 +72,71 @@
         </div>
     </div>
 
+    <!-- Three.js and Loaders -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
     <script>
         let scene, camera, renderer, currentModel;
-        let useFrontCamera = true;
         let videoElement, mediaStream;
+        let useFrontCamera = true;
         let mediaRecorder;
         let recordedChunks = [];
         let isRecording = false;
 
-        const errorBox = document.getElementById('error-box');
-
         document.getElementById('start-app-btn').addEventListener('click', async () => {
-            errorBox.innerText = "Connecting to camera...";
+            const errorMsg = document.getElementById('error-msg');
+            errorMsg.innerText = "Starting camera...";
+            
             try {
-                await initAR();
-                document.getElementById('permission-screenstyle').display = 'none'; // Safe property
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw new Error("Camera API not supported in this browser.");
+                }
+
+                await startCamera();
+
+                // Hide permission screen once camera starts successfully
                 document.getElementById('permission-screen').style.display = 'none';
+
+                initThreeJS();
+
             } catch (err) {
                 console.error(err);
-                errorBox.innerHTML = `<b>Failed:</b> ${err.message}<br><br>Tip: Ensure you are using <b>HTTPS</b> and camera permission is allowed in your browser site settings.`;
+                errorMsg.innerText = "Error: " + err.message + ". Please ensure HTTPS and allow camera permissions.";
             }
         });
 
-        async function initAR() {
-            videoElement = document.getElementById('video-bg');
+        async function startCamera() {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+            }
 
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: useFrontCamera ? 'user' : 'environment' },
+                    audio: true
+                });
+            } catch (e) {
+                // Fallback to default if specific facingMode fails
+                mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            }
+
+            videoElement = document.getElementById('video-bg');
+            videoElement.srcObject = mediaStream;
+            await videoElement.play();
+        }
+
+        async function switchCamera() {
+            useFrontCamera = !useFrontCamera;
+            try {
+                await startCamera();
+            } catch (err) {
+                alert("Could not switch camera: " + err.message);
+            }
+        }
+
+        function initThreeJS() {
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
             
@@ -117,45 +154,14 @@
             createDefaultModel();
             camera.position.z = 2.5;
 
+            // Event Listeners for UI buttons
             window.addEventListener('resize', onWindowResize);
             document.getElementById('file-input').addEventListener('change', handleFileImport);
-            document.getElementById('export-btn').addEventListener('click', exportPhoto);
+            document.getElementById('snapshot-btn').addEventListener('click', takeSnapshot);
             document.getElementById('cam-switch-btn').addEventListener('click', switchCamera);
             document.getElementById('record-btn').addEventListener('click', toggleRecording);
 
-            await startCamera();
             animate();
-        }
-
-        async function startCamera() {
-            if (mediaStream) {
-                mediaStream.getTracks().forEach(track => track.stop());
-            }
-
-            let constraints = {
-                video: { facingMode: useFrontCamera ? 'user' : 'environment' },
-                audio: true
-            };
-            
-            try {
-                mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-            } catch (e) {
-                // Fallback if specific facingMode fails
-                console.warn("Retrying with default constraints...", e);
-                mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            }
-
-            videoElement.srcObject = mediaStream;
-            await videoElement.play();
-        }
-
-        async function switchCamera() {
-            useFrontCamera = !useFrontCamera;
-            try {
-                await startCamera();
-            } catch (err) {
-                alert('Could not switch camera: ' + err.message);
-            }
         }
 
         function createDefaultModel() {
@@ -215,7 +221,7 @@
             scene.add(currentModel);
         }
 
-        function exportPhoto() {
+        function takeSnapshot() {
             const canvas = document.createElement('canvas');
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
@@ -274,5 +280,5 @@
         }
     </script>
 </body>
-        </html>
-        
+    </html>
+
