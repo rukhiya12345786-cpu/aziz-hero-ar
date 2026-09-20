@@ -5,62 +5,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aziz Hero AR App</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; }
-        #loading {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            color: #fff; font-size: 20px; text-align: center; z-index: 10;
+        body { margin: 0; overflow: hidden; background: #111; font-family: sans-serif; }
+        #info {
+            position: absolute; top: 20px; width: 100%; text-align: center;
+            color: #fff; font-size: 18px; z-index: 10; text-shadow: 0 2px 4px rgba(0,0,0,0.8);
         }
     </style>
 </head>
 <body>
-    <div id="loading">Loading 3D Scene...</div>
+    <div id="info">Aziz Hero AR App - Running Successfully!</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "./libs/three.module.js",
-                "three/addons/": "./libs/"
-            }
-        }
-    </script>
-
-    <script type="module">
-        import * as THREE from 'three';
-
-        // बेसिक सीन सेटअप
+    <script>
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // रोशनी (Light) जोड़ें
         const light = new THREE.DirectionalLight(0xffffff, 1);
-        light.position.set(5, 5, 5).normalize();
+        light.position.set(5, 5, 5);
         scene.add(light);
-        scene.add(new THREE.AmbientLight(0x404040));
+        scene.add(new THREE.AmbientLight(0x555555));
 
-        // एक चमकता हुआ 3D क्यूब (Cube) बनाएं ताकि स्क्रीन खाली न लगे
-        const geometry = new THREE.BoxGeometry(1, 1, 1);
-        const material = new THREE.MeshStandardMaterial({ color: 0x00ffcc });
+        const geometry = new THREE.BoxGeometry(1.5, 1.5, 1.5);
+        const material = new THREE.MeshStandardMaterial({ color: 0xff0055, roughness: 0.3 });
         const cube = new THREE.Mesh(geometry, material);
         scene.add(cube);
 
-        camera.position.z = 3;
+        camera.position.z = 4;
 
-        // लोडिंग टेक्स्ट हटा दें क्योंकि सीन तैयार है
-        document.getElementById('loading').style.display = 'none';
-
-        // एनिमेशन लूप ताकि क्यूब घूमता रहे
         function animate() {
             requestAnimationFrame(animate);
-            cube.rotation.x += 0.01;
-            cube.rotation.y += 0.01;
+            cube.rotation.x += 0.015;
+            cube.rotation.y += 0.015;
             renderer.render(scene, camera);
         }
         animate();
 
-        // स्क्रीन साइज बदलने पर एडजस्टमेंट
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
