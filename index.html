@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Aziz AR Studio - Perfect Head Match Pro</title>
+    <title>Aziz AR Studio - Ultimate Texture & Depth Control</title>
     <style>
         * { box-sizing: border-box; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -21,35 +21,35 @@
 
         .top-bar { display: flex; justify-content: space-between; width: 100%; align-items: center; }
         .glass-btn {
-            background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(10px); color: white; border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(10px); color: white; border: 1px solid rgba(255,255,255,0.3);
             padding: 8px 14px; font-size: 13px; border-radius: 20px; cursor: pointer; font-weight: 600; text-align: center;
         }
-        .glass-btn:active { background: rgba(255, 255, 255, 0.3); }
+        .glass-btn:active { background: rgba(255, 255, 255, 0.4); }
         input[type="file"] { display: none; }
 
-        /* Professional Control Panel with Forward/Backward Buttons */
+        /* Enhanced Control Panel with Clear Front/Back Buttons */
         #adjust-panel {
             position: absolute; right: 12px; top: 65px;
-            background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(12px);
-            border: 1px solid rgba(255,255,255,0.2); padding: 8px;
-            border-radius: 12px; display: flex; flex-direction: column; gap: 5px; width: 150px;
-            max-height: 80vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+            background: rgba(0, 0, 0, 0.9); backdrop-filter: blur(15px);
+            border: 1px solid rgba(255,255,255,0.3); padding: 10px;
+            border-radius: 14px; display: flex; flex-direction: column; gap: 8px; width: 165px;
+            max-height: 82vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
         }
-        .adj-group { display: flex; flex-direction: column; gap: 2px; color: #00ff88; font-size: 9px; font-weight: bold; }
-        .adj-group div { display: flex; gap: 3px; }
-        .adj-group button { flex: 1; background: rgba(255,255,255,0.2); border: none; color: white; padding: 5px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold; }
+        .adj-group { display: flex; flex-direction: column; gap: 3px; color: #00ff88; font-size: 10px; font-weight: bold; }
+        .adj-group div { display: flex; gap: 4px; }
+        .adj-group button { flex: 1; background: rgba(255,255,255,0.25); border: none; color: white; padding: 6px; border-radius: 5px; font-size: 11px; cursor: pointer; font-weight: bold; }
         .adj-group button:active { background: #ff0055; }
         
         .model-select-bar { display: flex; gap: 4px; margin-bottom: 2px; }
-        .model-select-bar button { flex: 1; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 4px; font-size: 9px; border-radius: 4px; cursor: pointer; }
+        .model-select-bar button { flex: 1; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: #fff; padding: 5px; font-size: 10px; border-radius: 5px; cursor: pointer; }
         .model-select-bar button.active { background: #00ff88; color: #000; font-weight: bold; }
 
         /* Bottom Dock */
         .bottom-dock {
             position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.2); padding: 10px 20px;
-            border-radius: 35px; display: flex; align-items: center; gap: 18px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.3); padding: 10px 20px;
+            border-radius: 35px; display: flex; align-items: center; gap: 18px; box-shadow: 0 10px 30px rgba(0,0,0,0.6);
         }
         .dock-btn {
             background: transparent; border: none; color: white; font-size: 11px; font-weight: 600;
@@ -80,8 +80,8 @@
 <body>
 
     <div id="permission-screen">
-        <h1 style="margin: 0 0 10px 0; font-size: 22px;">Aziz AR Studio</h1>
-        <p style="margin: 0; color: #aaa; font-size: 13px;">Tap below to start camera & head tracking</p>
+        <h1 style="margin: 0 0 10px 0; font-size: 22px;">Aziz AR Studio Pro</h1>
+        <p style="margin: 0; color: #aaa; font-size: 13px;">Tap below to start camera & 3D face tracking</p>
         <button id="start-app-btn">START CAMERA</button>
         <div id="error-msg"></div>
     </div>
@@ -95,12 +95,21 @@
             <button id="snapshot-btn" class="glass-btn clickable">📸 Snapshot</button>
         </div>
 
-        <!-- Control Panel with Forward/Backward (Z) and Touch Rotation support -->
+        <!-- Control Panel with Dedicated Front/Back Depth Adjustment Buttons -->
         <div id="adjust-panel" class="clickable">
             <div class="model-select-bar">
                 <button id="sel-m1" class="active" onclick="setActiveModel(0)">Model 1</button>
                 <button id="sel-m2" onclick="setActiveModel(1)">Model 2</button>
             </div>
+            
+            <div class="adj-group" style="background: rgba(0,255,136,0.15); padding: 5px; border-radius: 6px; border: 1px solid #00ff88;">
+                <span>👉 PULL FRONT / PUSH BACK</span>
+                <div>
+                    <button onclick="adjustVal('posZ', -0.05)" style="background:#ff0055;">◀ BACK</button>
+                    <button onclick="adjustVal('posZ', 0.05)" style="background:#00ff88; color:#000;">FRONT ▶</button>
+                </div>
+            </div>
+
             <div class="adj-group">
                 <span>SIZE (SCALE)</span>
                 <div>
@@ -109,28 +118,21 @@
                 </div>
             </div>
             <div class="adj-group">
-                <span>UP / DOWN</span>
+                <span>MOVE UP / DOWN</span>
                 <div>
                     <button onclick="adjustVal('posY', -0.02)">▼</button>
                     <button onclick="adjustVal('posY', 0.02)">▲</button>
                 </div>
             </div>
             <div class="adj-group">
-                <span>LEFT / RIGHT</span>
+                <span>MOVE LEFT / RIGHT</span>
                 <div>
                     <button onclick="adjustVal('posX', -0.02)">◀</button>
                     <button onclick="adjustVal('posX', 0.02)">▶</button>
                 </div>
             </div>
             <div class="adj-group">
-                <span>BACK / FORWARD (Z)</span>
-                <div>
-                    <button onclick="adjustVal('posZ', -0.05)">Back (-)</button>
-                    <button onclick="adjustVal('posZ', 0.05)">Front (+)</button>
-                </div>
-            </div>
-            <div class="adj-group">
-                <span>ROTATE TILT / SPIN</span>
+                <span>ROTATE (TILT/SPIN)</span>
                 <div>
                     <button onclick="adjustVal('rotX', -0.1)">X-</button>
                     <button onclick="adjustVal('rotY', -0.1)">Y-</button>
@@ -174,9 +176,8 @@
         let mediaRecorder, recordedChunks = [], isRecording = false;
         let faceMesh, mpCamera;
 
-        // Two models setup with balanced default head alignment offsets
         let models = [
-            { obj: null, scale: 1.2, offsetX: 0.0, offsetY: 0.15, offsetZ: 0.0, rotX: 0.0, rotY: 0.0, rotZ: 0.0 },
+            { obj: null, scale: 1.2, offsetX: 0.0, offsetY: 0.1, offsetZ: 0.0, rotX: 0.0, rotY: 0.0, rotZ: 0.0 },
             { obj: null, scale: 1.0, offsetX: 0.0, offsetY: 0.0, offsetZ: 0.0, rotX: 0.0, rotY: 0.0, rotZ: 0.0 }
         ];
         let activeModelIndex = 0;
@@ -224,14 +225,19 @@
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-            scene.add(new THREE.AmbientLight(0xffffff, 1.8));
-            const dLight = new THREE.DirectionalLight(0xffffff, 2.0);
-            dLight.position.set(0, 10, 10);
-            scene.add(dLight);
+            // Rich Studio Lighting to bring out model textures and colors vividly
+            scene.add(new THREE.AmbientLight(0xffffff, 2.2));
+            const dLight1 = new THREE.DirectionalLight(0xffffff, 2.5);
+            dLight1.position.set(0, 10, 15);
+            scene.add(dLight1);
 
-            // Default Model 1 placeholder (Helmet shape)
+            const dLight2 = new THREE.DirectionalLight(0x99ccff, 1.5);
+            dLight2.position.set(0, -10, -10);
+            scene.add(dLight2);
+
+            // Default Model 1 placeholder
             const geo = new THREE.SphereGeometry(0.7, 32, 32);
-            const mat = new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.3, metalness: 0.4 });
+            const mat = new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.2, metalness: 0.5 });
             models[0].obj = new THREE.Mesh(geo, mat);
             scene.add(models[0].obj);
 
@@ -258,18 +264,14 @@
             faceMesh.onResults((results) => {
                 if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
                     const landmarks = results.multiFaceLandmarks[0];
-                    
-                    // Key head anchor landmarks (Nose tip 1, Forehead 10, Left ear/side 234, Right ear/side 454)
                     const nose = landmarks[1];
                     const p234 = landmarks[234];
                     const p454 = landmarks[454];
 
-                    // Accurate face center tracking
                     const centerX = nose.x;
                     const centerY = nose.y;
                     const centerZ = nose.z;
 
-                    // Compute head tilt and rotation angles
                     const dx = p454.x - p234.x;
                     const dy = p454.y - p234.y;
                     const rotZ_auto = Math.atan2(dy, dx);
@@ -280,10 +282,10 @@
                     models.forEach((m) => {
                         if (!m.obj) return;
                         
-                        // Correct screen coordinate mapping to lock directly onto the head
-                        const x = -(centerX - 0.5) * 3.8 + m.offsetX;
-                        const y = -(centerY - 0.5) * 3.8 + m.offsetY;
-                        const z = centerZ * 1.5 + m.offsetZ;
+                        const x = -(centerX - 0.5) * 3.5 + m.offsetX;
+                        const y = -(centerY - 0.5) * 3.5 + m.offsetY;
+                        // Base Z tracking plus manual forward/backward offset control
+                        const z = centerZ * 1.2 + m.offsetZ;
 
                         m.obj.position.set(x, y, z);
                         m.obj.rotation.set(
@@ -315,7 +317,7 @@
             if (type === 'scale') { m.scale = Math.max(0.05, m.scale + val); }
             else if (type === 'posY') { m.offsetY += val; }
             else if (type === 'posX') { m.offsetX += val; }
-            else if (type === 'posZ') { m.offsetZ += val; } // Controls forward & backward position
+            else if (type === 'posZ') { m.offsetZ += val; } // Front / Back movement
             else if (type === 'rotX') { m.rotX += val; }
             else if (type === 'rotY') { m.rotY += val; }
             else if (type === 'rotZ') { m.rotZ += val; }
@@ -325,7 +327,7 @@
             let m = models[activeModelIndex];
             m.scale = activeModelIndex === 0 ? 1.2 : 1.0;
             m.offsetX = 0.0;
-            m.offsetY = 0.15;
+            m.offsetY = 0.1;
             m.offsetZ = 0.0;
             m.rotX = 0.0;
             m.rotY = 0.0;
@@ -337,6 +339,7 @@
             renderer.render(scene, camera);
         }
 
+        // Enhanced Model Loader ensuring textures and colors are preserved correctly
         function handleModelImport(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -347,14 +350,18 @@
                 reader.readAsText(file);
                 reader.onload = (evt) => {
                     const loader = new THREE.OBJLoader();
-                    try { assignNewModel(loader.parse(evt.target.result)); }
-                    catch (err) { alert("Error parsing OBJ file."); }
+                    try { 
+                        const obj = loader.parse(evt.target.result);
+                        applyMaterialsFix(obj);
+                        assignNewModel(obj); 
+                    } catch (err) { alert("Error parsing OBJ file."); }
                 };
             } else if (name.endsWith('.gltf') || name.endsWith('.glb')) {
                 reader.readAsArrayBuffer(file);
                 reader.onload = (evt) => {
                     const loader = new THREE.GLTFLoader();
                     loader.parse(evt.target.result, '', (gltf) => {
+                        applyMaterialsFix(gltf.scene);
                         assignNewModel(gltf.scene);
                     }, (error) => { alert("Error parsing GLTF/GLB file."); });
                 };
@@ -362,12 +369,26 @@
                 reader.readAsArrayBuffer(file);
                 reader.onload = (evt) => {
                     const loader = new THREE.FBXLoader();
-                    try { assignNewModel(loader.parse(evt.target.result, '')); }
-                    catch (err) { alert("Error parsing FBX file."); }
+                    try { 
+                        const obj = loader.parse(evt.target.result, '');
+                        applyMaterialsFix(obj);
+                        assignNewModel(obj); 
+                    } catch (err) { alert("Error parsing FBX file."); }
                 };
             } else { 
                 alert("Please select .obj, .gltf, .glb or .fbx format."); 
             }
+        }
+
+        function applyMaterialsFix(obj) {
+            obj.traverse((child) => {
+                if (child.isMesh) {
+                    child.material.side = THREE.DoubleSide;
+                    if (child.material.map) {
+                        child.material.map.encoding = THREE.sRGBEncoding;
+                    }
+                }
+            });
         }
 
         function assignNewModel(newObj) {
@@ -398,19 +419,4 @@
             const btn = document.getElementById('record-btn');
             if (!isRecording) {
                 if (!mediaStream) { alert("Camera not ready"); return; }
-                const combined = new MediaStream([...mediaStream.getVideoTracks(), ...mediaStream.getAudioTracks()]);
-                
-                try { mediaRecorder = new MediaRecorder(combined, { mimeType: 'video/webm;codecs=vp9,opus' }); }
-                catch (e) { mediaRecorder = new MediaRecorder(combined); }
-
-                recordedChunks = [];
-                mediaRecorder.ondataavailable = (evt) => { if (evt.data.size > 0) recordedChunks.push(evt.data); };
-                mediaRecorder.onstop = () => {
-                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'aziz-ar-recording.webm';
-                    document.body.appendChild(a);
-                    a.click();
-                    setTimeout(() => { w
+                const combined = new MediaStream([...mediaStream.getVideoTracks(), ...mediaStream.getAudioTracks()]
