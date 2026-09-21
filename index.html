@@ -419,4 +419,33 @@
             const btn = document.getElementById('record-btn');
             if (!isRecording) {
                 if (!mediaStream) { alert("Camera not ready"); return; }
-                const combined = new MediaStream([...mediaStream.getVideoTracks(), ...mediaStream.getAudioTracks()]
+                const combined = new MediaStream([...mediaStream.getVideoTracks(), ...mediaStream.getAudioTracks()]);
+                
+                try { mediaRecorder = new MediaRecorder(combined, { mimeType: 'video/webm;codecs=vp9,opus' }); }
+                catch (e) { mediaRecorder = new MediaRecorder(combined); }
+
+                recordedChunks = [];
+                mediaRecorder.ondataavailable = (evt) => { if (evt.data.size > 0) recordedChunks.push(evt.data); };
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'aziz-ar-recording.webm';
+                    document.body.appendChild(a);
+                    a.click();
+                    setTimeout(() => { window.URL.revokeObjectURL(url); a.remove(); }, 100);
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                btn.classList.add('recording');
+            } else {
+                mediaRecorder.stop();
+                isRecording = false;
+                btn.classList.remove('recording');
+            }
+        }
+    </script>
+</body>
+</html>
