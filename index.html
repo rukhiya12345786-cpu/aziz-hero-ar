@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Aziz Pro Ultimate 3D Studio</title>
+    <title>Aziz Pro Real Helmet Studio</title>
     <style>
         * { box-sizing: border-box; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; }
@@ -21,17 +21,17 @@
         .top-nav { display: flex; justify-content: space-between; width: 100%; align-items: center; flex-wrap: wrap; gap: 6px; }
         
         .btn {
-            background: rgba(0, 0, 0, 0.8); color: white; border: 1px solid rgba(255,255,255,0.4);
+            background: rgba(0, 0, 0, 0.85); color: white; border: 1px solid rgba(255,255,255,0.4);
             padding: 8px 12px; font-size: 11px; border-radius: 20px; cursor: pointer; font-weight: bold;
-            backdrop-filter: blur(6px); transition: all 0.2s;
+            backdrop-filter: blur(6px);
         }
-        .btn:active { background: rgba(0, 255, 136, 0.5); transform: scale(0.95); }
+        .btn:active { background: rgba(0, 255, 136, 0.4); }
 
         .bottom-dock {
             position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.75); border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(0, 0, 0, 0.8); border: 1px solid rgba(255, 255, 255, 0.3);
             padding: 10px 20px; border-radius: 40px; display: flex; align-items: center; gap: 15px;
-            backdrop-filter: blur(8px); box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            backdrop-filter: blur(8px);
         }
         .filter-switcher { display: flex; gap: 12px; align-items: center; }
         .filter-thumb {
@@ -43,17 +43,16 @@
 
         #start-screen {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: linear-gradient(135deg, #111, #222); z-index: 99999; display: flex; flex-direction: column;
+            background: #111; z-index: 99999; display: flex; flex-direction: column;
             justify-content: center; align-items: center; color: white; text-align: center; padding: 25px;
         }
         #launch-btn {
             background: #00ff88; color: #000; font-size: 18px; font-weight: bold;
             padding: 16px 40px; border-radius: 30px; margin-top: 20px; border: none; cursor: pointer;
-            box-shadow: 0 5px 25px rgba(0,255,136,0.4);
         }
     </style>
 
-    <!-- Essential Libraries for Three.js, Loaders & MediaPipe -->
+    <!-- Required Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -63,9 +62,9 @@
 <body>
 
     <div id="start-screen">
-        <h1 style="color: #00ff88; margin-bottom: 5px;">Aziz Pro 3D Studio</h1>
-        <p style="color: #aaa; font-size: 14px; max-width: 320px;">Full 360° Head Enclosure, Import (.obj, .glb) & Export (.xfpx)</p>
-        <button id="launch-btn">LAUNCH STUDIO</button>
+        <h1 style="color: #00ff88; margin-bottom: 5px;">Aziz Real Helmet Studio</h1>
+        <p style="color: #aaa; font-size: 14px;">Fixed 360° Locked Head Enclosure</p>
+        <button id="launch-btn">START HELMET</button>
         <div id="error-log" style="color: #ff4444; font-size: 12px; margin-top: 10px;"></div>
     </div>
 
@@ -84,8 +83,8 @@
         <div class="bottom-dock interactive">
             <div class="filter-switcher">
                 <div class="filter-thumb active" id="btn-helmet" onclick="switchPreset('helmet')">🪖</div>
+                <div class="filter-thumb" id="btn-cyber" onclick="switchPreset('cyber')">🤖</div>
                 <div class="filter-thumb" id="btn-bubble" onclick="switchPreset('bubble')">🌐</div>
-                <div class="filter-thumb" id="btn-skull" onclick="switchPreset('skull')">💀</div>
             </div>
         </div>
     </div>
@@ -93,13 +92,13 @@
     <script>
         let scene, camera, renderer, videoEl, mediaStream;
         let faceMesh = null, mpCamera = null;
-        let modelRoot = null;
+        let helmetGroup = null;
         let currentPreset = 'helmet';
         let useFront = true;
 
         document.getElementById('launch-btn').addEventListener('click', async () => {
             const btn = document.getElementById('launch-btn');
-            btn.innerText = "Starting Camera...";
+            btn.innerText = "Loading...";
             btn.disabled = true;
 
             try {
@@ -110,7 +109,7 @@
             } catch (err) {
                 console.error(err);
                 document.getElementById('error-log').innerText = err.message;
-                btn.innerText = "LAUNCH STUDIO";
+                btn.innerText = "START HELMET";
                 btn.disabled = false;
             }
         });
@@ -137,7 +136,6 @@
             if (mpCamera) mpCamera.start();
         });
 
-        // Import 3D Formats (.obj, .glb, .gltf)
         document.getElementById('import-btn').addEventListener('click', () => {
             document.getElementById('import-file').click();
         });
@@ -151,47 +149,41 @@
             if (fileName.endsWith('.obj')) {
                 const loader = new THREE.OBJLoader();
                 loader.load(fileURL, (object) => {
-                    if (modelRoot) scene.remove(modelRoot);
-                    modelRoot = new THREE.Group();
+                    if (helmetGroup) scene.remove(helmetGroup);
+                    helmetGroup = new THREE.Group();
                     object.traverse(child => {
-                        if (child.isMesh) child.material = new THREE.MeshStandardMaterial({ color: 0x00ff88, metalness: 0.4, roughness: 0.3 });
+                        if (child.isMesh) child.material = new THREE.MeshStandardMaterial({ color: 0x00ff88, metalness: 0.5, roughness: 0.2 });
                     });
                     object.scale.set(0.012, 0.012, 0.012);
                     object.position.set(0, 0, 0);
-                    modelRoot.add(object);
-                    scene.add(modelRoot);
-                    alert(".OBJ Model Imported Successfully!");
-                }, undefined, () => { alert("Error loading .obj file."); });
+                    helmetGroup.add(object);
+                    scene.add(helmetGroup);
+                    alert("Custom Model Imported!");
+                });
             } else if (fileName.endsWith('.glb') || fileName.endsWith('.gltf')) {
                 const loader = new THREE.GLTFLoader();
                 loader.load(fileURL, (gltf) => {
-                    if (modelRoot) scene.remove(modelRoot);
-                    modelRoot = new THREE.Group();
+                    if (helmetGroup) scene.remove(helmetGroup);
+                    helmetGroup = new THREE.Group();
                     const model = gltf.scene;
                     model.scale.set(1.1, 1.1, 1.1);
                     model.position.set(0, 0, 0);
-                    modelRoot.add(model);
-                    scene.add(modelRoot);
-                    alert(".GLB/.GLTF Model Imported Successfully!");
-                }, undefined, () => { alert("Error loading .glb file."); });
+                    helmetGroup.add(model);
+                    scene.add(helmetGroup);
+                    alert("Custom Model Imported!");
+                });
             }
         });
 
-        // Export Project Configuration (.xfpx)
         document.getElementById('export-btn').addEventListener('click', () => {
-            const projectData = {
-                app: "AzizPro3DStudio",
-                version: "2.1",
-                currentPreset,
-                timestamp: new Date().toISOString()
-            };
+            const projectData = { app: "AzizHelmetStudio", preset: currentPreset, formatVersion: "3.0" };
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(projectData, null, 2));
-            const dlAnchor = document.createElement('a');
-            dlAnchor.setAttribute("href", dataStr);
-            dlAnchor.setAttribute("download", "aziz_studio_project.xfpx");
-            document.body.appendChild(dlAnchor);
-            dlAnchor.click();
-            dlAnchor.remove();
+            const dl = document.createElement('a');
+            dl.setAttribute("href", dataStr);
+            dl.setAttribute("download", "helmet_project.xfpx");
+            document.body.appendChild(dl);
+            dl.click();
+            dl.remove();
         });
 
         function initThreeJS() {
@@ -203,12 +195,12 @@
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             document.getElementById('webgl-container').appendChild(renderer.domElement);
 
-            scene.add(new THREE.AmbientLight(0xffffff, 1.6));
+            scene.add(new THREE.AmbientLight(0xffffff, 1.8));
             const light = new THREE.DirectionalLight(0xffffff, 1.2);
             light.position.set(0, 10, 10);
             scene.add(light);
 
-            buildPreset('helmet');
+            buildHelmet('helmet');
             camera.position.z = 2.8;
 
             window.addEventListener('resize', () => {
@@ -224,7 +216,7 @@
                 ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
                 ctx.drawImage(renderer.domElement, 0, 0, canvas.width, canvas.height);
                 const link = document.createElement('a');
-                link.download = 'studio_snap.png';
+                link.download = 'real_helmet.png';
                 link.href = canvas.toDataURL('image/png');
                 link.click();
             });
@@ -236,45 +228,47 @@
             currentPreset = type;
             document.querySelectorAll('.filter-thumb').forEach(el => el.classList.remove('active'));
             document.getElementById('btn-' + type).classList.add('active');
-            buildPreset(type);
+            buildHelmet(type);
         }
 
-        function buildPreset(type) {
-            if (modelRoot) scene.remove(modelRoot);
-            modelRoot = new THREE.Group();
+        function buildHelmet(type) {
+            if (helmetGroup) scene.remove(helmetGroup);
+            helmetGroup = new THREE.Group();
 
             if (type === 'helmet') {
-                const shell = new THREE.Mesh(
-                    new THREE.SphereGeometry(0.95, 32, 32),
-                    new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.8, roughness: 0.2 })
-                );
-                shell.position.set(0, 0.05, 0);
-                modelRoot.add(shell);
+                // Realistic Motorcycle Helmet Shape (Oval & Covered from Back/Sides)
+                const helmetGeo = new THREE.SphereGeometry(1.0, 32, 32);
+                helmetGeo.scale(1.0, 1.15, 1.05); // Stretch like a real head/helmet
+                const helmetMat = new THREE.MeshStandardMaterial({ color: 0x141414, metalness: 0.85, roughness: 0.15 });
+                const mainShell = new THREE.Mesh(helmetGeo, helmetMat);
+                mainShell.position.set(0, 0.08, 0);
+                helmetGroup.add(mainShell);
 
-                const visor = new THREE.Mesh(
-                    new THREE.CylinderGeometry(0.96, 0.96, 0.45, 32, 1, true, 0, Math.PI),
-                    new THREE.MeshStandardMaterial({ color: 0x00e1ff, transparent: true, opacity: 0.55, metalness: 0.9, roughness: 0.1, side: THREE.DoubleSide })
-                );
+                // Tinted Visor Shield in Front
+                const visorGeo = new THREE.CylinderGeometry(1.01, 1.01, 0.45, 32, 1, true, 0, Math.PI);
+                const visorMat = new THREE.MeshStandardMaterial({ color: 0x00c3ff, transparent: true, opacity: 0.6, metalness: 0.95, roughness: 0.05, side: THREE.DoubleSide });
+                const visor = new THREE.Mesh(visorGeo, visorMat);
                 visor.rotation.y = Math.PI / 2;
-                visor.position.set(0, 0.1, 0);
-                modelRoot.add(visor);
+                visor.position.set(0, 0.12, 0);
+                helmetGroup.add(visor);
+
+            } else if (type === 'cyber') {
+                const cyberGeo = new THREE.BoxGeometry(1.5, 1.8, 1.6);
+                const cyberMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.9, roughness: 0.2 });
+                const cyberBox = new THREE.Mesh(cyberGeo, cyberMat);
+                cyberBox.position.set(0, 0.1, 0);
+                helmetGroup.add(cyberBox);
 
             } else if (type === 'bubble') {
                 const bubble = new THREE.Mesh(
-                    new THREE.SphereGeometry(1.0, 32, 32),
-                    new THREE.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: 0.35, roughness: 0.05, transmission: 0.95, thickness: 0.5 })
+                    new THREE.SphereGeometry(1.1, 32, 32),
+                    new THREE.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: 0.3, roughness: 0.05, transmission: 0.9, thickness: 0.6 })
                 );
-                modelRoot.add(bubble);
-
-            } else if (type === 'skull') {
-                const skull = new THREE.Mesh(
-                    new THREE.SphereGeometry(0.9, 32, 32),
-                    new THREE.MeshStandardMaterial({ color: 0xe5e5e5, roughness: 0.5 })
-                );
-                modelRoot.add(skull);
+                bubble.position.set(0, 0.08, 0);
+                helmetGroup.add(bubble);
             }
 
-            scene.add(modelRoot);
+            scene.add(helmetGroup);
         }
 
         function initTracking() {
@@ -285,34 +279,36 @@
             let smoothRot = new THREE.Quaternion();
 
             faceMesh.onResults((results) => {
-                if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0 && modelRoot) {
+                if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0 && helmetGroup) {
                     const lm = results.multiFaceLandmarks[0];
                     const nose = lm[1], lEdge = lm[234], rEdge = lm[454], forehead = lm[10], chin = lm[152];
 
+                    // Accurate Head Center Lock
                     const cx = (lEdge.x + rEdge.x) / 2;
                     const cy = (forehead.y + chin.y) / 2;
                     const cz = (lEdge.z + rEdge.z + nose.z) / 3;
 
                     const targetX = -(cx - 0.5) * 3.2;
-                    const targetY = -(cy - 0.5) * 3.2 + 0.15;
-                    const targetZ = cz * 1.2;
+                    const targetY = -(cy - 0.5) * 3.2 + 0.18; // Perfectly locked above neck/chin center
+                    const targetZ = cz * 1.1;
 
-                    smoothPos.lerp(new THREE.Vector3(targetX, targetY, targetZ), 0.5);
-                    modelRoot.position.copy(smoothPos);
+                    smoothPos.lerp(new THREE.Vector3(targetX, targetY, targetZ), 0.6);
+                    helmetGroup.position.copy(smoothPos);
 
+                    // Solid Head Rotation Lock (Yaw, Pitch, Roll)
                     const dx = rEdge.x - lEdge.x, dy = rEdge.y - lEdge.y;
                     const roll = Math.atan2(dy, dx);
                     const yaw = Math.asin(Math.max(-1, Math.min(1, (rEdge.z - lEdge.z) * 1.8)));
-                    const pitch = ((chin.y - forehead.y) - 0.4) * -1.2;
+                    const pitch = ((chin.y - forehead.y) - 0.4) * -1.3;
 
                     let targetEuler = new THREE.Euler(pitch, yaw, roll, 'YXZ');
                     let targetQuat = new THREE.Quaternion().setFromEuler(targetEuler);
-                    smoothRot.slerp(targetQuat, 0.5);
-                    modelRoot.quaternion.copy(smoothRot);
+                    smoothRot.slerp(targetQuat, 0.6);
+                    helmetGroup.quaternion.copy(smoothRot);
 
-                    modelRoot.visible = true;
-                } else if (modelRoot) {
-                    modelRoot.visible = false;
+                    helmetGroup.visible = true;
+                } else if (helmetGroup) {
+                    helmetGroup.visible = false;
                 }
             });
 
