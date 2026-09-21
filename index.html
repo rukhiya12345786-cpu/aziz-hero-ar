@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Aziz AR Studio - Memoji & Fixed Importer</title>
+    <title>Aziz AR Studio - Perfect Importer</title>
     <style>
         * { box-sizing: border-box; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; font-family: sans-serif; }
@@ -71,7 +71,7 @@
 
     <div id="start-screen">
         <h1 style="color: #00ff88; margin-bottom: 5px; font-size: 24px;">Aziz AR Studio</h1>
-        <p style="color: #aaa; font-size: 12px; max-width: 280px;">Default Memoji Head & Smart Importer (.glb, .obj, .fbx)</p>
+        <p style="color: #aaa; font-size: 12px; max-width: 280px;">Stable AR Importer & Tracking</p>
         <button id="launch-btn">START STUDIO</button>
         <div id="error-log" style="color: #ff4444; font-size: 11px; margin-top: 10px;"></div>
     </div>
@@ -106,7 +106,7 @@
     <script>
         let scene, camera, renderer, videoEl, mediaStream;
         let faceMesh = null, mpCamera = null;
-        let activeModelGroup = null; // Holds either default memoji or custom imported model
+        let activeModelGroup = null;
         let useFront = true;
         
         let manualScale = 1.0;
@@ -127,9 +127,10 @@
                 await startCamera();
                 document.getElementById('start-screen').style.display = 'none';
                 initThreeJS();
-                createDefaultMemojiHead(); // Creates default 3D head on startup
+                createDefaultMemojiHead();
                 initTracking();
                 initControls();
+                initVisibilityHandler();
             } catch (err) {
                 console.error(err);
                 document.getElementById('error-log').innerText = err.message;
@@ -153,6 +154,24 @@
             await videoEl.play();
         }
 
+        function initVisibilityHandler() {
+            document.addEventListener('visibilitychange', async () => {
+                if (document.visibilityState === 'visible') {
+                    if (!mediaStream || mediaStream.active === false || videoEl.paused) {
+                        try {
+                            await startCamera();
+                            if (mpCamera) {
+                                mpCamera.stop();
+                                await mpCamera.start();
+                            }
+                        } catch (e) {
+                            console.error(e);
+                        }
+                    }
+                }
+            });
+        }
+
         document.getElementById('flip-cam').addEventListener('click', async () => {
             useFront = !useFront;
             if (mpCamera) mpCamera.stop();
@@ -160,22 +179,19 @@
             if (mpCamera) mpCamera.start();
         });
 
-        // Default 3D Memoji / Robot Head Generator
         function createDefaultMemojiHead() {
             if (activeModelGroup) scene.remove(activeModelGroup);
             activeModelGroup = new THREE.Group();
 
-            // Head Base (Cyberpunk / Memoji Style)
-            const headGeo = new THREE.SphereGeometry(0.5, 32, 32);
-            const headMat = new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.2, metalness: 0.6 });
+            const headGeo = new THREE.SphereGeometry(0.45, 32, 32);
+            const headMat = new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.2, metalness: 0.5 });
             const head = new THREE.Mesh(headGeo, headMat);
             activeModelGroup.add(head);
 
-            // Visor / Eyes
-            const eyeGeo = new THREE.BoxGeometry(0.6, 0.15, 0.2);
+            const eyeGeo = new THREE.BoxGeometry(0.5, 0.12, 0.2);
             const eyeMat = new THREE.MeshBasicMaterial({ color: 0x050505 });
             const eyes = new THREE.Mesh(eyeGeo, eyeMat);
-            eyes.position.set(0, 0.1, 0.4);
+            eyes.position.set(0, 0.08, 0.38);
             activeModelGroup.add(eyes);
 
             scene.add(activeModelGroup);
@@ -185,7 +201,6 @@
             document.getElementById('import-file').click();
         });
 
-        // Smart Importer with Auto-Centering and Auto-Scaling
         document.getElementById('import-file').addEventListener('change', (event) => {
             const file = event.target.files[0];
             if (!file) return;
@@ -195,23 +210,25 @@
             if (activeModelGroup) scene.remove(activeModelGroup);
             activeModelGroup = new THREE.Group();
 
-            const processLoadedObject = (obj) => {
-                // Auto-center and normalize object scale so it never disappears
-                const box = new THREE.Box3().setFromObject(obj);
+            const finalizeImport = (object) => {
+                // Precise centering to ensure model stays visible on screen
+                const box = new THREE.Box3().setFromObject(object);
                 const center = box.getCenter(new THREE.Vector3());
                 const size = box.getSize(new THREE.Vector3());
                 
-                obj.position.sub(center); // Center the model pivot
-                
+                object.position.x -= center.x;
+                object.position.y -= center.y;
+                object.position.z -= center.z;
+
                 const maxDim = Math.max(size.x, size.y, size.z);
                 if (maxDim > 0) {
-                    const scaleFactor = 1.0 / maxDim;
-                    obj.scale.multiplyScalar(scaleFactor);
+                    const scaleFactor = 0.8 / maxDim;
+                    object.scale.multiplyScalar(scaleFactor);
                 }
 
-                activeModelGroup.add(obj);
+                activeModelGroup.add(object);
                 scene.add(activeModelGroup);
-                alert("Model Imported Successfully!");
+                alert("Model Loaded Successfully!");
             };
 
             if (fileName.endsWith('.obj')) {
@@ -220,7 +237,7 @@
                     object.traverse(child => {
                         if (child.isMesh) child.material = new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.3, metalness: 0.4 });
                     });
-                    processLoadedObject(object);
+                    finalizeImport(object);
                 }, undefined, (error) => {
                     console.error(error);
                     alert("Error loading OBJ file!");
@@ -229,7 +246,7 @@
             } else if (fileName.endsWith('.glb') || fileName.endsWith('.gltf')) {
                 const loader = new THREE.GLTFLoader();
                 loader.load(fileURL, (gltf) => {
-                    processLoadedObject(gltf.scene);
+                    finalizeImport(gltf.scene);
                 }, undefined, (error) => {
                     console.error(error);
                     alert("Error loading GLB/GLTF file!");
@@ -243,7 +260,7 @@
                             child.material = new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.4, metalness: 0.3 });
                         }
                     });
-                    processLoadedObject(object);
+                    finalizeImport(object);
                 }, undefined, (error) => {
                     console.error(error);
                     alert("Error loading FBX file!");
@@ -370,7 +387,7 @@
                         const euler = riggedFace.head;
                         let targetQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(euler.x, euler.y + manualRotateY, euler.z, 'YXZ'));
                         smoothRot.slerp(targetQuat, 0.6);
-                        activeModelGroup.quaternion.copy(smoothRot);
+                        activeModelGroup.quaternion.copy(targetQuat);
 
                         activeModelGroup.scale.set(manualScale, manualScale, manualScale);
                     }
