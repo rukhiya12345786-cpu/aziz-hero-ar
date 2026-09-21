@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Aziz AR Pro Studio</title>
+    <title>Aziz AR Pro Studio - Ultimate</title>
     <style>
         * { box-sizing: border-box; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -11,7 +11,6 @@
         #video-bg { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; z-index: 1; background: #000; transform: scaleX(-1); }
         #canvas-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2; pointer-events: none; }
         
-        /* UI Layer - Snapchat / Instagram Style Modern Layout */
         #ui-layer {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 999; pointer-events: none; display: flex; flex-direction: column;
@@ -20,28 +19,28 @@
 
         .clickable { pointer-events: auto; }
 
-        /* Top Bar: Clean Minimalist Icons/Buttons */
         .top-bar { display: flex; justify-content: space-between; width: 100%; align-items: center; }
         .glass-btn {
-            background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(10px); color: white; border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(10px); color: white; border: 1px solid rgba(255,255,255,0.2);
             padding: 8px 14px; font-size: 13px; border-radius: 20px; cursor: pointer; font-weight: 600; text-align: center;
         }
         .glass-btn:active { background: rgba(255, 255, 255, 0.3); }
         input[type="file"] { display: none; }
 
-        /* Side Adjust Panel (Compact & Hidden/Clean) */
+        /* Advanced Adjust & Rotate Panel */
         #adjust-panel {
-            position: absolute; right: 15px; top: 70px;
-            background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(12px);
-            border: 1px solid rgba(255,255,255,0.15); padding: 10px;
-            border-radius: 14px; display: flex; flex-direction: column; gap: 8px; width: 130px;
+            position: absolute; right: 12px; top: 65px;
+            background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.15); padding: 8px;
+            border-radius: 14px; display: flex; flex-direction: column; gap: 6px; width: 135px;
+            max-height: 80vh; overflow-y: auto;
         }
-        .adj-group { display: flex; flex-direction: column; gap: 3px; color: #fff; font-size: 10px; font-weight: bold; }
-        .adj-group div { display: flex; gap: 4px; }
-        .adj-group button { flex: 1; background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+        .adj-group { display: flex; flex-direction: column; gap: 2px; color: #00ff88; font-size: 9px; font-weight: bold; }
+        .adj-group div { display: flex; gap: 3px; }
+        .adj-group button { flex: 1; background: rgba(255,255,255,0.2); border: none; color: white; padding: 5px; border-radius: 5px; font-size: 12px; cursor: pointer; }
         .adj-group button:active { background: #ff0055; }
 
-        /* Bottom Floating Dock (Instagram / Snapchat Style) */
+        /* Bottom Floating Dock */
         .bottom-dock {
             position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%);
             background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(15px);
@@ -49,11 +48,10 @@
             border-radius: 35px; display: flex; align-items: center; gap: 18px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
         .dock-btn {
-            background: transparent; border: none; color: white; font-size: 12px; font-weight: 600;
-            cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 5px;
+            background: transparent; border: none; color: white; font-size: 11px; font-weight: 600;
+            cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 5px;
         }
         
-        /* Shutter / Record Button */
         #record-btn {
             background: #fff; width: 60px; height: 60px; border-radius: 50%;
             border: 4px solid rgba(255,255,255,0.4); box-shadow: 0 0 20px rgba(255,255,255,0.5);
@@ -62,7 +60,6 @@
         #record-btn.recording { background: #ff3333; border-color: white; animation: pulse 1s infinite; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
 
-        /* Permission Screen */
         #permission-screen {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: #0b0b0b; z-index: 99999; display: flex; flex-direction: column;
@@ -80,7 +77,7 @@
 
     <div id="permission-screen">
         <h1 style="margin: 0 0 10px 0; font-size: 22px;">Aziz AR Studio</h1>
-        <p style="margin: 0; color: #aaa; font-size: 13px;">Tap below to start camera & face tracking</p>
+        <p style="margin: 0; color: #aaa; font-size: 13px;">Tap below to start camera & head tracking</p>
         <button id="start-app-btn">START CAMERA</button>
         <div id="error-msg"></div>
     </div>
@@ -105,15 +102,36 @@
             <div class="adj-group">
                 <span>UP / DOWN</span>
                 <div>
-                    <button onclick="adjustVal('posY', -0.04)">▼</button>
-                    <button onclick="adjustVal('posY', 0.04)">▲</button>
+                    <button onclick="adjustVal('posY', -0.03)">▼</button>
+                    <button onclick="adjustVal('posY', 0.03)">▲</button>
                 </div>
             </div>
             <div class="adj-group">
                 <span>LEFT / RIGHT</span>
                 <div>
-                    <button onclick="adjustVal('posX', -0.04)">◀</button>
-                    <button onclick="adjustVal('posX', 0.04)">▶</button>
+                    <button onclick="adjustVal('posX', -0.03)">◀</button>
+                    <button onclick="adjustVal('posX', 0.03)">▶</button>
+                </div>
+            </div>
+            <div class="adj-group">
+                <span>ROTATE X</span>
+                <div>
+                    <button onclick="adjustVal('rotX', -0.2)">-</button>
+                    <button onclick="adjustVal('rotX', 0.2)">+</button>
+                </div>
+            </div>
+            <div class="adj-group">
+                <span>ROTATE Y</span>
+                <div>
+                    <button onclick="adjustVal('rotY', -0.2)">-</button>
+                    <button onclick="adjustVal('rotY', 0.2)">+</button>
+                </div>
+            </div>
+            <div class="adj-group">
+                <span>ROTATE Z</span>
+                <div>
+                    <button onclick="adjustVal('rotZ', -0.2)">-</button>
+                    <button onclick="adjustVal('rotZ', 0.2)">+</button>
                 </div>
             </div>
         </div>
@@ -122,12 +140,12 @@
             <label class="dock-btn" for="file-input">
                 📁 <span>Import</span>
             </label>
-            <input type="file" id="file-input" accept=".obj,.gltf,.glb">
+            <input type="file" id="file-input" accept=".obj,.gltf,.glb,.fbx">
 
             <button id="record-btn" class="clickable" title="Record Video"></button>
 
-            <button class="dock-btn" onclick="alert('Ready for next filter/model import!')">
-                ✨ <span>Filter</span>
+            <button class="dock-btn" onclick="resetModelTransforms()">
+                🎯 <span>Reset</span>
             </button>
         </div>
     </div>
@@ -135,7 +153,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fflate@0.7.4/umd/index.min.js"></script> <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
 
     <script>
@@ -145,14 +164,18 @@
         let mediaRecorder, recordedChunks = [], isRecording = false;
         let faceMesh, mpCamera;
 
+        // Model adjustments & rotations
         let modelScale = 1.0;
         let modelOffsetX = 0.0;
-        let modelOffsetY = 0.2;
+        let modelOffsetY = 0.35; // Positioned higher to properly cover the head
         let modelOffsetZ = 0.0;
+        let customRotX = 0.0;
+        let customRotY = 0.0;
+        let customRotZ = 0.0;
 
         document.getElementById('start-app-btn').addEventListener('click', async () => {
             const errDiv = document.getElementById('error-msg');
-            errDiv.innerText = "Initializing camera & AI...";
+            errDiv.innerText = "Initializing camera & head tracking...";
             try {
                 await initCamera();
                 document.getElementById('permission-screen').style.display = 'none';
@@ -193,9 +216,9 @@
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-            scene.add(new THREE.AmbientLight(0xffffff, 1.4));
-            const dLight = new THREE.DirectionalLight(0xffffff, 1.5);
-            dLight.position.set(5, 10, 7);
+            scene.add(new THREE.AmbientLight(0xffffff, 1.5));
+            const dLight = new THREE.DirectionalLight(0xffffff, 1.8);
+            dLight.position.set(5, 12, 8);
             scene.add(dLight);
 
             loadDefaultModel();
@@ -216,7 +239,7 @@
         }
 
         function loadDefaultModel() {
-            const geo = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+            const geo = new THREE.BoxGeometry(1, 1, 1);
             const mat = new THREE.MeshStandardMaterial({ color: 0xff0055, roughness: 0.3 });
             currentModel = new THREE.Mesh(geo, mat);
             scene.add(currentModel);
@@ -225,13 +248,24 @@
         function initFaceTracking() {
             faceMesh = new FaceMesh({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
             faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+            
             faceMesh.onResults((results) => {
                 if (!currentModel) return;
                 if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-                    const nose = results.multiFaceLandmarks[0][1];
+                    const landmarks = results.multiFaceLandmarks[0];
+                    
+                    // Landmark 10 is near the top of the forehead/head, 1 is near nose bridge for centering head depth
+                    const topHead = landmarks[10];
+                    const nose = landmarks[1];
+
+                    // Calculate 3D head position mapping to completely cover the head area
                     const x = -(nose.x - 0.5) * 4.5 + modelOffsetX;
-                    const y = -(nose.y - 0.5) * 4.5 + modelOffsetY;
+                    const y = -(topHead.y - 0.5) * 4.5 + modelOffsetY;
+                    
                     currentModel.position.set(x, y, modelOffsetZ);
+                    
+                    // Apply custom user rotations on top of base tracking
+                    currentModel.rotation.set(customRotX, customRotY, customRotZ);
                     currentModel.visible = true;
                 }
             });
@@ -249,6 +283,20 @@
                 if (currentModel) currentModel.scale.set(modelScale, modelScale, modelScale);
             } else if (type === 'posY') { modelOffsetY += val; }
               else if (type === 'posX') { modelOffsetX += val; }
+              else if (type === 'rotX') { customRotX += val; }
+              else if (type === 'rotY') { customRotY += val; }
+              else if (type === 'rotZ') { customRotZ += val; }
+        }
+
+        function resetModelTransforms() {
+            modelScale = 1.0;
+            modelOffsetX = 0.0;
+            modelOffsetY = 0.35;
+            modelOffsetZ = 0.0;
+            customRotX = 0.0;
+            customRotY = 0.0;
+            customRotZ = 0.0;
+            if (currentModel) currentModel.scale.set(modelScale, modelScale, modelScale);
         }
 
         function animate() {
@@ -274,14 +322,26 @@
                     const loader = new THREE.GLTFLoader();
                     loader.parse(evt.target.result, '', (gltf) => replaceModel(gltf.scene));
                 };
-            } else { alert("Select .obj, .gltf or .glb format."); }
+            } else if (name.endsWith('.fbx')) {
+                reader.readAsArrayBuffer(file);
+                reader.onload = (evt) => {
+                    const loader = new THREE.FBXLoader();
+                    try {
+                        const obj = loader.parse(evt.target.result, '');
+                        replaceModel(obj);
+                    } catch (err) {
+                        alert("Error parsing FBX file.");
+                    }
+                };
+            } else { 
+                alert("Please select .obj, .gltf, .glb or .fbx format."); 
+            }
         }
 
         function replaceModel(newObj) {
             if (currentModel) scene.remove(currentModel);
             currentModel = newObj;
-            modelScale = 1.0; modelOffsetX = 0.0; modelOffsetY = 0.2;
-            currentModel.scale.set(modelScale, modelScale, modelScale);
+            resetModelTransforms();
             scene.add(currentModel);
         }
 
@@ -331,4 +391,5 @@
         }
     </script>
 </body>
-</html>
+                    </html>
+                
