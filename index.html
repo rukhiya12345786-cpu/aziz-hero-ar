@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Aziz Pro Animoji Studio - Ultimate Fixed</title>
+    <title>Aziz Lite Animoji Studio</title>
     <style>
         * { box-sizing: border-box; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; }
@@ -18,69 +18,52 @@
         }
         .interactive { pointer-events: auto; }
 
-        .top-nav { display: flex; justify-content: space-between; width: 100%; align-items: center; flex-wrap: wrap; gap: 6px; }
+        .top-nav { display: flex; justify-content: space-between; width: 100%; align-items: center; gap: 6px; }
         
         .btn {
-            background: rgba(0, 0, 0, 0.75); color: white; border: 1px solid rgba(255,255,255,0.4);
+            background: rgba(0, 0, 0, 0.7); color: white; border: 1px solid rgba(255,255,255,0.4);
             padding: 8px 12px; font-size: 11px; border-radius: 20px; cursor: pointer; font-weight: bold;
-            backdrop-filter: blur(6px); transition: all 0.2s ease;
+            backdrop-filter: blur(6px);
         }
-        .btn:active { background: rgba(255, 255, 255, 0.4); transform: scale(0.95); }
-
-        .control-panel {
-            position: absolute; top: 85px; left: 15px; display: flex; flex-direction: column; gap: 8px;
-            background: rgba(0, 0, 0, 0.45); padding: 10px; border-radius: 15px; backdrop-filter: blur(5px);
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-        .control-row { display: flex; gap: 8px; justify-content: center; }
-        .control-btn {
-            background: rgba(255, 255, 255, 0.2); color: white; border: 1px solid rgba(255, 255, 255, 0.4);
-            width: 38px; height: 38px; border-radius: 50%; font-size: 15px; font-weight: bold;
-            cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);
-        }
-        .control-btn:active { background: rgba(0, 255, 136, 0.6); border-color: #00ff88; }
+        .btn:active { background: rgba(255, 255, 255, 0.4); }
 
         .bottom-dock {
             position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.65); border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255, 255, 255, 0.3);
             padding: 10px 20px; border-radius: 40px; display: flex; align-items: center; gap: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5); backdrop-filter: blur(8px);
+            backdrop-filter: blur(8px);
         }
         .filter-switcher { display: flex; gap: 12px; align-items: center; }
         .filter-thumb {
             width: 45px; height: 45px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.6);
-            background-size: cover; cursor: pointer; display: flex; align-items: center; justify-content: center;
-            font-size: 20px; background-color: rgba(34,34,34,0.7); transition: transform 0.2s;
+            background-color: rgba(34,34,34,0.7); cursor: pointer; display: flex; align-items: center; justify-content: center;
+            font-size: 20px;
         }
-        .filter-thumb:active { transform: scale(0.9); }
         .filter-thumb.active { border-color: #00ff88; box-shadow: 0 0 15px #00ff88; }
 
         #start-screen {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: linear-gradient(135deg, #111, #222); z-index: 99999; display: flex; flex-direction: column;
+            background: #111; z-index: 99999; display: flex; flex-direction: column;
             justify-content: center; align-items: center; color: white; text-align: center; padding: 25px;
         }
         #launch-btn {
             background: #00ff88; color: #000; font-size: 18px; font-weight: bold;
             padding: 16px 40px; border-radius: 30px; margin-top: 20px; border: none; cursor: pointer;
-            box-shadow: 0 5px 20px rgba(0,255,136,0.4);
         }
     </style>
 
-    <!-- Reliable CDN Libraries for Three.js, Loaders & MediaPipe -->
+    <!-- Essential Fast CDNs -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
 </head>
 <body>
 
     <div id="start-screen">
-        <h1 style="color: #00ff88; margin-bottom: 5px;">Aziz Pro Animoji Studio</h1>
-        <p style="color: #aaa; max-width: 320px;">Custom 3D Model Import (.obj, .glb) & True 360° Head Enclosure</p>
-        <button id="launch-btn">START STUDIO</button>
-        <div id="error-log" style="color: #ff4444; font-size: 13px; margin-top: 15px; max-width: 300px;"></div>
+        <h1 style="color: #00ff88; margin-bottom: 5px;">Aziz Lite Studio</h1>
+        <p style="color: #aaa; font-size: 14px;">Fast & Smooth 360° Head Enclosure</p>
+        <button id="launch-btn">START APP</button>
+        <div id="error-log" style="color: #ff4444; font-size: 12px; margin-top: 10px;"></div>
     </div>
 
     <video id="video-element" autoplay playsinline muted></video>
@@ -89,30 +72,7 @@
     <div id="ui-overlay">
         <div class="top-nav">
             <button id="flip-cam" class="btn interactive">🔄 Flip</button>
-            <button id="reset-pos" class="btn interactive">🎯 Reset</button>
-            <button id="export-btn" class="btn interactive">📤 Export</button>
-            <button id="import-btn" class="btn interactive">📥 Import 3D</button>
-            <input type="file" id="import-file" style="display: none;" accept=".obj,.glb,.gltf,.xfpx,.json">
             <button id="take-snap" class="btn interactive">📸 Snap</button>
-        </div>
-
-        <div class="control-panel interactive">
-            <div class="control-row">
-                <button class="control-btn" onclick="adjustPosition('up')">⬆️</button>
-            </div>
-            <div class="control-row">
-                <button class="control-btn" onclick="adjustPosition('left')">⬅️</button>
-                <button class="control-btn" onclick="adjustPosition('front')">⏺️</button>
-                <button class="control-btn" onclick="adjustPosition('right')">➡️</button>
-            </div>
-            <div class="control-row">
-                <button class="control-btn" onclick="adjustPosition('down')">⬇️</button>
-            </div>
-            <div style="height: 1px; background: rgba(255,255,255,0.2); margin: 4px 0;"></div>
-            <div class="control-row">
-                <button class="control-btn" onclick="adjustScale(0.1)">➕</button>
-                <button class="control-btn" onclick="adjustScale(-0.1)">➖</button>
-            </div>
         </div>
 
         <div class="bottom-dock interactive">
@@ -132,19 +92,14 @@
         let useFront = true;
         let jawPart = null;
 
-        let manualOffsetX = 0;
-        let manualOffsetY = 0;
-        let manualOffsetZ = 0;
-        let manualScale = 1.0;
-
         document.getElementById('launch-btn').addEventListener('click', async () => {
             const btn = document.getElementById('launch-btn');
-            btn.innerText = "Starting Camera...";
+            btn.innerText = "Opening...";
             btn.disabled = true;
 
             try {
-                if (typeof THREE === 'undefined') throw new Error("Three.js failed to load. Check internet.");
-                if (typeof FaceMesh === 'undefined') throw new Error("MediaPipe failed to load. Check internet.");
+                if (typeof THREE === 'undefined') throw new Error("Three.js not loaded.");
+                if (typeof FaceMesh === 'undefined') throw new Error("MediaPipe not loaded.");
 
                 await startCamera();
                 document.getElementById('start-screen').style.display = 'none';
@@ -154,7 +109,7 @@
             } catch (err) {
                 console.error(err);
                 document.getElementById('error-log').innerText = err.message;
-                btn.innerText = "START STUDIO";
+                btn.innerText = "START APP";
                 btn.disabled = false;
             }
         });
@@ -163,11 +118,11 @@
             if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
             try {
                 mediaStream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: useFront ? 'user' : 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
-                    audio: true
+                    video: { facingMode: useFront ? 'user' : 'environment', width: { ideal: 640 }, height: { ideal: 480 } },
+                    audio: false
                 });
             } catch (e) {
-                mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
             }
             videoEl = document.getElementById('video-element');
             videoEl.srcObject = mediaStream;
@@ -181,91 +136,19 @@
             if (mpCamera) mpCamera.start();
         });
 
-        document.getElementById('reset-pos').addEventListener('click', () => {
-            manualOffsetX = 0;
-            manualOffsetY = 0;
-            manualOffsetZ = 0;
-            manualScale = 1.0;
-            if (animojiGroup) animojiGroup.scale.set(1, 1, 1);
-        });
-
-        document.getElementById('export-btn').addEventListener('click', () => {
-            const config = { app: "AzizStudio", currentType, manualOffsetX, manualOffsetY, manualOffsetZ, manualScale };
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(config, null, 2));
-            const dlAnchor = document.createElement('a');
-            dlAnchor.setAttribute("href", dataStr);
-            dlAnchor.setAttribute("download", "animoji_project.xfpx");
-            document.body.appendChild(dlAnchor);
-            dlAnchor.click();
-            dlAnchor.remove();
-        });
-
-        document.getElementById('import-btn').addEventListener('click', () => {
-            document.getElementById('import-file').click();
-        });
-
-        document.getElementById('import-file').addEventListener('change', (event) => {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const fileName = file.name.toLowerCase();
-            const fileURL = URL.createObjectURL(file);
-
-            if (fileName.endsWith('.obj')) {
-                const loader = new THREE.OBJLoader();
-                loader.load(fileURL, (object) => {
-                    if (animojiGroup) scene.remove(animojiGroup);
-                    animojiGroup = new THREE.Group();
-                    object.traverse((child) => {
-                        if (child.isMesh) {
-                            child.material = new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.3 });
-                        }
-                    });
-                    animojiGroup.add(object);
-                    animojiGroup.scale.set(manualScale, manualScale, manualScale);
-                    scene.add(animojiGroup);
-                    alert(".OBJ Model Loaded!");
-                }, undefined, () => { alert("Error loading .obj file."); });
-            } else if (fileName.endsWith('.glb') || fileName.endsWith('.gltf')) {
-                const loader = new THREE.GLTFLoader();
-                loader.load(fileURL, (gltf) => {
-                    if (animojiGroup) scene.remove(animojiGroup);
-                    animojiGroup = new THREE.Group();
-                    animojiGroup.add(gltf.scene);
-                    animojiGroup.scale.set(manualScale, manualScale, manualScale);
-                    scene.add(animojiGroup);
-                    alert(".GLB Model Loaded!");
-                }, undefined, () => { alert("Error loading .glb file."); });
-            }
-        });
-
-        function adjustPosition(dir) {
-            const step = 0.15;
-            if (dir === 'left') manualOffsetX -= step;
-            if (dir === 'right') manualOffsetX += step;
-            if (dir === 'up') manualOffsetY += step;
-            if (dir === 'down') manualOffsetY -= step;
-            if (dir === 'front') manualOffsetZ += step;
-        }
-
-        function adjustScale(amount) {
-            manualScale = Math.max(0.4, Math.min(2.5, manualScale + amount));
-            if (animojiGroup) animojiGroup.scale.set(manualScale, manualScale, manualScale);
-        }
-
         function initThreeJS() {
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
             
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             document.getElementById('webgl-container').appendChild(renderer.domElement);
 
-            scene.add(new THREE.AmbientLight(0xffffff, 1.8));
-            const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
-            dirLight.position.set(0, 10, 10);
-            scene.add(dirLight);
+            scene.add(new THREE.AmbientLight(0xffffff, 1.5));
+            const light = new THREE.DirectionalLight(0xffffff, 1.0);
+            light.position.set(0, 10, 10);
+            scene.add(light);
 
             buildAnimoji('laugh');
             camera.position.z = 3;
@@ -302,95 +185,84 @@
             if (animojiGroup) scene.remove(animojiGroup);
             animojiGroup = new THREE.Group();
 
-            const headGeo = new THREE.SphereGeometry(0.95, 32, 32);
+            // 360 Head Sphere
+            const headGeo = new THREE.SphereGeometry(0.9, 24, 24);
 
             if (type === 'laugh') {
-                const headMat = new THREE.MeshStandardMaterial({ color: 0xffcc00, roughness: 0.2 });
+                const headMat = new THREE.MeshStandardMaterial({ color: 0xffcc00 });
                 animojiGroup.add(new THREE.Mesh(headGeo, headMat));
 
-                const eyeMat = new THREE.MeshBasicMaterial({ color: 0x333333 });
-                const eyeGeo = new THREE.BoxGeometry(0.18, 0.07, 0.05);
-                const lEye = new THREE.Mesh(eyeGeo, eyeMat); lEye.position.set(-0.3, 0.22, 0.85);
-                const rEye = new THREE.Mesh(eyeGeo, eyeMat); rEye.position.set(0.3, 0.22, 0.85);
+                const eyeMat = new THREE.MeshBasicMaterial({ color: 0x222 });
+                const lEye = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.06, 0.04), eyeMat); lEye.position.set(-0.3, 0.2, 0.8);
+                const rEye = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.06, 0.04), eyeMat); rEye.position.set(0.3, 0.2, 0.8);
                 animojiGroup.add(lEye); animojiGroup.add(rEye);
 
-                const mouthGeo = new THREE.BoxGeometry(0.35, 0.22, 0.1);
-                const mouthMat = new THREE.MeshBasicMaterial({ color: 0x8b0000 });
-                jawPart = new THREE.Mesh(mouthGeo, mouthMat);
-                jawPart.position.set(0, -0.22, 0.8);
+                jawPart = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.2, 0.08), new THREE.MeshBasicMaterial({ color: 0x8b0000 }));
+                jawPart.position.set(0, -0.2, 0.75);
                 animojiGroup.add(jawPart);
 
             } else if (type === 'cool') {
-                const headMat = new THREE.MeshStandardMaterial({ color: 0xffcc00, roughness: 0.2 });
+                const headMat = new THREE.MeshStandardMaterial({ color: 0xffcc00 });
                 animojiGroup.add(new THREE.Mesh(headGeo, headMat));
 
-                const glassMat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.8, roughness: 0.1 });
-                const glasses = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.35, 0.3), glassMat);
-                glasses.position.set(0, 0.18, 0.82);
+                const glasses = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.3, 0.25), new THREE.MeshStandardMaterial({ color: 0x111, metalness: 0.8 }));
+                glasses.position.set(0, 0.15, 0.78);
                 animojiGroup.add(glasses);
 
-                const mouthMat = new THREE.MeshBasicMaterial({ color: 0x333333 });
-                jawPart = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.07, 0.05), mouthMat);
-                jawPart.position.set(0, -0.28, 0.85);
+                jawPart = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.06, 0.04), new THREE.MeshBasicMaterial({ color: 0x222 }));
+                jawPart.position.set(0, -0.25, 0.8);
                 animojiGroup.add(jawPart);
 
             } else if (type === 'panda') {
-                const headMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 });
+                const headMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
                 animojiGroup.add(new THREE.Mesh(headGeo, headMat));
 
-                const earMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
-                const lEar = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), earMat); lEar.position.set(-0.75, 0.75, 0);
-                const rEar = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), earMat); rEar.position.set(0.75, 0.75, 0);
+                const earMat = new THREE.MeshStandardMaterial({ color: 0x111 });
+                const lEar = new THREE.Mesh(new THREE.SphereGeometry(0.25, 12, 12), earMat); lEar.position.set(-0.7, 0.7, 0);
+                const rEar = new THREE.Mesh(new THREE.SphereGeometry(0.25, 12, 12), earMat); rEar.position.set(0.7, 0.7, 0);
                 animojiGroup.add(lEar); animojiGroup.add(rEar);
 
-                const patchMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
-                const lPatch = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.05, 16), patchMat);
-                lPatch.rotateX(Math.PI / 2); lPatch.position.set(-0.35, 0.18, 0.82);
-                const rPatch = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.05, 16), patchMat);
-                rPatch.rotateX(Math.PI / 2); rPatch.position.set(0.35, 0.18, 0.82);
+                const patchMat = new THREE.MeshBasicMaterial({ color: 0x111 });
+                const lPatch = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.04, 12), patchMat); lPatch.rotateX(Math.PI/2); lPatch.position.set(-0.3, 0.15, 0.78);
+                const rPatch = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.04, 12), patchMat); rPatch.rotateX(Math.PI/2); rPatch.position.set(0.3, 0.15, 0.78);
                 animojiGroup.add(lPatch); animojiGroup.add(rPatch);
 
-                jawPart = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.12, 0.05), patchMat);
-                jawPart.position.set(0, -0.28, 0.85);
+                jawPart = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.1, 0.04), patchMat);
+                jawPart.position.set(0, -0.25, 0.8);
                 animojiGroup.add(jawPart);
             }
 
-            animojiGroup.scale.set(manualScale, manualScale, manualScale);
             scene.add(animojiGroup);
         }
 
         function initTracking() {
             faceMesh = new FaceMesh({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
-            faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.6, minTrackingConfidence: 0.6 });
+            faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: false, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
             
             faceMesh.onResults((results) => {
                 if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0 && animojiGroup) {
                     const lm = results.multiFaceLandmarks[0];
-                    const noseTip = lm[1], lEdge = lm[234], rEdge = lm[454], forehead = lm[10], chin = lm[152];
+                    const nose = lm[1], lEdge = lm[234], rEdge = lm[454], forehead = lm[10], chin = lm[152];
 
-                    const centerX = (lEdge.x + rEdge.x) / 2;
-                    const centerY = (forehead.y + chin.y) / 2;
-                    const centerZ = (lEdge.z + rEdge.z + noseTip.z) / 3;
+                    const cx = (lEdge.x + rEdge.x) / 2;
+                    const cy = (forehead.y + chin.y) / 2;
+                    const cz = (lEdge.z + rEdge.z + nose.z) / 3;
 
-                    const targetX = -(centerX - 0.5) * 3.8 + manualOffsetX;
-                    const targetY = -(centerY - 0.5) * 3.8 + 0.15 + manualOffsetY;
-                    const targetZ = centerZ * 1.6 + manualOffsetZ;
-
-                    animojiGroup.position.x += (targetX - animojiGroup.position.x) * 0.5;
-                    animojiGroup.position.y += (targetY - animojiGroup.position.y) * 0.5;
-                    animojiGroup.position.z += (targetZ - animojiGroup.position.z) * 0.5;
+                    // Smooth tracking calculation
+                    animojiGroup.position.x += ((-(cx - 0.5) * 3.5) - animojiGroup.position.x) * 0.6;
+                    animojiGroup.position.y += (((-(cy - 0.5) * 3.5) + 0.1) - animojiGroup.position.y) * 0.6;
+                    animojiGroup.position.z += ((cz * 1.5) - animojiGroup.position.z) * 0.6;
 
                     const dx = rEdge.x - lEdge.x, dy = rEdge.y - lEdge.y;
-                    const faceRoll = Math.atan2(dy, dx);
-                    const dz = rEdge.z - lEdge.z;
-                    const faceYaw = Math.asin(Math.max(-1, Math.min(1, dz * 1.9)));
-                    const facePitch = ((chin.y - forehead.y) - 0.4) * -1.3;
+                    const roll = Math.atan2(dy, dx);
+                    const yaw = Math.asin(Math.max(-1, Math.min(1, (rEdge.z - lEdge.z) * 1.8)));
+                    const pitch = ((chin.y - forehead.y) - 0.4) * -1.2;
 
-                    animojiGroup.rotation.set(facePitch, faceYaw, faceRoll);
+                    animojiGroup.rotation.set(pitch, yaw, roll);
 
                     if (jawPart) {
                         const mouthOpen = Math.abs(lm[13].y - lm[14].y);
-                        jawPart.scale.set(1, Math.max(0.4, mouthOpen * 15.0), 1);
+                        jawPart.scale.set(1, Math.max(0.4, mouthOpen * 14.0), 1);
                     }
 
                     animojiGroup.visible = true;
@@ -401,7 +273,7 @@
 
             mpCamera = new Camera(videoEl, {
                 onFrame: async () => { if (videoEl && videoEl.readyState >= 2) await faceMesh.send({ image: videoEl }); },
-                width: 1280, height: 720
+                width: 640, height: 480
             });
             mpCamera.start();
         }
