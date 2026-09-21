@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Aziz Transparent VTuber Studio</title>
+    <title>Aziz Clean AR Studio</title>
     <style>
         * { box-sizing: border-box; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; font-family: sans-serif; }
         
         #video-element { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; z-index: 1; transform: scaleX(-1); }
         #webgl-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2; pointer-events: none; }
@@ -14,45 +14,48 @@
         #ui-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 999; pointer-events: none; display: flex; flex-direction: column;
-            justify-content: space-between; padding: 10px;
+            justify-content: space-between; padding: 12px;
         }
         .interactive { pointer-events: auto; }
 
-        .top-nav { display: flex; justify-content: space-between; width: 100%; align-items: center; gap: 5px; }
+        .top-nav { display: flex; justify-content: space-between; width: 100%; align-items: center; gap: 6px; }
         
+        /* Ultra Transparent Glass Buttons */
         .btn {
-            background: rgba(0, 0, 0, 0.4); color: white; border: 1px solid rgba(255,255,255,0.25);
-            padding: 6px 10px; font-size: 10px; border-radius: 15px; cursor: pointer; font-weight: bold;
-            backdrop-filter: blur(4px); transition: all 0.2s;
+            background: rgba(255, 255, 255, 0.15); color: white; border: 1px solid rgba(255, 255, 255, 0.4);
+            padding: 7px 12px; font-size: 11px; border-radius: 20px; cursor: pointer; font-weight: bold;
+            backdrop-filter: blur(8px); text-shadow: 0 1px 2px rgba(0,0,0,0.8); transition: all 0.2s ease;
         }
-        .btn:active { background: rgba(0, 255, 136, 0.5); }
-        .btn.recording { background: rgba(255, 51, 51, 0.8); animation: pulse 1.2s infinite; }
+        .btn:active { background: rgba(0, 255, 136, 0.4); border-color: #00ff88; }
+        .btn.recording { background: rgba(255, 51, 51, 0.7); border-color: #ff3333; animation: pulse 1.2s infinite; }
 
         @keyframes pulse {
             0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; }
         }
 
+        /* Fully Transparent Floating Control Panel */
         .control-panel {
-            position: absolute; top: 55px; right: 10px; background: rgba(0, 0, 0, 0.35);
-            border: 1px solid rgba(255,255,255,0.15); padding: 8px; border-radius: 10px;
-            display: flex; flex-direction: column; gap: 6px; backdrop-filter: blur(5px);
-            width: 130px;
+            position: absolute; top: 65px; right: 12px; background: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.2); padding: 10px; border-radius: 12px;
+            display: flex; flex-direction: column; gap: 8px; backdrop-filter: blur(6px);
+            width: 145px;
         }
-        .control-panel label { color: #00ff88; font-size: 8px; font-weight: bold; display: flex; justify-content: space-between; text-shadow: 0 1px 2px #000; }
-        .control-panel input[type=range] { width: 100%; cursor: pointer; accent-color: #00ff88; height: 4px; }
+        .control-panel label { color: #00ff88; font-size: 9px; font-weight: bold; display: flex; justify-content: space-between; text-shadow: 0 1px 2px #000; }
+        .control-panel input[type=range] { width: 100%; cursor: pointer; accent-color: #00ff88; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; }
 
         #start-screen {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: #0b0b0b; z-index: 99999; display: flex; flex-direction: column;
+            background: #050505; z-index: 99999; display: flex; flex-direction: column;
             justify-content: center; align-items: center; color: white; text-align: center; padding: 25px;
         }
         #launch-btn {
             background: #00ff88; color: #000; font-size: 16px; font-weight: bold;
-            padding: 14px 35px; border-radius: 25px; margin-top: 20px; border: none; cursor: pointer;
-            box-shadow: 0 0 20px rgba(0,255,136,0.4);
+            padding: 14px 40px; border-radius: 30px; margin-top: 20px; border: none; cursor: pointer;
+            box-shadow: 0 0 25px rgba(0,255,136,0.5);
         }
     </style>
 
+    <!-- Required Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -63,9 +66,9 @@
 <body>
 
     <div id="start-screen">
-        <h1 style="color: #00ff88; margin-bottom: 5px; font-size: 22px;">Aziz Transparent Studio</h1>
-        <p style="color: #888; font-size: 12px; max-width: 280px;">Clean AR View & Custom 3D Model Importer (.obj, .glb, .gltf)</p>
-        <button id="launch-btn">START CAMERA</button>
+        <h1 style="color: #00ff88; margin-bottom: 5px; font-size: 24px;">Aziz AR Studio</h1>
+        <p style="color: #aaa; font-size: 12px; max-width: 280px;">Transparent Interface & Precise Face Tracking</p>
+        <button id="launch-btn">START STUDIO</button>
         <div id="error-log" style="color: #ff4444; font-size: 11px; margin-top: 10px;"></div>
     </div>
 
@@ -75,7 +78,7 @@
     <div id="ui-overlay">
         <div class="top-nav">
             <button id="flip-cam" class="btn interactive">🔄 Flip</button>
-            <button id="import-btn" class="btn interactive">📥 Import Model</button>
+            <button id="import-btn" class="btn interactive">📥 Import</button>
             <input type="file" id="import-file" style="display: none;" accept=".obj,.glb,.gltf">
             <button id="record-btn" class="btn interactive">🔴 Rec</button>
             <button id="take-snap" class="btn interactive">📸 Snap</button>
@@ -113,7 +116,7 @@
 
         document.getElementById('launch-btn').addEventListener('click', async () => {
             const btn = document.getElementById('launch-btn');
-            btn.innerText = "Initializing...";
+            btn.innerText = "Loading...";
             btn.disabled = true;
 
             try {
@@ -125,7 +128,7 @@
             } catch (err) {
                 console.error(err);
                 document.getElementById('error-log').innerText = err.message;
-                btn.innerText = "START CAMERA";
+                btn.innerText = "START STUDIO";
                 btn.disabled = false;
             }
         });
@@ -169,12 +172,12 @@
                 const loader = new THREE.OBJLoader();
                 loader.load(fileURL, (object) => {
                     object.traverse(child => {
-                        if (child.isMesh) child.material = new THREE.MeshStandardMaterial({ color: 0x00ff88, metalness: 0.4, roughness: 0.3 });
+                        if (child.isMesh) child.material = new THREE.MeshStandardMaterial({ color: 0x00ff88, metalness: 0.5, roughness: 0.2 });
                     });
                     object.scale.set(0.01, 0.01, 0.01);
                     customModelGroup.add(object);
                     scene.add(customModelGroup);
-                    alert("OBJ Model Loaded Successfully!");
+                    alert("OBJ Model Imported Successfully!");
                 });
             } else if (fileName.endsWith('.glb') || fileName.endsWith('.gltf')) {
                 const loader = new THREE.GLTFLoader();
@@ -183,7 +186,7 @@
                     model.scale.set(1.0, 1.0, 1.0);
                     customModelGroup.add(model);
                     scene.add(customModelGroup);
-                    alert("GLB/GLTF Model Loaded Successfully!");
+                    alert("GLB/GLTF Model Imported Successfully!");
                 });
             }
         });
@@ -226,7 +229,7 @@
                     const blob = new Blob(recordedChunks, { type: 'video/webm' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
-                    a.href = url; a.download = 'aziz_transparent_recording.webm';
+                    a.href = url; a.download = 'aziz_ar_recording.webm';
                     document.body.appendChild(a); a.click(); a.remove();
                 };
                 mediaRecorder.start();
@@ -270,7 +273,7 @@
                 ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
                 ctx.drawImage(renderer.domElement, 0, 0, canvas.width, canvas.height);
                 const link = document.createElement('a');
-                link.download = 'aziz_transparent_snap.png';
+                link.download = 'aziz_ar_snap.png';
                 link.href = canvas.toDataURL('image/png');
                 link.click();
             });
@@ -324,10 +327,10 @@
             mpCamera.start();
         }
 
-    function animateLoop() {
-        requestAnimationFrame(animateLoop);
-        if (renderer && scene && camera) renderer.render(scene, camera);
-    }
-</script>
+        function animateLoop() {
+            requestAnimationFrame(animateLoop);
+            if (renderer && scene && camera) renderer.render(scene, camera);
+        }
+    </script>
 </body>
 </html>
