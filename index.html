@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Aziz Pro VTuber & Helmet Studio</title>
+    <title>Aziz Transparent VTuber Studio</title>
     <style>
         * { box-sizing: border-box; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; }
@@ -14,67 +14,59 @@
         #ui-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 999; pointer-events: none; display: flex; flex-direction: column;
-            justify-content: space-between; padding: 15px;
+            justify-content: space-between; padding: 10px;
         }
         .interactive { pointer-events: auto; }
 
-        .top-nav { display: flex; justify-content: space-between; width: 100%; align-items: center; flex-wrap: wrap; gap: 6px; }
+        .top-nav { display: flex; justify-content: space-between; width: 100%; align-items: center; gap: 5px; }
         
         .btn {
-            background: rgba(0, 0, 0, 0.85); color: white; border: 1px solid rgba(255,255,255,0.4);
-            padding: 8px 12px; font-size: 11px; border-radius: 20px; cursor: pointer; font-weight: bold;
-            backdrop-filter: blur(6px);
+            background: rgba(0, 0, 0, 0.4); color: white; border: 1px solid rgba(255,255,255,0.25);
+            padding: 6px 10px; font-size: 10px; border-radius: 15px; cursor: pointer; font-weight: bold;
+            backdrop-filter: blur(4px); transition: all 0.2s;
         }
-        .btn:active { background: rgba(0, 255, 136, 0.4); }
-        .btn.recording { background: #ff3333; animation: pulse 1.2s infinite; }
+        .btn:active { background: rgba(0, 255, 136, 0.5); }
+        .btn.recording { background: rgba(255, 51, 51, 0.8); animation: pulse 1.2s infinite; }
 
         @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
+            0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; }
         }
 
-        .bottom-dock {
-            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.8); border: 1px solid rgba(255, 255, 255, 0.3);
-            padding: 10px 20px; border-radius: 40px; display: flex; align-items: center; gap: 15px;
-            backdrop-filter: blur(8px);
+        .control-panel {
+            position: absolute; top: 55px; right: 10px; background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255,255,255,0.15); padding: 8px; border-radius: 10px;
+            display: flex; flex-direction: column; gap: 6px; backdrop-filter: blur(5px);
+            width: 130px;
         }
-        .filter-switcher { display: flex; gap: 12px; align-items: center; }
-        .filter-thumb {
-            width: 45px; height: 45px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.6);
-            cursor: pointer; display: flex; align-items: center; justify-content: center;
-            font-size: 20px; background-color: rgba(34,34,34,0.8);
-        }
-        .filter-thumb.active { border-color: #00ff88; box-shadow: 0 0 15px #00ff88; }
+        .control-panel label { color: #00ff88; font-size: 8px; font-weight: bold; display: flex; justify-content: space-between; text-shadow: 0 1px 2px #000; }
+        .control-panel input[type=range] { width: 100%; cursor: pointer; accent-color: #00ff88; height: 4px; }
 
         #start-screen {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: #111; z-index: 99999; display: flex; flex-direction: column;
+            background: #0b0b0b; z-index: 99999; display: flex; flex-direction: column;
             justify-content: center; align-items: center; color: white; text-align: center; padding: 25px;
         }
         #launch-btn {
-            background: #00ff88; color: #000; font-size: 18px; font-weight: bold;
-            padding: 16px 40px; border-radius: 30px; margin-top: 20px; border: none; cursor: pointer;
+            background: #00ff88; color: #000; font-size: 16px; font-weight: bold;
+            padding: 14px 35px; border-radius: 25px; margin-top: 20px; border: none; cursor: pointer;
+            box-shadow: 0 0 20px rgba(0,255,136,0.4);
         }
     </style>
 
-    <!-- Required Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
-    <!-- Kalidokit for Advanced Expressions, Blinks & Kinematics Solver -->
     <script src="https://cdn.jsdelivr.net/npm/kalidokit@1.1.4/dist/kalidokit.umd.js"></script>
 </head>
 <body>
 
     <div id="start-screen">
-        <h1 style="color: #00ff88; margin-bottom: 5px;">Aziz Pro VTuber Studio</h1>
-        <p style="color: #aaa; font-size: 14px;">Advanced Head Lock, Blink & Expression Tracking</p>
-        <button id="launch-btn">START STUDIO</button>
-        <div id="error-log" style="color: #ff4444; font-size: 12px; margin-top: 10px;"></div>
+        <h1 style="color: #00ff88; margin-bottom: 5px; font-size: 22px;">Aziz Transparent Studio</h1>
+        <p style="color: #888; font-size: 12px; max-width: 280px;">Clean AR View & Custom 3D Model Importer (.obj, .glb, .gltf)</p>
+        <button id="launch-btn">START CAMERA</button>
+        <div id="error-log" style="color: #ff4444; font-size: 11px; margin-top: 10px;"></div>
     </div>
 
     <video id="video-element" autoplay playsinline muted></video>
@@ -83,36 +75,45 @@
     <div id="ui-overlay">
         <div class="top-nav">
             <button id="flip-cam" class="btn interactive">🔄 Flip</button>
-            <button id="import-btn" class="btn interactive">📥 Import 3D</button>
+            <button id="import-btn" class="btn interactive">📥 Import Model</button>
             <input type="file" id="import-file" style="display: none;" accept=".obj,.glb,.gltf">
-            <button id="record-btn" class="btn interactive">🔴 Record Video</button>
+            <button id="record-btn" class="btn interactive">🔴 Rec</button>
             <button id="take-snap" class="btn interactive">📸 Snap</button>
         </div>
 
-        <div class="bottom-dock interactive">
-            <div class="filter-switcher">
-                <div class="filter-thumb active" id="btn-helmet" onclick="switchPreset('helmet')">🪖</div>
-                <div class="filter-thumb" id="btn-cyber" onclick="switchPreset('cyber')">🤖</div>
-                <div class="filter-thumb" id="btn-bubble" onclick="switchPreset('bubble')">🌐</div>
-            </div>
+        <div class="control-panel interactive">
+            <label>Scale <span id="val-scale">1.0</span></label>
+            <input type="range" id="range-scale" min="0.2" max="3.0" step="0.05" value="1.0">
+            
+            <label>Offset X <span id="val-x">0.0</span></label>
+            <input type="range" id="range-x" min="-1.0" max="1.0" step="0.05" value="0.0">
+
+            <label>Offset Y <span id="val-y">0.0</span></label>
+            <input type="range" id="range-y" min="-1.0" max="1.0" step="0.05" value="0.0">
+
+            <label>Rotation Y <span id="val-rot">0°</span></label>
+            <input type="range" id="range-rot" min="-180" max="180" step="5" value="0">
         </div>
     </div>
 
     <script>
         let scene, camera, renderer, videoEl, mediaStream;
         let faceMesh = null, mpCamera = null;
-        let helmetGroup = null, visorMesh = null;
-        let currentPreset = 'helmet';
+        let customModelGroup = null;
         let useFront = true;
         
-        // Video Recording Variables
+        let manualScale = 1.0;
+        let manualOffsetX = 0.0;
+        let manualOffsetY = 0.0;
+        let manualRotateY = 0.0;
+
         let mediaRecorder;
         let recordedChunks = [];
         let isRecording = false;
 
         document.getElementById('launch-btn').addEventListener('click', async () => {
             const btn = document.getElementById('launch-btn');
-            btn.innerText = "Loading...";
+            btn.innerText = "Initializing...";
             btn.disabled = true;
 
             try {
@@ -120,10 +121,11 @@
                 document.getElementById('start-screen').style.display = 'none';
                 initThreeJS();
                 initTracking();
+                initControls();
             } catch (err) {
                 console.error(err);
                 document.getElementById('error-log').innerText = err.message;
-                btn.innerText = "START STUDIO";
+                btn.innerText = "START CAMERA";
                 btn.disabled = false;
             }
         });
@@ -160,90 +162,84 @@
             const fileURL = URL.createObjectURL(file);
             const fileName = file.name.toLowerCase();
 
+            if (customModelGroup) scene.remove(customModelGroup);
+            customModelGroup = new THREE.Group();
+
             if (fileName.endsWith('.obj')) {
                 const loader = new THREE.OBJLoader();
                 loader.load(fileURL, (object) => {
-                    if (helmetGroup) scene.remove(helmetGroup);
-                    helmetGroup = new THREE.Group();
                     object.traverse(child => {
-                        if (child.isMesh) child.material = new THREE.MeshStandardMaterial({ color: 0x00ff88, metalness: 0.5, roughness: 0.2 });
+                        if (child.isMesh) child.material = new THREE.MeshStandardMaterial({ color: 0x00ff88, metalness: 0.4, roughness: 0.3 });
                     });
-                    object.scale.set(0.012, 0.012, 0.012);
-                    helmetGroup.add(object);
-                    scene.add(helmetGroup);
-                    alert("Custom OBJ Model Imported Successfully!");
+                    object.scale.set(0.01, 0.01, 0.01);
+                    customModelGroup.add(object);
+                    scene.add(customModelGroup);
+                    alert("OBJ Model Loaded Successfully!");
                 });
             } else if (fileName.endsWith('.glb') || fileName.endsWith('.gltf')) {
                 const loader = new THREE.GLTFLoader();
                 loader.load(fileURL, (gltf) => {
-                    if (helmetGroup) scene.remove(helmetGroup);
-                    helmetGroup = new THREE.Group();
                     const model = gltf.scene;
-                    model.scale.set(1.1, 1.1, 1.1);
-                    helmetGroup.add(model);
-                    scene.add(helmetGroup);
-                    alert("Custom GLB/GLTF Model Imported Successfully!");
+                    model.scale.set(1.0, 1.0, 1.0);
+                    customModelGroup.add(model);
+                    scene.add(customModelGroup);
+                    alert("GLB/GLTF Model Loaded Successfully!");
                 });
             }
         });
 
-        // Video Recording Logic
+        function initControls() {
+            document.getElementById('range-scale').addEventListener('input', (e) => {
+                manualScale = parseFloat(e.target.value);
+                document.getElementById('val-scale').innerText = manualScale.toFixed(2);
+            });
+            document.getElementById('range-x').addEventListener('input', (e) => {
+                manualOffsetX = parseFloat(e.target.value);
+                document.getElementById('val-x').innerText = manualOffsetX.toFixed(2);
+            });
+            document.getElementById('range-y').addEventListener('input', (e) => {
+                manualOffsetY = parseFloat(e.target.value);
+                document.getElementById('val-y').innerText = manualOffsetY.toFixed(2);
+            });
+            document.getElementById('range-rot').addEventListener('input', (e) => {
+                manualRotateY = THREE.MathUtils.degToRad(parseFloat(e.target.value));
+                document.getElementById('val-rot').innerText = e.target.value + '°';
+            });
+        }
+
         const recordBtn = document.getElementById('record-btn');
         recordBtn.addEventListener('click', () => {
             if (!isRecording) {
-                startRecording();
+                recordedChunks = [];
+                const canvasStream = renderer.domElement.captureStream(30);
+                const audioTracks = mediaStream.getAudioTracks();
+                if (audioTracks.length > 0) canvasStream.addTrack(audioTracks[0]);
+
+                try {
+                    mediaRecorder = new MediaRecorder(canvasStream, { mimeType: 'video/webm; codecs=vp9' });
+                } catch (e) {
+                    mediaRecorder = new MediaRecorder(canvasStream);
+                }
+
+                mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url; a.download = 'aziz_transparent_recording.webm';
+                    document.body.appendChild(a); a.click(); a.remove();
+                };
+                mediaRecorder.start();
+                isRecording = true;
+                recordBtn.innerText = "⏹ Stop";
+                recordBtn.classList.add('recording');
             } else {
-                stopRecording();
+                mediaRecorder.stop();
+                isRecording = false;
+                recordBtn.innerText = "🔴 Rec";
+                recordBtn.classList.remove('recording');
             }
         });
-
-        function startRecording() {
-            recordedChunks = [];
-            const canvasStream = renderer.domElement.captureStream(30); // 30 FPS from WebGL
-            
-            // Combine video stream audio if available
-            const audioTracks = mediaStream.getAudioTracks();
-            if (audioTracks.length > 0) {
-                canvasStream.addTrack(audioTracks[0]);
-            }
-
-            try {
-                mediaRecorder = new MediaRecorder(canvasStream, { mimeType: 'video/webm; codecs=vp9' });
-            } catch (e) {
-                mediaRecorder = new MediaRecorder(canvasStream);
-            }
-
-            mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) recordedChunks.push(event.data);
-            };
-
-            mediaRecorder.onstop = () => {
-                const blob = new Blob(recordedChunks, { type: 'video/webm' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = 'aziz_studio_recording.webm';
-                document.body.appendChild(a);
-                a.click();
-                setTimeout(() => {
-                    document.body.removeChild(a);
-                    window.URL.revokeObjectURL(url);
-                }, 100);
-            };
-
-            mediaRecorder.start();
-            isRecording = true;
-            recordBtn.innerText = "⏹ Stop Rec";
-            recordBtn.classList.add('recording');
-        }
-
-        function stopRecording() {
-            mediaRecorder.stop();
-            isRecording = false;
-            recordBtn.innerText = "🔴 Record Video";
-            recordBtn.classList.remove('recording');
-        }
 
         function initThreeJS() {
             scene = new THREE.Scene();
@@ -259,7 +255,6 @@
             light.position.set(0, 10, 10);
             scene.add(light);
 
-            buildHelmet('helmet');
             camera.position.z = 2.8;
 
             window.addEventListener('resize', () => {
@@ -275,58 +270,12 @@
                 ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
                 ctx.drawImage(renderer.domElement, 0, 0, canvas.width, canvas.height);
                 const link = document.createElement('a');
-                link.download = 'aziz_studio_snap.png';
+                link.download = 'aziz_transparent_snap.png';
                 link.href = canvas.toDataURL('image/png');
                 link.click();
             });
 
             animateLoop();
-        }
-
-        function switchPreset(type) {
-            currentPreset = type;
-            document.querySelectorAll('.filter-thumb').forEach(el => el.classList.remove('active'));
-            document.getElementById('btn-' + type).classList.add('active');
-            buildHelmet(type);
-        }
-
-        function buildHelmet(type) {
-            if (helmetGroup) scene.remove(helmetGroup);
-            helmetGroup = new THREE.Group();
-            visorMesh = null;
-
-            if (type === 'helmet') {
-                const helmetGeo = new THREE.SphereGeometry(1.0, 32, 32);
-                helmetGeo.scale(1.0, 1.15, 1.05);
-                const helmetMat = new THREE.MeshStandardMaterial({ color: 0x141414, metalness: 0.85, roughness: 0.15 });
-                const mainShell = new THREE.Mesh(helmetGeo, helmetMat);
-                mainShell.position.set(0, 0.08, 0);
-                helmetGroup.add(mainShell);
-
-                const visorGeo = new THREE.CylinderGeometry(1.01, 1.01, 0.45, 32, 1, true, 0, Math.PI);
-                const visorMat = new THREE.MeshStandardMaterial({ color: 0x00c3ff, transparent: true, opacity: 0.6, metalness: 0.95, roughness: 0.05, side: THREE.DoubleSide });
-                visorMesh = new THREE.Mesh(visorGeo, visorMat);
-                visorMesh.rotation.y = Math.PI / 2;
-                visorMesh.position.set(0, 0.12, 0);
-                helmetGroup.add(visorMesh);
-
-            } else if (type === 'cyber') {
-                const cyberGeo = new THREE.BoxGeometry(1.5, 1.8, 1.6);
-                const cyberMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.9, roughness: 0.2 });
-                const cyberBox = new THREE.Mesh(cyberGeo, cyberMat);
-                cyberBox.position.set(0, 0.1, 0);
-                helmetGroup.add(cyberBox);
-
-            } else if (type === 'bubble') {
-                const bubble = new THREE.Mesh(
-                    new THREE.SphereGeometry(1.1, 32, 32),
-                    new THREE.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: 0.3, roughness: 0.05, transmission: 0.9, thickness: 0.6 })
-                );
-                bubble.position.set(0, 0.08, 0);
-                helmetGroup.add(bubble);
-            }
-
-            scene.add(helmetGroup);
         }
 
         function initTracking() {
@@ -337,45 +286,34 @@
             let smoothRot = new THREE.Quaternion();
 
             faceMesh.onResults((results) => {
-                if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0 && helmetGroup) {
+                if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0 && customModelGroup) {
                     const landmarks = results.multiFaceLandmarks[0];
-                    
-                    // Use Kalidokit Face Solver for precise head kinematics and expressions
-                    const riggedFace = Kalidokit.Face.solve(landmarks, {
-                        runtime: "mediapipe",
-                        video: videoEl
-                    });
+                    const riggedFace = Kalidokit.Face.solve(landmarks, { runtime: "mediapipe", video: videoEl });
 
                     if (riggedFace) {
-                        // Position mapping from face center
                         const nose = landmarks[1], lEdge = landmarks[234], rEdge = landmarks[454];
                         const cx = (lEdge.x + rEdge.x) / 2;
                         const cy = (landmarks[10].y + landmarks[152].y) / 2;
                         const cz = (lEdge.z + rEdge.z + nose.z) / 3;
 
-                        const targetX = -(cx - 0.5) * 3.2;
-                        const targetY = -(cy - 0.5) * 3.2 + 0.18;
+                        const targetX = -(cx - 0.5) * 3.2 + manualOffsetX;
+                        const targetY = -(cy - 0.5) * 3.2 + 0.18 + manualOffsetY;
                         const targetZ = cz * 1.1;
 
                         smoothPos.lerp(new THREE.Vector3(targetX, targetY, targetZ), 0.6);
-                        helmetGroup.position.copy(smoothPos);
+                        customModelGroup.position.copy(smoothPos);
 
-                        // Rotation mapping using Kalidokit Euler angles (Yaw, Pitch, Roll)
                         const euler = riggedFace.head;
-                        let targetQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(euler.x, euler.y, euler.z, 'YXZ'));
+                        let targetQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(euler.x, euler.y + manualRotateY, euler.z, 'YXZ'));
                         smoothRot.slerp(targetQuat, 0.6);
-                        helmetGroup.quaternion.copy(smoothRot);
+                        customModelGroup.quaternion.copy(smoothRot);
 
-                        // Expression reactions (e.g. Visor / Helmet reacts slightly to eye blinking or mouth open)
-                        if (visorMesh) {
-                            const blinkVal = (riggedFace.eye.left + riggedFace.eye.right) / 2;
-                            visorMesh.scale.set(1, 1 - (blinkVal * 0.15), 1); // Slight squeeze on blink
-                        }
+                        customModelGroup.scale.set(manualScale, manualScale, manualScale);
                     }
 
-                    helmetGroup.visible = true;
-                } else if (helmetGroup) {
-                    helmetGroup.visible = false;
+                    customModelGroup.visible = true;
+                } else if (customModelGroup) {
+                    customModelGroup.visible = false;
                 }
             });
 
@@ -386,10 +324,10 @@
             mpCamera.start();
         }
 
-        function animateLoop() {
-            requestAnimationFrame(animateLoop);
-            if (renderer && scene && camera) renderer.render(scene, camera);
-        }
-    </script>
+    function animateLoop() {
+        requestAnimationFrame(animateLoop);
+        if (renderer && scene && camera) renderer.render(scene, camera);
+    }
+</script>
 </body>
 </html>
