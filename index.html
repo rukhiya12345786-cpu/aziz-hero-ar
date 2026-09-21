@@ -3,244 +3,199 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Aziz AR Studio - Stable Face Lock Pro</title>
+    <title>Aziz AR Studio - Perfect Texture Edition</title>
     <style>
         * { box-sizing: border-box; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; }
         
-        #video-bg { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; z-index: 1; background: #000; transform: scaleX(-1); }
-        #canvas-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2; pointer-events: none; }
+        #video-element { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; z-index: 1; transform: scaleX(-1); }
+        #webgl-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2; pointer-events: none; }
         
-        #ui-layer {
+        #ui-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 999; pointer-events: none; display: flex; flex-direction: column;
             justify-content: space-between; padding: 15px;
         }
+        .interactive { pointer-events: auto; }
 
-        .clickable { pointer-events: auto; }
-
-        .top-bar { display: flex; justify-content: space-between; width: 100%; align-items: center; }
-        .glass-btn {
-            background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(10px); color: white; border: 1px solid rgba(255,255,255,0.3);
-            padding: 8px 14px; font-size: 13px; border-radius: 20px; cursor: pointer; font-weight: 600; text-align: center;
+        .top-nav { display: flex; justify-content: space-between; width: 100%; align-items: center; }
+        .btn {
+            background: rgba(0, 0, 0, 0.8); color: white; border: 1px solid rgba(255,255,255,0.4);
+            padding: 10px 16px; font-size: 14px; border-radius: 20px; cursor: pointer; font-weight: bold;
         }
-        .glass-btn:active { background: rgba(255, 255, 255, 0.4); }
         input[type="file"] { display: none; }
 
-        /* Control Panel */
-        #adjust-panel {
-            position: absolute; right: 12px; top: 65px;
-            background: rgba(0, 0, 0, 0.9); backdrop-filter: blur(15px);
-            border: 1px solid rgba(255,255,255,0.3); padding: 10px;
-            border-radius: 14px; display: flex; flex-direction: column; gap: 8px; width: 165px;
-            max-height: 82vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        /* Controls Panel */
+        #control-panel {
+            position: absolute; right: 12px; top: 70px;
+            background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.3); padding: 12px;
+            border-radius: 12px; display: flex; flex-direction: column; gap: 10px; width: 160px;
         }
-        .adj-group { display: flex; flex-direction: column; gap: 3px; color: #00ff88; font-size: 10px; font-weight: bold; }
-        .adj-group div { display: flex; gap: 4px; }
-        .adj-group button { flex: 1; background: rgba(255,255,255,0.25); border: none; color: white; padding: 6px; border-radius: 5px; font-size: 11px; cursor: pointer; font-weight: bold; }
-        .adj-group button:active { background: #ff0055; }
-        
-        .model-select-bar { display: flex; gap: 4px; margin-bottom: 2px; }
-        .model-select-bar button { flex: 1; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: #fff; padding: 5px; font-size: 10px; border-radius: 5px; cursor: pointer; }
-        .model-select-bar button.active { background: #00ff88; color: #000; font-weight: bold; }
+        .ctrl-group { display: flex; flex-direction: column; gap: 4px; color: #00ff88; font-size: 11px; font-weight: bold; }
+        .ctrl-group .btn-row { display: flex; gap: 5px; }
+        .ctrl-group button { flex: 1; background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: bold; }
+        .ctrl-group button:active { background: #ff0055; }
 
         /* Bottom Dock */
         .bottom-dock {
             position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.3); padding: 10px 20px;
-            border-radius: 35px; display: flex; align-items: center; gap: 18px; box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            background: rgba(0, 0, 0, 0.8); border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 10px 25px; border-radius: 30px; display: flex; align-items: center; gap: 20px;
         }
-        .dock-btn {
-            background: transparent; border: none; color: white; font-size: 11px; font-weight: 600;
-            cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 5px;
-        }
-        
-        #record-btn {
-            background: #fff; width: 60px; height: 60px; border-radius: 50%;
-            border: 4px solid rgba(255,255,255,0.4); box-shadow: 0 0 20px rgba(255,255,255,0.5);
-            cursor: pointer; position: relative; transition: all 0.2s ease;
-        }
-        #record-btn.recording { background: #ff3333; border-color: white; animation: pulse 1s infinite; }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
 
-        #permission-screen {
+        #start-screen {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: #0b0b0b; z-index: 99999; display: flex; flex-direction: column;
+            background: #111; z-index: 99999; display: flex; flex-direction: column;
             justify-content: center; align-items: center; color: white; text-align: center; padding: 20px;
         }
-        #start-app-btn {
-            background: #ff0055; color: #fff; font-size: 16px; font-weight: bold;
-            padding: 14px 28px; border-radius: 25px; margin-top: 20px; border: none; cursor: pointer;
-            box-shadow: 0 5px 20px rgba(255,0,85,0.4);
+        #launch-btn {
+            background: #00ff88; color: #000; font-size: 18px; font-weight: bold;
+            padding: 15px 35px; border-radius: 30px; margin-top: 20px; border: none; cursor: pointer;
         }
-        #error-msg { margin-top: 15px; font-size: 13px; color: #ff4444; max-width: 90%; word-break: break-all; }
     </style>
 </head>
 <body>
 
-    <div id="permission-screen">
-        <h1 style="margin: 0 0 10px 0; font-size: 22px;">Aziz AR Studio</h1>
-        <p style="margin: 0; color: #aaa; font-size: 13px;">Tap below to start camera & tracking</p>
-        <button id="start-app-btn">START CAMERA</button>
-        <div id="error-msg"></div>
+    <div id="start-screen">
+        <h2>Aziz AR Studio</h2>
+        <p>Tap below to activate camera and face tracking</p>
+        <button id="launch-btn">START AR APP</button>
+        <p id="error-box" style="color: #ff4444; font-size: 12px; margin-top: 15px;"></p>
     </div>
 
-    <video id="video-bg" autoplay playsinline muted></video>
-    <div id="canvas-container"></div>
+    <video id="video-element" autoplay playsinline muted></video>
+    <div id="webgl-container"></div>
 
-    <div id="ui-layer">
-        <div class="top-bar">
-            <button id="cam-switch-btn" class="glass-btn clickable">🔄 Flip</button>
-            <button id="snapshot-btn" class="glass-btn clickable">📸 Snapshot</button>
+    <div id="ui-overlay">
+        <div class="top-nav">
+            <button id="flip-cam" class="btn interactive">🔄 Flip Cam</button>
+            <button id="take-snap" class="btn interactive">📸 Snapshot</button>
         </div>
 
-        <div id="adjust-panel" class="clickable">
-            <div class="model-select-bar">
-                <button id="sel-m1" class="active" onclick="setActiveModel(0)">Model 1</button>
-                <button id="sel-m2" onclick="setActiveModel(1)">Model 2</button>
-            </div>
-            
-            <div class="adj-group" style="background: rgba(0,255,136,0.15); padding: 5px; border-radius: 6px; border: 1px solid #00ff88;">
-                <span>👉 BACK / FRONT (Z-AXIS)</span>
-                <div>
-                    <button onclick="adjustVal('posZ', -0.05)" style="background:#ff0055;">◀ BACK</button>
-                    <button onclick="adjustVal('posZ', 0.05)" style="background:#00ff88; color:#000;">FRONT ▶</button>
+        <div id="control-panel" class="interactive">
+            <div class="ctrl-group" style="background: rgba(0,255,136,0.1); padding: 6px; border-radius: 6px; border: 1px solid #00ff88;">
+                <span>DEPTH (FRONT / BACK)</span>
+                <div class="btn-row">
+                    <button onclick="adjust('posZ', -0.05)" style="background:#ff0055;">◀ BACK</button>
+                    <button onclick="adjust('posZ', 0.05)" style="background:#00ff88; color:#000;">FRONT ▶</button>
                 </div>
             </div>
 
-            <div class="adj-group">
-                <span>SIZE (SCALE)</span>
-                <div>
-                    <button onclick="adjustVal('scale', -0.05)">-</button>
-                    <button onclick="adjustVal('scale', 0.05)">+</button>
+            <div class="ctrl-group">
+                <span>SCALE / SIZE</span>
+                <div class="btn-row">
+                    <button onclick="adjust('scale', -0.05)">-</button>
+                    <button onclick="adjust('scale', 0.05)">+</button>
                 </div>
             </div>
-            <div class="adj-group">
+
+            <div class="ctrl-group">
                 <span>MOVE UP / DOWN</span>
-                <div>
-                    <button onclick="adjustVal('posY', -0.02)">▼</button>
-                    <button onclick="adjustVal('posY', 0.02)">▲</button>
+                <div class="btn-row">
+                    <button onclick="adjust('posY', -0.02)">▼</button>
+                    <button onclick="adjust('posY', 0.02)">▲</button>
                 </div>
             </div>
-            <div class="adj-group">
+
+            <div class="ctrl-group">
                 <span>MOVE LEFT / RIGHT</span>
-                <div>
-                    <button onclick="adjustVal('posX', -0.02)">◀</button>
-                    <button onclick="adjustVal('posX', 0.02)">▶</button>
-                </div>
-            </div>
-            <div class="adj-group">
-                <span>ROTATE (TILT/SPIN)</span>
-                <div>
-                    <button onclick="adjustVal('rotX', -0.1)">X-</button>
-                    <button onclick="adjustVal('rotY', -0.1)">Y-</button>
-                    <button onclick="adjustVal('rotZ', -0.1)">Z-</button>
-                </div>
-                <div>
-                    <button onclick="adjustVal('rotX', 0.1)">X+</button>
-                    <button onclick="adjustVal('rotY', 0.1)">Y+</button>
-                    <button onclick="adjustVal('rotZ', 0.1)">Z+</button>
+                <div class="btn-row">
+                    <button onclick="adjust('posX', -0.02)">◀</button>
+                    <button onclick="adjust('posX', 0.02)">▶</button>
                 </div>
             </div>
         </div>
 
-        <div class="bottom-dock clickable">
-            <label class="dock-btn" for="file-input">
-                📁 <span>Import</span>
-            </label>
-            <input type="file" id="file-input" accept=".obj,.gltf,.glb,.fbx">
-
-            <button id="record-btn" class="clickable" title="Record Video"></button>
-
-            <button class="dock-btn" onclick="resetActiveModel()">
-                🎯 <span>Reset</span>
-            </button>
+        <div class="bottom-dock interactive">
+            <label class="btn" for="import-file" style="background:#333; cursor:pointer;">📁 Import 3D</label>
+            <input type="file" id="import-file" accept=".obj,.gltf,.glb">
+            <button class="btn" onclick="resetModel()" style="background:#444;">🎯 Reset</button>
         </div>
     </div>
 
-    <!-- Required 3D & AI Libraries -->
+    <!-- Essential CDN Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/fflate@0.7.4/umd/index.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
 
     <script>
-        let scene, camera, renderer;
-        let videoElement, mediaStream;
-        let useFrontCamera = true;
-        let mediaRecorder, recordedChunks = [], isRecording = false;
+        let scene, camera, renderer, videoEl, mediaStream;
         let faceMesh, mpCamera;
+        let currentModel = null;
+        let useFront = true;
 
-        let models = [
-            { obj: null, scale: 1.2, offsetX: 0.0, offsetY: 0.1, offsetZ: 0.0, rotX: 0.0, rotY: 0.0, rotZ: 0.0 },
-            { obj: null, scale: 1.0, offsetX: 0.0, offsetY: 0.0, offsetZ: 0.0, rotX: 0.0, rotY: 0.0, rotZ: 0.0 }
-        ];
-        let activeModelIndex = 0;
+        let modelParams = {
+            scale: 1.2,
+            posX: 0.0,
+            posY: 0.1,
+            posZ: 0.0,
+            rotX: 0.0,
+            rotY: 0.0,
+            rotZ: 0.0
+        };
 
-        // Smooth tracking variables to prevent shaking/jittering
-        let targetPos = new THREE.Vector3();
-        let currentPos = new THREE.Vector3();
-
-        document.getElementById('start-app-btn').addEventListener('click', async () => {
-            const errDiv = document.getElementById('error-msg');
-            errDiv.innerText = "Initializing camera & tracking...";
+        document.getElementById('launch-btn').addEventListener('click', async () => {
+            const errBox = document.getElementById('error-box');
+            errBox.innerText = "Loading system...";
             try {
-                await initCamera();
-                document.getElementById('permission-screen').style.display = 'none';
-                initThree();
-                initFaceTracking();
+                await startCamera();
+                document.getElementById('start-screen').style.display = 'none';
+                initThreeJS();
+                initTracking();
             } catch (err) {
                 console.error(err);
-                errDiv.innerText = "Error: " + err.message + ". Allow permissions / use HTTPS.";
+                errBox.innerText = "Error: " + err.message + ". Make sure you are using HTTPS or Localhost.";
             }
         });
 
-        async function initCamera() {
+        async function startCamera() {
             if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
             try {
                 mediaStream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: useFrontCamera ? 'user' : 'environment', width: 1280, height: 720 },
-                    audio: true
+                    video: { facingMode: useFront ? 'user' : 'environment', width: 1280, height: 720 },
+                    audio: false
                 });
             } catch (e) {
-                mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
             }
-            videoElement = document.getElementById('video-bg');
-            videoElement.srcObject = mediaStream;
-            await videoElement.play();
+            videoEl = document.getElementById('video-element');
+            videoEl.srcObject = mediaStream;
+            await videoEl.play();
         }
 
-        async function switchCamera() {
-            useFrontCamera = !useFrontCamera;
-            try { await initCamera(); } catch (e) { alert("Switch failed: " + e.message); }
-        }
+        document.getElementById('flip-cam').addEventListener('click', async () => {
+            useFront = !useFront;
+            try { await startCamera(); } catch(e) { alert("Camera flip error: " + e.message); }
+        });
 
-        function initThree() {
+        function initThreeJS() {
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
             
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            document.getElementById('canvas-container').appendChild(renderer.domElement);
+            renderer.outputEncoding = THREE.sRGBEncoding; // Ensures correct color saturation
+            document.getElementById('webgl-container').appendChild(renderer.domElement);
 
+            // Studio lighting setup to illuminate textures completely
             scene.add(new THREE.AmbientLight(0xffffff, 2.5));
-            const dLight1 = new THREE.DirectionalLight(0xffffff, 2.0);
-            dLight1.position.set(0, 10, 15);
-            scene.add(dLight1);
+            const dirLight1 = new THREE.DirectionalLight(0xffffff, 2.0);
+            dirLight1.position.set(0, 10, 10);
+            scene.add(dirLight1);
 
-            const dLight2 = new THREE.DirectionalLight(0x99ccff, 1.5);
-            dLight2.position.set(0, -10, -10);
-            scene.add(dLight2);
+            const dirLight2 = new THREE.DirectionalLight(0x99ccff, 1.0);
+            dirLight2.position.set(0, -10, -10);
+            scene.add(dirLight2);
 
-            const geo = new THREE.SphereGeometry(0.7, 32, 32);
-            const mat = new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.2, metalness: 0.5 });
-            models[0].obj = new THREE.Mesh(geo, mat);
-            scene.add(models[0].obj);
+            // Default Placeholder Model (Green Sphere)
+            const geo = new THREE.SphereGeometry(0.6, 32, 32);
+            const mat = new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.3 });
+            currentModel = new THREE.Mesh(geo, mat);
+            scene.add(currentModel);
 
             camera.position.z = 3;
 
@@ -250,17 +205,15 @@
                 renderer.setSize(window.innerWidth, window.innerHeight);
             });
 
-            document.getElementById('file-input').addEventListener('change', handleModelImport);
-            document.getElementById('snapshot-btn').addEventListener('click', takeSnapshot);
-            document.getElementById('cam-switch-btn').addEventListener('click', switchCamera);
-            document.getElementById('record-btn').addEventListener('click', toggleVideoRecording);
+            document.getElementById('import-file').addEventListener('change', loadImportedModel);
+            document.getElementById('take-snap').addEventListener('click', takeSnapshot);
 
-            animate();
+            animateLoop();
         }
 
-        function initFaceTracking() {
+        function initTracking() {
             if (typeof FaceMesh === 'undefined') {
-                alert("FaceMesh library failed to load. Check internet connection.");
+                alert("MediaPipe FaceMesh failed to load. Check your internet connection.");
                 return;
             }
 
@@ -268,162 +221,123 @@
             faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
             
             faceMesh.onResults((results) => {
-                if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-                    const landmarks = results.multiFaceLandmarks[0];
-                    const nose = landmarks[1];
-                    const p234 = landmarks[234];
-                    const p454 = landmarks[454];
+                if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0 && currentModel) {
+                    const lm = results.multiFaceLandmarks[0];
+                    const nose = lm[1];
+                    const leftEye = lm[234];
+                    const rightEye = lm[454];
 
-                    const centerX = nose.x;
-                    const centerY = nose.y;
-                    const centerZ = nose.z;
+                    const targetX = -(nose.x - 0.5) * 3.5 + modelParams.posX;
+                    const targetY = -(nose.y - 0.5) * 3.5 + modelParams.posY;
+                    const targetZ = nose.z * 1.2 + modelParams.posZ;
 
-                    const dx = p454.x - p234.x;
-                    const dy = p454.y - p234.y;
-                    const rotZ_auto = Math.atan2(dy, dx);
-                    
-                    const dz = p454.z - p234.z;
-                    const rotY_auto = Math.asin(Math.max(-1, Math.min(1, dz * 2.0)));
+                    currentModel.position.x += (targetX - currentModel.position.x) * 0.4;
+                    currentModel.position.y += (targetY - currentModel.position.y) * 0.4;
+                    currentModel.position.z += (targetZ - currentModel.position.z) * 0.4;
 
-                    models.forEach((m) => {
-                        if (!m.obj) return;
-                        
-                        const x = -(centerX - 0.5) * 3.5 + m.offsetX;
-                        const y = -(centerY - 0.5) * 3.5 + m.offsetY;
-                        const z = centerZ * 1.2 + m.offsetZ;
+                    const dx = rightEye.x - leftEye.x;
+                    const dy = rightEye.y - leftEye.y;
+                    const rotZ = Math.atan2(dy, dx);
+                    const dz = rightEye.z - leftEye.z;
+                    const rotY = Math.asin(Math.max(-1, Math.min(1, dz * 2.0)));
 
-                        // Apply smooth position lerping to stop unwanted shivering/shaking
-                        m.obj.position.x += (x - m.obj.position.x) * 0.3;
-                        m.obj.position.y += (y - m.obj.position.y) * 0.3;
-                        m.obj.position.z += (z - m.obj.position.z) * 0.3;
-
-                        m.obj.rotation.set(
-                            m.rotX,
-                            rotY_auto + m.rotY,
-                            rotZ_auto + m.rotZ
-                        );
-                        m.obj.scale.set(m.scale, m.scale, m.scale);
-                        m.obj.visible = true;
-                    });
+                    currentModel.rotation.set(modelParams.rotX, rotY + modelParams.rotY, rotZ + modelParams.rotZ);
+                    currentModel.scale.set(modelParams.scale, modelParams.scale, modelParams.scale);
+                    currentModel.visible = true;
                 }
             });
 
-            mpCamera = new Camera(videoElement, {
-                onFrame: async () => { await faceMesh.send({ image: videoElement }); },
+            mpCamera = new Camera(videoEl, {
+                onFrame: async () => { await faceMesh.send({ image: videoEl }); },
                 width: 1280, height: 720
             });
             mpCamera.start();
         }
 
-        function setActiveModel(index) {
-            activeModelIndex = index;
-            document.getElementById('sel-m1').classList.toggle('active', index === 0);
-            document.getElementById('sel-m2').classList.toggle('active', index === 1);
+        function adjust(type, val) {
+            modelParams[type] += val;
         }
 
-        function adjustVal(type, val) {
-            let m = models[activeModelIndex];
-            if (type === 'scale') { m.scale = Math.max(0.05, m.scale + val); }
-            else if (type === 'posY') { m.offsetY += val; }
-            else if (type === 'posX') { m.offsetX += val; }
-            else if (type === 'posZ') { m.offsetZ += val; } // Direct Front/Back movement control
-            else if (type === 'rotX') { m.rotX += val; }
-            else if (type === 'rotY') { m.rotY += val; }
-            else if (type === 'rotZ') { m.rotZ += val; }
+        function resetModel() {
+            modelParams.scale = 1.2;
+            modelParams.posX = 0.0;
+            modelParams.posY = 0.1;
+            modelParams.posZ = 0.0;
+            modelParams.rotX = 0.0;
+            modelParams.rotY = 0.0;
+            modelParams.rotZ = 0.0;
         }
 
-        function resetActiveModel() {
-            let m = models[activeModelIndex];
-            m.scale = activeModelIndex === 0 ? 1.2 : 1.0;
-            m.offsetX = 0.0;
-            m.offsetY = 0.1;
-            m.offsetZ = 0.0;
-            m.rotX = 0.0;
-            m.rotY = 0.0;
-            m.rotZ = 0.0;
-        }
-
-        function animate() {
-            requestAnimationFrame(animate);
-            renderer.render(scene, camera);
-        }
-
-        function handleModelImport(e) {
+        function loadImportedModel(e) {
             const file = e.target.files[0];
             if (!file) return;
             const reader = new FileReader();
-            const name = file.name.toLowerCase();
+            const fileName = file.name.toLowerCase();
 
-            if (name.endsWith('.obj')) {
+            if (fileName.endsWith('.obj')) {
                 reader.readAsText(file);
                 reader.onload = (evt) => {
                     const loader = new THREE.OBJLoader();
-                    try { 
+                    try {
                         const obj = loader.parse(evt.target.result);
-                        applyMaterialsFix(obj);
-                        assignNewModel(obj); 
-                    } catch (err) { alert("Error parsing OBJ file."); }
+                        fixModelMaterials(obj);
+                        replaceModelInScene(obj);
+                    } catch(err) { alert("Failed to parse OBJ file."); }
                 };
-            } else if (name.endsWith('.gltf') || name.endsWith('.glb')) {
+            } else if (fileName.endsWith('.gltf') || fileName.endsWith('.glb')) {
                 reader.readAsArrayBuffer(file);
                 reader.onload = (evt) => {
                     const loader = new THREE.GLTFLoader();
                     loader.parse(evt.target.result, '', (gltf) => {
-                        applyMaterialsFix(gltf.scene);
-                        assignNewModel(gltf.scene);
-                    }, (error) => { alert("Error parsing GLTF/GLB file."); });
+                        fixModelMaterials(gltf.scene);
+                        replaceModelInScene(gltf.scene);
+                    }, (err) => { alert("Failed to parse GLTF/GLB file."); });
                 };
-            } else if (name.endsWith('.fbx')) {
-                reader.readAsArrayBuffer(file);
-                reader.onload = (evt) => {
-                    const loader = new THREE.FBXLoader();
-                    try { 
-                        const obj = loader.parse(evt.target.result, '');
-                        applyMaterialsFix(obj);
-                        assignNewModel(obj); 
-                    } catch (err) { alert("Error parsing FBX file."); }
-                };
-            } else { 
-                alert("Please select .obj, .gltf, .glb or .fbx format."); 
+            } else {
+                alert("Please select a valid .obj, .gltf or .glb file.");
             }
         }
 
-        function applyMaterialsFix(obj) {
+        // Advanced Material & Texture Fixer for correct colors
+        function fixModelMaterials(obj) {
             obj.traverse((child) => {
                 if (child.isMesh) {
-                    child.material.side = THREE.DoubleSide;
+                    child.material.side = THREE.DoubleSide; // Prevents disappearing parts
                     if (child.material.map) {
-                        child.material.map.encoding = THREE.sRGBEncoding;
+                        child.material.map.encoding = THREE.sRGBEncoding; // Correct texture color profile
+                    }
+                    // If model lacks color/texture, fallback to a standard bright material
+                    if (!child.material.map && child.material.color.getHex() === 0x000000) {
+                        child.material.color.setHex(0xaaaaaa);
                     }
                 }
             });
         }
 
-        function assignNewModel(newObj) {
-            let m = models[activeModelIndex];
-            if (m.obj) scene.remove(m.obj);
-            m.obj = newObj;
-            resetActiveModel();
-            scene.add(m.obj);
-            if (activeModelIndex === 0 && models[1].obj === null) {
-                setActiveModel(1);
-            }
+        function replaceModelInScene(newObj) {
+            if (currentModel) scene.remove(currentModel);
+            currentModel = newObj;
+            resetModel();
+            scene.add(currentModel);
         }
 
         function takeSnapshot() {
             const canvas = document.createElement('canvas');
             canvas.width = window.innerWidth; canvas.height = window.innerHeight;
             const ctx = canvas.getContext('2d');
-            ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+            ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
             ctx.drawImage(renderer.domElement, 0, 0, canvas.width, canvas.height);
 
-            const a = document.createElement('a');
-            a.download = 'aziz-ar-snapshot.png';
-            a.href = canvas.toDataURL('image/png');
-            a.click();
+            const link = document.createElement('a');
+            link.download = 'aziz-ar-snapshot.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
         }
 
-        function toggleVideoRecording() {
-            const btn = document.getElementById('record-btn');
-            if (!isRecording) {
-                if (!med
+        function animateLoop() {
+            requestAnimationFrame(animateLoop);
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
