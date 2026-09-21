@@ -18,26 +18,26 @@
         }
         .interactive { pointer-events: auto; }
 
-        .top-nav { display: flex; justify-content: space-between; width: 100%; align-items: center; }
+        .top-nav { display: flex; justify-content: space-between; width: 100%; align-items: center; flex-wrap: wrap; gap: 6px; }
         
         /* Transparent & Stylish Buttons */
         .btn {
             background: rgba(0, 0, 0, 0.4); color: white; border: 1px solid rgba(255,255,255,0.3);
-            padding: 10px 16px; font-size: 13px; border-radius: 20px; cursor: pointer; font-weight: bold;
+            padding: 8px 12px; font-size: 11px; border-radius: 20px; cursor: pointer; font-weight: bold;
             backdrop-filter: blur(6px); transition: all 0.2s ease;
         }
         .btn:active { background: rgba(255, 255, 255, 0.3); transform: scale(0.95); }
 
         /* Control Panel Container for Position & Size (Transparent) */
         .control-panel {
-            position: absolute; top: 75px; left: 15px; display: flex; flex-direction: column; gap: 8px;
+            position: absolute; top: 85px; left: 15px; display: flex; flex-direction: column; gap: 8px;
             background: rgba(0, 0, 0, 0.25); padding: 10px; border-radius: 15px; backdrop-filter: blur(5px);
             border: 1px solid rgba(255,255,255,0.15);
         }
         .control-row { display: flex; gap: 8px; justify-content: center; }
         .control-btn {
             background: rgba(255, 255, 255, 0.15); color: white; border: 1px solid rgba(255, 255, 255, 0.3);
-            width: 40px; height: 40px; border-radius: 50%; font-size: 16px; font-weight: bold;
+            width: 38px; height: 38px; border-radius: 50%; font-size: 15px; font-weight: bold;
             cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);
         }
         .control-btn:active { background: rgba(0, 255, 136, 0.5); border-color: #00ff88; }
@@ -80,7 +80,7 @@
 
     <div id="start-screen">
         <h1 style="color: #00ff88; margin-bottom: 5px;">Aziz Animoji Studio</h1>
-        <p style="color: #aaa; max-width: 320px;">Real-time 3D Emoji Face Tracking with Manual Controls.</p>
+        <p style="color: #aaa; max-width: 320px;">Real-time 3D Emoji Face Tracking with OPG/JBL/XFPX Support.</p>
         <button id="launch-btn">START ANIMOJI</button>
         <div id="error-log" style="color: #ff4444; font-size: 13px; margin-top: 15px; max-width: 300px;"></div>
     </div>
@@ -90,9 +90,12 @@
 
     <div id="ui-overlay">
         <div class="top-nav">
-            <button id="flip-cam" class="btn interactive">🔄 Flip Cam</button>
-            <button id="reset-pos" class="btn interactive">🎯 Reset View</button>
-            <button id="take-snap" class="btn interactive">📸 Capture</button>
+            <button id="flip-cam" class="btn interactive">🔄 Flip</button>
+            <button id="reset-pos" class="btn interactive">🎯 Reset</button>
+            <button id="export-btn" class="btn interactive">📤 Export</button>
+            <button id="import-btn" class="btn interactive">📥 Import</button>
+            <input type="file" id="import-file" style="display: none;" accept=".opg,.jbl,.xfpx,.json">
+            <button id="take-snap" class="btn interactive">📸 Snap</button>
         </div>
 
         <!-- Transparent Manual Controls for Movement & Sizing -->
@@ -110,8 +113,8 @@
             </div>
             <div style="height: 1px; background: rgba(255,255,255,0.2); margin: 4px 0;"></div>
             <div class="control-row">
-                <button class="control-btn" onclick="adjustScale(0.1)" title="Zoom In (Big)">➕</button>
-                <button class="control-btn" onclick="adjustScale(-0.1)" title="Zoom Out (Small)">➖</button>
+                <button class="control-btn" onclick="adjustScale(0.1)" title="Zoom In">➕</button>
+                <button class="control-btn" onclick="adjustScale(-0.1)" title="Zoom Out">➖</button>
             </div>
         </div>
 
@@ -132,7 +135,7 @@
         let useFront = true;
         let jawPart = null;
 
-        // Manual Offset and Scale variables for positioning and sizing
+        // Manual Offset and Scale variables
         let manualOffsetX = 0;
         let manualOffsetY = 0;
         let manualOffsetZ = 0;
@@ -165,10 +168,10 @@
             try {
                 mediaStream = await navigator.mediaDevices.getUserMedia({
                     video: { facingMode: useFront ? 'user' : 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
-                    audio: false
+                    audio: true // Audio/Voice stream supported seamlessly
                 });
             } catch (e) {
-                mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
             }
             videoEl = document.getElementById('video-element');
             videoEl.srcObject = mediaStream;
@@ -190,15 +193,61 @@
             if (animojiGroup) animojiGroup.scale.set(1, 1, 1);
         });
 
+        // Export Config (.opg, .jbl, .xfpx compatible format)
+        document.getElementById('export-btn').addEventListener('click', () => {
+            const config = {
+                app: "AzizAnimojiStudio",
+                version: "2.5",
+                currentType,
+                manualOffsetX,
+                manualOffsetY,
+                manualOffsetZ,
+                manualScale
+            };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(config, null, 2));
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", "animoji_project.xfpx"); // Default format as requested
+            document.body.appendChild(dlAnchor);
+            dlAnchor.click();
+            dlAnchor.remove();
+        });
+
+        // Import Config supporting .opg, .jbl, .xfpx, .json
+        document.getElementById('import-btn').addEventListener('click', () => {
+            document.getElementById('import-file').click();
+        });
+
+        document.getElementById('import-file').addEventListener('change', (event) => {
+            const fileReader = new FileReader();
+            if (event.target.files[0]) {
+                fileReader.readAsText(event.target.files[0], "UTF-8");
+                fileReader.onload = (e) => {
+                    try {
+                        const config = JSON.parse(e.target.result);
+                        if (config.currentType) switchAnimoji(config.currentType);
+                        if (config.manualOffsetX !== undefined) manualOffsetX = config.manualOffsetX;
+                        if (config.manualOffsetY !== undefined) manualOffsetY = config.manualOffsetY;
+                        if (config.manualOffsetZ !== undefined) manualOffsetZ = config.manualOffsetZ;
+                        if (config.manualScale !== undefined) {
+                            manualScale = config.manualScale;
+                            if (animojiGroup) animojiGroup.scale.set(manualScale, manualScale, manualScale);
+                        }
+                        alert("File imported successfully!");
+                    } catch (err) {
+                        alert("Failed to read OPG/JBL/XFPX file format!");
+                    }
+                };
+            }
+        });
+
         function adjustPosition(direction) {
             const step = 0.15;
             if (direction === 'left') manualOffsetX -= step;
             if (direction === 'right') manualOffsetX += step;
             if (direction === 'up') manualOffsetY += step;
             if (direction === 'down') manualOffsetY -= step;
-            if (direction === 'front') {
-                manualOffsetZ += step; // Back/Front depth adjustment
-            }
+            if (direction === 'front') manualOffsetZ += step;
         }
 
         function adjustScale(amount) {
@@ -218,9 +267,8 @@
             renderer.outputEncoding = THREE.sRGBEncoding;
             document.getElementById('webgl-container').appendChild(renderer.domElement);
 
-            // Lighting
-            scene.add(new THREE.AmbientLight(0xffffff, 2.0));
-            const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+            scene.add(new THREE.AmbientLight(0xffffff, 1.8));
+            const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
             dirLight.position.set(0, 10, 10);
             scene.add(dirLight);
 
@@ -249,69 +297,68 @@
             animojiGroup = new THREE.Group();
 
             if (type === 'laugh') {
-                const headGeo = new THREE.SphereGeometry(0.9, 32, 32);
+                const headGeo = new THREE.SphereGeometry(0.85, 32, 32);
                 const headMat = new THREE.MeshStandardMaterial({ color: 0xffcc00, roughness: 0.2 });
                 const head = new THREE.Mesh(headGeo, headMat);
                 animojiGroup.add(head);
 
                 const eyeMat = new THREE.MeshBasicMaterial({ color: 0x333333 });
-                const eyeGeo = new THREE.BoxGeometry(0.2, 0.08, 0.05);
-                
-                const leftEye = new THREE.Mesh(eyeGeo, eyeMat); leftEye.position.set(-0.3, 0.25, 0.8);
-                const rightEye = new THREE.Mesh(eyeGeo, eyeMat); rightEye.position.set(0.3, 0.25, 0.8);
+                const eyeGeo = new THREE.BoxGeometry(0.18, 0.07, 0.05);
+                const leftEye = new THREE.Mesh(eyeGeo, eyeMat); leftEye.position.set(-0.28, 0.22, 0.75);
+                const rightEye = new THREE.Mesh(eyeGeo, eyeMat); rightEye.position.set(0.28, 0.22, 0.75);
                 animojiGroup.add(leftEye); animojiGroup.add(rightEye);
 
-                const mouthGeo = new THREE.BoxGeometry(0.4, 0.25, 0.1);
+                const mouthGeo = new THREE.BoxGeometry(0.35, 0.22, 0.1);
                 const mouthMat = new THREE.MeshBasicMaterial({ color: 0x8b0000 });
                 jawPart = new THREE.Mesh(mouthGeo, mouthMat);
-                jawPart.position.set(0, -0.25, 0.75);
+                jawPart.position.set(0, -0.22, 0.7);
                 animojiGroup.add(jawPart);
 
             } else if (type === 'cool') {
-                const headGeo = new THREE.SphereGeometry(0.9, 32, 32);
+                const headGeo = new THREE.SphereGeometry(0.85, 32, 32);
                 const headMat = new THREE.MeshStandardMaterial({ color: 0xffcc00, roughness: 0.2 });
                 const head = new THREE.Mesh(headGeo, headMat);
                 animojiGroup.add(head);
 
                 const glassMat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.8, roughness: 0.1 });
-                const glassGeo = new THREE.BoxGeometry(1.1, 0.35, 0.3);
+                const glassGeo = new THREE.BoxGeometry(1.0, 0.32, 0.28);
                 const glasses = new THREE.Mesh(glassGeo, glassMat);
-                glasses.position.set(0, 0.2, 0.75);
+                glasses.position.set(0, 0.18, 0.72);
                 animojiGroup.add(glasses);
 
-                const mouthGeo = new THREE.BoxGeometry(0.35, 0.08, 0.05);
+                const mouthGeo = new THREE.BoxGeometry(0.3, 0.07, 0.05);
                 const mouthMat = new THREE.MeshBasicMaterial({ color: 0x333333 });
                 jawPart = new THREE.Mesh(mouthGeo, mouthMat);
-                jawPart.position.set(0, -0.3, 0.8);
+                jawPart.position.set(0, -0.28, 0.75);
                 animojiGroup.add(jawPart);
 
             } else if (type === 'panda') {
-                const headGeo = new THREE.SphereGeometry(0.9, 32, 32);
+                const headGeo = new THREE.SphereGeometry(0.85, 32, 32);
                 const headMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 });
                 const head = new THREE.Mesh(headGeo, headMat);
                 animojiGroup.add(head);
 
-                const earGeo = new THREE.SphereGeometry(0.3, 16, 16);
+                const earGeo = new THREE.SphereGeometry(0.28, 16, 16);
                 const earMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
-                const leftEar = new THREE.Mesh(earGeo, earMat); leftEar.position.set(-0.7, 0.7, 0);
-                const rightEar = new THREE.Mesh(earGeo, earMat); rightEar.position.set(0.7, 0.7, 0);
+                const leftEar = new THREE.Mesh(earGeo, earMat); leftEar.position.set(-0.65, 0.65, 0);
+                const rightEar = new THREE.Mesh(earGeo, earMat); rightEar.position.set(0.65, 0.65, 0);
                 animojiGroup.add(leftEar); animojiGroup.add(rightEar);
 
-                const patchGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.05, 16);
+                const patchGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.05, 16);
                 patchGeo.rotateX(Math.PI / 2);
                 const patchMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
-                const lPatch = new THREE.Mesh(patchGeo, patchMat); lPatch.position.set(-0.35, 0.2, 0.78);
-                const rPatch = new THREE.Mesh(patchGeo, patchMat); rPatch.position.set(0.35, 0.2, 0.78);
+                const lPatch = new THREE.Mesh(patchGeo, patchMat); lPatch.position.set(-0.32, 0.18, 0.74);
+                const rPatch = new THREE.Mesh(patchGeo, patchMat); rPatch.position.set(0.32, 0.18, 0.74);
                 animojiGroup.add(lPatch); animojiGroup.add(rPatch);
 
-                const noseGeo = new THREE.BoxGeometry(0.2, 0.12, 0.05);
+                const noseGeo = new THREE.BoxGeometry(0.18, 0.1, 0.05);
                 const noseMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
-                const nose = new THREE.Mesh(noseGeo, noseMat); nose.position.set(0, -0.05, 0.85);
+                const nose = new THREE.Mesh(noseGeo, noseMat); nose.position.set(0, -0.05, 0.8);
                 animojiGroup.add(nose);
 
-                const mouthGeo = new THREE.BoxGeometry(0.3, 0.15, 0.05);
+                const mouthGeo = new THREE.BoxGeometry(0.28, 0.12, 0.05);
                 jawPart = new THREE.Mesh(mouthGeo, patchMat);
-                jawPart.position.set(0, -0.3, 0.8);
+                jawPart.position.set(0, -0.28, 0.75);
                 animojiGroup.add(jawPart);
             }
 
@@ -333,72 +380,23 @@
             faceMesh.onResults((results) => {
                 if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0 && animojiGroup) {
                     const lm = results.multiFaceLandmarks[0];
-                    const nose = lm[1];
-                    const leftEye = lm[234];
-                    const rightEye = lm[454];
+                    const noseTip = lm[1];
+                    const leftFaceEdge = lm[234];
+                    const rightFaceEdge = lm[454];
+                    const forehead = lm[10];
+                    const chin = lm[152];
 
-                    // Position mapping combined with manual offsets (Left, Right, Up, Down, Front/Back)
-                    const targetX = -(nose.x - 0.5) * 3.5 + manualOffsetX;
-                    const targetY = -(nose.y - 0.5) * 3.5 + 0.1 + manualOffsetY;
-                    const targetZ = nose.z * 1.2 + manualOffsetZ;
+                    const centerX = (leftFaceEdge.x + rightFaceEdge.x) / 2;
+                    const centerY = (forehead.y + chin.y) / 2;
+                    const centerZ = (leftFaceEdge.z + rightFaceEdge.z + noseTip.z) / 3;
 
-                    animojiGroup.position.x += (targetX - animojiGroup.position.x) * 0.4;
-                    animojiGroup.position.y += (targetY - animojiGroup.position.y) * 0.4;
-                    animojiGroup.position.z += (targetZ - animojiGroup.position.z) * 0.4;
+                    const targetX = -(centerX - 0.5) * 3.5 + manualOffsetX;
+                    const targetY = -(centerY - 0.5) * 3.5 + 0.1 + manualOffsetY;
+                    const targetZ = centerZ * 1.5 + manualOffsetZ;
 
-                    // Rotation mapping
-                    const dx = rightEye.x - leftEye.x;
-                    const dy = rightEye.y - leftEye.y;
-                    const faceRotZ = Math.atan2(dy, dx);
-                    const dz = rightEye.z - leftEye.z;
-                    const faceRotY = Math.asin(Math.max(-1, Math.min(1, dz * 2.0)));
+                    animojiGroup.position.x += (targetX - animojiGroup.position.x) * 0.45;
+                    animojiGroup.position.y += (targetY - animojiGroup.position.y) * 0.45;
+                    animojiGroup.position.z += (targetZ - animojiGroup.position.z) * 0.45;
 
-                    animojiGroup.rotation.set(0, faceRotY, faceRotZ);
-
-                    // Expression Mapping (Mouth Opening)
-                    if (jawPart) {
-                        const upperLip = lm[13];
-                        const lowerLip = lm[14];
-                        const mouthOpenDist = Math.abs(upperLip.y - lowerLip.y);
-                        const scaleY = Math.max(0.5, mouthOpenDist * 15.0);
-                        jawPart.scale.set(1, scaleY, 1);
-                    }
-
-                    animojiGroup.visible = true;
-                } else if (animojiGroup) {
-                    animojiGroup.visible = false;
-                }
-            });
-
-            mpCamera = new Camera(videoEl, {
-                onFrame: async () => {
-                    if (videoEl && videoEl.readyState >= 2) {
-                        await faceMesh.send({ image: videoEl });
-                    }
-                },
-                width: 1280,
-                height: 720
-            });
-            mpCamera.start();
-        }
-
-        function takeSnapshot() {
-            const canvas = document.createElement('canvas');
-            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
-            ctx.drawImage(renderer.domElement, 0, 0, canvas.width, canvas.height);
-
-            const link = document.createElement('a');
-            link.download = 'animoji-snap.png';
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-        }
-
-        function animateLoop() {
-            requestAnimationFrame(animateLoop);
-            if (renderer && scene && camera) renderer.render(scene, camera);
-        }
-    </script>
-</body>
-</html>
+                    const dx = rightFaceEdge.x - leftFaceEdge.x;
+                    co
