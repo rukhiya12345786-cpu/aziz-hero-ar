@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Aziz AR Studio - Fixed Importer</title>
+    <title>Aziz AR Studio - Memoji & Fixed Importer</title>
     <style>
         * { box-sizing: border-box; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; font-family: sans-serif; }
@@ -55,11 +55,10 @@
         }
     </style>
 
-    <!-- Required Libraries & Loaders (Three.js r128 with OBJ, GLTF, FBX Loaders) -->
+    <!-- Required Libraries & Loaders -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-    <!-- Added FBX Loader dependency (inflate.min.js required by FBXLoader) -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/inflate.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
 
@@ -72,7 +71,7 @@
 
     <div id="start-screen">
         <h1 style="color: #00ff88; margin-bottom: 5px; font-size: 24px;">Aziz AR Studio</h1>
-        <p style="color: #aaa; font-size: 12px; max-width: 280px;">Fixed Importer (.obj, .glb, .gltf, .fbx) & Tracking</p>
+        <p style="color: #aaa; font-size: 12px; max-width: 280px;">Default Memoji Head & Smart Importer (.glb, .obj, .fbx)</p>
         <button id="launch-btn">START STUDIO</button>
         <div id="error-log" style="color: #ff4444; font-size: 11px; margin-top: 10px;"></div>
     </div>
@@ -107,7 +106,7 @@
     <script>
         let scene, camera, renderer, videoEl, mediaStream;
         let faceMesh = null, mpCamera = null;
-        let customModelGroup = null;
+        let activeModelGroup = null; // Holds either default memoji or custom imported model
         let useFront = true;
         
         let manualScale = 1.0;
@@ -128,6 +127,7 @@
                 await startCamera();
                 document.getElementById('start-screen').style.display = 'none';
                 initThreeJS();
+                createDefaultMemojiHead(); // Creates default 3D head on startup
                 initTracking();
                 initControls();
             } catch (err) {
@@ -160,60 +160,94 @@
             if (mpCamera) mpCamera.start();
         });
 
+        // Default 3D Memoji / Robot Head Generator
+        function createDefaultMemojiHead() {
+            if (activeModelGroup) scene.remove(activeModelGroup);
+            activeModelGroup = new THREE.Group();
+
+            // Head Base (Cyberpunk / Memoji Style)
+            const headGeo = new THREE.SphereGeometry(0.5, 32, 32);
+            const headMat = new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.2, metalness: 0.6 });
+            const head = new THREE.Mesh(headGeo, headMat);
+            activeModelGroup.add(head);
+
+            // Visor / Eyes
+            const eyeGeo = new THREE.BoxGeometry(0.6, 0.15, 0.2);
+            const eyeMat = new THREE.MeshBasicMaterial({ color: 0x050505 });
+            const eyes = new THREE.Mesh(eyeGeo, eyeMat);
+            eyes.position.set(0, 0.1, 0.4);
+            activeModelGroup.add(eyes);
+
+            scene.add(activeModelGroup);
+        }
+
         document.getElementById('import-btn').addEventListener('click', () => {
             document.getElementById('import-file').click();
         });
 
+        // Smart Importer with Auto-Centering and Auto-Scaling
         document.getElementById('import-file').addEventListener('change', (event) => {
             const file = event.target.files[0];
             if (!file) return;
             const fileURL = URL.createObjectURL(file);
             const fileName = file.name.toLowerCase();
 
-            if (customModelGroup) scene.remove(customModelGroup);
-            customModelGroup = new THREE.Group();
+            if (activeModelGroup) scene.remove(activeModelGroup);
+            activeModelGroup = new THREE.Group();
+
+            const processLoadedObject = (obj) => {
+                // Auto-center and normalize object scale so it never disappears
+                const box = new THREE.Box3().setFromObject(obj);
+                const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
+                
+                obj.position.sub(center); // Center the model pivot
+                
+                const maxDim = Math.max(size.x, size.y, size.z);
+                if (maxDim > 0) {
+                    const scaleFactor = 1.0 / maxDim;
+                    obj.scale.multiplyScalar(scaleFactor);
+                }
+
+                activeModelGroup.add(obj);
+                scene.add(activeModelGroup);
+                alert("Model Imported Successfully!");
+            };
 
             if (fileName.endsWith('.obj')) {
                 const loader = new THREE.OBJLoader();
                 loader.load(fileURL, (object) => {
                     object.traverse(child => {
-                        if (child.isMesh) child.material = new THREE.MeshStandardMaterial({ color: 0x00ff88, metalness: 0.5, roughness: 0.2 });
+                        if (child.isMesh) child.material = new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.3, metalness: 0.4 });
                     });
-                    object.scale.set(0.01, 0.01, 0.01);
-                    customModelGroup.add(object);
-                    scene.add(customModelGroup);
-                    alert("OBJ Model Imported Successfully!");
+                    processLoadedObject(object);
                 }, undefined, (error) => {
                     console.error(error);
                     alert("Error loading OBJ file!");
+                    createDefaultMemojiHead();
                 });
             } else if (fileName.endsWith('.glb') || fileName.endsWith('.gltf')) {
                 const loader = new THREE.GLTFLoader();
                 loader.load(fileURL, (gltf) => {
-                    const model = gltf.scene;
-                    model.scale.set(1.0, 1.0, 1.0);
-                    customModelGroup.add(model);
-                    scene.add(customModelGroup);
-                    alert("GLB/GLTF Model Imported Successfully!");
+                    processLoadedObject(gltf.scene);
                 }, undefined, (error) => {
                     console.error(error);
                     alert("Error loading GLB/GLTF file!");
+                    createDefaultMemojiHead();
                 });
             } else if (fileName.endsWith('.fbx')) {
                 const loader = new THREE.FBXLoader();
                 loader.load(fileURL, (object) => {
-                    object.scale.set(0.01, 0.01, 0.01);
                     object.traverse(child => {
                         if (child.isMesh) {
-                            child.material = new THREE.MeshStandardMaterial({ color: 0x00ff88, metalness: 0.3, roughness: 0.4 });
+                            child.material = new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.4, metalness: 0.3 });
                         }
                     });
-                    customModelGroup.add(object);
-                    scene.add(customModelGroup);
-                    alert("FBX Model Imported Successfully!");
+                    processLoadedObject(object);
                 }, undefined, (error) => {
                     console.error(error);
                     alert("Error loading FBX file!");
+                    createDefaultMemojiHead();
                 });
             }
         });
@@ -316,7 +350,7 @@
             let smoothRot = new THREE.Quaternion();
 
             faceMesh.onResults((results) => {
-                if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0 && customModelGroup) {
+                if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0 && activeModelGroup) {
                     const landmarks = results.multiFaceLandmarks[0];
                     const riggedFace = Kalidokit.Face.solve(landmarks, { runtime: "mediapipe", video: videoEl });
 
@@ -331,19 +365,19 @@
                         const targetZ = cz * 1.1;
 
                         smoothPos.lerp(new THREE.Vector3(targetX, targetY, targetZ), 0.6);
-                        customModelGroup.position.copy(smoothPos);
+                        activeModelGroup.position.copy(smoothPos);
 
                         const euler = riggedFace.head;
                         let targetQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(euler.x, euler.y + manualRotateY, euler.z, 'YXZ'));
                         smoothRot.slerp(targetQuat, 0.6);
-                        customModelGroup.quaternion.copy(smoothRot);
+                        activeModelGroup.quaternion.copy(smoothRot);
 
-                        customModelGroup.scale.set(manualScale, manualScale, manualScale);
+                        activeModelGroup.scale.set(manualScale, manualScale, manualScale);
                     }
 
-                    customModelGroup.visible = true;
-                } else if (customModelGroup) {
-                    customModelGroup.visible = false;
+                    activeModelGroup.visible = true;
+                } else if (activeModelGroup) {
+                    activeModelGroup.visible = false;
                 }
             });
 
@@ -360,4 +394,5 @@
         }
     </script>
 </body>
-</html>
+                </html>
+    
