@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Aziz AR Studio - Perfect Importer</title>
+    <title>Aziz AR Studio - Final Stable</title>
     <style>
         * { box-sizing: border-box; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; font-family: sans-serif; }
@@ -20,25 +20,21 @@
 
         .top-nav { display: flex; justify-content: space-between; width: 100%; align-items: center; gap: 6px; }
         
-        /* Ultra Transparent Glass Buttons */
         .btn {
-            background: rgba(255, 255, 255, 0.15); color: white; border: 1px solid rgba(255, 255, 255, 0.4);
-            padding: 7px 12px; font-size: 11px; border-radius: 20px; cursor: pointer; font-weight: bold;
-            backdrop-filter: blur(8px); text-shadow: 0 1px 2px rgba(0,0,0,0.8); transition: all 0.2s ease;
+            background: rgba(255, 255, 255, 0.2); color: white; border: 1px solid rgba(255, 255, 255, 0.4);
+            padding: 8px 14px; font-size: 11px; border-radius: 20px; cursor: pointer; font-weight: bold;
+            backdrop-filter: blur(8px); text-shadow: 0 1px 2px rgba(0,0,0,0.8);
         }
-        .btn:active { background: rgba(0, 255, 136, 0.4); border-color: #00ff88; }
-        .btn.recording { background: rgba(255, 51, 51, 0.7); border-color: #ff3333; animation: pulse 1.2s infinite; }
+        .btn:active { background: rgba(0, 255, 136, 0.5); border-color: #00ff88; }
+        .btn.recording { background: rgba(255, 51, 51, 0.8); border-color: #ff3333; animation: pulse 1.2s infinite; }
 
-        @keyframes pulse {
-            0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; }
-        }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
-        /* Fully Transparent Floating Control Panel */
         .control-panel {
-            position: absolute; top: 65px; right: 12px; background: rgba(0, 0, 0, 0.25);
+            position: absolute; top: 70px; right: 12px; background: rgba(0, 0, 0, 0.35);
             border: 1px solid rgba(255, 255, 255, 0.2); padding: 10px; border-radius: 12px;
-            display: flex; flex-direction: column; gap: 8px; backdrop-filter: blur(6px);
-            width: 145px;
+            display: flex; flex-direction: column; gap: 8px; backdrop-filter: blur(8px);
+            width: 150px;
         }
         .control-panel label { color: #00ff88; font-size: 9px; font-weight: bold; display: flex; justify-content: space-between; text-shadow: 0 1px 2px #000; }
         .control-panel input[type=range] { width: 100%; cursor: pointer; accent-color: #00ff88; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; }
@@ -55,14 +51,13 @@
         }
     </style>
 
-    <!-- Required Libraries & Loaders -->
+    <!-- Required Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/inflate.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
 
-    <!-- MediaPipe & Kalidokit -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/kalidokit@1.1.4/dist/kalidokit.umd.js"></script>
@@ -71,7 +66,7 @@
 
     <div id="start-screen">
         <h1 style="color: #00ff88; margin-bottom: 5px; font-size: 24px;">Aziz AR Studio</h1>
-        <p style="color: #aaa; font-size: 12px; max-width: 280px;">Stable AR Importer & Tracking</p>
+        <p style="color: #aaa; font-size: 12px; max-width: 280px;">Tap below to launch your AR camera</p>
         <button id="launch-btn">START STUDIO</button>
         <div id="error-log" style="color: #ff4444; font-size: 11px; margin-top: 10px;"></div>
     </div>
@@ -127,7 +122,7 @@
                 await startCamera();
                 document.getElementById('start-screen').style.display = 'none';
                 initThreeJS();
-                createDefaultMemojiHead();
+                createDefaultHead();
                 initTracking();
                 initControls();
                 initVisibilityHandler();
@@ -160,13 +155,8 @@
                     if (!mediaStream || mediaStream.active === false || videoEl.paused) {
                         try {
                             await startCamera();
-                            if (mpCamera) {
-                                mpCamera.stop();
-                                await mpCamera.start();
-                            }
-                        } catch (e) {
-                            console.error(e);
-                        }
+                            if (mpCamera) { mpCamera.stop(); await mpCamera.start(); }
+                        } catch (e) { console.error(e); }
                     }
                 }
             });
@@ -179,7 +169,7 @@
             if (mpCamera) mpCamera.start();
         });
 
-        function createDefaultMemojiHead() {
+        function createDefaultHead() {
             if (activeModelGroup) scene.remove(activeModelGroup);
             activeModelGroup = new THREE.Group();
 
@@ -187,12 +177,6 @@
             const headMat = new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.2, metalness: 0.5 });
             const head = new THREE.Mesh(headGeo, headMat);
             activeModelGroup.add(head);
-
-            const eyeGeo = new THREE.BoxGeometry(0.5, 0.12, 0.2);
-            const eyeMat = new THREE.MeshBasicMaterial({ color: 0x050505 });
-            const eyes = new THREE.Mesh(eyeGeo, eyeMat);
-            eyes.position.set(0, 0.08, 0.38);
-            activeModelGroup.add(eyes);
 
             scene.add(activeModelGroup);
         }
@@ -210,62 +194,45 @@
             if (activeModelGroup) scene.remove(activeModelGroup);
             activeModelGroup = new THREE.Group();
 
-            const finalizeImport = (object) => {
-                // Precise centering to ensure model stays visible on screen
+            const processModel = (object) => {
                 const box = new THREE.Box3().setFromObject(object);
                 const center = box.getCenter(new THREE.Vector3());
                 const size = box.getSize(new THREE.Vector3());
                 
-                object.position.x -= center.x;
-                object.position.y -= center.y;
-                object.position.z -= center.z;
+                object.position.sub(center); // Center the model precisely
 
                 const maxDim = Math.max(size.x, size.y, size.z);
                 if (maxDim > 0) {
-                    const scaleFactor = 0.8 / maxDim;
+                    const scaleFactor = 0.9 / maxDim;
                     object.scale.multiplyScalar(scaleFactor);
                 }
 
                 activeModelGroup.add(object);
                 scene.add(activeModelGroup);
-                alert("Model Loaded Successfully!");
+                alert("Model Imported Successfully!");
             };
 
             if (fileName.endsWith('.obj')) {
                 const loader = new THREE.OBJLoader();
                 loader.load(fileURL, (object) => {
                     object.traverse(child => {
-                        if (child.isMesh) child.material = new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.3, metalness: 0.4 });
+                        if (child.isMesh) child.material = new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.3 });
                     });
-                    finalizeImport(object);
-                }, undefined, (error) => {
-                    console.error(error);
-                    alert("Error loading OBJ file!");
-                    createDefaultMemojiHead();
-                });
+                    processModel(object);
+                }, undefined, (err) => { console.error(err); alert("Failed to load OBJ"); createDefaultHead(); });
             } else if (fileName.endsWith('.glb') || fileName.endsWith('.gltf')) {
                 const loader = new THREE.GLTFLoader();
                 loader.load(fileURL, (gltf) => {
-                    finalizeImport(gltf.scene);
-                }, undefined, (error) => {
-                    console.error(error);
-                    alert("Error loading GLB/GLTF file!");
-                    createDefaultMemojiHead();
-                });
+                    processModel(gltf.scene);
+                }, undefined, (err) => { console.error(err); alert("Failed to load GLB/GLTF"); createDefaultHead(); });
             } else if (fileName.endsWith('.fbx')) {
                 const loader = new THREE.FBXLoader();
                 loader.load(fileURL, (object) => {
                     object.traverse(child => {
-                        if (child.isMesh) {
-                            child.material = new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.4, metalness: 0.3 });
-                        }
+                        if (child.isMesh) child.material = new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.3 });
                     });
-                    finalizeImport(object);
-                }, undefined, (error) => {
-                    console.error(error);
-                    alert("Error loading FBX file!");
-                    createDefaultMemojiHead();
-                });
+                    processModel(object);
+                }, undefined, (err) => { console.error(err); alert("Failed to load FBX"); createDefaultHead(); });
             }
         });
 
@@ -411,4 +378,5 @@
         }
     </script>
 </body>
-</html>
+        </html>
+    
