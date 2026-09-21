@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Aziz 3D Face Filter Studio - Fixed Edition</title>
+    <title>Aziz AR Studio - Ultimate Safe Edition</title>
     <style>
         * { box-sizing: border-box; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; }
@@ -25,7 +25,7 @@
         }
         input[type="file"] { display: none; }
 
-        /* Control Panel for 3D Position & Rotation */
+        /* Control Panel */
         #control-panel {
             position: absolute; right: 12px; top: 70px;
             background: rgba(0, 0, 0, 0.9); backdrop-filter: blur(10px);
@@ -38,7 +38,7 @@
         .ctrl-group button { flex: 1; background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold; }
         .ctrl-group button:active { background: #ff0055; }
 
-        /* Bottom Filter/Model Switcher Dock */
+        /* Bottom Dock */
         .bottom-dock {
             position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%);
             background: rgba(0, 0, 0, 0.85); border: 1px solid rgba(255, 255, 255, 0.3);
@@ -49,27 +49,34 @@
         .filter-thumb {
             width: 42px; height: 42px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.5);
             background-size: cover; cursor: pointer; display: flex; align-items: center; justify-content: center;
-            color: white; font-size: 14px; font-weight: bold; background-color: #222; transition: 0.2s;
+            color: white; font-size: 14px; font-weight: bold; background-color: #222;
         }
 
         #start-screen {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: #111; z-index: 99999; display: flex; flex-direction: column;
-            justify-content: center; align-items: center; color: white; text-align: center; padding: 20px;
+            justify-content: center; align-items: center; color: white; text-align: center; padding: 25px;
         }
         #launch-btn {
             background: #00ff88; color: #000; font-size: 18px; font-weight: bold;
             padding: 15px 35px; border-radius: 30px; margin-top: 20px; border: none; cursor: pointer;
         }
     </style>
+
+    <!-- Pre-load Three.js and Loaders safely with fallback checks -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
 </head>
 <body>
 
     <div id="start-screen">
-        <h2>Aziz 3D Face Studio (Fixed)</h2>
-        <p>Tap below to start AR Experience safely</p>
-        <button id="launch-btn">START AR APP</button>
-        <p id="error-box" style="color: #ff4444; font-size: 12px; margin-top: 15px;"></p>
+        <h2>Aziz AR Studio</h2>
+        <p>Click below to grant camera permissions and start app</p>
+        <button id="launch-btn">LAUNCH AR APP</button>
+        <div id="error-log" style="color: #ff4444; font-size: 12px; margin-top: 15px; max-width: 300px; word-break: break-all;"></div>
     </div>
 
     <video id="video-element" autoplay playsinline muted></video>
@@ -135,28 +142,21 @@
 
         <div class="bottom-dock interactive">
             <div class="filter-switcher">
-                <div class="filter-thumb" onclick="setPresetModel('sphere')" title="Sphere">🟢</div>
-                <div class="filter-thumb" onclick="setPresetModel('cube')" title="Cube">🧊</div>
-                <div class="filter-thumb" onclick="setPresetModel('pyramid')" title="Pyramid">🔺</div>
+                <div class="filter-thumb" onclick="setPresetModel('sphere')">🟢</div>
+                <div class="filter-thumb" onclick="setPresetModel('cube')">🧊</div>
+                <div class="filter-thumb" onclick="setPresetModel('pyramid')">🔺</div>
             </div>
-            <label class="btn" for="import-file" style="background:#333; cursor:pointer; padding: 8px 12px; font-size: 12px;">📁 Custom 3D</label>
+            <label class="btn" for="import-file" style="background:#333; cursor:pointer; padding: 8px 12px; font-size: 12px;">📁 Custom</label>
             <input type="file" id="import-file" accept=".obj,.gltf,.glb">
             <button class="btn" onclick="resetModel()" style="background:#444; padding: 8px 12px; font-size: 12px;">🎯 Reset</button>
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
-
     <script>
         let scene, camera, renderer, videoEl, mediaStream;
-        let faceMesh, mpCamera;
+        let faceMesh = null, mpCamera = null;
         let currentModel = null;
         let useFront = true;
-        let isTrackingActive = false;
 
         let modelParams = {
             scale: 1.2,
@@ -168,17 +168,36 @@
             rotZ: 0.0
         };
 
+        function logError(msg) {
+            console.error(msg);
+            const errBox = document.getElementById('error-log');
+            if(errBox) errBox.innerText = msg;
+        }
+
         document.getElementById('launch-btn').addEventListener('click', async () => {
-            const errBox = document.getElementById('error-box');
-            errBox.innerText = "Starting Camera and Modules...";
+            const launchBtn = document.getElementById('launch-btn');
+            launchBtn.innerText = "Loading...";
+            launchBtn.disabled = true;
+
             try {
+                // 1. Check libraries availability
+                if (typeof THREE === 'undefined') throw new Error("Three.js failed to load. Check internet.");
+                if (typeof FaceMesh === 'undefined') throw new Error("MediaPipe FaceMesh failed to load. Check internet.");
+
+                // 2. Start Camera
                 await startCamera();
+
+                // 3. Hide start screen
                 document.getElementById('start-screen').style.display = 'none';
+
+                // 4. Init Three.js & Tracking
                 initThreeJS();
                 initTracking();
+
             } catch (err) {
-                console.error(err);
-                errBox.innerText = "Error: " + err.message + ". Please use HTTPS or Localhost.";
+                logError(err.message);
+                launchBtn.innerText = "LAUNCH AR APP";
+                launchBtn.disabled = false;
             }
         });
 
@@ -192,8 +211,10 @@
                     audio: false
                 });
             } catch (e) {
+                // Fallback to basic video constraint if ideal fails
                 mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
             }
+
             videoEl = document.getElementById('video-element');
             videoEl.srcObject = mediaStream;
             await videoEl.play();
@@ -202,11 +223,11 @@
         document.getElementById('flip-cam').addEventListener('click', async () => {
             useFront = !useFront;
             try { 
-                if(mpCamera) { await mpCamera.stop(); }
+                if(mpCamera) { mpCamera.stop(); }
                 await startCamera(); 
                 if(mpCamera) { mpCamera.start(); }
             } catch(e) { 
-                alert("Camera flip error: " + e.message); 
+                logError("Flip error: " + e.message); 
             }
         });
 
@@ -220,16 +241,12 @@
             renderer.outputEncoding = THREE.sRGBEncoding;
             document.getElementById('webgl-container').appendChild(renderer.domElement);
 
-            // Safe & Bright Studio Lighting
+            // Lighting
             scene.add(new THREE.AmbientLight(0xffffff, 2.5));
-            const dirLight1 = new THREE.DirectionalLight(0xffffff, 2.0);
-            dirLight1.position.set(0, 10, 10);
-            scene.add(dirLight1);
-            const dirLight2 = new THREE.DirectionalLight(0xffffff, 1.0);
-            dirLight2.position.set(0, -10, -10);
-            scene.add(dirLight2);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 2.0);
+            dirLight.position.set(0, 10, 10);
+            scene.add(dirLight);
 
-            // Load default preset safely
             setPresetModel('sphere');
             camera.position.z = 3;
 
@@ -264,13 +281,15 @@
         }
 
         function initTracking() {
-            if (typeof FaceMesh === 'undefined') {
-                alert("MediaPipe FaceMesh failed to load from CDN.");
-                return;
-            }
-
-            faceMesh = new FaceMesh({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
-            faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+            faceMesh = new FaceMesh({ 
+                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` 
+            });
+            faceMesh.setOptions({ 
+                maxNumFaces: 1, 
+                refineLandmarks: true, 
+                minDetectionConfidence: 0.5, 
+                minTrackingConfidence: 0.5 
+            });
             
             faceMesh.onResults((results) => {
                 if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0 && currentModel) {
@@ -308,8 +327,8 @@
                     if (videoEl && videoEl.readyState >= 2) {
                         try {
                             await faceMesh.send({ image: videoEl });
-                        } catch (err) {
-                            console.warn("Frame skip warning:", err);
+                        } catch (e) {
+                            // Suppress frame drop logs
                         }
                     }
                 },
@@ -319,10 +338,8 @@
             mpCamera.start();
         }
 
-        function adjust(type, val) {
-            modelParams[type] += val;
-        }
-
+        function adjust(type, val) { modelParams[type] += val; }
+        
         function resetModel() {
             modelParams.scale = 1.2;
             modelParams.posX = 0.0;
@@ -345,37 +362,35 @@
                     const loader = new THREE.OBJLoader();
                     try {
                         const obj = loader.parse(evt.target.result);
-                        fixTexturesAndColors(obj);
-                        replaceModelInScene(obj);
-                    } catch(err) { alert("Failed to parse OBJ file."); }
+                        fixMaterials(obj);
+                        replaceModel(obj);
+                    } catch(err) { logError("OBJ Parse Error: " + err.message); }
                 };
             } else if (fileName.endsWith('.gltf') || fileName.endsWith('.glb')) {
                 reader.readAsArrayBuffer(file);
                 reader.onload = (evt) => {
                     const loader = new THREE.GLTFLoader();
                     loader.parse(evt.target.result, '', (gltf) => {
-                        fixTexturesAndColors(gltf.scene);
-                        replaceModelInScene(gltf.scene);
-                    }, (err) => { alert("Failed to parse GLTF/GLB file."); });
+                        fixMaterials(gltf.scene);
+                        replaceModel(gltf.scene);
+                    }, (err) => { logError("GLTF Parse Error: " + err.message); });
                 };
             } else {
-                alert("Please select a valid .obj, .gltf or .glb file.");
+                alert("Please select .obj, .gltf or .glb file.");
             }
         }
 
-        function fixTexturesAndColors(obj) {
+        function fixMaterials(obj) {
             obj.traverse((child) => {
                 if (child.isMesh) {
                     child.material.side = THREE.DoubleSide;
-                    if (child.material.map) {
-                        child.material.map.encoding = THREE.sRGBEncoding;
-                    }
+                    if (child.material.map) child.material.map.encoding = THREE.sRGBEncoding;
                     child.material.needsUpdate = true;
                 }
             });
         }
 
-        function replaceModelInScene(newObj) {
+        function replaceModel(newObj) {
             if (currentModel) scene.remove(currentModel);
             currentModel = newObj;
             resetModel();
@@ -390,18 +405,16 @@
             ctx.drawImage(renderer.domElement, 0, 0, canvas.width, canvas.height);
 
             const link = document.createElement('a');
-            link.download = 'aziz-fixed-snapshot.png';
+            link.download = 'snapshot.png';
             link.href = canvas.toDataURL('image/png');
             link.click();
         }
 
         function animateLoop() {
             requestAnimationFrame(animateLoop);
-            if (renderer && scene && camera) {
-                renderer.render(scene, camera);
-            }
+            if (renderer && scene && camera) renderer.render(scene, camera);
         }
     </script>
 </body>
-                        </html>
-    
+            </html>
+                    
