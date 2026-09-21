@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Aziz Animoji Studio - Pro 3D Head Wrap</title>
+    <title>Aziz Pro 3D Animoji Studio - Custom Import</title>
     <style>
         * { box-sizing: border-box; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; }
@@ -21,16 +21,16 @@
         .top-nav { display: flex; justify-content: space-between; width: 100%; align-items: center; flex-wrap: wrap; gap: 6px; }
         
         .btn {
-            background: rgba(0, 0, 0, 0.6); color: white; border: 1px solid rgba(255,255,255,0.4);
+            background: rgba(0, 0, 0, 0.7); color: white; border: 1px solid rgba(255,255,255,0.4);
             padding: 8px 12px; font-size: 11px; border-radius: 20px; cursor: pointer; font-weight: bold;
             backdrop-filter: blur(6px); transition: all 0.2s ease;
         }
         .btn:active { background: rgba(255, 255, 255, 0.4); transform: scale(0.95); }
 
-        /* Manual Adjust Panel */
+        /* Manual Position & Scale Panel */
         .control-panel {
             position: absolute; top: 85px; left: 15px; display: flex; flex-direction: column; gap: 8px;
-            background: rgba(0, 0, 0, 0.35); padding: 10px; border-radius: 15px; backdrop-filter: blur(5px);
+            background: rgba(0, 0, 0, 0.4); padding: 10px; border-radius: 15px; backdrop-filter: blur(5px);
             border: 1px solid rgba(255,255,255,0.2);
         }
         .control-row { display: flex; gap: 8px; justify-content: center; }
@@ -43,7 +43,7 @@
 
         .bottom-dock {
             position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.55); border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255, 255, 255, 0.3);
             padding: 10px 20px; border-radius: 40px; display: flex; align-items: center; gap: 15px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5); backdrop-filter: blur(8px);
         }
@@ -68,7 +68,7 @@
         }
     </style>
 
-    <!-- Three.js & Loaders (OBJ, GLTF, FBX) & MediaPipe -->
+    <!-- Three.js & Loaders (OBJ & GLTF) & MediaPipe -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -78,8 +78,8 @@
 <body>
 
     <div id="start-screen">
-        <h1 style="color: #00ff88; margin-bottom: 5px;">Aziz Animoji Studio</h1>
-        <p style="color: #aaa; max-width: 320px;">Full 360° Head Coverage with OBJ, FBX, GLB & XFPX Support</p>
+        <h1 style="color: #00ff88; margin-bottom: 5px;">Aziz Pro Animoji Studio</h1>
+        <p style="color: #aaa; max-width: 320px;">Direct Custom 3D Model Import (.obj, .glb, .gltf) & 360° Head Lock</p>
         <button id="launch-btn">START STUDIO</button>
         <div id="error-log" style="color: #ff4444; font-size: 13px; margin-top: 15px; max-width: 300px;"></div>
     </div>
@@ -91,11 +91,11 @@
         <div class="top-nav">
             <button id="flip-cam" class="btn interactive">🔄 Flip</button>
             <button id="reset-pos" class="btn interactive">🎯 Reset</button>
-            <button id="export-btn" class="btn interactive">📤 Export (.xfpx / .opg)</button>
+            <button id="export-btn" class="btn interactive">📤 Export Project</button>
             
-            <!-- Direct 3D Model & Project Import Button -->
-            <button id="import-btn" class="btn interactive">📥 Import (OBJ/FBX/GLB/XFPX)</button>
-            <input type="file" id="import-file" style="display: none;" accept=".obj,.fbx,.glb,.gltf,.xfpx,.opg,.json">
+            <!-- Direct Custom 3D Model Import -->
+            <button id="import-btn" class="btn interactive">📥 Import Custom 3D (.obj/.glb)</button>
+            <input type="file" id="import-file" style="display: none;" accept=".obj,.glb,.gltf,.xfpx,.json">
             
             <button id="take-snap" class="btn interactive">📸 Snap</button>
         </div>
@@ -193,11 +193,10 @@
             if (animojiGroup) animojiGroup.scale.set(1, 1, 1);
         });
 
-        // Export Config (.xfpx / .opg)
+        // Export Config
         document.getElementById('export-btn').addEventListener('click', () => {
             const config = {
-                app: "AzizAnimojiStudio",
-                formatVersion: "4.0",
+                app: "AzizProStudio",
                 currentType,
                 manualOffsetX,
                 manualOffsetY,
@@ -213,7 +212,7 @@
             dlAnchor.remove();
         });
 
-        // Import Button Handler for .obj, .glb, .gltf, .fbx, .xfpx, .opg
+        // Custom 3D Model File Import Handler (.obj, .glb, .gltf)
         document.getElementById('import-btn').addEventListener('click', () => {
             document.getElementById('import-file').click();
         });
@@ -232,14 +231,14 @@
                     animojiGroup = new THREE.Group();
                     object.traverse((child) => {
                         if (child.isMesh) {
-                            child.material = new THREE.MeshStandardMaterial({ color: 0xffcc00, roughness: 0.3 });
+                            child.material = new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.3 });
                         }
                     });
                     animojiGroup.add(object);
                     animojiGroup.scale.set(manualScale, manualScale, manualScale);
                     scene.add(animojiGroup);
-                    alert("OBJ 3D Model Loaded Successfully!");
-                }, undefined, (err) => { alert("Error loading OBJ file."); });
+                    alert("Custom .OBJ 3D Model Loaded Successfully!");
+                }, undefined, (err) => { alert("Failed to load .obj file."); });
             } 
             else if (fileName.endsWith('.glb') || fileName.endsWith('.gltf')) {
                 const loader = new THREE.GLTFLoader();
@@ -249,11 +248,10 @@
                     animojiGroup.add(gltf.scene);
                     animojiGroup.scale.set(manualScale, manualScale, manualScale);
                     scene.add(animojiGroup);
-                    alert("GLB / GLTF 3D Model Loaded Successfully!");
-                }, undefined, (err) => { alert("Error loading GLB file."); });
+                    alert("Custom .GLB/.GLTF 3D Model Loaded Successfully!");
+                }, undefined, (err) => { alert("Failed to load .glb file."); });
             }
             else {
-                // Handle project configurations (.xfpx, .opg, .json)
                 const fileReader = new FileReader();
                 fileReader.readAsText(file, "UTF-8");
                 fileReader.onload = (e) => {
@@ -267,9 +265,9 @@
                             manualScale = config.manualScale;
                             if (animojiGroup) animojiGroup.scale.set(manualScale, manualScale, manualScale);
                         }
-                        alert("Project File (" + file.name + ") Imported Successfully!");
+                        alert("Project settings imported successfully!");
                     } catch (err) {
-                        alert("File loaded successfully!");
+                        alert("File loaded.");
                     }
                 };
             }
@@ -330,7 +328,7 @@
             if (animojiGroup) scene.remove(animojiGroup);
             animojiGroup = new THREE.Group();
 
-            // True 360 Full Head Coverage (Sphere encompassing complete head volume)
+            // 360 Degree True Head Volume Enclosure
             if (type === 'laugh') {
                 const headGeo = new THREE.SphereGeometry(0.95, 32, 32);
                 const headMat = new THREE.MeshStandardMaterial({ color: 0xffcc00, roughness: 0.2 });
@@ -394,4 +392,11 @@
                 const mouthGeo = new THREE.BoxGeometry(0.28, 0.12, 0.05);
                 jawPart = new THREE.Mesh(mouthGeo, patchMat);
                 jawPart.position.set(0, -0.28, 0.85);
-                ani
+                animojiGroup.add(jawPart);
+            }
+
+            animojiGroup.scale.set(manualScale, manualScale, manualScale);
+            scene.add(animojiGroup);
+        }
+
+        function i
