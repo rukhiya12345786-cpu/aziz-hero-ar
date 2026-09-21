@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Aziz Clean AR Studio</title>
+    <title>Aziz AR Studio - Fixed Importer</title>
     <style>
         * { box-sizing: border-box; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; font-family: sans-serif; }
@@ -55,10 +55,15 @@
         }
     </style>
 
-    <!-- Required Libraries -->
+    <!-- Required Libraries & Loaders (Three.js r128 with OBJ, GLTF, FBX Loaders) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <!-- Added FBX Loader dependency (inflate.min.js required by FBXLoader) -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/inflate.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
+
+    <!-- MediaPipe & Kalidokit -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/kalidokit@1.1.4/dist/kalidokit.umd.js"></script>
@@ -67,7 +72,7 @@
 
     <div id="start-screen">
         <h1 style="color: #00ff88; margin-bottom: 5px; font-size: 24px;">Aziz AR Studio</h1>
-        <p style="color: #aaa; font-size: 12px; max-width: 280px;">Transparent Interface & Precise Face Tracking</p>
+        <p style="color: #aaa; font-size: 12px; max-width: 280px;">Fixed Importer (.obj, .glb, .gltf, .fbx) & Tracking</p>
         <button id="launch-btn">START STUDIO</button>
         <div id="error-log" style="color: #ff4444; font-size: 11px; margin-top: 10px;"></div>
     </div>
@@ -79,14 +84,14 @@
         <div class="top-nav">
             <button id="flip-cam" class="btn interactive">🔄 Flip</button>
             <button id="import-btn" class="btn interactive">📥 Import</button>
-            <input type="file" id="import-file" style="display: none;" accept=".obj,.glb,.gltf">
+            <input type="file" id="import-file" style="display: none;" accept=".obj,.glb,.gltf,.fbx">
             <button id="record-btn" class="btn interactive">🔴 Rec</button>
             <button id="take-snap" class="btn interactive">📸 Snap</button>
         </div>
 
         <div class="control-panel interactive">
             <label>Scale <span id="val-scale">1.0</span></label>
-            <input type="range" id="range-scale" min="0.2" max="3.0" step="0.05" value="1.0">
+            <input type="range" id="range-scale" min="0.05" max="3.0" step="0.05" value="1.0">
             
             <label>Offset X <span id="val-x">0.0</span></label>
             <input type="range" id="range-x" min="-1.0" max="1.0" step="0.05" value="0.0">
@@ -178,6 +183,9 @@
                     customModelGroup.add(object);
                     scene.add(customModelGroup);
                     alert("OBJ Model Imported Successfully!");
+                }, undefined, (error) => {
+                    console.error(error);
+                    alert("Error loading OBJ file!");
                 });
             } else if (fileName.endsWith('.glb') || fileName.endsWith('.gltf')) {
                 const loader = new THREE.GLTFLoader();
@@ -187,6 +195,25 @@
                     customModelGroup.add(model);
                     scene.add(customModelGroup);
                     alert("GLB/GLTF Model Imported Successfully!");
+                }, undefined, (error) => {
+                    console.error(error);
+                    alert("Error loading GLB/GLTF file!");
+                });
+            } else if (fileName.endsWith('.fbx')) {
+                const loader = new THREE.FBXLoader();
+                loader.load(fileURL, (object) => {
+                    object.scale.set(0.01, 0.01, 0.01);
+                    object.traverse(child => {
+                        if (child.isMesh) {
+                            child.material = new THREE.MeshStandardMaterial({ color: 0x00ff88, metalness: 0.3, roughness: 0.4 });
+                        }
+                    });
+                    customModelGroup.add(object);
+                    scene.add(customModelGroup);
+                    alert("FBX Model Imported Successfully!");
+                }, undefined, (error) => {
+                    console.error(error);
+                    alert("Error loading FBX file!");
                 });
             }
         });
