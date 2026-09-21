@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Aziz AR Studio - Dual Model & Touch Gestures</title>
+    <title>Aziz AR Studio - Perfect Head Match Pro</title>
     <style>
         * { box-sizing: border-box; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         
         #video-bg { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; z-index: 1; background: #000; transform: scaleX(-1); }
-        #canvas-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2; }
+        #canvas-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2; pointer-events: none; }
         
         #ui-layer {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -27,24 +27,24 @@
         .glass-btn:active { background: rgba(255, 255, 255, 0.3); }
         input[type="file"] { display: none; }
 
-        /* Control Panel for Multi Models */
+        /* Professional Control Panel with Forward/Backward Buttons */
         #adjust-panel {
             position: absolute; right: 12px; top: 65px;
             background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(12px);
-            border: 1px solid rgba(255,255,255,0.2); padding: 10px;
-            border-radius: 14px; display: flex; flex-direction: column; gap: 6px; width: 145px;
-            max-height: 78vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+            border: 1px solid rgba(255,255,255,0.2); padding: 8px;
+            border-radius: 12px; display: flex; flex-direction: column; gap: 5px; width: 150px;
+            max-height: 80vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.6);
         }
         .adj-group { display: flex; flex-direction: column; gap: 2px; color: #00ff88; font-size: 9px; font-weight: bold; }
         .adj-group div { display: flex; gap: 3px; }
-        .adj-group button { flex: 1; background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px; border-radius: 5px; font-size: 11px; cursor: pointer; font-weight: bold; }
+        .adj-group button { flex: 1; background: rgba(255,255,255,0.2); border: none; color: white; padding: 5px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold; }
         .adj-group button:active { background: #ff0055; }
         
-        .model-select-bar { display: flex; gap: 4px; margin-bottom: 4px; }
+        .model-select-bar { display: flex; gap: 4px; margin-bottom: 2px; }
         .model-select-bar button { flex: 1; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 4px; font-size: 9px; border-radius: 4px; cursor: pointer; }
         .model-select-bar button.active { background: #00ff88; color: #000; font-weight: bold; }
 
-        /* Bottom Floating Dock */
+        /* Bottom Dock */
         .bottom-dock {
             position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%);
             background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(15px);
@@ -80,8 +80,8 @@
 <body>
 
     <div id="permission-screen">
-        <h1 style="margin: 0 0 10px 0; font-size: 22px;">Aziz AR Studio - Dual 3D</h1>
-        <p style="margin: 0; color: #aaa; font-size: 13px;">Tap below to start camera & touch tracking</p>
+        <h1 style="margin: 0 0 10px 0; font-size: 22px;">Aziz AR Studio</h1>
+        <p style="margin: 0; color: #aaa; font-size: 13px;">Tap below to start camera & head tracking</p>
         <button id="start-app-btn">START CAMERA</button>
         <div id="error-msg"></div>
     </div>
@@ -95,7 +95,7 @@
             <button id="snapshot-btn" class="glass-btn clickable">📸 Snapshot</button>
         </div>
 
-        <!-- Adjust Panel with Model Selector & Touch Controls Info -->
+        <!-- Control Panel with Forward/Backward (Z) and Touch Rotation support -->
         <div id="adjust-panel" class="clickable">
             <div class="model-select-bar">
                 <button id="sel-m1" class="active" onclick="setActiveModel(0)">Model 1</button>
@@ -104,8 +104,8 @@
             <div class="adj-group">
                 <span>SIZE (SCALE)</span>
                 <div>
-                    <button onclick="adjustVal('scale', -0.1)">-</button>
-                    <button onclick="adjustVal('scale', 0.1)">+</button>
+                    <button onclick="adjustVal('scale', -0.05)">-</button>
+                    <button onclick="adjustVal('scale', 0.05)">+</button>
                 </div>
             </div>
             <div class="adj-group">
@@ -123,16 +123,23 @@
                 </div>
             </div>
             <div class="adj-group">
-                <span>ROTATE X / Y / Z</span>
+                <span>BACK / FORWARD (Z)</span>
                 <div>
-                    <button onclick="adjustVal('rotX', -0.15)">X-</button>
-                    <button onclick="adjustVal('rotY', -0.15)">Y-</button>
-                    <button onclick="adjustVal('rotZ', -0.15)">Z-</button>
+                    <button onclick="adjustVal('posZ', -0.05)">Back (-)</button>
+                    <button onclick="adjustVal('posZ', 0.05)">Front (+)</button>
+                </div>
+            </div>
+            <div class="adj-group">
+                <span>ROTATE TILT / SPIN</span>
+                <div>
+                    <button onclick="adjustVal('rotX', -0.1)">X-</button>
+                    <button onclick="adjustVal('rotY', -0.1)">Y-</button>
+                    <button onclick="adjustVal('rotZ', -0.1)">Z-</button>
                 </div>
                 <div>
-                    <button onclick="adjustVal('rotX', 0.15)">X+</button>
-                    <button onclick="adjustVal('rotY', 0.15)">Y+</button>
-                    <button onclick="adjustVal('rotZ', 0.15)">Z+</button>
+                    <button onclick="adjustVal('rotX', 0.1)">X+</button>
+                    <button onclick="adjustVal('rotY', 0.1)">Y+</button>
+                    <button onclick="adjustVal('rotZ', 0.1)">Z+</button>
                 </div>
             </div>
         </div>
@@ -150,7 +157,8 @@
             </button>
         </div>
     </div>
-        <!-- Required 3D & AI Libraries -->
+
+    <!-- Required 3D & AI Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -166,18 +174,12 @@
         let mediaRecorder, recordedChunks = [], isRecording = false;
         let faceMesh, mpCamera;
 
-        // Support for two independent 3D models
+        // Two models setup with balanced default head alignment offsets
         let models = [
-            { obj: null, scale: 1.3, offsetX: 0.0, offsetY: 0.25, offsetZ: 0.0, rotX: 0.0, rotY: 0.0, rotZ: 0.0 },
+            { obj: null, scale: 1.2, offsetX: 0.0, offsetY: 0.15, offsetZ: 0.0, rotX: 0.0, rotY: 0.0, rotZ: 0.0 },
             { obj: null, scale: 1.0, offsetX: 0.0, offsetY: 0.0, offsetZ: 0.0, rotX: 0.0, rotY: 0.0, rotZ: 0.0 }
         ];
         let activeModelIndex = 0;
-
-        // Touch gesture variables for screen interaction
-        let isTouching = false;
-        let previousTouchX = 0;
-        let previousTouchY = 0;
-        let initialPinchDist = null;
 
         document.getElementById('start-app-btn').addEventListener('click', async () => {
             const errDiv = document.getElementById('error-msg');
@@ -187,7 +189,6 @@
                 document.getElementById('permission-screen').style.display = 'none';
                 initThree();
                 initFaceTracking();
-                initTouchGestures();
             } catch (err) {
                 console.error(err);
                 errDiv.innerText = "Error: " + err.message + ". Allow permissions / use HTTPS.";
@@ -223,14 +224,14 @@
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-            scene.add(new THREE.AmbientLight(0xffffff, 1.6));
-            const dLight = new THREE.DirectionalLight(0xffffff, 1.8);
-            dLight.position.set(5, 12, 8);
+            scene.add(new THREE.AmbientLight(0xffffff, 1.8));
+            const dLight = new THREE.DirectionalLight(0xffffff, 2.0);
+            dLight.position.set(0, 10, 10);
             scene.add(dLight);
 
-            // Default Model 1 (Helmet placeholder)
-            const geo = new THREE.SphereGeometry(0.75, 32, 32);
-            const mat = new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.2, metalness: 0.5 });
+            // Default Model 1 placeholder (Helmet shape)
+            const geo = new THREE.SphereGeometry(0.7, 32, 32);
+            const mat = new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.3, metalness: 0.4 });
             models[0].obj = new THREE.Mesh(geo, mat);
             scene.add(models[0].obj);
 
@@ -257,27 +258,32 @@
             faceMesh.onResults((results) => {
                 if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
                     const landmarks = results.multiFaceLandmarks[0];
-                    const p10 = landmarks[10];
-                    const p152 = landmarks[152];
+                    
+                    // Key head anchor landmarks (Nose tip 1, Forehead 10, Left ear/side 234, Right ear/side 454)
+                    const nose = landmarks[1];
                     const p234 = landmarks[234];
                     const p454 = landmarks[454];
 
-                    const centerX = (p10.x + p152.x) / 2;
-                    const centerY = (p10.y + p152.y) / 2;
-                    const centerZ = (p10.z + p152.z) / 2;
+                    // Accurate face center tracking
+                    const centerX = nose.x;
+                    const centerY = nose.y;
+                    const centerZ = nose.z;
 
+                    // Compute head tilt and rotation angles
                     const dx = p454.x - p234.x;
                     const dy = p454.y - p234.y;
                     const rotZ_auto = Math.atan2(dy, dx);
+                    
                     const dz = p454.z - p234.z;
                     const rotY_auto = Math.asin(Math.max(-1, Math.min(1, dz * 2.0)));
 
-                    // Update all active models based on face tracking and individual transforms
-                    models.forEach((m, idx) => {
+                    models.forEach((m) => {
                         if (!m.obj) return;
-                        const x = -(centerX - 0.5) * 4.2 + m.offsetX;
-                        const y = -(centerY - 0.5) * 4.2 + m.offsetY;
-                        const z = centerZ * 2.0 + m.offsetZ;
+                        
+                        // Correct screen coordinate mapping to lock directly onto the head
+                        const x = -(centerX - 0.5) * 3.8 + m.offsetX;
+                        const y = -(centerY - 0.5) * 3.8 + m.offsetY;
+                        const z = centerZ * 1.5 + m.offsetZ;
 
                         m.obj.position.set(x, y, z);
                         m.obj.rotation.set(
@@ -298,53 +304,6 @@
             mpCamera.start();
         }
 
-        // Touch screen gesture handlers for rotation and pinch scaling directly on screen
-        function initTouchGestures() {
-            const container = document.getElementById('canvas-container');
-
-            container.addEventListener('touchstart', (e) => {
-                if (e.touches.length === 1) {
-                    isTouching = true;
-                    previousTouchX = e.touches[0].clientX;
-                    previousTouchY = e.touches[0].clientY;
-                } else if (e.touches.length === 2) {
-                    initialPinchDist = Math.hypot(
-                        e.touches[0].clientX - e.touches[1].clientX,
-                        e.touches[0].clientY - e.touches[1].clientY
-                    );
-                }
-            }, { passive: true });
-
-            container.addEventListener('touchmove', (e) => {
-                const m = models[activeModelIndex];
-                if (!m.obj) return;
-
-                if (e.touches.length === 1 && isTouching) {
-                    const deltaX = e.touches[0].clientX - previousTouchX;
-                    const deltaY = e.touches[0].clientY - previousTouchY;
-                    
-                    m.rotY += deltaX * 0.01;
-                    m.rotX += deltaY * 0.01;
-
-                    previousTouchX = e.touches[0].clientX;
-                    previousTouchY = e.touches[0].clientY;
-                } else if (e.touches.length === 2 && initialPinchDist) {
-                    const currentDist = Math.hypot(
-                        e.touches[0].clientX - e.touches[1].clientX,
-                        e.touches[0].clientY - e.touches[1].clientY
-                    );
-                    const factor = currentDist / initialPinchDist;
-                    m.scale = Math.max(0.1, m.scale * (factor > 1 ? 1.02 : 0.98));
-                    initialPinchDist = currentDist;
-                }
-            }, { passive: true });
-
-            container.addEventListener('touchend', () => {
-                isTouching = false;
-                initialPinchDist = null;
-            });
-        }
-
         function setActiveModel(index) {
             activeModelIndex = index;
             document.getElementById('sel-m1').classList.toggle('active', index === 0);
@@ -353,9 +312,10 @@
 
         function adjustVal(type, val) {
             let m = models[activeModelIndex];
-            if (type === 'scale') { m.scale = Math.max(0.1, m.scale + val); }
+            if (type === 'scale') { m.scale = Math.max(0.05, m.scale + val); }
             else if (type === 'posY') { m.offsetY += val; }
             else if (type === 'posX') { m.offsetX += val; }
+            else if (type === 'posZ') { m.offsetZ += val; } // Controls forward & backward position
             else if (type === 'rotX') { m.rotX += val; }
             else if (type === 'rotY') { m.rotY += val; }
             else if (type === 'rotZ') { m.rotZ += val; }
@@ -363,9 +323,9 @@
 
         function resetActiveModel() {
             let m = models[activeModelIndex];
-            m.scale = activeModelIndex === 0 ? 1.3 : 1.0;
+            m.scale = activeModelIndex === 0 ? 1.2 : 1.0;
             m.offsetX = 0.0;
-            m.offsetY = activeModelIndex === 0 ? 0.25 : 0.0;
+            m.offsetY = 0.15;
             m.offsetZ = 0.0;
             m.rotX = 0.0;
             m.rotY = 0.0;
@@ -416,7 +376,6 @@
             m.obj = newObj;
             resetActiveModel();
             scene.add(m.obj);
-            // Automatically switch active model to slot 2 if slot 1 was already filled
             if (activeModelIndex === 0 && models[1].obj === null) {
                 setActiveModel(1);
             }
@@ -454,19 +413,4 @@
                     a.download = 'aziz-ar-recording.webm';
                     document.body.appendChild(a);
                     a.click();
-                    setTimeout(() => { window.URL.revokeObjectURL(url); a.remove(); }, 100);
-                };
-
-                mediaRecorder.start();
-                isRecording = true;
-                btn.classList.add('recording');
-            } else {
-                mediaRecorder.stop();
-                isRecording = false;
-                btn.classList.remove('recording');
-            }
-        }
-    </script>
-</body>
-    </html>
-    
+                    setTimeout(() => { w
