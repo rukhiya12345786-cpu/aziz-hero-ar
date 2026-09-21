@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Aziz AR Studio - Ultimate Texture & Depth Control</title>
+    <title>Aziz AR Studio - Stable Face Lock Pro</title>
     <style>
         * { box-sizing: border-box; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -27,7 +27,7 @@
         .glass-btn:active { background: rgba(255, 255, 255, 0.4); }
         input[type="file"] { display: none; }
 
-        /* Enhanced Control Panel with Clear Front/Back Buttons */
+        /* Control Panel */
         #adjust-panel {
             position: absolute; right: 12px; top: 65px;
             background: rgba(0, 0, 0, 0.9); backdrop-filter: blur(15px);
@@ -80,8 +80,8 @@
 <body>
 
     <div id="permission-screen">
-        <h1 style="margin: 0 0 10px 0; font-size: 22px;">Aziz AR Studio Pro</h1>
-        <p style="margin: 0; color: #aaa; font-size: 13px;">Tap below to start camera & 3D face tracking</p>
+        <h1 style="margin: 0 0 10px 0; font-size: 22px;">Aziz AR Studio</h1>
+        <p style="margin: 0; color: #aaa; font-size: 13px;">Tap below to start camera & tracking</p>
         <button id="start-app-btn">START CAMERA</button>
         <div id="error-msg"></div>
     </div>
@@ -95,7 +95,6 @@
             <button id="snapshot-btn" class="glass-btn clickable">📸 Snapshot</button>
         </div>
 
-        <!-- Control Panel with Dedicated Front/Back Depth Adjustment Buttons -->
         <div id="adjust-panel" class="clickable">
             <div class="model-select-bar">
                 <button id="sel-m1" class="active" onclick="setActiveModel(0)">Model 1</button>
@@ -103,7 +102,7 @@
             </div>
             
             <div class="adj-group" style="background: rgba(0,255,136,0.15); padding: 5px; border-radius: 6px; border: 1px solid #00ff88;">
-                <span>👉 PULL FRONT / PUSH BACK</span>
+                <span>👉 BACK / FRONT (Z-AXIS)</span>
                 <div>
                     <button onclick="adjustVal('posZ', -0.05)" style="background:#ff0055;">◀ BACK</button>
                     <button onclick="adjustVal('posZ', 0.05)" style="background:#00ff88; color:#000;">FRONT ▶</button>
@@ -182,6 +181,10 @@
         ];
         let activeModelIndex = 0;
 
+        // Smooth tracking variables to prevent shaking/jittering
+        let targetPos = new THREE.Vector3();
+        let currentPos = new THREE.Vector3();
+
         document.getElementById('start-app-btn').addEventListener('click', async () => {
             const errDiv = document.getElementById('error-msg');
             errDiv.innerText = "Initializing camera & tracking...";
@@ -225,9 +228,8 @@
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-            // Rich Studio Lighting to bring out model textures and colors vividly
-            scene.add(new THREE.AmbientLight(0xffffff, 2.2));
-            const dLight1 = new THREE.DirectionalLight(0xffffff, 2.5);
+            scene.add(new THREE.AmbientLight(0xffffff, 2.5));
+            const dLight1 = new THREE.DirectionalLight(0xffffff, 2.0);
             dLight1.position.set(0, 10, 15);
             scene.add(dLight1);
 
@@ -235,7 +237,6 @@
             dLight2.position.set(0, -10, -10);
             scene.add(dLight2);
 
-            // Default Model 1 placeholder
             const geo = new THREE.SphereGeometry(0.7, 32, 32);
             const mat = new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.2, metalness: 0.5 });
             models[0].obj = new THREE.Mesh(geo, mat);
@@ -258,6 +259,11 @@
         }
 
         function initFaceTracking() {
+            if (typeof FaceMesh === 'undefined') {
+                alert("FaceMesh library failed to load. Check internet connection.");
+                return;
+            }
+
             faceMesh = new FaceMesh({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
             faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
             
@@ -284,10 +290,13 @@
                         
                         const x = -(centerX - 0.5) * 3.5 + m.offsetX;
                         const y = -(centerY - 0.5) * 3.5 + m.offsetY;
-                        // Base Z tracking plus manual forward/backward offset control
                         const z = centerZ * 1.2 + m.offsetZ;
 
-                        m.obj.position.set(x, y, z);
+                        // Apply smooth position lerping to stop unwanted shivering/shaking
+                        m.obj.position.x += (x - m.obj.position.x) * 0.3;
+                        m.obj.position.y += (y - m.obj.position.y) * 0.3;
+                        m.obj.position.z += (z - m.obj.position.z) * 0.3;
+
                         m.obj.rotation.set(
                             m.rotX,
                             rotY_auto + m.rotY,
@@ -317,7 +326,7 @@
             if (type === 'scale') { m.scale = Math.max(0.05, m.scale + val); }
             else if (type === 'posY') { m.offsetY += val; }
             else if (type === 'posX') { m.offsetX += val; }
-            else if (type === 'posZ') { m.offsetZ += val; } // Front / Back movement
+            else if (type === 'posZ') { m.offsetZ += val; } // Direct Front/Back movement control
             else if (type === 'rotX') { m.rotX += val; }
             else if (type === 'rotY') { m.rotY += val; }
             else if (type === 'rotZ') { m.rotZ += val; }
@@ -339,7 +348,6 @@
             renderer.render(scene, camera);
         }
 
-        // Enhanced Model Loader ensuring textures and colors are preserved correctly
         function handleModelImport(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -418,34 +426,4 @@
         function toggleVideoRecording() {
             const btn = document.getElementById('record-btn');
             if (!isRecording) {
-                if (!mediaStream) { alert("Camera not ready"); return; }
-                const combined = new MediaStream([...mediaStream.getVideoTracks(), ...mediaStream.getAudioTracks()]);
-                
-                try { mediaRecorder = new MediaRecorder(combined, { mimeType: 'video/webm;codecs=vp9,opus' }); }
-                catch (e) { mediaRecorder = new MediaRecorder(combined); }
-
-                recordedChunks = [];
-                mediaRecorder.ondataavailable = (evt) => { if (evt.data.size > 0) recordedChunks.push(evt.data); };
-                mediaRecorder.onstop = () => {
-                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'aziz-ar-recording.webm';
-                    document.body.appendChild(a);
-                    a.click();
-                    setTimeout(() => { window.URL.revokeObjectURL(url); a.remove(); }, 100);
-                };
-
-                mediaRecorder.start();
-                isRecording = true;
-                btn.classList.add('recording');
-            } else {
-                mediaRecorder.stop();
-                isRecording = false;
-                btn.classList.remove('recording');
-            }
-        }
-    </script>
-</body>
-</html>
+                if (!med
