@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Aziz 3D Face Morph & Model Studio</title>
+    <title>Aziz 3D Face Avatar & Filter Switcher Studio</title>
     <style>
         * { box-sizing: border-box; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; }
@@ -25,24 +25,33 @@
         }
         input[type="file"] { display: none; }
 
-        /* Control Panel for Full 3D Rotation & Position */
+        /* Control Panel for 3D Position & Rotation */
         #control-panel {
             position: absolute; right: 12px; top: 70px;
             background: rgba(0, 0, 0, 0.9); backdrop-filter: blur(10px);
             border: 1px solid rgba(255,255,255,0.3); padding: 10px;
             border-radius: 12px; display: flex; flex-direction: column; gap: 8px; width: 180px;
-            max-height: 82vh; overflow-y: auto;
+            max-height: 75vh; overflow-y: auto;
         }
         .ctrl-group { display: flex; flex-direction: column; gap: 3px; color: #00ff88; font-size: 10px; font-weight: bold; }
         .ctrl-group .btn-row { display: flex; gap: 4px; }
         .ctrl-group button { flex: 1; background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold; }
         .ctrl-group button:active { background: #ff0055; }
 
+        /* Bottom Filter/Model Switcher Dock (Like the reference video) */
         .bottom-dock {
             position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.8); border: 1px solid rgba(255, 255, 255, 0.3);
-            padding: 10px 25px; border-radius: 30px; display: flex; align-items: center; gap: 20px;
+            background: rgba(0, 0, 0, 0.85); border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 10px 20px; border-radius: 35px; display: flex; align-items: center; gap: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
+        .filter-switcher { display: flex; gap: 8px; align-items: center; }
+        .filter-thumb {
+            width: 42px; height: 42px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.5);
+            background-size: cover; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 10px; font-weight: bold; background-color: #222; transition: 0.2s;
+        }
+        .filter-thumb.active { border-color: #00ff88; transform: scale(1.1); }
 
         #start-screen {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
@@ -58,9 +67,9 @@
 <body>
 
     <div id="start-screen">
-        <h2>Aziz 3D Face Morph Studio</h2>
-        <p>Tap below to start 3D AR Tracker</p>
-        <button id="launch-btn">START 3D APP</button>
+        <h2>Aziz 3D Face Filter Studio</h2>
+        <p>Tap below to start your 3D AR Experience</p>
+        <button id="launch-btn">START 3D FILTER</button>
         <p id="error-box" style="color: #ff4444; font-size: 12px; margin-top: 15px;"></p>
     </div>
 
@@ -69,8 +78,8 @@
 
     <div id="ui-overlay">
         <div class="top-nav">
-            <button id="flip-cam" class="btn interactive">🔄 Flip Cam</button>
-            <button id="take-snap" class="btn interactive">📸 Snapshot</button>
+            <button id="flip-cam" class="btn interactive">🔄 Flip</button>
+            <button id="take-snap" class="btn interactive">📸 Snap</button>
         </div>
 
         <div id="control-panel" class="interactive">
@@ -112,4 +121,274 @@
                 <span>ROTATE X (TILT)</span>
                 <div class="btn-row">
                     <button onclick="adjust('rotX', -0.2)">▲</button>
-                    <button onclick="adjust('rotX', 0.2)">
+                    <button onclick="adjust('rotX', 0.2)">▼</button>
+                </div>
+            </div>
+
+            <div class="ctrl-group">
+                <span>ROTATE Z (ROLL)</span>
+                <div class="btn-row">
+                    <button onclick="adjust('rotZ', -0.2)">◄</button>
+                    <button onclick="adjust('rotZ', 0.2)">►</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="bottom-dock interactive">
+            <div class="filter-switcher">
+                <div class="filter-thumb active" onclick="setPresetModel('sphere')" title="Green Sphere">🟢</div>
+                <div class="filter-thumb" onclick="setPresetModel('cube')" title="Cyber Cube">🧊</div>
+                <div class="filter-thumb" onclick="setPresetModel('pyramid')" title="Gold Pyramid">🔺</div>
+            </div>
+            <label class="btn" for="import-file" style="background:#333; cursor:pointer; padding: 8px 12px; font-size: 12px;">📁 Custom 3D</label>
+            <input type="file" id="import-file" accept=".obj,.gltf,.glb">
+            <button class="btn" onclick="resetModel()" style="background:#444; padding: 8px 12px; font-size: 12px;">🎯 Reset</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+
+    <script>
+        let scene, camera, renderer, videoEl, mediaStream;
+        let faceMesh, mpCamera;
+        let currentModel = null;
+        let useFront = true;
+
+        let modelParams = {
+            scale: 1.2,
+            posX: 0.0,
+            posY: 0.1,
+            posZ: 0.0,
+            rotX: 0.0,
+            rotY: 0.0,
+            rotZ: 0.0
+        };
+
+        document.getElementById('launch-btn').addEventListener('click', async () => {
+            const errBox = document.getElementById('error-box');
+            errBox.innerText = "Starting Camera...";
+            try {
+                await startCamera();
+                document.getElementById('start-screen').style.display = 'none';
+                initThreeJS();
+                initTracking();
+            } catch (err) {
+                console.error(err);
+                errBox.innerText = "Error: " + err.message + ". Use HTTPS or Localhost.";
+            }
+        });
+
+        async function startCamera() {
+            if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: useFront ? 'user' : 'environment', width: 1280, height: 720 },
+                    audio: false
+                });
+            } catch (e) {
+                mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+            }
+            videoEl = document.getElementById('video-element');
+            videoEl.srcObject = mediaStream;
+            await videoEl.play();
+        }
+
+        document.getElementById('flip-cam').addEventListener('click', async () => {
+            useFront = !useFront;
+            try { await startCamera(); } catch(e) { alert("Camera error: " + e.message); }
+        });
+
+        function initThreeJS() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.outputEncoding = THREE.sRGBEncoding;
+            document.getElementById('webgl-container').appendChild(renderer.domElement);
+
+            // Studio Lighting for rich texture details
+            scene.add(new THREE.AmbientLight(0xffffff, 2.5));
+            const dirLight1 = new THREE.DirectionalLight(0xffffff, 2.0);
+            dirLight1.position.set(0, 10, 10);
+            scene.add(dirLight1);
+            const dirLight2 = new THREE.DirectionalLight(0xffffff, 1.0);
+            dirLight2.position.set(0, -10, -10);
+            scene.add(dirLight2);
+
+            // Load Default Preset Model
+            setPresetModel('sphere');
+            camera.position.z = 3;
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+
+            document.getElementById('import-file').addEventListener('change', loadImportedModel);
+            document.getElementById('take-snap').addEventListener('click', takeSnapshot);
+
+            animateLoop();
+        }
+
+        function setPresetModel(type) {
+            if (currentModel) scene.remove(currentModel);
+            let geo, mat;
+            if (type === 'sphere') {
+                geo = new THREE.SphereGeometry(0.6, 32, 32);
+                mat = new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.3 });
+            } else if (type === 'cube') {
+                geo = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+                mat = new THREE.MeshStandardMaterial({ color: 0x00aaff, roughness: 0.2, metalness: 0.5 });
+            } else if (type === 'pyramid') {
+                geo = new THREE.ConeGeometry(0.7, 1.0, 4);
+                mat = new THREE.MeshStandardMaterial({ color: 0xffaa00, roughness: 0.2, metalness: 0.8 });
+            }
+            currentModel = new THREE.Mesh(geo, mat);
+            scene.add(currentModel);
+            resetModel();
+            updateActiveThumb(type);
+        }
+
+        function updateActiveThumb(type) {
+            document.querySelectorAll('.filter-thumb').forEach(el => el.classList.remove('active'));
+            // simple visual handling
+        }
+
+        function initTracking() {
+            if (typeof FaceMesh === 'undefined') {
+                alert("MediaPipe FaceMesh failed to load.");
+                return;
+            }
+
+            faceMesh = new FaceMesh({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
+            faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+            
+            faceMesh.onResults((results) => {
+                if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0 && currentModel) {
+                    const lm = results.multiFaceLandmarks[0];
+                    const nose = lm[1];
+                    const leftEye = lm[234];
+                    const rightEye = lm[454];
+
+                    const targetX = -(nose.x - 0.5) * 3.5 + modelParams.posX;
+                    const targetY = -(nose.y - 0.5) * 3.5 + modelParams.posY;
+                    const targetZ = nose.z * 1.2 + modelParams.posZ;
+
+                    currentModel.position.x += (targetX - currentModel.position.x) * 0.4;
+                    currentModel.position.y += (targetY - currentModel.position.y) * 0.4;
+                    currentModel.position.z += (targetZ - currentModel.position.z) * 0.4;
+
+                    const dx = rightEye.x - leftEye.x;
+                    const dy = rightEye.y - leftEye.y;
+                    const faceRotZ = Math.atan2(dy, dx);
+                    const dz = rightEye.z - leftEye.z;
+                    const faceRotY = Math.asin(Math.max(-1, Math.min(1, dz * 2.0)));
+
+                    currentModel.rotation.set(
+                        modelParams.rotX, 
+                        faceRotY + modelParams.rotY, 
+                        faceRotZ + modelParams.rotZ
+                    );
+                    currentModel.scale.set(modelParams.scale, modelParams.scale, modelParams.scale);
+                    currentModel.visible = true;
+                }
+            });
+
+            mpCamera = new Camera(videoEl, {
+                onFrame: async () => { await faceMesh.send({ image: videoEl }); },
+                width: 1280, height: 720
+            });
+            mpCamera.start();
+        }
+
+        function adjust(type, val) {
+            modelParams[type] += val;
+        }
+
+        function resetModel() {
+            modelParams.scale = 1.2;
+            modelParams.posX = 0.0;
+            modelParams.posY = 0.1;
+            modelParams.posZ = 0.0;
+            modelParams.rotX = 0.0;
+            modelParams.rotY = 0.0;
+            modelParams.rotZ = 0.0;
+        }
+
+        function loadImportedModel(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            const fileName = file.name.toLowerCase();
+
+            if (fileName.endsWith('.obj')) {
+                reader.readAsText(file);
+                reader.onload = (evt) => {
+                    const loader = new THREE.OBJLoader();
+                    try {
+                        const obj = loader.parse(evt.target.result);
+                        fixTexturesAndColors(obj);
+                        replaceModelInScene(obj);
+                    } catch(err) { alert("Failed to parse OBJ file."); }
+                };
+            } else if (fileName.endsWith('.gltf') || fileName.endsWith('.glb')) {
+                reader.readAsArrayBuffer(file);
+                reader.onload = (evt) => {
+                    const loader = new THREE.GLTFLoader();
+                    loader.parse(evt.target.result, '', (gltf) => {
+                        fixTexturesAndColors(gltf.scene);
+                        replaceModelInScene(gltf.scene);
+                    }, (err) => { alert("Failed to parse GLTF/GLB file."); });
+                };
+            } else {
+                alert("Please select a valid .obj, .gltf or .glb file.");
+            }
+        }
+
+        function fixTexturesAndColors(obj) {
+            obj.traverse((child) => {
+                if (child.isMesh) {
+                    child.material.side = THREE.DoubleSide;
+                    if (child.material.map) {
+                        child.material.map.encoding = THREE.sRGBEncoding;
+                    }
+                    child.material.needsUpdate = true;
+                }
+            });
+        }
+
+        function replaceModelInScene(newObj) {
+            if (currentModel) scene.remove(currentModel);
+            currentModel = newObj;
+            resetModel();
+            scene.add(currentModel);
+        }
+
+        function takeSnapshot() {
+            const canvas = document.createElement('canvas');
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+            ctx.drawImage(renderer.domElement, 0, 0, canvas.width, canvas.height);
+
+            const link = document.createElement('a');
+            link.download = 'aziz-3d-filter-snapshot.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        function animateLoop() {
+            requestAnimationFrame(animateLoop);
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+    </html>
+    
