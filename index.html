@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Aziz Pro Real Helmet Studio</title>
+    <title>Aziz Pro VTuber & Helmet Studio</title>
     <style>
         * { box-sizing: border-box; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; }
@@ -26,6 +26,13 @@
             backdrop-filter: blur(6px);
         }
         .btn:active { background: rgba(0, 255, 136, 0.4); }
+        .btn.recording { background: #ff3333; animation: pulse 1.2s infinite; }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
 
         .bottom-dock {
             position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
@@ -58,13 +65,15 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+    <!-- Kalidokit for Advanced Expressions, Blinks & Kinematics Solver -->
+    <script src="https://cdn.jsdelivr.net/npm/kalidokit@1.1.4/dist/kalidokit.umd.js"></script>
 </head>
 <body>
 
     <div id="start-screen">
-        <h1 style="color: #00ff88; margin-bottom: 5px;">Aziz Real Helmet Studio</h1>
-        <p style="color: #aaa; font-size: 14px;">Fixed 360° Locked Head Enclosure</p>
-        <button id="launch-btn">START HELMET</button>
+        <h1 style="color: #00ff88; margin-bottom: 5px;">Aziz Pro VTuber Studio</h1>
+        <p style="color: #aaa; font-size: 14px;">Advanced Head Lock, Blink & Expression Tracking</p>
+        <button id="launch-btn">START STUDIO</button>
         <div id="error-log" style="color: #ff4444; font-size: 12px; margin-top: 10px;"></div>
     </div>
 
@@ -76,7 +85,7 @@
             <button id="flip-cam" class="btn interactive">🔄 Flip</button>
             <button id="import-btn" class="btn interactive">📥 Import 3D</button>
             <input type="file" id="import-file" style="display: none;" accept=".obj,.glb,.gltf">
-            <button id="export-btn" class="btn interactive">📤 Export Project</button>
+            <button id="record-btn" class="btn interactive">🔴 Record Video</button>
             <button id="take-snap" class="btn interactive">📸 Snap</button>
         </div>
 
@@ -92,9 +101,14 @@
     <script>
         let scene, camera, renderer, videoEl, mediaStream;
         let faceMesh = null, mpCamera = null;
-        let helmetGroup = null;
+        let helmetGroup = null, visorMesh = null;
         let currentPreset = 'helmet';
         let useFront = true;
+        
+        // Video Recording Variables
+        let mediaRecorder;
+        let recordedChunks = [];
+        let isRecording = false;
 
         document.getElementById('launch-btn').addEventListener('click', async () => {
             const btn = document.getElementById('launch-btn');
@@ -109,7 +123,7 @@
             } catch (err) {
                 console.error(err);
                 document.getElementById('error-log').innerText = err.message;
-                btn.innerText = "START HELMET";
+                btn.innerText = "START STUDIO";
                 btn.disabled = false;
             }
         });
@@ -119,10 +133,10 @@
             try {
                 mediaStream = await navigator.mediaDevices.getUserMedia({
                     video: { facingMode: useFront ? 'user' : 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
-                    audio: false
+                    audio: true
                 });
             } catch (e) {
-                mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
             }
             videoEl = document.getElementById('video-element');
             videoEl.srcObject = mediaStream;
@@ -155,10 +169,9 @@
                         if (child.isMesh) child.material = new THREE.MeshStandardMaterial({ color: 0x00ff88, metalness: 0.5, roughness: 0.2 });
                     });
                     object.scale.set(0.012, 0.012, 0.012);
-                    object.position.set(0, 0, 0);
                     helmetGroup.add(object);
                     scene.add(helmetGroup);
-                    alert("Custom Model Imported!");
+                    alert("Custom OBJ Model Imported Successfully!");
                 });
             } else if (fileName.endsWith('.glb') || fileName.endsWith('.gltf')) {
                 const loader = new THREE.GLTFLoader();
@@ -167,24 +180,70 @@
                     helmetGroup = new THREE.Group();
                     const model = gltf.scene;
                     model.scale.set(1.1, 1.1, 1.1);
-                    model.position.set(0, 0, 0);
                     helmetGroup.add(model);
                     scene.add(helmetGroup);
-                    alert("Custom Model Imported!");
+                    alert("Custom GLB/GLTF Model Imported Successfully!");
                 });
             }
         });
 
-        document.getElementById('export-btn').addEventListener('click', () => {
-            const projectData = { app: "AzizHelmetStudio", preset: currentPreset, formatVersion: "3.0" };
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(projectData, null, 2));
-            const dl = document.createElement('a');
-            dl.setAttribute("href", dataStr);
-            dl.setAttribute("download", "helmet_project.xfpx");
-            document.body.appendChild(dl);
-            dl.click();
-            dl.remove();
+        // Video Recording Logic
+        const recordBtn = document.getElementById('record-btn');
+        recordBtn.addEventListener('click', () => {
+            if (!isRecording) {
+                startRecording();
+            } else {
+                stopRecording();
+            }
         });
+
+        function startRecording() {
+            recordedChunks = [];
+            const canvasStream = renderer.domElement.captureStream(30); // 30 FPS from WebGL
+            
+            // Combine video stream audio if available
+            const audioTracks = mediaStream.getAudioTracks();
+            if (audioTracks.length > 0) {
+                canvasStream.addTrack(audioTracks[0]);
+            }
+
+            try {
+                mediaRecorder = new MediaRecorder(canvasStream, { mimeType: 'video/webm; codecs=vp9' });
+            } catch (e) {
+                mediaRecorder = new MediaRecorder(canvasStream);
+            }
+
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) recordedChunks.push(event.data);
+            };
+
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = 'aziz_studio_recording.webm';
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                }, 100);
+            };
+
+            mediaRecorder.start();
+            isRecording = true;
+            recordBtn.innerText = "⏹ Stop Rec";
+            recordBtn.classList.add('recording');
+        }
+
+        function stopRecording() {
+            mediaRecorder.stop();
+            isRecording = false;
+            recordBtn.innerText = "🔴 Record Video";
+            recordBtn.classList.remove('recording');
+        }
 
         function initThreeJS() {
             scene = new THREE.Scene();
@@ -216,7 +275,7 @@
                 ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
                 ctx.drawImage(renderer.domElement, 0, 0, canvas.width, canvas.height);
                 const link = document.createElement('a');
-                link.download = 'real_helmet.png';
+                link.download = 'aziz_studio_snap.png';
                 link.href = canvas.toDataURL('image/png');
                 link.click();
             });
@@ -234,23 +293,22 @@
         function buildHelmet(type) {
             if (helmetGroup) scene.remove(helmetGroup);
             helmetGroup = new THREE.Group();
+            visorMesh = null;
 
             if (type === 'helmet') {
-                // Realistic Motorcycle Helmet Shape (Oval & Covered from Back/Sides)
                 const helmetGeo = new THREE.SphereGeometry(1.0, 32, 32);
-                helmetGeo.scale(1.0, 1.15, 1.05); // Stretch like a real head/helmet
+                helmetGeo.scale(1.0, 1.15, 1.05);
                 const helmetMat = new THREE.MeshStandardMaterial({ color: 0x141414, metalness: 0.85, roughness: 0.15 });
                 const mainShell = new THREE.Mesh(helmetGeo, helmetMat);
                 mainShell.position.set(0, 0.08, 0);
                 helmetGroup.add(mainShell);
 
-                // Tinted Visor Shield in Front
                 const visorGeo = new THREE.CylinderGeometry(1.01, 1.01, 0.45, 32, 1, true, 0, Math.PI);
                 const visorMat = new THREE.MeshStandardMaterial({ color: 0x00c3ff, transparent: true, opacity: 0.6, metalness: 0.95, roughness: 0.05, side: THREE.DoubleSide });
-                const visor = new THREE.Mesh(visorGeo, visorMat);
-                visor.rotation.y = Math.PI / 2;
-                visor.position.set(0, 0.12, 0);
-                helmetGroup.add(visor);
+                visorMesh = new THREE.Mesh(visorGeo, visorMat);
+                visorMesh.rotation.y = Math.PI / 2;
+                visorMesh.position.set(0, 0.12, 0);
+                helmetGroup.add(visorMesh);
 
             } else if (type === 'cyber') {
                 const cyberGeo = new THREE.BoxGeometry(1.5, 1.8, 1.6);
@@ -273,38 +331,47 @@
 
         function initTracking() {
             faceMesh = new FaceMesh({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
-            faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: false, minDetectionConfidence: 0.6, minTrackingConfidence: 0.6 });
+            faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.6, minTrackingConfidence: 0.6 });
             
             let smoothPos = new THREE.Vector3(0, 0, 0);
             let smoothRot = new THREE.Quaternion();
 
             faceMesh.onResults((results) => {
                 if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0 && helmetGroup) {
-                    const lm = results.multiFaceLandmarks[0];
-                    const nose = lm[1], lEdge = lm[234], rEdge = lm[454], forehead = lm[10], chin = lm[152];
+                    const landmarks = results.multiFaceLandmarks[0];
+                    
+                    // Use Kalidokit Face Solver for precise head kinematics and expressions
+                    const riggedFace = Kalidokit.Face.solve(landmarks, {
+                        runtime: "mediapipe",
+                        video: videoEl
+                    });
 
-                    // Accurate Head Center Lock
-                    const cx = (lEdge.x + rEdge.x) / 2;
-                    const cy = (forehead.y + chin.y) / 2;
-                    const cz = (lEdge.z + rEdge.z + nose.z) / 3;
+                    if (riggedFace) {
+                        // Position mapping from face center
+                        const nose = landmarks[1], lEdge = landmarks[234], rEdge = landmarks[454];
+                        const cx = (lEdge.x + rEdge.x) / 2;
+                        const cy = (landmarks[10].y + landmarks[152].y) / 2;
+                        const cz = (lEdge.z + rEdge.z + nose.z) / 3;
 
-                    const targetX = -(cx - 0.5) * 3.2;
-                    const targetY = -(cy - 0.5) * 3.2 + 0.18; // Perfectly locked above neck/chin center
-                    const targetZ = cz * 1.1;
+                        const targetX = -(cx - 0.5) * 3.2;
+                        const targetY = -(cy - 0.5) * 3.2 + 0.18;
+                        const targetZ = cz * 1.1;
 
-                    smoothPos.lerp(new THREE.Vector3(targetX, targetY, targetZ), 0.6);
-                    helmetGroup.position.copy(smoothPos);
+                        smoothPos.lerp(new THREE.Vector3(targetX, targetY, targetZ), 0.6);
+                        helmetGroup.position.copy(smoothPos);
 
-                    // Solid Head Rotation Lock (Yaw, Pitch, Roll)
-                    const dx = rEdge.x - lEdge.x, dy = rEdge.y - lEdge.y;
-                    const roll = Math.atan2(dy, dx);
-                    const yaw = Math.asin(Math.max(-1, Math.min(1, (rEdge.z - lEdge.z) * 1.8)));
-                    const pitch = ((chin.y - forehead.y) - 0.4) * -1.3;
+                        // Rotation mapping using Kalidokit Euler angles (Yaw, Pitch, Roll)
+                        const euler = riggedFace.head;
+                        let targetQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(euler.x, euler.y, euler.z, 'YXZ'));
+                        smoothRot.slerp(targetQuat, 0.6);
+                        helmetGroup.quaternion.copy(smoothRot);
 
-                    let targetEuler = new THREE.Euler(pitch, yaw, roll, 'YXZ');
-                    let targetQuat = new THREE.Quaternion().setFromEuler(targetEuler);
-                    smoothRot.slerp(targetQuat, 0.6);
-                    helmetGroup.quaternion.copy(smoothRot);
+                        // Expression reactions (e.g. Visor / Helmet reacts slightly to eye blinking or mouth open)
+                        if (visorMesh) {
+                            const blinkVal = (riggedFace.eye.left + riggedFace.eye.right) / 2;
+                            visorMesh.scale.set(1, 1 - (blinkVal * 0.15), 1); // Slight squeeze on blink
+                        }
+                    }
 
                     helmetGroup.visible = true;
                 } else if (helmetGroup) {
