@@ -3,55 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Aziz AR Studio - Final Stable</title>
+    <title>Kalidokit + Custom Model Importer</title>
     <style>
-        * { box-sizing: border-box; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; font-family: sans-serif; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #111; font-family: sans-serif; }
         
-        #video-element { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; z-index: 1; transform: scaleX(-1); }
-        #webgl-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2; pointer-events: none; }
+        #webcam { position: absolute; top: 15px; left: 15px; width: 140px; height: 105px; transform: scaleX(-1); border-radius: 8px; z-index: 10; border: 2px solid rgba(255,255,255,0.3); object-fit: cover; }
+        #webgl-container { position: absolute; top: 0; left: 0; width: 100vw; height: 100vw; z-index: 1; }
         
-        #ui-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 999; pointer-events: none; display: flex; flex-direction: column;
-            justify-content: space-between; padding: 12px;
+        .ui-top {
+            position: absolute; top: 15px; right: 15px; z-index: 20; display: flex; gap: 10px;
         }
-        .interactive { pointer-events: auto; }
-
-        .top-nav { display: flex; justify-content: space-between; width: 100%; align-items: center; gap: 6px; }
-        
         .btn {
-            background: rgba(255, 255, 255, 0.2); color: white; border: 1px solid rgba(255, 255, 255, 0.4);
-            padding: 8px 14px; font-size: 11px; border-radius: 20px; cursor: pointer; font-weight: bold;
-            backdrop-filter: blur(8px); text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+            background: rgba(0, 255, 136, 0.2); color: #00ff88; border: 1px solid #00ff88;
+            padding: 10px 16px; font-size: 12px; border-radius: 20px; cursor: pointer; font-weight: bold;
+            backdrop-filter: blur(5px);
         }
-        .btn:active { background: rgba(0, 255, 136, 0.5); border-color: #00ff88; }
-        .btn.recording { background: rgba(255, 51, 51, 0.8); border-color: #ff3333; animation: pulse 1.2s infinite; }
+        .btn:active { background: #00ff88; color: #000; }
 
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-
-        .control-panel {
-            position: absolute; top: 70px; right: 12px; background: rgba(0, 0, 0, 0.35);
-            border: 1px solid rgba(255, 255, 255, 0.2); padding: 10px; border-radius: 12px;
-            display: flex; flex-direction: column; gap: 8px; backdrop-filter: blur(8px);
-            width: 150px;
-        }
-        .control-panel label { color: #00ff88; font-size: 9px; font-weight: bold; display: flex; justify-content: space-between; text-shadow: 0 1px 2px #000; }
-        .control-panel input[type=range] { width: 100%; cursor: pointer; accent-color: #00ff88; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; }
-
-        #start-screen {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: #050505; z-index: 99999; display: flex; flex-direction: column;
-            justify-content: center; align-items: center; color: white; text-align: center; padding: 25px;
-        }
-        #launch-btn {
-            background: #00ff88; color: #000; font-size: 16px; font-weight: bold;
-            padding: 14px 40px; border-radius: 30px; margin-top: 20px; border: none; cursor: pointer;
-            box-shadow: 0 0 25px rgba(0,255,136,0.5);
+        .info-box {
+            position: absolute; bottom: 20px; left: 15px; right: 15px; text-align: center;
+            z-index: 20; color: #aaa; font-size: 12px; background: rgba(0,0,0,0.6); padding: 8px; border-radius: 6px;
         }
     </style>
 
-    <!-- Required Libraries -->
+    <!-- Required Libraries (Three.js, Loaders, MediaPipe, Kalidokit) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -64,246 +39,76 @@
 </head>
 <body>
 
-    <div id="start-screen">
-        <h1 style="color: #00ff88; margin-bottom: 5px; font-size: 24px;">Aziz AR Studio</h1>
-        <p style="color: #aaa; font-size: 12px; max-width: 280px;">Tap below to launch your AR camera</p>
-        <button id="launch-btn">START STUDIO</button>
-        <div id="error-log" style="color: #ff4444; font-size: 11px; margin-top: 10px;"></div>
+    <video id="webcam" autoplay playsinline muted></video>
+    
+    <div class="ui-top">
+        <button id="import-btn" class="btn">📥 Import 3D Model</button>
+        <input type="file" id="import-file" style="display: none;" accept=".obj,.glb,.gltf,.fbx">
     </div>
 
-    <video id="video-element" autoplay playsinline muted></video>
     <div id="webgl-container"></div>
-
-    <div id="ui-overlay">
-        <div class="top-nav">
-            <button id="flip-cam" class="btn interactive">🔄 Flip</button>
-            <button id="import-btn" class="btn interactive">📥 Import</button>
-            <input type="file" id="import-file" style="display: none;" accept=".obj,.glb,.gltf,.fbx">
-            <button id="record-btn" class="btn interactive">🔴 Rec</button>
-            <button id="take-snap" class="btn interactive">📸 Snap</button>
-        </div>
-
-        <div class="control-panel interactive">
-            <label>Scale <span id="val-scale">1.0</span></label>
-            <input type="range" id="range-scale" min="0.05" max="3.0" step="0.05" value="1.0">
-            
-            <label>Offset X <span id="val-x">0.0</span></label>
-            <input type="range" id="range-x" min="-1.0" max="1.0" step="0.05" value="0.0">
-
-            <label>Offset Y <span id="val-y">0.0</span></label>
-            <input type="range" id="range-y" min="-1.0" max="1.0" step="0.05" value="0.0">
-
-            <label>Rotation Y <span id="val-rot">0°</span></label>
-            <input type="range" id="range-rot" min="-180" max="180" step="5" value="0">
-        </div>
-    </div>
+    <div class="info-box" id="status-text">Status: Loading Camera & Kalidokit Tracking...</div>
 
     <script>
-        let scene, camera, renderer, videoEl, mediaStream;
-        let faceMesh = null, mpCamera = null;
-        let activeModelGroup = null;
-        let useFront = true;
-        
-        let manualScale = 1.0;
-        let manualOffsetX = 0.0;
-        let manualOffsetY = 0.0;
-        let manualRotateY = 0.0;
+        let scene, camera, renderer, videoElement;
+        let activeModel = null;
+        let smoothRot = new THREE.Quaternion();
 
-        let mediaRecorder;
-        let recordedChunks = [];
-        let isRecording = false;
-
-        document.getElementById('launch-btn').addEventListener('click', async () => {
-            const btn = document.getElementById('launch-btn');
-            btn.innerText = "Loading...";
-            btn.disabled = true;
-
-            try {
-                await startCamera();
-                document.getElementById('start-screen').style.display = 'none';
-                initThreeJS();
-                createDefaultHead();
-                initTracking();
-                initControls();
-                initVisibilityHandler();
-            } catch (err) {
-                console.error(err);
-                document.getElementById('error-log').innerText = err.message;
-                btn.innerText = "START STUDIO";
-                btn.disabled = false;
-            }
-        });
-
-        async function startCamera() {
-            if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
-            try {
-                mediaStream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: useFront ? 'user' : 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
-                    audio: true
-                });
-            } catch (e) {
-                mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            }
-            videoEl = document.getElementById('video-element');
-            videoEl.srcObject = mediaStream;
-            await videoEl.play();
-        }
-
-        function initVisibilityHandler() {
-            document.addEventListener('visibilitychange', async () => {
-                if (document.visibilityState === 'visible') {
-                    if (!mediaStream || mediaStream.active === false || videoEl.paused) {
-                        try {
-                            await startCamera();
-                            if (mpCamera) { mpCamera.stop(); await mpCamera.start(); }
-                        } catch (e) { console.error(e); }
-                    }
-                }
-            });
-        }
-
-        document.getElementById('flip-cam').addEventListener('click', async () => {
-            useFront = !useFront;
-            if (mpCamera) mpCamera.stop();
-            await startCamera();
-            if (mpCamera) mpCamera.start();
-        });
-
-        function createDefaultHead() {
-            if (activeModelGroup) scene.remove(activeModelGroup);
-            activeModelGroup = new THREE.Group();
-
-            const headGeo = new THREE.SphereGeometry(0.45, 32, 32);
-            const headMat = new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.2, metalness: 0.5 });
-            const head = new THREE.Mesh(headGeo, headMat);
-            activeModelGroup.add(head);
-
-            scene.add(activeModelGroup);
-        }
-
-        document.getElementById('import-btn').addEventListener('click', () => {
-            document.getElementById('import-file').click();
-        });
-
-        document.getElementById('import-file').addEventListener('change', (event) => {
-            const file = event.target.files[0];
-            if (!file) return;
-            const fileURL = URL.createObjectURL(file);
-            const fileName = file.name.toLowerCase();
-
-            if (activeModelGroup) scene.remove(activeModelGroup);
-            activeModelGroup = new THREE.Group();
-
-            const processModel = (object) => {
-                const box = new THREE.Box3().setFromObject(object);
-                const center = box.getCenter(new THREE.Vector3());
-                const size = box.getSize(new THREE.Vector3());
-                
-                object.position.sub(center); // Center the model precisely
-
-                const maxDim = Math.max(size.x, size.y, size.z);
-                if (maxDim > 0) {
-                    const scaleFactor = 0.9 / maxDim;
-                    object.scale.multiplyScalar(scaleFactor);
-                }
-
-                activeModelGroup.add(object);
-                scene.add(activeModelGroup);
-                alert("Model Imported Successfully!");
-            };
-
-            if (fileName.endsWith('.obj')) {
-                const loader = new THREE.OBJLoader();
-                loader.load(fileURL, (object) => {
-                    object.traverse(child => {
-                        if (child.isMesh) child.material = new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.3 });
-                    });
-                    processModel(object);
-                }, undefined, (err) => { console.error(err); alert("Failed to load OBJ"); createDefaultHead(); });
-            } else if (fileName.endsWith('.glb') || fileName.endsWith('.gltf')) {
-                const loader = new THREE.GLTFLoader();
-                loader.load(fileURL, (gltf) => {
-                    processModel(gltf.scene);
-                }, undefined, (err) => { console.error(err); alert("Failed to load GLB/GLTF"); createDefaultHead(); });
-            } else if (fileName.endsWith('.fbx')) {
-                const loader = new THREE.FBXLoader();
-                loader.load(fileURL, (object) => {
-                    object.traverse(child => {
-                        if (child.isMesh) child.material = new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.3 });
-                    });
-                    processModel(object);
-                }, undefined, (err) => { console.error(err); alert("Failed to load FBX"); createDefaultHead(); });
-            }
-        });
-
-        function initControls() {
-            document.getElementById('range-scale').addEventListener('input', (e) => {
-                manualScale = parseFloat(e.target.value);
-                document.getElementById('val-scale').innerText = manualScale.toFixed(2);
-            });
-            document.getElementById('range-x').addEventListener('input', (e) => {
-                manualOffsetX = parseFloat(e.target.value);
-                document.getElementById('val-x').innerText = manualOffsetX.toFixed(2);
-            });
-            document.getElementById('range-y').addEventListener('input', (e) => {
-                manualOffsetY = parseFloat(e.target.value);
-                document.getElementById('val-y').innerText = manualOffsetY.toFixed(2);
-            });
-            document.getElementById('range-rot').addEventListener('input', (e) => {
-                manualRotateY = THREE.MathUtils.degToRad(parseFloat(e.target.value));
-                document.getElementById('val-rot').innerText = e.target.value + '°';
-            });
-        }
-
-        const recordBtn = document.getElementById('record-btn');
-        recordBtn.addEventListener('click', () => {
-            if (!isRecording) {
-                recordedChunks = [];
-                const canvasStream = renderer.domElement.captureStream(30);
-                const audioTracks = mediaStream.getAudioTracks();
-                if (audioTracks.length > 0) canvasStream.addTrack(audioTracks[0]);
-
-                try {
-                    mediaRecorder = new MediaRecorder(canvasStream, { mimeType: 'video/webm; codecs=vp9' });
-                } catch (e) {
-                    mediaRecorder = new MediaRecorder(canvasStream);
-                }
-
-                mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
-                mediaRecorder.onstop = () => {
-                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url; a.download = 'aziz_ar_recording.webm';
-                    document.body.appendChild(a); a.click(); a.remove();
-                };
-                mediaRecorder.start();
-                isRecording = true;
-                recordBtn.innerText = "⏹ Stop";
-                recordBtn.classList.add('recording');
-            } else {
-                mediaRecorder.stop();
-                isRecording = false;
-                recordBtn.innerText = "🔴 Rec";
-                recordBtn.classList.remove('recording');
-            }
-        });
-
-        function initThreeJS() {
+        function initApp() {
+            // 1. Setup Three.js
             scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
-            
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 2.5;
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             document.getElementById('webgl-container').appendChild(renderer.domElement);
 
-            scene.add(new THREE.AmbientLight(0xffffff, 1.8));
-            const light = new THREE.DirectionalLight(0xffffff, 1.2);
-            light.position.set(0, 10, 10);
+            scene.add(new THREE.AmbientLight(0xffffff, 1.5));
+            const light = new THREE.DirectionalLight(0xffffff, 1);
+            light.position.set(0, 1, 2);
             scene.add(light);
 
-            camera.position.z = 2.8;
+            // Create a default placeholder head so screen isn't empty initially
+            loadDefaultPlaceholder();
+
+            // 2. Setup Importer Hook
+            document.getElementById('import-btn').addEventListener('click', () => {
+                document.getElementById('import-file').click();
+            });
+
+            document.getElementById('import-file').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const fileURL = URL.createObjectURL(file);
+                const fileName = file.name.toLowerCase();
+
+                document.getElementById('status-text').innerText = "Loading Model...";
+
+                if (fileName.endsWith('.obj')) {
+                    new THREE.OBJLoader().load(fileURL, (obj) => {
+                        obj.traverse(child => {
+                            if (child.isMesh) child.material = new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.3 });
+                        });
+                        replaceModel(obj);
+                    }, undefined, (err) => alert("Failed to load OBJ"));
+                } else if (fileName.endsWith('.glb') || fileName.endsWith('.gltf')) {
+                    new THREE.GLTFLoader().load(fileURL, (gltf) => {
+                        replaceModel(gltf.scene);
+                    }, undefined, (err) => alert("Failed to load GLB/GLTF"));
+                } else if (fileName.endsWith('.fbx')) {
+                    new THREE.FBXLoader().load(fileURL, (obj) => {
+                        obj.traverse(child => {
+                            if (child.isMesh) child.material = new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.3 });
+                        });
+                        replaceModel(obj);
+                    }, undefined, (err) => alert("Failed to load FBX"));
+                }
+            });
+
+            // 3. Setup MediaPipe + Kalidokit Tracking
+            initTracking();
 
             window.addEventListener('resize', () => {
                 camera.aspect = window.innerWidth / window.innerHeight;
@@ -311,72 +116,91 @@
                 renderer.setSize(window.innerWidth, window.innerHeight);
             });
 
-            document.getElementById('take-snap').addEventListener('click', () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
-                ctx.drawImage(renderer.domElement, 0, 0, canvas.width, canvas.height);
-                const link = document.createElement('a');
-                link.download = 'aziz_ar_snap.png';
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-            });
+            animate();
+        }
 
-            animateLoop();
+        function loadDefaultPlaceholder() {
+            activeModel = new THREE.Group();
+            const geometry = new THREE.BoxGeometry(0.6, 0.7, 0.6);
+            const material = new THREE.MeshStandardMaterial({ color: 0x00ff88 });
+            const mesh = new THREE.Mesh(geometry, material);
+            activeModel.add(mesh);
+            scene.add(activeModel);
+            document.getElementById('status-text').innerText = "Tracking Active! (Upload your own model anytime)";
+        }
+
+        function replaceModel(newObj) {
+            if (activeModel) scene.remove(activeModel);
+            
+            // Auto-center and scale custom model
+            const box = new THREE.Box3().setFromObject(newObj);
+            const center = box.getCenter(new THREE.Vector3());
+            const size = box.getSize(new THREE.Vector3());
+            newObj.position.sub(center);
+
+            const maxDim = Math.max(size.x, size.y, size.z);
+            if (maxDim > 0) {
+                newObj.scale.multiplyScalar(1.2 / maxDim);
+            }
+
+            activeModel = new THREE.Group();
+            activeModel.add(newObj);
+            scene.add(activeModel);
+            document.getElementById('status-text').innerText = "Custom Model Loaded Successfully!";
         }
 
         function initTracking() {
-            faceMesh = new FaceMesh({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
-            faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.6, minTrackingConfidence: 0.6 });
-            
-            let smoothPos = new THREE.Vector3(0, 0, 0);
-            let smoothRot = new THREE.Quaternion();
+            videoElement = document.getElementById('webcam');
+
+            const faceMesh = new FaceMesh({
+                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+            });
+
+            faceMesh.setOptions({
+                maxNumFaces: 1,
+                refineLandmarks: true,
+                minDetectionConfidence: 0.6,
+                minTrackingConfidence: 0.6
+            });
 
             faceMesh.onResults((results) => {
-                if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0 && activeModelGroup) {
+                if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0 && activeModel) {
                     const landmarks = results.multiFaceLandmarks[0];
-                    const riggedFace = Kalidokit.Face.solve(landmarks, { runtime: "mediapipe", video: videoEl });
+                    
+                    // Kalidokit Face Solver (Exact official logic)
+                    const riggedFace = Kalidokit.Face.solve(landmarks, {
+                        runtime: "mediapipe",
+                        video: videoElement
+                    });
 
                     if (riggedFace) {
-                        const nose = landmarks[1], lEdge = landmarks[234], rEdge = landmarks[454];
-                        const cx = (lEdge.x + rEdge.x) / 2;
-                        const cy = (landmarks[10].y + landmarks[152].y) / 2;
-                        const cz = (lEdge.z + rEdge.z + nose.z) / 3;
-
-                        const targetX = -(cx - 0.5) * 3.2 + manualOffsetX;
-                        const targetY = -(cy - 0.5) * 3.2 + 0.18 + manualOffsetY;
-                        const targetZ = cz * 1.1;
-
-                        smoothPos.lerp(new THREE.Vector3(targetX, targetY, targetZ), 0.6);
-                        activeModelGroup.position.copy(smoothPos);
-
                         const euler = riggedFace.head;
-                        let targetQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(euler.x, euler.y + manualRotateY, euler.z, 'YXZ'));
-                        smoothRot.slerp(targetQuat, 0.6);
-                        activeModelGroup.quaternion.copy(targetQuat);
-
-                        activeModelGroup.scale.set(manualScale, manualScale, manualScale);
+                        // Apply head rotation smoothly
+                        let targetQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(euler.x, euler.y, euler.z, 'YXZ'));
+                        smoothRot.slerp(targetQuat, 0.5);
+                        activeModel.quaternion.copy(smoothRot);
                     }
-
-                    activeModelGroup.visible = true;
-                } else if (activeModelGroup) {
-                    activeModelGroup.visible = false;
                 }
             });
 
-            mpCamera = new Camera(videoEl, {
-                onFrame: async () => { if (videoEl && videoEl.readyState >= 2) await faceMesh.send({ image: videoEl }); },
-                width: 640, height: 480
+            const cameraUtils = new Camera(videoElement, {
+                onFrame: async () => {
+                    if (videoElement && videoElement.readyState >= 2) {
+                        await faceMesh.send({ image: videoElement });
+                    }
+                },
+                width: 640,
+                height: 480
             });
-            mpCamera.start();
+            cameraUtils.start();
         }
 
-        function animateLoop() {
-            requestAnimationFrame(animateLoop);
-            if (renderer && scene && camera) renderer.render(scene, camera);
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
         }
+
+        initApp();
     </script>
 </body>
-        </html>
-    
+</html>
