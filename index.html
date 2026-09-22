@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AR Face Mask 3D Tracker</title>
+    <title>AR Face Mask & Recorder</title>
     <style>
         * {
             box-sizing: border-box;
@@ -26,7 +26,7 @@
             height: 100vh;
             object-fit: cover;
             z-index: 1;
-            transform: scaleX(-1); /* Mirror camera view */
+            transform: scaleX(-1);
         }
         #canvas-container {
             position: fixed;
@@ -36,7 +36,7 @@
             height: 100vh;
             z-index: 2;
             pointer-events: none;
-            transform: scaleX(-1); /* Align with mirrored camera */
+            transform: scaleX(-1);
         }
         .top-bar {
             position: absolute;
@@ -57,9 +57,15 @@
             backdrop-filter: blur(5px);
             outline: none;
         }
-        .btn:active {
-            background: rgba(255, 255, 255, 0.5);
-            transform: scale(0.96);
+        .btn.recording {
+            background: rgba(255, 0, 0, 0.8);
+            border-color: #ff0000;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
         }
         .control-panel {
             position: absolute;
@@ -92,12 +98,14 @@
         }
     </style>
 
+    <!-- Three.js and Loaders CDN -->
     <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
     <script src="https://unpkg.com/three@0.160.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://unpkg.com/three@0.160.0/examples/js/loaders/OBJLoader.js"></script>
     <script src="https://unpkg.com/three@0.160.0/examples/js/loaders/FBXLoader.js"></script>
     <script src="https://unpkg.com/three@0.160.0/examples/js/libs/fflate.min.js"></script>
 
+    <!-- MediaPipe Face Mesh CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
 </head>
@@ -108,7 +116,6 @@
 
     <div class="top-bar">
         <button class="btn" id="import-btn">Import Model</button>
-        <button class="btn" id="flip-cam-btn">Flip Cam</button>
         <button class="btn" id="record-btn">Record</button>
     </div>
 
@@ -135,7 +142,6 @@
 
     <script>
         const videoElement = document.getElementById('webcam-video');
-        let useFrontCamera = true;
         let currentModel = null;
         let manualScale = 1.2;
         let manualOffsetX = 0;
@@ -149,7 +155,7 @@
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 20.0);
         camera.position.set(0, 0, 2.5);
 
-        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
         container.appendChild(renderer.domElement);
@@ -167,7 +173,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // File Import Handling for GLB, OBJ, FBX, VRM
+        // Robust File Loading using ArrayBuffer to prevent parsing issues
         const importBtn = document.getElementById('import-btn');
         const fileInput = document.getElementById('file-input');
 
@@ -180,7 +186,7 @@
             const file = event.target.files[0];
             if (!file) return;
 
-            const fileURL = URL.createObjectURL(file);
+            const reader = new FileReader();
             const fileName = file.name.toLowerCase();
 
             if (currentModel) {
@@ -189,38 +195,57 @@
             }
 
             if (fileName.endsWith('.glb') || fileName.endsWith('.gltf') || fileName.endsWith('.vrm')) {
-                const loader = new THREE.GLTFLoader();
-                loader.load(fileURL, (gltf) => {
-                    currentModel = gltf.scene;
-                    scene.add(currentModel);
-                    alert("Model loaded successfully: " + file.name);
-                }, undefined, (err) => console.error(err));
+                reader.readAsArrayBuffer(file);
+                reader.onload = function (e) {
+                    const contents = e.target.result;
+                    const loader = new THREE.GLTFLoader();
+                    loader.parse(contents, '', (gltf) => {
+                        currentModel = gltf.scene;
+                        scene.add(currentModel);
+                        alert("Model loaded successfully: " + file.name);
+                    }, (err) => {
+                        console.error("GLTF Parse Error:", err);
+                        alert("Failed to parse GLB/VRM file.");
+                    });
+                };
             } 
             else if (fileName.endsWith('.obj')) {
-                const loader = new THREE.OBJLoader();
-                loader.load(fileURL, (obj) => {
-                    currentModel = obj;
+                reader.readAsText(file);
+                reader.onload = function (e) {
+                    const text = e.target.result;
+                    const loader = new THREE.OBJLoader();
+                    currentModel = loader.parse(text);
                     scene.add(currentModel);
                     alert("Model loaded successfully: " + file.name);
-                }, undefined, (err) => console.error(err));
+                };
             } 
             else if (fileName.endsWith('.fbx')) {
-                const loader = new THREE.FBXLoader();
-                loader.load(fileURL, (fbx) => {
-                    currentModel = fbx;
-                    scene.add(currentModel);
-                    alert("Model loaded successfully: " + file.name);
-                }, undefined, (err) => console.error(err));
+                reader.readAsArrayBuffer(file);
+                reader.onload = function (e) {
+                    const contents = e.target.result;
+                    const loader = new THREE.FBXLoader();
+                    try {
+                        currentModel = loader.parse(contents, '');
+                        currentModel.scale.set(0.01, 0.01, 0.01); // FBX scale adjustment
+                        scene.add(currentModel);
+                        alert("Model loaded successfully: " + file.name);
+                    } catch (err) {
+                        console.error("FBX Parse Error:", err);
+                        alert("Failed to parse FBX file.");
+                    }
+                };
+            } else {
+                alert("Unsupported format!");
             }
         });
 
-        // Sliders Control Listeners
+        // Sliders Listeners
         document.getElementById('scale-slider').addEventListener('input', (e) => { manualScale = parseFloat(e.target.value); });
         document.getElementById('pos-x-slider').addEventListener('input', (e) => { manualOffsetX = parseFloat(e.target.value); });
         document.getElementById('pos-y-slider').addEventListener('input', (e) => { manualOffsetY = parseFloat(e.target.value); });
         document.getElementById('pos-z-slider').addEventListener('input', (e) => { manualOffsetZ = parseFloat(e.target.value); });
 
-        // MediaPipe Face Mesh Setup for Head Tracking
+        // MediaPipe Face Mesh Tracking
         const faceMesh = new FaceMesh({
             locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
         });
@@ -235,26 +260,20 @@
         faceMesh.onResults((results) => {
             if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0 && currentModel) {
                 const landmarks = results.multiFaceLandmarks[0];
-                
-                // Landmark 1 represents the nose tip / center of the face
                 const nose = landmarks[1];
-                // Landmark 234 and 454 represent left and right sides of the face for rotation
                 const leftCheek = landmarks[234];
                 const rightCheek = landmarks[454];
 
-                // Convert normalized coordinates to Three.js 3D space
                 const targetX = (nose.x - 0.5) * -3.0 + manualOffsetX;
                 const targetY = (nose.y - 0.5) * -3.0 + manualOffsetY;
                 const targetZ = -nose.z * 1.5 + manualOffsetZ;
 
-                // Smooth movement (Lerp) so it doesn't jitter
                 currentModel.position.x += (targetX - currentModel.position.x) * 0.3;
                 currentModel.position.y += (targetY - currentModel.position.y) * 0.3;
                 currentModel.position.z += (targetZ - currentModel.position.z) * 0.3;
 
                 currentModel.scale.set(manualScale, manualScale, manualScale);
 
-                // Calculate head tilt and rotation based on cheek landmarks
                 if (leftCheek && rightCheek) {
                     const dx = rightCheek.x - leftCheek.x;
                     const dy = rightCheek.y - leftCheek.y;
@@ -269,7 +288,6 @@
             }
         });
 
-        // Initialize Camera Tracking via MediaPipe Utils
         const cameraUtils = new Camera(videoElement, {
             onFrame: async () => {
                 await faceMesh.send({ image: videoElement });
@@ -282,9 +300,69 @@
             console.error("Camera start error:", err);
         });
 
-        document.getElementById('flip-cam-btn').addEventListener('click', () => {
-            useFrontCamera = !useFrontCamera;
+        // Video Recording Logic implementation
+        let mediaRecorder;
+        let recordedChunks = [];
+        const recordBtn = document.getElementById('record-btn');
+
+        recordBtn.addEventListener('click', () => {
+            if (!mediaRecorder || mediaRecorder.state === "inactive") {
+                startRecording();
+            } else {
+                stopRecording();
+            }
         });
+
+        function startRecording() {
+            recordedChunks = [];
+            // Combine webcam video stream and three.js canvas stream
+            const canvasStream = renderer.domElement.captureStream(30);
+            const videoStream = videoElement.captureStream ? videoElement.captureStream(30) : null;
+            
+            // If captureStream is supported on video, we can merge or just record canvas over video background
+            const stream = canvasStream; 
+
+            try {
+                mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
+            } catch (e) {
+                try {
+                    mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/mp4' });
+                } catch (err) {
+                    mediaRecorder = new MediaRecorder(stream);
+                }
+            }
+
+            mediaRecorder.ondataavailable = function(event) {
+                if (event.data.size > 0) {
+                    recordedChunks.push(event.data);
+                }
+            };
+
+            mediaRecorder.onstop = function() {
+                const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = 'ar-face-video.webm';
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                }, 100);
+            };
+
+            mediaRecorder.start();
+            recordBtn.textContent = "Stop Rec";
+            recordBtn.classList.add("recording");
+        }
+
+        function stopRecording() {
+            mediaRecorder.stop();
+            recordBtn.textContent = "Record";
+            recordBtn.classList.remove("recording");
+        }
 
         // Render Loop
         function animate() {
