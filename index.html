@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ultimate AR Face Mask Studio</title>
+    <title>AR Face Mask Studio</title>
     <style>
         * {
             box-sizing: border-box;
             user-select: none;
-            -webkit-tap-highlight-color: transparent;
         }
         body, html {
             margin: 0;
@@ -17,7 +16,7 @@
             height: 100%;
             overflow: hidden;
             background-color: #000;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: sans-serif;
         }
         #webcam-video {
             position: fixed;
@@ -44,81 +43,57 @@
             z-index: 100;
             display: flex;
             gap: 8px;
-            flex-wrap: wrap;
-            justify-content: flex-end;
         }
         .btn {
-            background: rgba(0, 0, 0, 0.75);
+            background: rgba(0, 0, 0, 0.8);
             color: #fff;
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            padding: 8px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            padding: 10px 16px;
             border-radius: 20px;
             cursor: pointer;
-            font-size: 13px;
-            backdrop-filter: blur(5px);
+            font-size: 14px;
             outline: none;
-            transition: all 0.2s ease;
-        }
-        .btn:active {
-            transform: scale(0.95);
-            background: rgba(255, 255, 255, 0.4);
         }
         .btn.recording {
-            background: rgba(220, 20, 60, 0.9);
+            background: #ff0000;
             border-color: #ff4d4d;
-            animation: pulse 1.2s infinite;
-        }
-        @keyframes pulse {
-            0% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.6; transform: scale(0.96); }
-            100% { opacity: 1; transform: scale(1); }
         }
         .control-panel {
             position: absolute;
             bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
-            width: 92%;
-            max-width: 420px;
-            background: rgba(15, 15, 15, 0.85);
+            width: 90%;
+            max-width: 400px;
+            background: rgba(20, 20, 20, 0.9);
             padding: 12px 16px;
-            border-radius: 16px;
-            backdrop-filter: blur(15px);
+            border-radius: 12px;
             z-index: 100;
             color: #fff;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-            border: 1px solid rgba(255,255,255,0.15);
         }
         .slider-group {
             margin-bottom: 6px;
         }
-        .slider-group:last-child {
-            margin-bottom: 0;
-        }
         .slider-group label {
-            display: flex;
-            justify-content: space-between;
+            display: block;
             font-size: 11px;
             margin-bottom: 2px;
-            color: #bbb;
+            color: #ccc;
         }
         .slider-group input {
             width: 100%;
             accent-color: #4CAF50;
-            cursor: pointer;
-            height: 4px;
         }
-        #status-msg {
+        #status-box {
             position: absolute;
             top: 20px;
             left: 20px;
             z-index: 100;
-            color: #00ff88;
-            font-size: 12px;
-            background: rgba(0,0,0,0.6);
-            padding: 6px 12px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #00ffcc;
+            padding: 8px 14px;
             border-radius: 8px;
-            backdrop-filter: blur(4px);
+            font-size: 13px;
         }
     </style>
 
@@ -133,25 +108,306 @@
 </head>
 <body>
 
-    <div id="status-msg">Initializing AR Camera...</div>
+    <div id="status-box">Starting Camera...</div>
     <video id="webcam-video" autoplay playsinline muted></video>
     <div id="canvas-container"></div>
 
     <div class="top-bar">
         <button class="btn" id="import-btn">Import 3D</button>
         <button class="btn" id="flip-cam-btn">Flip Cam</button>
-        <button class="btn" id="record-btn">Record Video</button>
+        <button class="btn" id="record-btn">Record</button>
     </div>
 
     <div class="control-panel">
         <div class="slider-group">
-            <label><span>Mask Scale</span></label>
-            <input type="range" id="scale-slider" min="0.2" max="4" step="0.05" value="1.0">
+            <label>Scale</label>
+            <input type="range" id="scale-slider" min="0.1" max="4" step="0.05" value="1.0">
         </div>
         <div class="slider-group">
-            <label><span>Offset X</span></label>
-            <input type="range" id="pos-x-slider" min="-1.5" max="1.5" step="0.01" value="0">
+            <label>Offset X</label>
+            <input type="range" id="pos-x-slider" min="-2" max="2" step="0.01" value="0">
         </div>
         <div class="slider-group">
-            <label><span>Offset Y</span></label>
-            <input type="range" id="pos-y-slider" min="-1.5" max="1.5" step="0.01
+            <label>Offset Y</label>
+            <input type="range" id="pos-y-slider" min="-2" max="2" step="0.01" value="0">
+        </div>
+        <div class="slider-group">
+            <label>Offset Z</label>
+            <input type="range" id="pos-z-slider" min="-3" max="3" step="0.01" value="0">
+        </div>
+    </div>
+
+    <input type="file" id="file-input" accept=".glb, .gltf, .obj, .fbx, .vrm" style="display: none;">
+
+    <script>
+        const videoElement = document.getElementById('webcam-video');
+        const statusBox = document.getElementById('status-box');
+        let currentStream = null;
+        let useFrontCamera = true;
+        let currentModel = null;
+        
+        let manualScale = 1.0;
+        let manualOffsetX = 0;
+        let manualOffsetY = 0;
+        let manualOffsetZ = 0;
+
+        // 1. Direct and Safe Camera Setup
+        async function initCamera() {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+            }
+            try {
+                const constraints = {
+                    video: {
+                        facingMode: useFrontCamera ? 'user' : 'environment',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    },
+                    audio: true
+                };
+                currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+                videoElement.srcObject = currentStream;
+                
+                await new Promise((resolve) => {
+                    videoElement.onloadedmetadata = () => {
+                        videoElement.play();
+                        resolve();
+                    };
+                });
+
+                videoElement.style.transform = useFrontCamera ? 'scaleX(-1)' : 'scaleX(1)';
+                container.style.transform = useFrontCamera ? 'scaleX(-1)' : 'scaleX(1)';
+                
+                statusBox.textContent = "Camera Active!";
+                setTimeout(() => { statusBox.style.display = 'none'; }, 3000);
+            } catch (err) {
+                console.error("Camera Error:", err);
+                statusBox.textContent = "Camera Error! Check Permission.";
+            }
+        }
+
+        document.getElementById('flip-cam-btn').addEventListener('click', () => {
+            useFrontCamera = !useFrontCamera;
+            initCamera();
+        });
+
+        // 2. Three.js Setup
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 50.0);
+        camera.position.set(0, 0, 3.0);
+
+        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        const light = new THREE.DirectionalLight(0xffffff, 2.0);
+        light.position.set(0, 2, 3).normalize();
+        scene.add(light);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+        scene.add(ambientLight);
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // 3. File Import System
+        const importBtn = document.getElementById('import-btn');
+        const fileInput = document.getElementById('file-input');
+
+        importBtn.addEventListener('click', () => {
+            fileInput.value = '';
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            const fileName = file.name.toLowerCase();
+            statusBox.style.display = 'block';
+            statusBox.textContent = "Loading file...";
+
+            if (currentModel) {
+                scene.remove(currentModel);
+                currentModel = null;
+            }
+
+            if (fileName.endsWith('.glb') || fileName.endsWith('.gltf') || fileName.endsWith('.vrm')) {
+                reader.readAsArrayBuffer(file);
+                reader.onload = (e) => {
+                    const loader = new THREE.GLTFLoader();
+                    loader.parse(e.target.result, '', (gltf) => {
+                        currentModel = gltf.scene;
+                        scene.add(currentModel);
+                        statusBox.textContent = "Model Loaded!";
+                        setTimeout(() => { statusBox.style.display = 'none'; }, 2000);
+                    }, (err) => {
+                        alert("GLB Load Failed");
+                        statusBox.style.display = 'none';
+                    });
+                };
+            } 
+            else if (fileName.endsWith('.obj')) {
+                reader.readAsText(file);
+                reader.onload = (e) => {
+                    const loader = new THREE.OBJLoader();
+                    try {
+                        currentModel = loader.parse(e.target.result);
+                        scene.add(currentModel);
+                        statusBox.textContent = "Model Loaded!";
+                        setTimeout(() => { statusBox.style.display = 'none'; }, 2000);
+                    } catch (err) {
+                        alert("OBJ Load Failed");
+                        statusBox.style.display = 'none';
+                    }
+                };
+            } 
+            else if (fileName.endsWith('.fbx')) {
+                reader.readAsArrayBuffer(file);
+                reader.onload = (e) => {
+                    const loader = new THREE.FBXLoader();
+                    try {
+                        currentModel = loader.parse(e.target.result, '');
+                        currentModel.scale.set(0.01, 0.01, 0.01);
+                        scene.add(currentModel);
+                        statusBox.textContent = "Model Loaded!";
+                        setTimeout(() => { statusBox.style.display = 'none'; }, 2000);
+                    } catch (err) {
+                        alert("FBX Load Failed");
+                        statusBox.style.display = 'none';
+                    }
+                };
+            } else {
+                alert("Unsupported Format!");
+                statusBox.style.display = 'none';
+            }
+        });
+
+        // 4. Sliders Listeners
+        document.getElementById('scale-slider').addEventListener('input', (e) => { manualScale = parseFloat(e.target.value); });
+        document.getElementById('pos-x-slider').addEventListener('input', (e) => { manualOffsetX = parseFloat(e.target.value); });
+        document.getElementById('pos-y-slider').addEventListener('input', (e) => { manualOffsetY = parseFloat(e.target.value); });
+        document.getElementById('pos-z-slider').addEventListener('input', (e) => { manualOffsetZ = parseFloat(e.target.value); });
+
+        // 5. MediaPipe Face Mesh Tracking
+        const faceMesh = new FaceMesh({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+        });
+
+        faceMesh.setOptions({
+            maxNumFaces: 1,
+            refineLandmarks: true,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+
+        faceMesh.onResults((results) => {
+            if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0 && currentModel) {
+                const landmarks = results.multiFaceLandmarks[0];
+                const nose = landmarks[1];
+                const leftCheek = landmarks[234];
+                const rightCheek = landmarks[454];
+
+                const targetX = (nose.x - 0.5) * -3.5 + manualOffsetX;
+                const targetY = (nose.y - 0.5) * -3.5 + manualOffsetY;
+                const targetZ = -nose.z * 2.0 + manualOffsetZ;
+
+                currentModel.position.x += (targetX - currentModel.position.x) * 0.4;
+                currentModel.position.y += (targetY - currentModel.position.y) * 0.4;
+                currentModel.position.z += (targetZ - currentModel.position.z) * 0.4;
+
+                currentModel.scale.set(manualScale, manualScale, manualScale);
+
+                if (leftCheek && rightCheek) {
+                    const dx = rightCheek.x - leftCheek.x;
+                    const dy = rightCheek.y - leftCheek.y;
+                    const dz = rightCheek.z - leftCheek.z;
+
+                    const rotZ = Math.atan2(dy, dx);
+                    const rotY = Math.atan2(dz, dx);
+
+                    currentModel.rotation.z = -rotZ;
+                    currentModel.rotation.y = rotY + Math.PI;
+                }
+            }
+        });
+
+        async function sendToFaceMesh() {
+            if (videoElement.readyState >= 2) {
+                await faceMesh.send({ image: videoElement });
+            }
+            requestAnimationFrame(sendToFaceMesh);
+        }
+
+        videoElement.addEventListener('loadeddata', () => {
+            sendToFaceMesh();
+        });
+
+        initCamera();
+
+        // 6. Video Recording
+        let mediaRecorder;
+        let recordedChunks = [];
+        const recordBtn = document.getElementById('record-btn');
+
+        recordBtn.addEventListener('click', () => {
+            if (!mediaRecorder || mediaRecorder.state === "inactive") {
+                startRecording();
+            } else {
+                stopRecording();
+            }
+        });
+
+        function startRecording() {
+            recordedChunks = [];
+            const canvasStream = renderer.domElement.captureStream(30);
+            
+            try {
+                mediaRecorder = new MediaRecorder(canvasStream, { mimeType: 'video/webm' });
+            } catch (e) {
+                mediaRecorder = new MediaRecorder(canvasStream);
+            }
+
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) recordedChunks.push(e.data);
+            };
+
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'recording.webm';
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => document.body.removeChild(a), 100);
+            };
+
+            mediaRecorder.start();
+            recordBtn.textContent = "Stop";
+            recordBtn.classList.add("recording");
+        }
+
+        function stopRecording() {
+            mediaRecorder.stop();
+            recordBtn.textContent = "Record";
+            recordBtn.classList.remove("recording");
+        }
+
+        // 7. Render Loop
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>
+
