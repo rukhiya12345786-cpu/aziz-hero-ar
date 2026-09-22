@@ -2,12 +2,17 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport"
-      content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 
-<title>Azeez AR - Universal 3D Head Tracking</title>
+<meta name="viewport"
+content="width=device-width,
+initial-scale=1.0,
+maximum-scale=1.0,
+user-scalable=no">
+
+<title>Azeez AR - 3D Head Tracking</title>
 
 <style>
+
 *{
     box-sizing:border-box;
 }
@@ -30,7 +35,6 @@ html,body{
     object-fit:cover;
     transform:scaleX(-1);
     z-index:1;
-    background:#000;
 }
 
 #threeCanvas{
@@ -42,49 +46,6 @@ html,body{
     pointer-events:none;
 }
 
-#ui{
-    position:fixed;
-    left:10px;
-    right:10px;
-    bottom:10px;
-    z-index:10;
-
-    display:flex;
-    flex-wrap:wrap;
-    gap:7px;
-
-    padding:10px;
-    border-radius:16px;
-
-    background:rgba(0,0,0,.68);
-    backdrop-filter:blur(8px);
-    -webkit-backdrop-filter:blur(8px);
-}
-
-button,
-input[type=file]{
-    border:0;
-    border-radius:10px;
-    padding:10px 12px;
-    background:#fff;
-    color:#111;
-    font-weight:bold;
-}
-
-button:active{
-    transform:scale(.96);
-}
-
-.control{
-    width:100%;
-    color:#fff;
-    font-size:13px;
-}
-
-.control input{
-    width:100%;
-}
-
 #status{
     position:fixed;
     top:10px;
@@ -92,191 +53,247 @@ button:active{
     right:10px;
     z-index:20;
 
-    padding:9px 12px;
+    padding:10px;
+
     border-radius:12px;
 
-    color:#fff;
-    background:rgba(0,0,0,.55);
+    background:rgba(0,0,0,.65);
+
+    color:white;
+
+    text-align:center;
 
     font-size:13px;
-    text-align:center;
+}
+
+#ui{
+    position:fixed;
+    left:10px;
+    right:10px;
+    bottom:10px;
+
+    z-index:20;
+
+    display:flex;
+    flex-wrap:wrap;
+
+    gap:7px;
+
+    padding:10px;
+
+    border-radius:16px;
+
+    background:rgba(0,0,0,.7);
+
+    backdrop-filter:blur(8px);
+}
+
+button{
+    border:0;
+    padding:10px 12px;
+    border-radius:10px;
+
+    background:white;
+    color:#111;
+
+    font-weight:bold;
+}
+
+.control{
+    width:100%;
+    color:white;
+    font-size:13px;
+}
+
+.control input{
+    width:100%;
 }
 
 #fileInput{
     display:none;
 }
 
-.small{
-    font-size:11px;
-    opacity:.8;
-}
 </style>
 
 <!-- THREE.JS -->
+
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 
-<!-- LOADERS -->
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
 
 <!-- MEDIAPIPE -->
+
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
 
 </head>
 
 <body>
 
-<video id="cameraStream"
-       autoplay
-       playsinline
-       muted></video>
+<video
+id="cameraStream"
+autoplay
+playsinline
+muted>
+</video>
 
 <canvas id="threeCanvas"></canvas>
 
 <div id="status">
-    Starting camera...
+Starting...
 </div>
 
 <div id="ui">
 
-    <button onclick="document.getElementById('fileInput').click()">
-        📦 Import 3D
-    </button>
+<button onclick="document.getElementById('fileInput').click()">
+📦 Import 3D
+</button>
 
-    <input id="fileInput"
-           type="file"
-           accept=".glb,.gltf,.obj,.fbx">
+<input
+id="fileInput"
+type="file"
+accept=".glb,.gltf,.obj,.fbx">
 
-    <button onclick="flipCamera()">
-        🔄 Flip
-    </button>
+<button onclick="resetAR()">
+♻ Reset
+</button>
 
-    <button onclick="resetModel()">
-        ♻ Reset
-    </button>
+<button onclick="takeSnapshot()">
+📸 Snapshot
+</button>
 
-    <button onclick="takeSnapshot()">
-        📸 Snapshot
-    </button>
+<div class="control">
 
-    <div class="control">
-        Character Size
-        <input id="sizeSlider"
-               type="range"
-               min="0.5"
-               max="2.0"
-               step="0.01"
-               value="1">
-    </div>
+Character Size
 
-    <div class="control">
-        Head Up / Down
-        <input id="verticalSlider"
-               type="range"
-               min="-1"
-               max="1"
-               step="0.01"
-               value="0">
-    </div>
-
-    <div class="control">
-        Head Forward / Back
-        <input id="depthSlider"
-               type="range"
-               min="-1"
-               max="1"
-               step="0.01"
-               value="0">
-    </div>
-
-    <div class="small">
-        Full 3D head tracking • Yaw • Pitch • Roll • Depth Occlusion
-    </div>
+<input
+id="sizeSlider"
+type="range"
+min="0.5"
+max="2"
+step="0.01"
+value="1">
 
 </div>
 
+<div class="control">
+
+Head Up / Down
+
+<input
+id="upSlider"
+type="range"
+min="-1"
+max="1"
+step="0.01"
+value="0">
+
+</div>
+
+<div class="control">
+
+Head Forward / Back
+
+<input
+id="depthSlider"
+type="range"
+min="-1"
+max="1"
+step="0.01"
+value="0">
+
+</div>
+
+</div>
 
 <script>
 
-/* =========================================================
-   GLOBALS
-========================================================= */
+/* GLOBAL VARIABLES */
 
-const video = document.getElementById("cameraStream");
-const canvas = document.getElementById("threeCanvas");
-const statusBox = document.getElementById("status");
+const video =
+document.getElementById("cameraStream");
+
+const canvas =
+document.getElementById("threeCanvas");
+
+const statusBox =
+document.getElementById("status");
 
 let scene;
-let arCamera;
+let camera;
 let renderer;
 
-let modelContainer;
-let currentModel = null;
+let faceMesh;
+let mpCamera;
 
-let faceOccluder = null;
+let headGroup;
+let faceOccluder;
 
-let faceMesh = null;
-let mpCamera = null;
+let importedModel = null;
 
-let cameraFacing = "user";
-
-let modelScale = 1;
-let verticalOffset = 0;
-let depthOffset = 0;
-
-let trackingReady = false;
+let sizeValue = 1;
+let upValue = 0;
+let depthValue = 0;
 
 
-/* =========================================================
-   SMOOTHING
-========================================================= */
+/* SMOOTHING */
 
-let smoothPosition = new THREE.Vector3(0,0,0);
+const smoothPosition =
+new THREE.Vector3();
 
-let smoothQuaternion = new THREE.Quaternion();
+const smoothQuaternion =
+new THREE.Quaternion();
 
 let smoothScale = 1;
 
-let initializedPose = false;
+let poseStarted = false;
 
 
-/* =========================================================
-   TRACKING SETTINGS
-========================================================= */
+/* THREE.JS INIT */
 
-const POSITION_SMOOTH = 0.35;
-const ROTATION_SMOOTH = 0.28;
-const SCALE_SMOOTH = 0.25;
+function initThree(){
 
+    scene =
+    new THREE.Scene();
 
-/* =========================================================
-   START THREE.JS
-========================================================= */
-
-function init3D(){
-
-    scene = new THREE.Scene();
-
-    arCamera = new THREE.PerspectiveCamera(
+    camera =
+    new THREE.PerspectiveCamera(
         45,
-        window.innerWidth / window.innerHeight,
+        window.innerWidth /
+        window.innerHeight,
         0.01,
         100
     );
 
-    arCamera.position.set(0,0,3);
+    camera.position.set(
+        0,
+        0,
+        3
+    );
 
-    renderer = new THREE.WebGLRenderer({
+    renderer =
+    new THREE.WebGLRenderer({
+
         canvas:canvas,
+
         alpha:true,
+
         antialias:true,
+
         preserveDrawingBuffer:true
+
     });
 
     renderer.setPixelRatio(
-        Math.min(window.devicePixelRatio,2)
+        Math.min(
+            window.devicePixelRatio,
+            2
+        )
     );
 
     renderer.setSize(
@@ -284,156 +301,91 @@ function init3D(){
         window.innerHeight
     );
 
-    renderer.setClearColor(0x000000,0);
-
-    renderer.autoClear = true;
-
-    /*
-       Main head container.
-       Everything attached to the head goes here.
-    */
-    modelContainer = new THREE.Group();
-
-    scene.add(modelContainer);
-
-
-    /* =====================================================
-       LIGHTS
-    ===================================================== */
-
-    const ambient = new THREE.AmbientLight(
-        0xffffff,
-        1.7
+    renderer.setClearColor(
+        0x000000,
+        0
     );
 
-    scene.add(ambient);
 
+    /* HEAD GROUP */
 
-    const keyLight = new THREE.DirectionalLight(
-        0xffffff,
-        1.4
+    headGroup =
+    new THREE.Group();
+
+    scene.add(
+        headGroup
     );
 
-    keyLight.position.set(
+
+    /* LIGHT */
+
+    const ambient =
+    new THREE.AmbientLight(
+        0xffffff,
+        1.8
+    );
+
+    scene.add(
+        ambient
+    );
+
+
+    const light =
+    new THREE.DirectionalLight(
+        0xffffff,
+        1.5
+    );
+
+    light.position.set(
         2,
         3,
         5
     );
 
-    scene.add(keyLight);
-
-
-    const fillLight = new THREE.DirectionalLight(
-        0xffffff,
-        0.7
+    scene.add(
+        light
     );
 
-    fillLight.position.set(
+
+    const fill =
+    new THREE.DirectionalLight(
+        0xffffff,
+        .8
+    );
+
+    fill.position.set(
         -3,
         1,
-        2
+        3
     );
 
-    scene.add(fillLight);
+    scene.add(
+        fill
+    );
 
 
-    /* =====================================================
-       FACE OCCLUDER
-    ===================================================== */
+    createOccluder();
 
-    createFaceOccluder();
-
-
-    /* =====================================================
-       RESIZE
-    ===================================================== */
 
     window.addEventListener(
         "resize",
-        onResize
+        resize
     );
 
 
-    animate();
+    renderLoop();
 }
 
 
-/* =========================================================
-   FACE OCCLUDER
-========================================================= */
+/* RESIZE */
 
-function createFaceOccluder(){
+function resize(){
 
-    /*
-       This invisible 3D ellipsoid represents the user's
-       real head/face in the depth buffer.
+    camera.aspect =
+    window.innerWidth /
+    window.innerHeight;
 
-       It does NOT display a black object.
-
-       colorWrite:false means:
-       invisible to the user.
-
-       depthWrite:true means:
-       it can hide parts of the 3D character that should
-       visually go behind the face.
-    */
-
-    const geometry =
-        new THREE.SphereGeometry(
-            1,
-            32,
-            24
-        );
-
-
-    const material =
-        new THREE.MeshBasicMaterial({
-
-            color:0x000000,
-
-            transparent:true,
-
-            opacity:0,
-
-            colorWrite:false,
-
-            depthWrite:true,
-
-            depthTest:true,
-
-            side:THREE.DoubleSide
-
-        });
-
-
-    faceOccluder =
-        new THREE.Mesh(
-            geometry,
-            material
-        );
-
-
-    faceOccluder.renderOrder = 0;
-
-    faceOccluder.visible = false;
-
-    scene.add(faceOccluder);
-}
-
-
-/* =========================================================
-   WINDOW RESIZE
-========================================================= */
-
-function onResize(){
-
-    if(!arCamera || !renderer) return;
-
-    arCamera.aspect =
-        window.innerWidth /
-        window.innerHeight;
-
-    arCamera.updateProjectionMatrix();
+    camera.updateProjectionMatrix();
 
     renderer.setSize(
         window.innerWidth,
@@ -442,15 +394,62 @@ function onResize(){
 }
 
 
-/* =========================================================
-   MEDIAPIPE
-========================================================= */
+/* FACE OCCLUDER */
 
-function initFaceTracking(){
+function createOccluder(){
+
+    const geometry =
+    new THREE.SphereGeometry(
+        1,
+        32,
+        24
+    );
+
+    const material =
+    new THREE.MeshBasicMaterial({
+
+        color:0x000000,
+
+        transparent:true,
+
+        opacity:0,
+
+        colorWrite:false,
+
+        depthWrite:true,
+
+        depthTest:true,
+
+        side:THREE.DoubleSide
+
+    });
+
+    faceOccluder =
+    new THREE.Mesh(
+        geometry,
+        material
+    );
+
+    faceOccluder.visible =
+    false;
+
+    faceOccluder.renderOrder =
+    0;
+
+    scene.add(
+        faceOccluder
+    );
+}<script>
+
+/* ==========================================
+   MEDIAPIPE FACE TRACKING
+========================================== */
+
+function initFaceMesh(){
 
     faceMesh = new FaceMesh({
 
-        locateFile: function(file){
+        locateFile:function(file){
 
             return "https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/" + file;
 
@@ -473,15 +472,17 @@ function initFaceTracking(){
 
 
     faceMesh.onResults(
-        onFaceResults
+        processFace
     );
 
 
     mpCamera = new Camera(
+
         video,
+
         {
 
-            onFrame: async function(){
+            onFrame:async function(){
 
                 if(faceMesh){
 
@@ -494,47 +495,27 @@ function initFaceTracking(){
             },
 
             width:1280,
+
             height:720
 
         }
+
     );
 
 
     mpCamera.start();
 
-
-    statusBox.innerText =
-        "Camera ON • Looking for face...";
 }
 
 
-/* =========================================================
-   HELPER
-========================================================= */
+/* ==========================================
+   MEDIAPIPE POINT CONVERSION
 
-function clamp(value,min,max){
+   Camera is mirrored.
+   X is corrected here.
+========================================== */
 
-    return Math.max(
-        min,
-        Math.min(max,value)
-    );
-
-}
-
-
-/* =========================================================
-   CONVERT MEDIAPIPE POINT
-========================================================= */
-
-function mpPoint(lm){
-
-    /*
-       Camera image is mirrored on screen.
-
-       Therefore X is flipped here too.
-
-       This is important for correct left/right movement.
-    */
+function point(lm){
 
     return new THREE.Vector3(
 
@@ -549,141 +530,116 @@ function mpPoint(lm){
 }
 
 
-/* =========================================================
-   DISTANCE
-========================================================= */
+/* ==========================================
+   FACE TRACKING
+========================================== */
 
-function distance3D(a,b){
-
-    return a.distanceTo(b);
-
-}
-
-
-/* =========================================================
-   FACE RESULTS
-========================================================= */
-
-function onFaceResults(results){
+function processFace(results){
 
     if(
         !results.multiFaceLandmarks ||
         results.multiFaceLandmarks.length === 0
     ){
 
-        trackingReady = false;
-
-        if(faceOccluder){
-            faceOccluder.visible = false;
-        }
-
         statusBox.innerText =
-            "No face detected";
+        "Face not detected";
+
+        faceOccluder.visible =
+        false;
 
         return;
     }
 
 
-    trackingReady = true;
-
-
     const lm =
-        results.multiFaceLandmarks[0];
+    results.multiFaceLandmarks[0];
 
 
-    /*
-       Important landmarks
-    */
+    /* FACE LANDMARKS */
 
-    const leftCheek =
-        mpPoint(lm[234]);
+    const left =
+    point(lm[234]);
 
-    const rightCheek =
-        mpPoint(lm[454]);
+    const right =
+    point(lm[454]);
 
     const forehead =
-        mpPoint(lm[10]);
+    point(lm[10]);
 
     const chin =
-        mpPoint(lm[152]);
+    point(lm[152]);
 
     const nose =
-        mpPoint(lm[1]);
-
-    const leftEye =
-        mpPoint(lm[33]);
-
-    const rightEye =
-        mpPoint(lm[263]);
+    point(lm[1]);
 
 
-    /* =====================================================
+    /* ======================================
        FACE CENTER
-    ===================================================== */
+    ====================================== */
 
     const horizontalCenter =
-        leftCheek.clone()
-        .add(rightCheek)
-        .multiplyScalar(0.5);
+    left.clone()
+    .add(right)
+    .multiplyScalar(0.5);
 
 
     const verticalCenter =
-        forehead.clone()
-        .add(chin)
-        .multiplyScalar(0.5);
+    forehead.clone()
+    .add(chin)
+    .multiplyScalar(0.5);
 
-
-    const faceCenter =
-        horizontalCenter.clone()
-        .add(verticalCenter)
-        .multiplyScalar(0.5);
-
-
-    /* =====================================================
-       HEAD AXES
-    ===================================================== */
 
     /*
-       X = left -> right
+       TRUE HEAD CENTER
     */
+
+    const headCenter =
+    horizontalCenter.clone()
+    .add(verticalCenter)
+    .multiplyScalar(0.5);
+
+
+    /* ======================================
+       HEAD X AXIS
+    ====================================== */
 
     let xAxis =
-        rightCheek.clone()
-        .sub(leftCheek)
-        .normalize();
+    right.clone()
+    .sub(left)
+    .normalize();
 
 
-    /*
-       Y = chin -> forehead
-    */
+    /* ======================================
+       HEAD Y AXIS
+    ====================================== */
 
     let yAxis =
-        forehead.clone()
-        .sub(chin)
-        .normalize();
+    forehead.clone()
+    .sub(chin)
+    .normalize();
 
 
-    /*
-       Z = face depth direction
-    */
+    /* ======================================
+       HEAD Z AXIS
+    ====================================== */
 
     let zAxis =
-        xAxis.clone()
-        .cross(yAxis)
-        .normalize();
+    xAxis.clone()
+    .cross(yAxis)
+    .normalize();
 
 
     /*
-       Make sure Z points toward the nose/camera.
+       Make Z point toward camera/nose.
     */
 
-    const noseDirection =
-        nose.clone()
-        .sub(faceCenter);
+    const noseVector =
+    nose.clone()
+    .sub(headCenter);
 
 
     if(
-        zAxis.dot(noseDirection) < 0
+        zAxis.dot(noseVector) < 0
     ){
 
         zAxis.negate();
@@ -694,214 +650,219 @@ function onFaceResults(results){
 
 
     /*
-       Rebuild Y so all 3 axes are orthogonal.
+       Rebuild Y axis.
     */
 
     yAxis =
-        zAxis.clone()
-        .cross(xAxis)
-        .normalize();
+    zAxis.clone()
+    .cross(xAxis)
+    .normalize();
 
 
-    /*
-       Three.js rotation matrix
-    */
+    /* ======================================
+       ROTATION MATRIX
+    ====================================== */
 
-    const rotationMatrix =
-        new THREE.Matrix4();
+    const matrix =
+    new THREE.Matrix4();
 
 
-    rotationMatrix.makeBasis(
+    matrix.makeBasis(
+
         xAxis,
+
         yAxis,
+
         zAxis
+
     );
 
 
     const targetQuaternion =
-        new THREE.Quaternion();
+    new THREE.Quaternion();
 
 
     targetQuaternion.setFromRotationMatrix(
-        rotationMatrix
+        matrix
     );
 
 
-    /* =====================================================
+    /* ======================================
        FACE SIZE
-    ===================================================== */
+    ====================================== */
 
     const faceWidth =
-        distance3D(
-            leftCheek,
-            rightCheek
-        );
+    left.distanceTo(
+        right
+    );
 
 
     const faceHeight =
-        distance3D(
-            forehead,
-            chin
-        );
-
-
-    /* =====================================================
-       SCREEN -> THREE POSITION
-    ===================================================== */
-
-    /*
-       faceCenter is already mirrored.
-
-       Convert it into Three.js screen/world coordinates.
-    */
-
-    const targetX =
-        faceCenter.x * 3.4;
-
-
-    const targetY =
-        faceCenter.y * 2.7;
-
-
-    /*
-       Small depth correction.
-
-       The model sits around the head,
-       not far in front of it.
-    */
-
-    const targetZ =
-        depthOffset * 0.45;
-
-
-    const targetPosition =
-        new THREE.Vector3(
-            targetX,
-            targetY + verticalOffset * 0.5,
-            targetZ
-        );
-
-
-    /* =====================================================
-       MODEL SCALE
-    ===================================================== */
-
-    /*
-       Automatically scale model according to face width.
-    */
-
-    let targetScale =
-        faceWidth * 3.0;
-
-
-    targetScale *= modelScale;
-
-
-    targetScale =
-        clamp(
-            targetScale,
-            0.18,
-            4.0
-        );
-
-
-    /* =====================================================
-       SMOOTH POSITION
-    ===================================================== */
-
-    smoothPosition.lerp(
-        targetPosition,
-        POSITION_SMOOTH
+    forehead.distanceTo(
+        chin
     );
 
 
-    /* =====================================================
-       SMOOTH ROTATION
-    ===================================================== */
+    /* ======================================
+       HEAD POSITION
+    ====================================== */
 
-    if(!initializedPose){
+    const worldX =
+    headCenter.x * 3.3;
+
+
+    const worldY =
+    headCenter.y * 2.6;
+
+
+    const worldZ =
+    depthValue * 0.35;
+
+
+    const targetPosition =
+    new THREE.Vector3(
+
+        worldX,
+
+        worldY +
+        upValue * 0.35,
+
+        worldZ
+
+    );
+
+
+    /* ======================================
+       MODEL SCALE
+    ====================================== */
+
+    let targetScale =
+    faceWidth * 3.0;
+
+
+    targetScale *=
+    sizeValue;
+
+
+    targetScale =
+    THREE.MathUtils.clamp(
+
+        targetScale,
+
+        0.15,
+
+        4
+
+    );
+
+
+    /* ======================================
+       SMOOTH POSITION
+    ====================================== */
+
+    smoothPosition.lerp(
+
+        targetPosition,
+
+        0.32
+
+    );
+
+
+    /* ======================================
+       SMOOTH ROTATION
+    ====================================== */
+
+    if(!poseStarted){
 
         smoothQuaternion.copy(
             targetQuaternion
         );
 
-        initializedPose = true;
+        poseStarted = true;
 
-    }else{
+    }
+    else{
 
         smoothQuaternion.slerp(
+
             targetQuaternion,
-            ROTATION_SMOOTH
+
+            0.25
+
         );
 
     }
 
 
-    /* =====================================================
+    /* ======================================
        SMOOTH SCALE
-    ===================================================== */
+    ====================================== */
 
     smoothScale +=
-        (
-            targetScale -
-            smoothScale
-        ) * SCALE_SMOOTH;
+    (
+        targetScale -
+        smoothScale
+    ) * 0.25;
 
 
-    /* =====================================================
-       APPLY TO MODEL
-    ===================================================== */
+    /* ======================================
+       APPLY HEAD POSITION
+    ====================================== */
 
-    modelContainer.position.copy(
+    headGroup.position.copy(
         smoothPosition
     );
 
-    modelContainer.quaternion.copy(
+
+    headGroup.quaternion.copy(
         smoothQuaternion
     );
 
-    modelContainer.scale.setScalar(
+
+    headGroup.scale.setScalar(
         smoothScale
     );
 
 
-    /* =====================================================
-       FACE OCCLUDER UPDATE
-    ===================================================== */
+    /* ======================================
+       UPDATE FACE OCCLUDER
+    ====================================== */
 
-    updateFaceOccluder(
-        faceCenter,
+    updateOccluder(
+
         faceWidth,
+
         faceHeight,
+
         smoothQuaternion
+
     );
 
 
     statusBox.innerText =
-        "3D Head Tracking ON";
+    "HEAD TRACKING ON";
+
 }
 
 
-/* =========================================================
+/* ==========================================
    FACE OCCLUDER UPDATE
-========================================================= */
+========================================== */
 
-function updateFaceOccluder(
-    faceCenter,
+function updateOccluder(
+
     faceWidth,
+
     faceHeight,
+
     quaternion
+
 ){
 
-    if(!faceOccluder) return;
+    faceOccluder.visible =
+    true;
 
-
-    faceOccluder.visible = true;
-
-
-    /*
-       Same position as head.
-    */
 
     faceOccluder.position.copy(
         smoothPosition
@@ -914,115 +875,148 @@ function updateFaceOccluder(
 
 
     /*
-       Convert face dimensions into world scale.
-    */
-
-    const widthWorld =
-        faceWidth * 3.4;
-
-
-    const heightWorld =
-        faceHeight * 2.7;
-
-
-    /*
-       Ellipsoid dimensions.
-
-       X = face width
-       Y = face height
-       Z = head depth
+       Face/head depth volume.
     */
 
     faceOccluder.scale.set(
 
-        widthWorld * 0.62,
+        faceWidth * 2.1,
 
-        heightWorld * 0.62,
+        faceHeight * 1.55,
 
-        widthWorld * 0.48
+        faceWidth * 1.35
 
     );
 
 
     /*
-       Move occluder slightly toward camera
-       so the face gets priority over the model.
+       Small camera-side offset.
     */
 
-    faceOccluder.position
-        .add(
-            new THREE.Vector3(0,0,0.015)
-                .applyQuaternion(quaternion)
-        );
-}
+    const offset =
+    new THREE.Vector3(
 
+        0,
 
-/* =========================================================
-   RENDER LOOP
-========================================================= */
+        0,
 
-function animate(){
+        0.015
 
-    requestAnimationFrame(
-        animate
     );
 
 
-    if(renderer && scene && arCamera){
+    offset.applyQuaternion(
+        quaternion
+    );
+
+
+    faceOccluder.position.add(
+        offset
+    );
+
+}
+
+
+/* ==========================================
+   RENDER LOOP
+========================================== */
+
+function renderLoop(){
+
+    requestAnimationFrame(
+        renderLoop
+    );
+
+
+    if(renderer){
 
         renderer.render(
             scene,
-            arCamera
+            camera
         );
 
     }
+
+      }<script>
+
+/* ==========================================
+   MATERIAL SETUP
+========================================== */
+
+function setupMaterial(material){
+
+    if(!material) return;
+
+    material.side =
+        THREE.DoubleSide;
+
+    material.depthTest =
+        true;
+
+    material.depthWrite =
+        true;
+
+    material.needsUpdate =
+        true;
+
 }
 
-</script><script>
 
-/* =========================================================
-   MODEL PREPARATION
-========================================================= */
+/* ==========================================
+   PREPARE 3D MODEL
+========================================== */
 
 function prepareModel(object){
 
     if(!object) return;
 
 
-    /*
-       Remove previous model
-    */
+    /* REMOVE OLD MODEL */
 
-    if(currentModel){
+    if(importedModel){
 
-        modelContainer.remove(
-            currentModel
+        headGroup.remove(
+            importedModel
         );
 
-        currentModel = null;
+        importedModel = null;
+
     }
 
 
-    currentModel = object;
+    importedModel =
+        object;
 
 
-    /* =====================================================
-       MATERIAL SETTINGS
-    ===================================================== */
+    /* ======================================
+       SET MODEL MATERIALS
+    ====================================== */
 
-    currentModel.traverse(function(child){
+    importedModel.traverse(
 
-        if(child.isMesh){
+        function(child){
+
+            if(!child.isMesh){
+
+                return;
+
+            }
+
 
             if(child.material){
 
-                if(Array.isArray(child.material)){
+                if(
+                    Array.isArray(
+                        child.material
+                    )
+                ){
 
                     child.material.forEach(
                         setupMaterial
                     );
 
-                }else{
+                }
+                else{
 
                     setupMaterial(
                         child.material
@@ -1032,160 +1026,141 @@ function prepareModel(object){
 
             }
 
+
             /*
-               Make sure model can render both sides.
+               Occluder renders first.
+               Character renders after it.
             */
 
-            child.material &&
-            (
-                Array.isArray(child.material)
-                ?
-                child.material.forEach(
-                    m => m.side = THREE.DoubleSide
-                )
-                :
-                child.material.side =
-                    THREE.DoubleSide
-            );
+            child.renderOrder =
+                1;
 
         }
 
-    });
+    );
 
 
-    /* =====================================================
-       NORMALIZE MODEL
-    ===================================================== */
+    /* ======================================
+       FIND MODEL BOUNDING BOX
+    ====================================== */
 
-    const box =
+    let box =
         new THREE.Box3()
         .setFromObject(
-            currentModel
+            importedModel
         );
 
 
-    const size =
+    let size =
         box.getSize(
             new THREE.Vector3()
         );
 
 
-    const center =
+    let center =
         box.getCenter(
             new THREE.Vector3()
         );
 
 
-    const maxSize =
+    const maxDimension =
         Math.max(
+
             size.x,
+
             size.y,
+
             size.z
+
         );
 
 
-    if(maxSize > 0){
+    /* ======================================
+       NORMALIZE MODEL SIZE
+    ====================================== */
 
-        const normalizeScale =
-            1.8 / maxSize;
+    if(maxDimension > 0){
 
+        importedModel.scale.setScalar(
 
-        currentModel.scale.setScalar(
-            normalizeScale
+            1.8 /
+            maxDimension
+
         );
 
     }
 
 
-    /*
-       Recalculate bounding box after scaling.
-    */
+    /* ======================================
+       RECALCULATE CENTER
+    ====================================== */
 
-    const box2 =
+    box =
         new THREE.Box3()
         .setFromObject(
-            currentModel
+            importedModel
         );
 
 
-    const center2 =
-        box2.getCenter(
+    center =
+        box.getCenter(
             new THREE.Vector3()
         );
 
 
     /*
-       Put model origin near its geometric center.
+       IMPORTANT:
 
-       This works best for head/helmet/mask meshes.
+       Model center is placed exactly
+       at headGroup origin.
+
+       headGroup = user's head.
     */
 
-    currentModel.position.sub(
-        center2
+    importedModel.position.x -=
+        center.x;
+
+
+    importedModel.position.y -=
+        center.y;
+
+
+    importedModel.position.z -=
+        center.z;
+
+
+    /*
+       Tiny vertical correction.
+    */
+
+    importedModel.position.y +=
+        0.02;
+
+
+    /*
+       NO forward offset.
+    */
+
+    importedModel.position.z +=
+        0;
+
+
+    /* ======================================
+       ADD MODEL TO HEAD
+    ====================================== */
+
+    headGroup.add(
+        importedModel
     );
 
 
-    /*
-       Keep model centered.
-    */
+    /* ======================================
+       RESET POSE
+    ====================================== */
 
-    currentModel.position.y += 0.02;
+    poseStarted =
+        false;
 
-
-    /*
-       Add to head container.
-    */
-
-    modelContainer.add(
-        currentModel
-    );
-
-
-    /*
-       Character renders after face occluder.
-    */
-
-    currentModel.traverse(function(child){
-
-        if(child.isMesh){
-
-            child.renderOrder = 1;
-
-            if(child.material){
-
-                if(Array.isArray(child.material)){
-
-                    child.material.forEach(function(mat){
-
-                        mat.depthTest = true;
-
-                        mat.depthWrite = true;
-
-                        mat.transparent =
-                            mat.transparent || false;
-
-                    });
-
-                }else{
-
-                    child.material.depthTest = true;
-
-                    child.material.depthWrite = true;
-
-                }
-
-            }
-
-        }
-
-    });
-
-
-    /*
-       Reset pose smoothing.
-    */
-
-    initializedPose = false;
 
     smoothPosition.set(
         0,
@@ -1193,40 +1168,23 @@ function prepareModel(object){
         0
     );
 
+
     smoothQuaternion.identity();
 
-    smoothScale = 1;
+
+    smoothScale =
+        1;
 
 
     statusBox.innerText =
-        "3D Model Loaded • Move your head";
+        "3D MODEL READY";
 
-
-    console.log(
-        "3D model loaded:",
-        currentModel
-    );
 }
 
 
-/* =========================================================
-   MATERIAL
-========================================================= */
-
-function setupMaterial(material){
-
-    if(!material) return;
-
-    material.side =
-        THREE.DoubleSide;
-
-    material.needsUpdate = true;
-}
-
-
-/* =========================================================
-   GLB / GLTF
-========================================================= */
+/* ==========================================
+   GLB / GLTF LOADER
+========================================== */
 
 function loadGLTF(file){
 
@@ -1238,38 +1196,49 @@ function loadGLTF(file){
         new FileReader();
 
 
-    reader.onload = function(event){
+    reader.onload =
+    function(event){
 
-        const arrayBuffer =
-            event.target.result;
+        try{
 
+            loader.parse(
 
-        loader.parse(
+                event.target.result,
 
-            arrayBuffer,
+                "",
 
-            "",
+                function(gltf){
 
-            function(gltf){
+                    prepareModel(
+                        gltf.scene
+                    );
 
-                prepareModel(
-                    gltf.scene
-                );
+                },
 
-            },
+                function(error){
 
-            function(error){
+                    console.error(
+                        error
+                    );
 
-                console.error(
-                    error
-                );
+                    statusBox.innerText =
+                        "GLB / GLTF ERROR";
 
-                statusBox.innerText =
-                    "GLTF loading error";
+                }
 
-            }
+            );
 
-        );
+        }
+        catch(error){
+
+            console.error(
+                error
+            );
+
+            statusBox.innerText =
+                "MODEL ERROR";
+
+        }
 
     };
 
@@ -1277,12 +1246,13 @@ function loadGLTF(file){
     reader.readAsArrayBuffer(
         file
     );
+
 }
 
 
-/* =========================================================
-   OBJ
-========================================================= */
+/* ==========================================
+   OBJ LOADER
+========================================== */
 
 function loadOBJ(file){
 
@@ -1294,7 +1264,8 @@ function loadOBJ(file){
         new FileReader();
 
 
-    reader.onload = function(event){
+    reader.onload =
+    function(event){
 
         try{
 
@@ -1308,15 +1279,15 @@ function loadOBJ(file){
                 object
             );
 
-
-        }catch(error){
+        }
+        catch(error){
 
             console.error(
                 error
             );
 
             statusBox.innerText =
-                "OBJ loading error";
+                "OBJ ERROR";
 
         }
 
@@ -1326,12 +1297,13 @@ function loadOBJ(file){
     reader.readAsText(
         file
     );
+
 }
 
 
-/* =========================================================
-   FBX
-========================================================= */
+/* ==========================================
+   FBX LOADER
+========================================== */
 
 function loadFBX(file){
 
@@ -1343,14 +1315,18 @@ function loadFBX(file){
         new FileReader();
 
 
-    reader.onload = function(event){
+    reader.onload =
+    function(event){
 
         try{
 
             const object =
                 loader.parse(
+
                     event.target.result,
+
                     ""
+
                 );
 
 
@@ -1358,15 +1334,15 @@ function loadFBX(file){
                 object
             );
 
-
-        }catch(error){
+        }
+        catch(error){
 
             console.error(
                 error
             );
 
             statusBox.innerText =
-                "FBX loading error";
+                "FBX ERROR";
 
         }
 
@@ -1376,27 +1352,34 @@ function loadFBX(file){
     reader.readAsArrayBuffer(
         file
     );
+
 }
 
 
-/* =========================================================
+/* ==========================================
    FILE IMPORT
-========================================================= */
+========================================== */
 
 document
 .getElementById("fileInput")
 .addEventListener(
+
     "change",
+
     function(event){
 
         const file =
             event.target.files[0];
 
 
-        if(!file) return;
+        if(!file){
+
+            return;
+
+        }
 
 
-        const name =
+        const filename =
             file.name.toLowerCase();
 
 
@@ -1404,132 +1387,167 @@ document
             "Loading 3D model...";
 
 
-        if(name.endsWith(".glb") ||
-           name.endsWith(".gltf")){
+        /* GLB / GLTF */
+
+        if(
+
+            filename.endsWith(".glb") ||
+
+            filename.endsWith(".gltf")
+
+        ){
 
             loadGLTF(
                 file
             );
 
+            return;
+
         }
 
-        else if(
-            name.endsWith(".obj")
+
+        /* OBJ */
+
+        if(
+            filename.endsWith(".obj")
         ){
 
             loadOBJ(
                 file
             );
 
+            return;
+
         }
 
-        else if(
-            name.endsWith(".fbx")
+
+        /* FBX */
+
+        if(
+            filename.endsWith(".fbx")
         ){
 
             loadFBX(
                 file
             );
 
-        }
-
-        else{
-
-            statusBox.innerText =
-                "Unsupported 3D format";
+            return;
 
         }
+
+
+        statusBox.innerText =
+            "Unsupported 3D format";
 
     }
+
 );
 
 
-/* =========================================================
+/* ==========================================
    SIZE SLIDER
-========================================================= */
+========================================== */
 
 document
 .getElementById("sizeSlider")
 .addEventListener(
+
     "input",
+
     function(){
 
-        modelScale =
+        sizeValue =
             parseFloat(
                 this.value
             );
 
     }
+
 );
 
 
-/* =========================================================
-   VERTICAL SLIDER
-========================================================= */
+/* ==========================================
+   UP / DOWN SLIDER
+========================================== */
 
 document
-.getElementById("verticalSlider")
+.getElementById("upSlider")
 .addEventListener(
+
     "input",
+
     function(){
 
-        verticalOffset =
+        upValue =
             parseFloat(
                 this.value
             );
 
     }
+
 );
 
 
-/* =========================================================
+/* ==========================================
    DEPTH SLIDER
-========================================================= */
+========================================== */
 
 document
 .getElementById("depthSlider")
 .addEventListener(
+
     "input",
+
     function(){
 
-        depthOffset =
+        depthValue =
             parseFloat(
                 this.value
             );
 
     }
+
 );
 
 
-/* =========================================================
+/* ==========================================
    RESET
-========================================================= */
+========================================== */
 
-function resetModel(){
+function resetAR(){
 
-    modelScale = 1;
+    sizeValue =
+        1;
 
-    verticalOffset = 0;
 
-    depthOffset = 0;
+    upValue =
+        0;
+
+
+    depthValue =
+        0;
 
 
     document.getElementById(
         "sizeSlider"
-    ).value = 1;
+    ).value =
+        1;
 
 
     document.getElementById(
-        "verticalSlider"
-    ).value = 0;
+        "upSlider"
+    ).value =
+        0;
 
 
     document.getElementById(
         "depthSlider"
-    ).value = 0;
+    ).value =
+        0;
 
 
-    initializedPose = false;
+    poseStarted =
+        false;
 
 
     smoothPosition.set(
@@ -1542,158 +1560,710 @@ function resetModel(){
     smoothQuaternion.identity();
 
 
-    if(currentModel){
+    smoothScale =
+        1;
 
-        currentModel.rotation.set(
+
+    if(headGroup){
+
+        headGroup<script>
+
+/* ==========================================
+   MATERIAL SETUP
+========================================== */
+
+function setupMaterial(material){
+
+    if(!material) return;
+
+    material.side =
+    THREE.DoubleSide;
+
+    material.depthTest =
+    true;
+
+    material.depthWrite =
+    true;
+
+    material.needsUpdate =
+    true;
+
+}
+
+
+/* ==========================================
+   PREPARE IMPORTED MODEL
+========================================== */
+
+function prepareModel(object){
+
+    if(!object) return;
+
+
+    /* REMOVE OLD MODEL */
+
+    if(importedModel){
+
+        headGroup.remove(
+            importedModel
+        );
+
+        importedModel = null;
+
+    }
+
+
+    importedModel =
+    object;
+
+
+    /* MODEL MATERIALS */
+
+    importedModel.traverse(
+        function(child){
+
+            if(!child.isMesh)
+                return;
+
+
+            if(child.material){
+
+                if(
+                    Array.isArray(
+                        child.material
+                    )
+                ){
+
+                    child.material.forEach(
+                        setupMaterial
+                    );
+
+                }
+                else{
+
+                    setupMaterial(
+                        child.material
+                    );
+
+                }
+
+            }
+
+
+            /*
+               Render after invisible
+               face occluder.
+            */
+
+            child.renderOrder =
+            1;
+
+        }
+    );
+
+
+    /* ======================================
+       FIND MODEL SIZE
+    ====================================== */
+
+    let box =
+    new THREE.Box3()
+    .setFromObject(
+        importedModel
+    );
+
+
+    let size =
+    box.getSize(
+        new THREE.Vector3()
+    );
+
+
+    const maxDimension =
+    Math.max(
+        size.x,
+        size.y,
+        size.z
+    );
+
+
+    /* ======================================
+       NORMALIZE MODEL
+    ====================================== */
+
+    if(maxDimension > 0){
+
+        importedModel.scale.setScalar(
+
+            1.8 /
+            maxDimension
+
+        );
+
+    }
+
+
+    /* ======================================
+       FIND NEW CENTER
+    ====================================== */
+
+    box =
+    new THREE.Box3()
+    .setFromObject(
+        importedModel
+    );
+
+
+    const center =
+    box.getCenter(
+        new THREE.Vector3()
+    );
+
+
+    /*
+       Put model center exactly at
+       headGroup origin.
+    */
+
+    importedModel.position.x -=
+    center.x;
+
+
+    importedModel.position.y -=
+    center.y;
+
+
+    importedModel.position.z -=
+    center.z;
+
+
+    /*
+       Tiny vertical correction.
+    */
+
+    importedModel.position.y +=
+    0.02;
+
+
+    /* ======================================
+       ADD TO HEAD
+    ====================================== */
+
+    headGroup.add(
+        importedModel
+    );
+
+
+    /* ======================================
+       RESET TRACKING
+    ====================================== */
+
+    poseStarted =
+    false;
+
+
+    smoothPosition.set(
+        0,
+        0,
+        0
+    );
+
+
+    smoothQuaternion.identity();
+
+
+    smoothScale =
+    1;
+
+
+    statusBox.innerText =
+    "3D MODEL READY";
+
+}
+
+
+/* ==========================================
+   GLB / GLTF LOADER
+========================================== */
+
+function loadGLTF(file){
+
+    const loader =
+    new THREE.GLTFLoader();
+
+
+    const reader =
+    new FileReader();
+
+
+    reader.onload =
+    function(event){
+
+        try{
+
+            loader.parse(
+
+                event.target.result,
+
+                "",
+
+                function(gltf){
+
+                    prepareModel(
+                        gltf.scene
+                    );
+
+                },
+
+                function(error){
+
+                    console.error(
+                        error
+                    );
+
+                    statusBox.innerText =
+                    "GLB / GLTF ERROR";
+
+                }
+
+            );
+
+        }
+        catch(error){
+
+            console.error(
+                error
+            );
+
+            statusBox.innerText =
+            "MODEL ERROR";
+
+        }
+
+    };
+
+
+    reader.readAsArrayBuffer(
+        file
+    );
+
+}
+
+
+/* ==========================================
+   OBJ LOADER
+========================================== */
+
+function loadOBJ(file){
+
+    const loader =
+    new THREE.OBJLoader();
+
+
+    const reader =
+    new FileReader();
+
+
+    reader.onload =
+    function(event){
+
+        try{
+
+            const object =
+            loader.parse(
+                event.target.result
+            );
+
+
+            prepareModel(
+                object
+            );
+
+        }
+        catch(error){
+
+            console.error(
+                error
+            );
+
+            statusBox.innerText =
+            "OBJ ERROR";
+
+        }
+
+    };
+
+
+    reader.readAsText(
+        file
+    );
+
+}
+
+
+/* ==========================================
+   FBX LOADER
+========================================== */
+
+function loadFBX(file){
+
+    const loader =
+    new THREE.FBXLoader();
+
+
+    const reader =
+    new FileReader();
+
+
+    reader.onload =
+    function(event){
+
+        try{
+
+            const object =
+            loader.parse(
+                event.target.result,
+                ""
+            );
+
+
+            prepareModel(
+                object
+            );
+
+        }
+        catch(error){
+
+            console.error(
+                error
+            );
+
+            statusBox.innerText =
+            "FBX ERROR";
+
+        }
+
+    };
+
+
+    reader.readAsArrayBuffer(
+        file
+    );
+
+}
+
+
+/* ==========================================
+   IMPORT FILE
+========================================== */
+
+document
+.getElementById("fileInput")
+.addEventListener(
+    "change",
+    function(event){
+
+        const file =
+        event.target.files[0];
+
+
+        if(!file)
+            return;
+
+
+        const filename =
+        file.name.toLowerCase();
+
+
+        statusBox.innerText =
+        "Loading 3D model...";
+
+
+        if(
+            filename.endsWith(".glb") ||
+            filename.endsWith(".gltf")
+        ){
+
+            loadGLTF(
+                file
+            );
+
+            return;
+
+        }
+
+
+        if(
+            filename.endsWith(".obj")
+        ){
+
+            loadOBJ(
+                file
+            );
+
+            return;
+
+        }
+
+
+        if(
+            filename.endsWith(".fbx")
+        ){
+
+            loadFBX(
+                file
+            );
+
+            return;
+
+        }
+
+
+        statusBox.innerText =
+        "Unsupported 3D format";
+
+    }
+);
+
+
+/* ==========================================
+   SIZE SLIDER
+========================================== */
+
+document
+.getElementById("sizeSlider")
+.addEventListener(
+    "input",
+    function(){
+
+        sizeValue =
+        parseFloat(
+            this.value
+        );
+
+    }
+);
+
+
+/* ==========================================
+   UP / DOWN SLIDER
+========================================== */
+
+document
+.getElementById("upSlider")
+.addEventListener(
+    "input",
+    function(){
+
+        upValue =
+        parseFloat(
+            this.value
+        );
+
+    }
+);
+
+
+/* ==========================================
+   DEPTH SLIDER
+========================================== */
+
+document
+.getElementById("depthSlider")
+.addEventListener(
+    "input",
+    function(){
+
+        depthValue =
+        parseFloat(
+            this.value
+        );
+
+    }
+);
+
+
+/* ==========================================
+   RESET
+========================================== */
+
+function resetAR(){
+
+    sizeValue =
+    1;
+
+    upValue =
+    0;
+
+    depthValue =
+    0;
+
+
+    document.getElementById(
+        "sizeSlider"
+    ).value = 1;
+
+
+    document.getElementById(
+        "upSlider"
+    ).value = 0;
+
+
+    document.getElementById(
+        "depthSlider"
+    ).value = 0;
+
+
+    poseStarted =
+    false;
+
+
+    smoothPosition.set(
+        0,
+        0,
+        0
+    );
+
+
+    smoothQuaternion.identity();
+
+
+    smoothScale =
+    1;
+
+
+    if(headGroup){
+
+        headGroup.position.set(
             0,
             0,
             0
+        );
+
+
+        headGroup.rotation.set(
+            0,
+            0,
+            0
+        );
+
+
+        headGroup.scale.set(
+            1,
+            1,
+            1
         );
 
     }
 
 
     statusBox.innerText =
-        "Reset complete";
+    "RESET DONE";
 
 }
 
 
-/* =========================================================
-   CAMERA FLIP
-========================================================= */
+/* ==========================================
+   SNAPSHOT
+========================================== */
 
-function flipCamera(){
+function takeSnapshot(){
 
-    cameraFacing =
-        cameraFacing === "user"
-        ? "environment"
-        : "user";
+    if(!renderer)
+        return;
 
 
-    startCamera();
+    const image =
+    canvas.toDataURL(
+        "image/png"
+    );
+
+
+    const link =
+    document.createElement("a");
+
+
+    link.href =
+    image;
+
+
+    link.download =
+    "azeez-ar.png";
+
+
+    document.body.appendChild(
+        link
+    );
+
+
+    link.click();
+
+
+    document.body.removeChild(
+        link
+    );
 
 }
 
 
-/* =========================================================
-   CAMERA START
-========================================================= */
+/* ==========================================
+   START CAMERA
+========================================== */
 
 async function startCamera(){
 
     try{
 
-        if(mpCamera){
-
-            try{
-
-                mpCamera.stop();
-
-            }catch(e){}
-
-        }
-
-
         const stream =
-            await navigator.mediaDevices
-            .getUserMedia({
+        await navigator
+        .mediaDevices
+        .getUserMedia({
 
-                video:{
-                    facingMode:{
-                        ideal:cameraFacing
-                    },
+            video:{
 
-                    width:{
-                        ideal:1280
-                    },
-
-                    height:{
-                        ideal:720
-                    },
-
-                    frameRate:{
-                        ideal:30
-                    }
-
+                facingMode:{
+                    ideal:"user"
                 },
 
-                audio:false
+                width:{
+                    ideal:1280
+                },
 
-            });
+                height:{
+                    ideal:720
+                },
+
+                frameRate:{
+                    ideal:30
+                }
+
+            },
+
+            audio:false
+
+        });
 
 
         video.srcObject =
-            stream;
+        stream;
+
+
+        /*
+           Selfie camera mirror.
+        */
+
+        video.style.transform =
+        "scaleX(-1)";
 
 
         await video.play();
 
 
-        /*
-           Front camera is mirrored.
-
-           Rear camera is not mirrored.
-        */
-
-        if(cameraFacing === "user"){
-
-            video.style.transform =
-                "scaleX(-1)";
-
-        }else{
-
-            video.style.transform =
-                "scaleX(1)";
-
-        }
-
-
         statusBox.innerText =
-            "Camera ready • Face tracking starting";
+        "Camera ready";
 
-
-        /*
-           Restart MediaPipe camera wrapper.
-        */
-
-        if(mpCamera){
-
-            try{
-                mpCamera.stop();
-            }catch(e){}
-
-        }
-
-
-        mpCamera =
-            new Camera(
-                video,
-                {
-
-                    onFrame:async function(){
-
-                        if(faceMesh){
-
-                            await faceMesh.send({
-                                image:video
-                            });
-
-                        }
-
-                    },
-
-                    width:1280,
-                    height:720
-
-                }
-            );
-
-
-        mpCamera.start();
-
-
-    }catch(error){
+    }
+    catch(error){
 
         console.error(
             error
@@ -1701,72 +2271,145 @@ async function startCamera(){
 
 
         statusBox.innerText =
-            "Camera permission/error";
+        "Camera permission required";
 
     }
+
 }
 
 
-/* =========================================================
-   SNAPSHOT
-========================================================= */
+/* ==========================================
+   CAMERA FLIP
+========================================== */
 
-function takeSnapshot(){
+async function flipCamera(){
 
-    if(!renderer){
+    if(video.srcObject){
 
-        return;
-    }
+        const tracks =
+        video.srcObject.getTracks();
 
 
-    /*
-       The Three.js canvas is transparent.
-       This captures the AR layer itself.
-    */
+        tracks.forEach(
+            function(track){
 
-    const image =
-        canvas.toDataURL(
-            "image/png"
+                track.stop();
+
+            }
         );
 
-
-    const link =
-        document.createElement("a");
+    }
 
 
-    link.href =
-        image;
+    window.cameraMode =
+    window.cameraMode === "environment"
+    ? "user"
+    : "environment";
 
 
-    link.download =
-        "azeez-ar.png";
+    const facing =
+    window.cameraMode ||
+    "user";
 
 
-    link.click();
+    try{
+
+        const stream =
+        await navigator
+        .mediaDevices
+        .getUserMedia({
+
+            video:{
+
+                facingMode:{
+                    ideal:facing
+                },
+
+                width:{
+                    ideal:1280
+                },
+
+                height:{
+                    ideal:720
+                }
+
+            },
+
+            audio:false
+
+        });
+
+
+        video.srcObject =
+        stream;
+
+
+        if(facing === "user"){
+
+            video.style.transform =
+            "scaleX(-1)";
+
+        }
+        else{
+
+            video.style.transform =
+            "scaleX(1)";
+
+        }
+
+
+        await video.play();
+
+
+        statusBox.innerText =
+        "Camera switched";
+
+    }
+    catch(error){
+
+        console.error(
+            error
+        );
+
+        statusBox.innerText =
+        "Camera switch failed";
+
+    }
 
 }
 
 
-/* =========================================================
-   INITIALIZE APP
-========================================================= */
+/* ==========================================
+   START APP
+========================================== */
 
 async function startApp(){
 
-    init3D();
+    initThree();
 
-    initFaceTracking();
 
     await startCamera();
+
+
+    initFaceMesh();
+
+
+    statusBox.innerText =
+    "Ready • Import 3D Model";
 
 }
 
 
-/* =========================================================
+/* ==========================================
    START
-========================================================= */
+========================================== */
 
 startApp();
+
+
+/* ==========================================
+   CLOSE HTML DOCUMENT
+========================================== */
 
 </script>
 
