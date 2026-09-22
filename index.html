@@ -17,10 +17,9 @@ html, body {
     padding: 0;
     width: 100%;
     height: 100%;
-    background: #000;
     overflow: hidden;
-    font-family: sans-serif;
-    color: #fff;
+    background: #000;
+    font-family: Arial, sans-serif;
 }
 
 #cameraStream {
@@ -47,44 +46,114 @@ html, body {
     height: 100% !important;
 }
 
-.ui-layer {
+#status {
     position: fixed;
-    bottom: 20px;
+    top: 8px;
+    left: 8px;
+    z-index: 20;
+
+    padding: 7px 10px;
+
+    border-radius: 6px;
+
+    background: rgba(0,0,0,0.75);
+
+    color: #00ff88;
+
+    font-size: 12px;
+
+    font-weight: bold;
+}
+
+.sliders-panel {
+    position: fixed;
+    top: 42px;
     left: 50%;
+
     transform: translateX(-50%);
 
     z-index: 10;
 
+    width: 92%;
+    max-width: 370px;
+
+    padding: 10px;
+
+    background: rgba(0,0,0,0.85);
+
+    border-radius: 10px;
+
     display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    justify-content: center;
+    flex-direction: column;
+
+    gap: 7px;
+
+    color: white;
+
+    font-size: 11px;
+
+    backdrop-filter: blur(6px);
+}
+
+.slider-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.slider-row span {
+    width: 90px;
+}
+
+.slider-row input {
+    width: 65%;
+}
+
+.ui-layer {
+    position: fixed;
+
+    bottom: 18px;
+    left: 50%;
+
+    transform: translateX(-50%);
+
+    z-index: 20;
 
     width: 95%;
-    max-width: 600px;
+    max-width: 650px;
+
+    display: flex;
+
+    justify-content: center;
+
+    flex-wrap: wrap;
+
+    gap: 8px;
 }
 
 button,
-label.upload-btn {
+.upload-btn {
     padding: 10px 14px;
-    font-size: 13px;
-
-    color: white;
-    background: #007bff;
 
     border: none;
+
     border-radius: 8px;
 
-    cursor: pointer;
+    font-size: 13px;
+
     font-weight: bold;
 
-    text-align: center;
+    cursor: pointer;
+
+    background: #007bff;
+
+    color: white;
 
     box-shadow:
-        0 4px 6px rgba(0,0,0,0.4);
+        0 4px 7px rgba(0,0,0,0.4);
 }
 
-label.upload-btn {
+.upload-btn {
     background: #ffc107;
     color: #000;
 }
@@ -107,74 +176,25 @@ input[type="file"] {
 }
 
 #downloadLink {
-    background: #6c757d;
-    color: #fff;
-    text-decoration: none;
     display: none;
 
-    line-height: 35px;
-    padding: 0 12px;
+    padding: 10px 12px;
+
+    background: #6c757d;
+
+    color: white;
 
     border-radius: 8px;
-}
 
-.sliders-panel {
-    position: fixed;
-    top: 10px;
-    left: 50%;
+    text-decoration: none;
 
-    transform: translateX(-50%);
+    font-size: 13px;
 
-    z-index: 10;
-
-    background: rgba(0,0,0,0.85);
-
-    padding: 8px 12px;
-
-    border-radius: 10px;
-
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-
-    width: 92%;
-    max-width: 360px;
-
-    font-size: 11px;
-
-    backdrop-filter: blur(5px);
-}
-
-.slider-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.slider-row input {
-    width: 65%;
-    cursor: pointer;
-}
-
-#status {
-    position: fixed;
-    top: 5px;
-    left: 5px;
-
-    z-index: 20;
-
-    background: rgba(0,0,0,0.6);
-
-    padding: 5px 8px;
-
-    border-radius: 5px;
-
-    font-size: 11px;
-
-    color: #00ff88;
+    font-weight: bold;
 }
 
 </style>
+
 
 <!-- THREE.JS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -183,85 +203,81 @@ input[type="file"] {
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
 <!-- MEDIAPIPE CAMERA -->
-<script
-src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"
-crossorigin="anonymous">
-</script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 
 <!-- MEDIAPIPE FACE MESH -->
-<script
-src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"
-crossorigin="anonymous">
-</script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
 
 </head>
 
 <body>
 
 <video
-id="cameraStream"
-autoplay
-playsinline
-muted>
+    id="cameraStream"
+    autoplay
+    playsinline
+    muted>
 </video>
 
 <div id="webgl-container"></div>
 
 <div id="status">
-Face tracking: starting...
+    Starting Face Tracking...
 </div>
+
 
 <div class="sliders-panel">
 
     <div class="slider-row">
-        <span>Model Scale:</span>
+        <span>Model Scale</span>
 
         <input
-        type="range"
-        id="scaleSlider"
-        min="0.1"
-        max="5"
-        step="0.05"
-        value="1.5">
+            id="scaleSlider"
+            type="range"
+            min="0.1"
+            max="5"
+            step="0.05"
+            value="1.5">
     </div>
 
     <div class="slider-row">
-        <span>Offset X:</span>
+        <span>Offset X</span>
 
         <input
-        type="range"
-        id="offsetX"
-        min="-2"
-        max="2"
-        step="0.05"
-        value="0">
+            id="offsetX"
+            type="range"
+            min="-2"
+            max="2"
+            step="0.05"
+            value="0">
     </div>
 
     <div class="slider-row">
-        <span>Offset Y:</span>
+        <span>Offset Y</span>
 
         <input
-        type="range"
-        id="offsetY"
-        min="-2"
-        max="2"
-        step="0.05"
-        value="0.2">
+            id="offsetY"
+            type="range"
+            min="-2"
+            max="2"
+            step="0.05"
+            value="0.2">
     </div>
 
     <div class="slider-row">
-        <span>Offset Z:</span>
+        <span>Offset Z</span>
 
         <input
-        type="range"
-        id="offsetZ"
-        min="-3"
-        max="3"
-        step="0.05"
-        value="0">
+            id="offsetZ"
+            type="range"
+            min="-3"
+            max="3"
+            step="0.05"
+            value="0">
     </div>
 
 </div>
+
 
 <div class="ui-layer">
 
@@ -274,9 +290,9 @@ Face tracking: starting...
         Import 3D
 
         <input
-        type="file"
-        id="fileInput"
-        accept=".glb,.gltf">
+            type="file"
+            id="fileInput"
+            accept=".glb,.gltf">
 
     </label>
 
@@ -293,8 +309,8 @@ Face tracking: starting...
     </button>
 
     <a
-    id="downloadLink"
-    download="azeez-ar-video.webm">
+        id="downloadLink"
+        download="azeez-ar-video.webm">
 
         Download Video
 
@@ -302,179 +318,127 @@ Face tracking: starting...
 
 </div>
 
+
 <script>
 
+"use strict";
+
+
+/* ELEMENTS */
+
 const videoElement =
-document.getElementById("cameraStream");
-
-const flipBtn =
-document.getElementById("flipBtn");
-
-const fileInput =
-document.getElementById("fileInput");
-
-const exportBtn =
-document.getElementById("exportBtn");
-
-const recordBtn =
-document.getElementById("recordBtn");
-
-const stopBtn =
-document.getElementById("stopBtn");
-
-const downloadLink =
-document.getElementById("downloadLink");
+    document.getElementById("cameraStream");
 
 const status =
-document.getElementById("status");
+    document.getElementById("status");
+
+const flipBtn =
+    document.getElementById("flipBtn");
+
+const fileInput =
+    document.getElementById("fileInput");
+
+const exportBtn =
+    document.getElementById("exportBtn");
+
+const recordBtn =
+    document.getElementById("recordBtn");
+
+const stopBtn =
+    document.getElementById("stopBtn");
+
+const downloadLink =
+    document.getElementById("downloadLink");
 
 const scaleSlider =
-document.getElementById("scaleSlider");
+    document.getElementById("scaleSlider");
 
 const offsetXSlider =
-document.getElementById("offsetX");
+    document.getElementById("offsetX");
 
 const offsetYSlider =
-document.getElementById("offsetY");
+    document.getElementById("offsetY");
 
 const offsetZSlider =
-document.getElementById("offsetZ");
+    document.getElementById("offsetZ");
 
+
+/* CAMERA */
 
 let useFrontCamera = true;
 
 let currentStream = null;
 
+let cameraUtils = null;
+
+let cameraStarting = false;
+
+
+/* THREE */
+
 let scene;
+
 let camera;
+
 let renderer;
 
 let currentModel = null;
+
+
+/* TRACKING */
+
+let targetPosition =
+    new THREE.Vector3();
+
+let smoothPosition =
+    new THREE.Vector3();
+
+let targetRotation =
+    new THREE.Euler();
+
+let smoothRotation =
+    new THREE.Euler();
+
+
+/* RECORDING */
 
 let mediaRecorder = null;
 
 let recordedChunks = [];
 
-let trackingStarted = false;
 
+/* STATUS */
 
-let targetPosition =
-new THREE.Vector3(0,0,0);
+function setStatus(message) {
 
-let targetRotation =
-new THREE.Euler(0,0,0);
+    status.innerText = message;
 
-let smoothPosition =
-new THREE.Vector3(0,0,0);
-
-let smoothRotation =
-new THREE.Euler(0,0,0);
-
-
-async function startCamera() {
-
-    try {
-
-        status.innerText =
-        "Camera starting...";
-
-        if (currentStream) {
-
-            currentStream
-            .getTracks()
-            .forEach(track =>
-                track.stop()
-            );
-        }
-
-        const constraints = {
-
-            video: {
-
-                facingMode:
-                useFrontCamera
-                ? "user"
-                : "environment",
-
-                width: {
-                    ideal: 640
-                },
-
-                height: {
-                    ideal: 480
-                }
-            },
-
-            audio: true
-        };
-
-        currentStream =
-        await navigator
-        .mediaDevices
-        .getUserMedia(
-            constraints
-        );
-
-        videoElement.srcObject =
-        currentStream;
-
-        await videoElement.play();
-
-        status.innerText =
-        "Camera OK - Face tracking...";
-
-        if (!trackingStarted) {
-
-            trackingStarted = true;
-
-            cameraUtils.start();
-        }
-
-    } catch(error) {
-
-        console.error(error);
-
-        status.innerText =
-        "Camera error";
-
-        alert(
-            "Camera error: " +
-            error.message
-        );
-    }
 }
 
 
-flipBtn.addEventListener(
-"click",
-async () => {
-
-    useFrontCamera =
-    !useFrontCamera;
-
-    await startCamera();
-
-});
-
+/* THREE INIT */
 
 function init3D() {
 
     const container =
-    document.getElementById(
-        "webgl-container"
-    );
+        document.getElementById(
+            "webgl-container"
+        );
+
 
     scene =
-    new THREE.Scene();
+        new THREE.Scene();
+
 
     camera =
-    new THREE.PerspectiveCamera(
-        60,
-        window.innerWidth /
-        window.innerHeight,
-        0.01,
-        100
-    );
+        new THREE.PerspectiveCamera(
+            60,
+            window.innerWidth /
+            window.innerHeight,
+            0.01,
+            100
+        );
+
 
     camera.position.set(
         0,
@@ -482,56 +446,72 @@ function init3D() {
         3
     );
 
+
     renderer =
-    new THREE.WebGLRenderer({
+        new THREE.WebGLRenderer({
 
-        alpha: true,
+            alpha: true,
 
-        antialias: true,
+            antialias: true,
 
-        preserveDrawingBuffer: true
-    });
+            preserveDrawingBuffer: true
+
+        });
+
 
     renderer.setSize(
         window.innerWidth,
         window.innerHeight
     );
 
+
     renderer.setPixelRatio(
         Math.min(
-            window.devicePixelRatio,
+            window.devicePixelRatio || 1,
             2
         )
     );
+
 
     container.appendChild(
         renderer.domElement
     );
 
-    scene.add(
+
+    const ambient =
         new THREE.AmbientLight(
             0xffffff,
-            1.5
-        )
+            1.8
+        );
+
+    scene.add(
+        ambient
     );
 
-    const dirLight =
-    new THREE.DirectionalLight(
-        0xffffff,
-        1
-    );
 
-    dirLight.position.set(
+    const directional =
+        new THREE.DirectionalLight(
+            0xffffff,
+            1.2
+        );
+
+    directional.position.set(
         0,
-        10,
+        5,
         5
     );
 
-    scene.add(dirLight);
+    scene.add(
+        directional
+    );
+
 
     animate();
+
 }
 
+
+/* ANIMATION */
 
 function animate() {
 
@@ -539,12 +519,14 @@ function animate() {
         animate
     );
 
+
     if (currentModel) {
 
         const scale =
-        parseFloat(
-            scaleSlider.value
-        );
+            parseFloat(
+                scaleSlider.value
+            );
+
 
         currentModel.scale.set(
             scale,
@@ -552,143 +534,93 @@ function animate() {
             scale
         );
 
+
         const xOff =
-        parseFloat(
-            offsetXSlider.value
-        );
+            parseFloat(
+                offsetXSlider.value
+            );
+
 
         const yOff =
-        parseFloat(
-            offsetYSlider.value
-        );
+            parseFloat(
+                offsetYSlider.value
+            );
+
 
         const zOff =
-        parseFloat(
-            offsetZSlider.value
-        );
+            parseFloat(
+                offsetZSlider.value
+            );
+
 
         const desiredPosition =
-        new THREE.Vector3(
+            new THREE.Vector3(
 
-            smoothPosition.x + xOff,
+                smoothPosition.x + xOff,
 
-            smoothPosition.y + yOff,
+                smoothPosition.y + yOff,
 
-            smoothPosition.z + zOff
-        );
+                smoothPosition.z + zOff
+
+            );
+
 
         currentModel.position.lerp(
             desiredPosition,
             0.35
         );
 
+
         currentModel.rotation.x =
-        THREE.MathUtils.lerp(
-            currentModel.rotation.x,
-            smoothRotation.x,
-            0.25
-        );
+            THREE.MathUtils.lerp(
+                currentModel.rotation.x,
+                smoothRotation.x,
+                0.25
+            );
+
 
         currentModel.rotation.y =
-        THREE.MathUtils.lerp(
-            currentModel.rotation.y,
-            smoothRotation.y,
-            0.25
-        );
+            THREE.MathUtils.lerp(
+                currentModel.rotation.y,
+                smoothRotation.y,
+                0.25
+            );
+
 
         currentModel.rotation.z =
-        THREE.MathUtils.lerp(
-            currentModel.rotation.z,
-            smoothRotation.z,
-            0.25
-        );
+            THREE.MathUtils.lerp(
+                currentModel.rotation.z,
+                smoothRotation.z,
+                0.25
+            );
+
     }
+
 
     renderer.render(
         scene,
         camera
     );
+
 }
 
 
-fileInput.addEventListener(
-"change",
-event => {
-
-    const file =
-    event.target.files[0];
-
-    if (!file) return;
-
-    const reader =
-    new FileReader();
-
-    reader.onload =
-    function(e) {
-
-        const contents =
-        e.target.result;
-
-        const loader =
-        new THREE.GLTFLoader();
-
-        loader.parse(
-
-            contents,
-
-            "",
-
-            gltf => {
-
-                if (currentModel) {
-
-                    scene.remove(
-                        currentModel
-                    );
-                }
-
-                currentModel =
-                gltf.scene;
-
-                currentModel.position.set(
-                    0,
-                    0,
-                    0
-                );
-
-                scene.add(
-                    currentModel
-                );
-
-                status.innerText =
-                "3D model loaded";
-            },
-
-            error => {
-
-                console.error(error);
-
-                alert(
-                    "Model load error"
-                );
-            }
-        );
-    };
-
-    reader.readAsArrayBuffer(
-        file
-    );
-});
-
+/* FACE MESH */
 
 const faceMesh =
-new FaceMesh({
+    new FaceMesh({
 
-    locateFile: file =>
+        locateFile: function(file) {
 
-    `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+            return (
+                "https://cdn.jsdelivr.net/npm/" +
+                "@mediapipe/face_mesh/" +
+                file
+            );
 
-});
+        }
+
+    });
 
 
 faceMesh.setOptions({
@@ -701,460 +633,818 @@ faceMesh.setOptions({
 
     minTrackingConfidence: 0.5
 
-});faceMesh.onResults(
-results => {
-
-    if (
-        !results.multiFaceLandmarks ||
-        results.multiFaceLandmarks.length === 0
-    ) {
-
-        status.innerText =
-        "Searching for face...";
-
-        return;
-    }
-
-
-    status.innerText =
-    "Face tracking: ON";
-
-
-    const landmarks =
-    results.multiFaceLandmarks[0];
-
-
-    /*
-       FACE LANDMARKS
-
-       1   = Nose
-       10  = Forehead
-       152 = Chin
-       234 = Left side
-       454 = Right side
-       33  = Left eye
-       263 = Right eye
-    */
-
-
-    const nose =
-    landmarks[1];
-
-    const forehead =
-    landmarks[10];
-
-    const chin =
-    landmarks[152];
-
-    const leftSide =
-    landmarks[234];
-
-    const rightSide =
-    landmarks[454];
-
-    const leftEye =
-    landmarks[33];
-
-    const rightEye =
-    landmarks[263];
-
-
-    /*
-       FACE POSITION
-    */
-
-    const faceX =
-    nose.x;
-
-    const faceY =
-    nose.y;
-
-
-    /*
-       Convert camera
-       coordinates to
-       Three.js coordinates
-    */
-
-    const x =
-    (0.5 - faceX) * 3.2;
-
-    const y =
-    (0.5 - faceY) * 2.6;
-
-    const depth =
-    -nose.z * 1.2;
-
-
-    targetPosition.set(
-        x,
-        y,
-        depth
-    );
-
-
-    /*
-       HEAD YAW
-
-       Left / Right
-    */
-
-    const eyeCenterX =
-    (
-        leftEye.x +
-        rightEye.x
-    ) / 2;
-
-
-    const sideWidth =
-    Math.abs(
-        rightSide.x -
-        leftSide.x
-    );
-
-
-    let yaw =
-    (
-        nose.x -
-        eyeCenterX
-    ) /
-    Math.max(
-        sideWidth,
-        0.01
-    );
-
-
-    yaw =
-    THREE.MathUtils.clamp(
-        yaw * 1.8,
-        -1,
-        1
-    );
-
-
-    targetRotation.y =
-    yaw;
-
-
-    /*
-       HEAD ROLL
-
-       Tilt left/right
-    */
-
-    const dx =
-    rightEye.x -
-    leftEye.x;
-
-    const dy =
-    rightEye.y -
-    leftEye.y;
-
-
-    const roll =
-    Math.atan2(
-        dy,
-        dx
-    );
-
-
-    targetRotation.z =
-    -roll;
-
-
-    /*
-       HEAD PITCH
-
-       Looking up/down
-    */
-
-    const faceHeight =
-    Math.abs(
-        chin.y -
-        forehead.y
-    );
-
-
-    let pitch =
-    (
-        nose.y -
-        forehead.y
-    ) /
-    Math.max(
-        faceHeight,
-        0.01
-    );
-
-
-    pitch =
-    (pitch - 0.5) * 1.5;
-
-
-    pitch =
-    THREE.MathUtils.clamp(
-        pitch,
-        -0.8,
-        0.8
-    );
-
-
-    targetRotation.x =
-    pitch;
-
-
-    /*
-       SMOOTH TRACKING
-    */
-
-    smoothPosition.lerp(
-        targetPosition,
-        0.25
-    );
-
-
-    smoothRotation.x =
-    THREE.MathUtils.lerp(
-        smoothRotation.x,
-        targetRotation.x,
-        0.25
-    );
-
-
-    smoothRotation.y =
-    THREE.MathUtils.lerp(
-        smoothRotation.y,
-        targetRotation.y,
-        0.25
-    );
-
-
-    smoothRotation.z =
-    THREE.MathUtils.lerp(
-        smoothRotation.z,
-        targetRotation.z,
-        0.25
-    );
-
 });
 
 
-const cameraUtils =
-new Camera(
-    videoElement,
-    {
+/* FACE RESULTS */
 
-        onFrame: async () => {
+faceMesh.onResults(
+    function(results) {
 
-            if (
-                videoElement.readyState >= 2
-            ) {
+        if (
+            !results.multiFaceLandmarks ||
+            results.multiFaceLandmarks.length === 0
+        ) {
 
-                await faceMesh.send({
-                    image:
-                    videoElement
-                });
-            }
-        },
+            setStatus(
+                "Searching for face..."
+            );
 
-        width: 640,
+            return;
 
-        height: 480
+        }
+
+
+        setStatus(
+            "Face Tracking: ON"
+        );
+
+
+        const landmarks =
+            results.multiFaceLandmarks[0];
+
+
+        const nose =
+            landmarks[1];
+
+        const forehead =
+            landmarks[10];
+
+        const chin =
+            landmarks[152];
+
+        const leftSide =
+            landmarks[234];
+
+        const rightSide =
+            landmarks[454];
+
+        const leftEye =
+            landmarks[33];
+
+        const rightEye =
+            landmarks[263];
+
+
+        /* POSITION */
+
+        const faceX =
+            1 - nose.x;
+
+        const faceY =
+            nose.y;
+
+
+        const x =
+            (faceX - 0.5) * 3.2;
+
+
+        const y =
+            (0.5 - faceY) * 2.6;
+
+
+        const depth =
+            -nose.z * 1.2;
+
+
+        targetPosition.set(
+            x,
+            y,
+            depth
+        );
+
+
+        /* YAW */
+
+        const eyeCenterX =
+            (
+                leftEye.x +
+                rightEye.x
+            ) / 2;
+
+
+        const sideWidth =
+            Math.abs(
+                rightSide.x -
+                leftSide.x
+            );
+
+
+        let yaw =
+            (
+                nose.x -
+                eyeCenterX
+            ) /
+            Math.max(
+                sideWidth,
+                0.01
+            );
+
+
+        yaw =
+            THREE.MathUtils.clamp(
+                yaw * 2.0,
+                -1,
+                1
+            );
+
+
+        targetRotation.y =
+            yaw;
+
+
+        /* ROLL */
+
+        const dx =
+            rightEye.x -
+            leftEye.x;
+
+        const dy =
+            rightEye.y -
+            leftEye.y;
+
+
+        const roll =
+            Math.atan2(
+                dy,
+                dx
+            );
+
+
+        targetRotation.z =
+            -roll;
+
+
+        /* PITCH */
+
+        const faceHeight =
+            Math.abs(
+                chin.y -
+                forehead.y
+            );
+
+
+        let pitch =
+            (
+                nose.y -
+                forehead.y
+            ) /
+            Math.max(
+                faceHeight,
+                0.01
+            );
+
+
+        pitch =
+            (pitch - 0.5) * 1.5;
+
+
+        pitch =
+            THREE.MathUtils.clamp(
+                pitch,
+                -0.8,
+                0.8
+            );
+
+
+        targetRotation.x =
+            pitch;
+
+
+        /* SMOOTH */
+
+        smoothPosition.lerp(
+            targetPosition,
+            0.30
+        );
+
+
+        smoothRotation.x =
+            THREE.MathUtils.lerp(
+                smoothRotation.x,
+                targetRotation.x,
+                0.30
+            );
+
+
+        smoothRotation.y =
+            THREE.MathUtils.lerp(
+                smoothRotation.y,
+                targetRotation.y,
+                0.30
+            );
+
+
+        smoothRotation.z =
+            THREE.MathUtils.lerp(
+                smoothRotation.z,
+                targetRotation.z,
+                0.30
+            );
+
     }
 );
 
 
-exportBtn.addEventListener(
-"click",
-() => {
+/* START CAMERA */
 
-    renderer.render(
-        scene,
-        camera
-    );
+async function startCamera() {
 
-    const dataURL =
-    renderer.domElement
-    .toDataURL(
-        "image/png"
-    );
-
-    const link =
-    document.createElement(
-        "a"
-    );
-
-    link.download =
-    "azeez-ar-snapshot.png";
-
-    link.href =
-    dataURL;
-
-    link.click();
-
-});
-
-
-recordBtn.addEventListener(
-"click",
-() => {
-
-    if (!currentStream) {
-
-        alert(
-            "Camera is not ready."
-        );
-
+    if (cameraStarting) {
         return;
     }
 
 
-    recordedChunks = [];
+    cameraStarting = true;
 
 
     try {
 
-        let options = {
-
-            mimeType:
-            "video/webm;codecs=vp8,opus"
-
-        };
-
-
-        if (
-            !MediaRecorder.isTypeSupported(
-                options.mimeType
-            )
-        ) {
-
-            options = {
-                mimeType:
-                "video/webm"
-            };
-        }
-
-
-        mediaRecorder =
-        new MediaRecorder(
-            currentStream,
-            options
+        setStatus(
+            "Requesting camera..."
         );
 
 
-        mediaRecorder.ondataavailable =
-        e => {
+        if (currentStream) {
 
-            if (
-                e.data.size > 0
-            ) {
-
-                recordedChunks.push(
-                    e.data
+            currentStream
+                .getTracks()
+                .forEach(
+                    track => track.stop()
                 );
-            }
-        };
+
+        }
 
 
-        mediaRecorder.onstop =
-        () => {
+        currentStream =
+            await navigator.mediaDevices
+                .getUserMedia({
 
-            const blob =
-            new Blob(
-                recordedChunks,
+                    video: {
+
+                        facingMode:
+                            useFrontCamera
+                                ? "user"
+                                : "environment",
+
+                        width: {
+                            ideal: 640
+                        },
+
+                        height: {
+                            ideal: 480
+                        },
+
+                        frameRate: {
+                            ideal: 30
+                        }
+
+                    },
+
+                    audio: true
+
+                });
+
+
+        videoElement.srcObject =
+            currentStream;
+
+
+        await videoElement.play();
+
+
+        setStatus(
+            "Camera OK - Starting Face Mesh..."
+        );
+
+
+        if (cameraUtils) {
+
+            cameraUtils.stop();
+
+        }
+
+
+        cameraUtils =
+            new Camera(
+                videoElement,
                 {
-                    type:
-                    "video/webm"
+
+                    onFrame:
+                    async function() {
+
+                        try {
+
+                            await faceMesh.send({
+                                image:
+                                    videoElement
+                            });
+
+                        } catch(error) {
+
+                            console.error(
+                                "FaceMesh error:",
+                                error
+                            );
+
+                        }
+
+                    },
+
+                    width: 640,
+
+                    height: 480
+
                 }
             );
 
 
-            downloadLink.href =
-            URL.createObjectURL(
-                blob
+        await cameraUtils.start();
+
+
+        setStatus(
+            "Face Tracking: Searching..."
+        );
+
+
+    } catch(error) {
+
+        console.error(
+            "Camera error:",
+            error
+        );
+
+
+        setStatus(
+            "Camera ERROR"
+        );
+
+
+        alert(
+            "Camera error:\n" +
+            error.message
+        );
+
+
+    } finally {
+
+        cameraStarting = false;
+
+    }
+
+}
+
+
+/* FLIP */
+
+flipBtn.addEventListener(
+    "click",
+    async function() {
+
+        useFrontCamera =
+            !useFrontCamera;
+
+        await startCamera();
+
+    }
+);
+
+
+/* IMPORT MODEL */
+
+fileInput.addEventListener(
+    "change",
+    function(event) {
+
+        const file =
+            event.target.files[0];
+
+
+        if (!file) {
+            return;
+        }
+
+
+        setStatus(
+            "Loading 3D model..."
+        );
+
+
+        const reader =
+            new FileReader();
+
+
+        reader.onload =
+            function(e) {
+
+                const loader =
+                    new THREE.GLTFLoader();
+
+
+                loader.parse(
+
+                    e.target.result,
+
+                    "",
+
+                    function(gltf) {
+
+                        if (currentModel) {
+
+                            scene.remove(
+                                currentModel
+                            );
+
+                        }
+
+
+                        currentModel =
+                            gltf.scene;
+
+
+                        currentModel.position.set(
+                            0,
+                            0,
+                            0
+                        );
+
+
+                        scene.add(
+                            currentModel
+                        );
+
+
+                        setStatus(
+                            "3D model loaded - Face Tracking..."
+                        );
+
+                    },
+
+                    function(error) {
+
+                        console.error(
+                            error
+                        );
+
+
+                        alert(
+                            "3D model load error."
+                        );
+
+                    }
+
+                );
+
+            };
+
+
+        reader.readAsArrayBuffer(
+            file
+        );
+
+    }
+);
+/* SNAPSHOT */
+
+exportBtn.addEventListener(
+    "click",
+    function() {
+
+        if (!renderer) {
+            return;
+        }
+
+
+        renderer.render(
+            scene,
+            camera
+        );
+
+
+        const dataURL =
+            renderer.domElement.toDataURL(
+                "image/png"
             );
 
 
+        const link =
+            document.createElement("a");
+
+
+        link.download =
+            "azeez-ar-snapshot.png";
+
+
+        link.href =
+            dataURL;
+
+
+        link.click();
+
+    }
+);
+
+
+/* RECORDING */
+
+recordBtn.addEventListener(
+    "click",
+    function() {
+
+        if (!currentStream) {
+
+            alert(
+                "Camera is not ready."
+            );
+
+            return;
+        }
+
+
+        if (!window.MediaRecorder) {
+
+            alert(
+                "Video recording is not supported."
+            );
+
+            return;
+        }
+
+
+        recordedChunks = [];
+
+
+        let mimeType =
+            "video/webm;codecs=vp8,opus";
+
+
+        if (
+            !MediaRecorder.isTypeSupported(
+                mimeType
+            )
+        ) {
+
+            mimeType =
+                "video/webm";
+
+        }
+
+
+        try {
+
+            mediaRecorder =
+                new MediaRecorder(
+                    currentStream,
+                    {
+                        mimeType:
+                            mimeType
+                    }
+                );
+
+
+            mediaRecorder.ondataavailable =
+                function(event) {
+
+                    if (
+                        event.data &&
+                        event.data.size > 0
+                    ) {
+
+                        recordedChunks.push(
+                            event.data
+                        );
+
+                    }
+
+                };
+
+
+            mediaRecorder.onstop =
+                function() {
+
+                    const blob =
+                        new Blob(
+                            recordedChunks,
+                            {
+                                type:
+                                    "video/webm"
+                            }
+                        );
+
+
+                    const url =
+                        URL.createObjectURL(
+                            blob
+                        );
+
+
+                    downloadLink.href =
+                        url;
+
+
+                    downloadLink.style.display =
+                        "inline-block";
+
+
+                    setStatus(
+                        "Recording finished"
+                    );
+
+                };
+
+
+            mediaRecorder.start(
+                1000
+            );
+
+
+            recordBtn.style.display =
+                "none";
+
+
+            stopBtn.style.display =
+                "inline-block";
+
+
             downloadLink.style.display =
-            "inline-block";
-        };
+                "none";
 
 
-        mediaRecorder.start();
+            setStatus(
+                "Recording..."
+            );
+
+
+        } catch(error) {
+
+            console.error(
+                error
+            );
+
+
+            alert(
+                "Recording error:\n" +
+                error.message
+            );
+
+        }
+
+    }
+);
+
+
+/* STOP RECORDING */
+
+stopBtn.addEventListener(
+    "click",
+    function() {
+
+        if (
+            mediaRecorder &&
+            mediaRecorder.state !==
+            "inactive"
+        ) {
+
+            mediaRecorder.stop();
+
+        }
+
+
+        stopBtn.style.display =
+            "none";
 
 
         recordBtn.style.display =
-        "none";
+            "inline-block";
 
-        stopBtn.style.display =
-        "inline-block";
-
-        downloadLink.style.display =
-        "none";
+    }
+);
 
 
-    } catch(err) {
+/* SCALE */
 
-        alert(
-            "Recording error: " +
-            err
+scaleSlider.addEventListener(
+    "input",
+    function() {
+
+        if (!currentModel) {
+            return;
+        }
+
+
+        const value =
+            parseFloat(
+                scaleSlider.value
+            );
+
+
+        currentModel.scale.set(
+            value,
+            value,
+            value
         );
+
     }
-
-});
-
-
-stopBtn.addEventListener(
-"click",
-() => {
-
-    if (
-        mediaRecorder &&
-        mediaRecorder.state !==
-        "inactive"
-    ) {
-
-        mediaRecorder.stop();
-    }
+);
 
 
-    stopBtn.style.display =
-    "none";
-
-    recordBtn.style.display =
-    "inline-block";
-
-});
-
-
-/*
-   START APP
-*/
-
-init3D();
-
-startCamera();
-
-
-/*
-   RESIZE
-*/
+/* RESIZE */
 
 window.addEventListener(
-"resize",
-() => {
+    "resize",
+    function() {
 
-    camera.aspect =
-    window.innerWidth /
-    window.innerHeight;
+        if (!camera || !renderer) {
+            return;
+        }
 
-    camera.updateProjectionMatrix();
 
-    renderer.setSize(
-        window.innerWidth,
-        window.innerHeight
-    );
+        camera.aspect =
+            window.innerWidth /
+            window.innerHeight;
 
-});
+
+        camera.updateProjectionMatrix();
+
+
+        renderer.setSize(
+            window.innerWidth,
+            window.innerHeight
+        );
+
+
+        renderer.setPixelRatio(
+            Math.min(
+                window.devicePixelRatio || 1,
+                2
+            )
+        );
+
+    }
+);
+
+
+/* CHECK MEDIAPIPE */
+
+window.addEventListener(
+    "load",
+    function() {
+
+        if (
+            typeof FaceMesh ===
+            "undefined"
+        ) {
+
+            setStatus(
+                "ERROR: MediaPipe not loaded"
+            );
+
+
+            alert(
+                "MediaPipe Face Mesh load नहीं हुआ.\n" +
+                "Internet ON करके page reload करें."
+            );
+
+
+            return;
+
+        }
+
+
+        if (
+            typeof Camera ===
+            "undefined"
+        ) {
+
+            setStatus(
+                "ERROR: Camera library not loaded"
+            );
+
+
+            alert(
+                "MediaPipe Camera library load नहीं हुई."
+            );
+
+
+            return;
+
+        }
+
+
+        setStatus(
+            "MediaPipe ready - Starting camera..."
+        );
+
+
+        startCamera();
+
+    }
+);
+
+
+/* START APP */
+
+init3D();
 
 </script>
 
