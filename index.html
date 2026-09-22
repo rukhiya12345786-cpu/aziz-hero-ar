@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Face Tracking 3D Mask</title>
+    <title>360 Head Tracking 3D Model</title>
     <style>
         body {
             margin: 0;
@@ -16,7 +16,6 @@
             width: 100vw;
             height: 100vh;
         }
-        /* कैमरा वीडियो को पीछे दिखाने के लिए */
         #webcam {
             position: absolute;
             top: 0;
@@ -24,10 +23,9 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transform: scaleX(-1); /* मिरर इफ़ेक्ट ताकि सीधा दिखे */
+            transform: scaleX(-1); /* मिरर इफ़ेक्ट */
             z-index: 1;
         }
-        /* Three.js का कैनवास वीडियो के ठीक ऊपर आएगा */
         #canvas3d {
             position: absolute;
             top: 0;
@@ -35,7 +33,7 @@
             width: 100%;
             height: 100%;
             z-index: 2;
-            pointer-events: none; /* ताकि क्लिक सीधा वीडियो/पेज पर जा सके */
+            pointer-events: none;
         }
         #loading {
             position: absolute;
@@ -50,19 +48,18 @@
         }
     </style>
 
-    <!-- Three.js और MediaPipe की लाइब्रेरी लोड कर रहे हैं -->
+    <!-- Three.js, GLTFLoader और MediaPipe की लाइब्रेरी -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
 </head>
 <body>
 
-    <div id="loading">कैमरा और मॉडल लोड हो रहा है...</div>
+    <div id="loading">360-डिग्री मॉडल लोड हो रहा है...</div>
     
     <div id="container">
-        <!-- लाइव कैमरा फीड के लिए वीडियो एलिमेंट -->
         <video id="webcam" autoplay playsinline muted></video>
-        <!-- 3D मॉडल दिखाने के लिए कैनवास -->
         <canvas id="canvas3d"></canvas>
     </div>
 
@@ -71,38 +68,42 @@
         const canvasElement = document.getElementById('canvas3d');
         const loadingElement = document.getElementById('loading');
 
-        let scene, camera, renderer, faceMeshModel;
+        let scene, camera, renderer, headModel;
 
-        // 1. Three.js सेटअप करना
         function initThreeJS() {
             scene = new THREE.Scene();
 
-            // कैमरा सेटिंग्स
             camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.z = 5;
 
-            // रेंडरर (transparent ताकि पीछे का कैमरा दिखे)
             renderer = new THREE.WebGLRenderer({ canvas: canvasElement, alpha: true, antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
 
-            // रोशनी जोड़ना ताकि 3D मॉडल साफ़ दिखे
-            const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
             scene.add(ambientLight);
 
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
             directionalLight.position.set(0, 10, 5);
             scene.add(directionalLight);
 
-            // 2. यहाँ हम एक सैंपल 3D मास्क (जैसे चमकता हुआ स्फीयर या बॉक्स) बना रहे हैं
-            // (आप चाहें तो यहाँ अपना GLTF/OBJ 3D मॉडल लोड कर सकते हैं)
-            const geometry = new THREE.SphereGeometry(0.5, 32, 32);
-            const material = new THREE.MeshStandardMaterial({ color: 0x00ffcc, roughness: 0.3, metalness: 0.8 });
-            faceMeshModel = new THREE.Mesh(geometry, material);
-            scene.add(faceMeshModel);
-            
-            // शुरुआत में मॉडल छिपा कर रखें जब तक चेहरा डिटेक्ट न हो
-            faceMeshModel.visible = false;
+            // यहाँ अपना 3D मॉडल (.gltf या .glb फाइल) लोड करें
+            const loader = new THREE.GLTFLoader();
+            loader.load(
+                'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/models/gltf/RobotExpressive/RobotExpressive.gltf', 
+                function (gltf) {
+                    headModel = gltf.scene;
+                    headModel.scale.set(0.8, 0.8, 0.8);
+                    scene.add(headModel);
+                    headModel.visible = false;
+                    loadingElement.style.display = 'none';
+                },
+                undefined,
+                function (error) {
+                    console.error('मॉडल लोड एरर:', error);
+                    loadingElement.innerText = "3D मॉडल लोड करने में विफल!";
+                }
+            );
 
             window.addEventListener('resize', onWindowResize);
         }
@@ -113,9 +114,8 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
-        // 3. MediaPipe FaceMesh सेटअप करना
         function initFaceMesh() {
-            const faceMesh = new MediapipeFaceMesh({
+            const faceMesh = new FaceMesh({
                 locateFile: (file) => {
                     return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
                 }
@@ -124,13 +124,12 @@
             faceMesh.setOptions({
                 maxNumFaces: 1,
                 refineLandmarks: true,
-                minDetectionConfidence: 0.5,
-                minTrackingConfidence: 0.5
+                minDetectionConfidence: 0.6,
+                minTrackingConfidence: 0.6
             });
 
             faceMesh.onResults(onFaceResults);
 
-            // कैमरा चालू करना
             const cameraUtils = new Camera(videoElement, {
                 onFrame: async () => {
                     await faceMesh.send({ image: videoElement });
@@ -139,48 +138,51 @@
                 height: 720
             });
 
-            cameraUtils.start()
-                .then(() => {
-                    loadingElement.style.display = 'none'; // लोडिंग हटा दें जब कैमरा चल जाए
-                })
-                .catch(err => {
-                    loadingElement.innerText = "कैमरा चालू करने में एरर आया: " + err.message;
-                });
+            cameraUtils.start().catch(err => {
+                loadingElement.innerText = "कैमरा एरर: " + err.message;
+            });
         }
 
-        // 4. जब चेहरा डिटेक्ट होगा, तब 3D मॉडल की पोजीशन को चेहरे के हिसाब से सेट करेंगे
+        // 360-डिग्री हेड ट्रैकिंग और रोटेशन लॉजिक
         function onFaceResults(results) {
             if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
                 const landmarks = results.multiFaceLandmarks[0];
                 
-                // नाक की टिप का पॉइंट (Index 1) फेस ट्रैक करने के लिए मुख्य सेंटर होता है
                 const nose = landmarks[1];
+                const leftPoint = landmarks[234];
+                const rightPoint = landmarks[454];
+                const topPoint = landmarks[10];
+                const chinPoint = landmarks[152];
 
-                // MediaPipe के कोऑर्डिनेट्स को Three.js के 3D स्पेस में बदलना
-                // (X और Y को स्क्रीन के हिसाब से सेट करना)
-                const x = (nose.x - 0.5) * -3.5; 
-                const y = (nose.y - 0.5) * -3.5;
-                const z = -nose.z * 3; // गहराई (Depth)
+                const x = -(nose.x - 0.5) * 4.0;
+                const y = -(nose.y - 0.5) * 4.0;
+                const z = -nose.z * 2.0;
 
-                if (faceMeshModel) {
-                    faceMeshModel.visible = true; // चेहरा दिखते ही मॉडल ऑन
-                    faceMeshModel.position.set(x, y, z);
-                    
-                    // हल्का सा रोटेशन देना ताकि जीवंत लगे
-                    faceMeshModel.rotation.y += 0.02;
+                if (headModel) {
+                    headModel.visible = true;
+                    headModel.position.set(x, y - 0.2, z);
+
+                    const dx = rightPoint.x - leftPoint.x;
+                    const dy = rightPoint.y - leftPoint.y;
+                    const dz = rightPoint.z - leftPoint.z;
+
+                    const yaw = Math.atan2(dz, dx);
+                    const pitch = Math.atan2(chinPoint.y - topPoint.y, chinPoint.z - topPoint.z);
+                    const roll = Math.atan2(dy, dx);
+
+                    headModel.rotation.y = -yaw + Math.PI / 2;
+                    headModel.rotation.x = pitch;
+                    headModel.rotation.z = roll;
                 }
             } else {
-                // अगर चेहरा फ्रेम में न दिखे तो मॉडल छिपा दें
-                if (faceMeshModel) {
-                    faceMeshModel.visible = false;
+                if (headModel) {
+                    headModel.visible = false;
                 }
             }
 
-            // थ्री डी सीन को रेंडर करना
             renderer.render(scene, camera);
         }
 
-        // ऐप शुरू करें
         initThreeJS();
         initFaceMesh();
     </script>
