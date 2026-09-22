@@ -3,65 +3,135 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Azeez AR - Step 1</title>
+    <title>Azeez AR - Step 2</title>
     <style>
         body {
             margin: 0;
-            background: #000;
+            background: #111;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
+            min-height: 100vh;
             color: #fff;
             font-family: sans-serif;
+            text-align: center;
         }
         video {
-            width: 100%;
+            width: 90%;
             max-width: 400px;
             height: auto;
             border-radius: 10px;
+            background: #000;
+        }
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
         }
         button {
-            margin-top: 20px;
-            padding: 10px 20px;
-            font-size: 16px;
+            padding: 10px 18px;
+            font-size: 15px;
             background: #007bff;
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
         }
+        button#recordBtn {
+            background: #28a745;
+        }
+        button#stopBtn {
+            background: #dc3545;
+            display: none;
+        }
     </style>
 </head>
 <body>
 
-    <h2>Azeez AR - Camera Test</h2>
-    <!-- मोबाइल का कैमरा दिखाने के लिए वीडियो टैग -->
-    <video id="cameraStream" autoplay playsinline></video>
-    <button id="flipBtn">कैमरा फ्लिप करें</button>
+    <h2>Azeez AR - Video & Audio Recording</h2>
+    <video id="cameraStream" autoplay playsinline muted></video>
+
+    <div class="controls">
+        <button id="flipBtn">कैमरा फ्लिप</button>
+        <button id="recordBtn">रिकॉर्ड शुरू करें</button>
+        <button id="stopBtn">रिकॉर्ड रोकें</button>
+    </div>
+
+    <br>
+    <a id="downloadLink" style="display:none; color: #00d2ff; font-weight: bold;" download="azeez-ar-video.webm">रिकॉर्ड किया हुआ वीडियो डाउनलोड करें</a>
 
     <script>
         const videoElement = document.getElementById('cameraStream');
+        const flipBtn = document.getElementById('flipBtn');
+        const recordBtn = document.getElementById('recordBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const downloadLink = document.getElementById('downloadLink');
+
         let useFrontCamera = true;
+        let mediaRecorder;
+        let recordedChunks = [];
+        let currentStream;
 
         async function startCamera() {
             try {
+                if (currentStream) {
+                    currentStream.getTracks().forEach(track => track.stop());
+                }
+
                 const constraints = {
                     video: { facingMode: useFrontCamera ? 'user' : 'environment' },
-                    audio: false
+                    audio: true // वॉइस रिकॉर्डिंग के लिए माइक्रोफोन चालू किया है
                 };
-                const stream = await navigator.mediaDevices.getUserMedia(constraints);
-                videoElement.srcObject = stream;
+
+                currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+                videoElement.srcObject = currentStream;
             } catch (error) {
-                alert("कैमरा शुरू करने में एरर आया: " + error);
+                alert("कैमरा या माइक शुरू करने में एरर आया: " + error);
             }
         }
 
-        // कैमरा फ्लिप बटन का काम
-        document.getElementById('flipBtn').addEventListener('click', () => {
+        // कैमरा फ्लिप बटन
+        flipBtn.addEventListener('click', () => {
             useFrontCamera = !useFrontCamera;
             startCamera();
+        });
+
+        // रिकॉर्डिंग शुरू करना
+        recordBtn.addEventListener('click', () => {
+            recordedChunks = [];
+            try {
+                mediaRecorder = new MediaRecorder(currentStream, { mimeType: 'video/webm' });
+
+                mediaRecorder.ondataavailable = function(event) {
+                    if (event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = function() {
+                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                    const videoURL = URL.createObjectURL(blob);
+                    downloadLink.href = videoURL;
+                    downloadLink.style.display = 'block';
+                    downloadLink.textContent = "वीडियो तैयार है! यहाँ क्लिक करके डाउनलोड करें";
+                };
+
+                mediaRecorder.start();
+                recordBtn.style.display = 'none';
+                stopBtn.style.display = 'inline-block';
+            } catch (err) {
+                alert("रिकॉर्डिंग शुरू नहीं हो सकी: " + err);
+            }
+        });
+
+        // रिकॉर्डिंग रोकना
+        stopBtn.addEventListener('click', () => {
+            mediaRecorder.stop();
+            stopBtn.style.display = 'none';
+            recordBtn.style.display = 'inline-block';
         });
 
         // ऐप शुरू होते ही कैमरा चालू करें
