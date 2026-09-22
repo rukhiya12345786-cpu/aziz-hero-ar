@@ -1,3 +1,117 @@
-<body style="background:red">
-<h1>TEST OK</h1>
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta name="viewport"
+content="width=device-width,initial-scale=1">
+
+<title>Camera Test</title>
+
+<style>
+
+body{
+    margin:0;
+    background:#000;
+    color:white;
+    text-align:center;
+    font-family:Arial;
+}
+
+#video{
+    width:100%;
+    max-height:80vh;
+    object-fit:cover;
+    margin-top:20px;
+}
+
+button{
+    padding:15px 25px;
+    font-size:18px;
+    margin-top:20px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h2>CAMERA TEST</h2>
+
+<div id="status">
+Camera बंद है
+</div>
+
+<button id="start">
+START CAMERA
+</button>
+
+<video
+id="video"
+autoplay
+playsinline
+muted>
+</video>
+
+<script>
+
+const video =
+document.getElementById("video");
+
+const button =
+document.getElementById("start");
+
+const status =
+document.getElementById("status");
+
+
+button.onclick = async function(){
+
+    try{
+
+        status.innerText =
+        "Camera खोल रहा हूँ...";
+
+
+        const stream =
+        await navigator.mediaDevices
+        .getUserMedia({
+            video:true,
+            audio:false
+        });
+
+
+        video.srcObject =
+        stream;
+
+
+        await video.play();
+
+
+        status.innerText =
+        "CAMERA ON ✓";
+
+
+    }catch(error){
+
+        status.innerText =
+        "CAMERA ERROR";
+
+
+        alert(
+            error.name +
+            "\n\n" +
+            error.message
+        );
+
+
+        console.log(error);
+
+    }
+
+};
+
+</script>
+
 </body>
+</html>
