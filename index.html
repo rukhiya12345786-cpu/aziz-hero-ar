@@ -3,185 +3,138 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>360 Head Tracking 3D Model</title>
+    <title>VRM Face Tracking Adjuster</title>
     <style>
         body {
             margin: 0;
+            padding: 0;
             overflow: hidden;
-            background: #000;
+            background-color: #000;
             font-family: sans-serif;
         }
-        #container {
-            position: relative;
+        #canvas-container {
             width: 100vw;
             height: 100vh;
-        }
-        #webcam {
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transform: scaleX(-1);
-            z-index: 1;
         }
-        #canvas3d {
+        /* Top Control Bar */
+        .top-bar {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 2;
-            pointer-events: none;
-        }
-        #loading {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            color: #fff;
-            background: rgba(0,0,0,0.7);
-            padding: 10px 15px;
-            border-radius: 5px;
+            top: 15px;
+            right: 15px;
             z-index: 10;
-            font-size: 16px;
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            background: rgba(0, 0, 0, 0.6);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 8px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            backdrop-filter: blur(5px);
+        }
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        /* Bottom Slider Panel */
+        .control-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 500px;
+            background: rgba(20, 20, 20, 0.85);
+            padding: 15px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            z-index: 10;
+            color: #fff;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        .slider-group {
+            margin-bottom: 10px;
+        }
+        .slider-group label {
+            display: block;
+            font-size: 12px;
+            margin-bottom: 4px;
+            color: #ccc;
+        }
+        .slider-group input {
+            width: 100%;
+            accent-color: #4CAF50;
         }
     </style>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
 </head>
 <body>
 
-    <div id="loading">Loading 3D Model and Camera...</div>
-    
-    <div id="container">
-        <video id="webcam" autoplay playsinline muted></video>
-        <canvas id="canvas3d"></canvas>
+    <!-- Canvas and Camera Container -->
+    <div id="canvas-container"></div>
+
+    <!-- Top Action Buttons -->
+    <div class="top-bar">
+        <button class="btn" id="import-btn">Import Model</button>
+        <button class="btn" id="flip-cam-btn">Flip Cam</button>
+        <button class="btn" id="record-btn">Record Video</button>
     </div>
 
+    <!-- Adjustment Sliders Panel -->
+    <div class="control-panel">
+        <div class="slider-group">
+            <label>Scale (Size)</label>
+            <input type="range" id="scale-slider" min="0.5" max="3" step="0.05" value="1">
+        </div>
+        <div class="slider-group">
+            <label>Position X (Left/Right)</label>
+            <input type="range" id="pos-x-slider" min="-2" max="2" step="0.05" value="0">
+        </div>
+        <div class="slider-group">
+            <label>Position Y (Up/Down)</label>
+            <input type="range" id="pos-y-slider" min="-2" max="2" step="0.05" value="0">
+        </div>
+        <div class="slider-group">
+            <label>Position Z (Depth)</label>
+            <input type="range" id="pos-z-slider" min="-5" max="2" step="0.05" value="0">
+        </div>
+        <div class="slider-group">
+            <label>360° Rotate X</label>
+            <input type="range" id="rot-x-slider" min="-3.14" max="3.14" step="0.05" value="0">
+        </div>
+        <div class="slider-group">
+            <label>360° Rotate Y</label>
+            <input type="range" id="rot-y-slider" min="-3.14" max="3.14" step="0.05" value="0">
+        </div>
+    </div>
+
+    <!-- Hidden File Input for VRM Import -->
+    <input type="file" id="file-input" accept=".vrm" style="display: none;">
+
     <script>
-        const videoElement = document.getElementById('webcam');
-        const canvasElement = document.getElementById('canvas3d');
-        const loadingElement = document.getElementById('loading');
+        const importBtn = document.getElementById('import-btn');
+        const fileInput = document.getElementById('file-input');
 
-        let scene, camera, renderer, headModel;
+        importBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
 
-        function initThreeJS() {
-            scene = new THREE.Scene();
-
-            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.z = 5;
-
-            renderer = new THREE.WebGLRenderer({ canvas: canvasElement, alpha: true, antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
-
-            const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
-            scene.add(ambientLight);
-
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
-            directionalLight.position.set(0, 10, 5);
-            scene.add(directionalLight);
-
-            const loader = new THREE.GLTFLoader();
-            loader.load(
-                'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/models/gltf/RobotExpressive/RobotExpressive.gltf', 
-                function (gltf) {
-                    headModel = gltf.scene;
-                    headModel.scale.set(0.8, 0.8, 0.8);
-                    scene.add(headModel);
-                    headModel.visible = false;
-                    loadingElement.style.display = 'none';
-                },
-                undefined,
-                function (error) {
-                    console.error('Model loading error:', error);
-                    loadingElement.innerText = "Failed to load 3D model!";
-                }
-            );
-
-            window.addEventListener('resize', onWindowResize);
-        }
-
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        }
-
-        function initFaceMesh() {
-            const faceMesh = new FaceMesh({
-                locateFile: (file) => {
-                    return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
-                }
-            });
-
-            faceMesh.setOptions({
-                maxNumFaces: 1,
-                refineLandmarks: true,
-                minDetectionConfidence: 0.6,
-                minTrackingConfidence: 0.6
-            });
-
-            faceMesh.onResults(onFaceResults);
-
-            const cameraUtils = new Camera(videoElement, {
-                onFrame: async () => {
-                    await faceMesh.send({ image: videoElement });
-                },
-                width: 1280,
-                height: 720
-            });
-
-            cameraUtils.start().catch(err => {
-                loadingElement.innerText = "Camera error: " + err.message;
-            });
-        }
-
-        function onFaceResults(results) {
-            if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-                const landmarks = results.multiFaceLandmarks[0];
-                
-                const nose = landmarks[1];
-                const leftEar = landmarks[234];
-                const rightEar = landmarks[454];
-                const topHead = landmarks[10];
-                const chin = landmarks[152];
-
-                const x = -(nose.x - 0.5) * 4.0;
-                const y = -(nose.y - 0.5) * 4.0;
-                const z = -nose.z * 2.0;
-
-                if (headModel) {
-                    headModel.visible = true;
-                    headModel.position.set(x, y - 0.2, z);
-
-                    const dx = rightEar.x - leftEar.x;
-                    const dy = rightEar.y - leftEar.y;
-                    const dz = rightEar.z - leftEar.z;
-
-                    const yaw = Math.atan2(dz, dx);
-                    const pitch = Math.atan2(chin.y - topHead.y, chin.z - topHead.z);
-                    const roll = Math.atan2(dy, dx);
-
-                    headModel.rotation.y = -yaw + Math.PI / 2;
-                    headModel.rotation.x = pitch;
-                    headModel.rotation.z = roll;
-                }
-            } else {
-                if (headModel) {
-                    headModel.visible = false;
-                }
+        fileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                console.log("Selected VRM file URL:", url);
             }
+        });
 
-            renderer.render(scene, camera);
-        }
-
-        initThreeJS();
-        initFaceMesh();
+        document.getElementById('scale-slider').addEventListener('input', (e) => {
+            const scaleValue = e.target.value;
+            console.log("Scale changed to:", scaleValue);
+        });
     </script>
 </body>
 </html>
