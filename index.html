@@ -48,7 +48,6 @@
         }
     </style>
 
-    <!-- Three.js, GLTFLoader और MediaPipe की लाइब्रेरी -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
@@ -87,6 +86,7 @@
             directionalLight.position.set(0, 10, 5);
             scene.add(directionalLight);
 
+            // यहाँ आपका 3D मॉडल लोड हो रहा है (अगर आपकी अपनी मॉडल फाइल है, तो उसका लिंक यहाँ डाल सकते हैं)
             const loader = new THREE.GLTFLoader();
             loader.load(
                 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/models/gltf/RobotExpressive/RobotExpressive.gltf', 
@@ -142,42 +142,37 @@
             });
         }
 
-        // फिक्स किया गया 360-डिग्री हेड ट्रैकिंग और पोजीशन बाइंडिंग लॉजिक
+        // 360-डिग्री हेड ट्रैकिंग और फेस बाइंडिंग फंक्शन
         function onFaceResults(results) {
             if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
                 const landmarks = results.multiFaceLandmarks[0];
                 
-                // चेहरे का सही सेंटर निकालने के लिए नाक (1), बायां गाल (234) और दायां गाल (454) का औसत लें
+                // चेहरे के मुख्य पॉइंट्स से लाइव पोजीशन और एंगल्स निकालना
                 const nose = landmarks[1];
-                const leftCheek = landmarks[234];
-                const rightCheek = landmarks[454];
+                const leftEar = landmarks[234];
+                const rightEar = landmarks[454];
+                const topHead = landmarks[10];
+                const chin = landmarks[152];
 
-                const centerX = (leftCheek.x + rightCheek.x) / 2;
-                const centerY = (nose.y + leftCheek.y + rightCheek.y) / 3;
-
-                // थ्री.जे.एस कोऑर्डिनेट्स में बदलना (मिरर वीडियो के हिसाब से X को एडजस्ट किया गया है)
-                const x = -(centerX - 0.5) * 4.2;
-                const y = -(centerY - 0.5) * 4.2;
+                // स्क्रीन पर पोजीशन सेट करना ताकि मॉडल चेहरे के साथ हिले
+                const x = -(nose.x - 0.5) * 4.0;
+                const y = -(nose.y - 0.5) * 4.0;
                 const z = -nose.z * 2.0;
 
                 if (headModel) {
                     headModel.visible = true;
-                    // मॉडल की पोजीशन को चेहरे की लाइव पोजीशन पर सेट करें ताकि वह साथ चले
-                    headModel.position.set(x, y - 0.1, z);
+                    headModel.position.set(x, y - 0.2, z);
 
-                    // सिर के एंगल्स (Yaw, Pitch, Roll) कैलकुलेट करना
-                    const dx = rightCheek.x - leftCheek.x;
-                    const dy = rightCheek.y - leftCheek.y;
-                    const dz = rightCheek.z - leftCheek.z;
-
-                    const topPoint = landmarks[10];
-                    const chinPoint = landmarks[152];
+                    // सिर के घूमने के हिसाब से 360-डिग्री रोटेशन कैलकुलेट करना
+                    const dx = rightEar.x - leftEar.x;
+                    const dy = rightEar.y - leftEar.y;
+                    const dz = rightEar.z - leftEar.z;
 
                     const yaw = Math.atan2(dz, dx);
-                    const pitch = Math.atan2(chinPoint.y - topPoint.y, chinPoint.z - topPoint.z);
+                    const pitch = Math.atan2(chin.y - topHead.y, chin.z - topHead.z);
                     const roll = Math.atan2(dy, dx);
 
-                    // सिर के रोटेशन को मॉडल पर अप्लाई करें
+                    // मॉडल पर रोटेशन अप्लाई करना ताकि जिधर सिर घूमे, मॉडल भी उधर ही घूमे
                     headModel.rotation.y = -yaw + Math.PI / 2;
                     headModel.rotation.x = pitch;
                     headModel.rotation.z = roll;
