@@ -2,28 +2,38 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-<title>3D AR Head Tracking - Part 1</title>
+<meta name="viewport"
+      content="width=device-width,
+      initial-scale=1.0,
+      maximum-scale=1.0,
+      user-scalable=no">
+
+<title>AR 3D Face Studio</title>
 
 <style>
+
 *{
     box-sizing:border-box;
-    margin:0;
-    padding:0;
+    -webkit-tap-highlight-color:transparent;
 }
 
 html,body{
+    margin:0;
+    padding:0;
     width:100%;
     height:100%;
     overflow:hidden;
-    background:#000;
-    font-family:Arial,sans-serif;
+    background:#050505;
+    font-family:Arial,Helvetica,sans-serif;
+    color:white;
 }
 
 #app{
     position:fixed;
     inset:0;
+    width:100%;
+    height:100%;
     overflow:hidden;
     background:#000;
 }
@@ -31,8 +41,8 @@ html,body{
 #stage{
     position:absolute;
     inset:0;
-    transform:scaleX(-1);
-    transform-origin:center;
+    overflow:hidden;
+    transform-origin:center center;
 }
 
 #video{
@@ -52,93 +62,239 @@ html,body{
     pointer-events:none;
 }
 
-#topBar{
+#topbar{
     position:absolute;
+    top:0;
+    left:0;
+    right:0;
     z-index:20;
-    top:10px;
-    left:10px;
-    right:10px;
+
+    padding:
+        calc(10px + env(safe-area-inset-top))
+        12px
+        10px
+        12px;
 
     display:flex;
-    justify-content:space-between;
     align-items:center;
+    justify-content:space-between;
 
-    transform:scaleX(-1);
+    background:linear-gradient(
+        to bottom,
+        rgba(0,0,0,.75),
+        rgba(0,0,0,0)
+    );
 }
 
-.btn{
-    border:0;
-    border-radius:12px;
-    padding:10px 14px;
-
-    color:white;
-    background:rgba(20,20,20,.80);
-
-    font-size:14px;
-    font-weight:600;
+#title{
+    font-size:17px;
+    font-weight:700;
 }
 
 #status{
-    position:absolute;
-    z-index:20;
-
-    left:50%;
-    bottom:18px;
-
-    transform:translateX(-50%);
-
-    padding:9px 14px;
-
-    border-radius:12px;
-
-    color:white;
-    background:rgba(0,0,0,.70);
-
-    font-size:13px;
-    white-space:nowrap;
+    font-size:12px;
+    color:#aaa;
+    margin-top:3px;
 }
 
-#loading{
-    position:absolute;
-    z-index:50;
-
-    inset:0;
-
-    display:flex;
+#recording{
+    display:none;
     align-items:center;
-    justify-content:center;
-    flex-direction:column;
-
-    gap:12px;
-
-    color:white;
-    background:#000;
-
-    text-align:center;
+    gap:6px;
+    font-size:12px;
+    color:#ff4444;
+    font-weight:bold;
 }
 
-#loading.hidden{
+#recordDot{
+    width:9px;
+    height:9px;
+    border-radius:50%;
+    background:red;
+    box-shadow:0 0 8px red;
+}
+
+#controls{
+    position:absolute;
+    z-index:30;
+
+    left:10px;
+    right:10px;
+    bottom:
+        calc(74px + env(safe-area-inset-bottom));
+
+    max-height:48vh;
+    overflow-y:auto;
+
+    padding:12px;
+
+    border-radius:18px;
+
+    background:rgba(10,10,10,.82);
+    backdrop-filter:blur(12px);
+
+    border:1px solid rgba(255,255,255,.12);
+
     display:none;
 }
 
-.spinner{
-    width:38px;
-    height:38px;
-
-    border:4px solid rgba(255,255,255,.25);
-    border-top-color:white;
-
-    border-radius:50%;
-
-    animation:spin 1s linear infinite;
+.section{
+    margin-bottom:12px;
 }
 
-@keyframes spin{
-    to{
-        transform:rotate(360deg);
+.sectionTitle{
+    font-size:13px;
+    font-weight:bold;
+    margin-bottom:7px;
+    color:#fff;
+}
+
+.row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin:7px 0;
+}
+
+.row label{
+    width:82px;
+    flex-shrink:0;
+    font-size:11px;
+    color:#bbb;
+}
+
+.row input[type="range"]{
+    flex:1;
+}
+
+.value{
+    width:48px;
+    text-align:right;
+    font-size:11px;
+    color:#fff;
+}
+
+button,
+input[type=file]{
+    font-family:inherit;
+}
+
+button{
+    border:0;
+    border-radius:12px;
+    padding:10px 12px;
+    background:#202020;
+    color:#fff;
+    font-size:12px;
+    font-weight:600;
+}
+
+button:active{
+    transform:scale(.97);
+}
+
+button.primary{
+    background:#ffffff;
+    color:#000;
+}
+
+button.danger{
+    background:#8d1717;
+}
+
+.buttonGrid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:7px;
+}
+
+.fileButton{
+    position:relative;
+    overflow:hidden;
+}
+
+.fileButton input{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    opacity:0;
+}
+
+#bottomBar{
+    position:absolute;
+    z-index:40;
+
+    left:0;
+    right:0;
+    bottom:0;
+
+    padding:
+        9px
+        9px
+        calc(9px + env(safe-area-inset-bottom))
+        9px;
+
+    display:flex;
+    justify-content:center;
+    gap:7px;
+
+    background:linear-gradient(
+        to top,
+        rgba(0,0,0,.88),
+        rgba(0,0,0,.25)
+    );
+}
+
+#bottomBar button{
+    flex:1;
+    max-width:150px;
+}
+
+#modelInfo{
+    font-size:11px;
+    color:#aaa;
+    word-break:break-word;
+    margin-top:5px;
+}
+
+#message{
+    position:absolute;
+    z-index:100;
+
+    left:50%;
+    top:50%;
+
+    transform:translate(-50%,-50%);
+
+    width:85%;
+    max-width:360px;
+
+    padding:15px;
+
+    border-radius:14px;
+
+    background:rgba(0,0,0,.88);
+
+    text-align:center;
+
+    font-size:13px;
+
+    display:none;
+}
+
+</style>
+
+<!-- Three.js import map -->
+<script type="importmap">
+{
+    "imports":{
+        "three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+        "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
     }
 }
-</style>
+</script>
+
 </head>
 
 <body>
@@ -159,245 +315,435 @@ html,body{
     </div>
 
 
-    <div id="topBar">
-
-        <button
-            class="btn"
-            id="cameraBtn">
-            🔄 Camera
-        </button>
-
-        <button
-            class="btn"
-            id="mirrorBtn">
-            🪞 Mirror
-        </button>
-
-    </div>
-
-
-    <div id="status">
-        Starting...
-    </div>
-
-
-    <div id="loading">
-
-        <div class="spinner"></div>
+    <div id="topbar">
 
         <div>
-            Loading 3D Head Tracking...
+            <div id="title">
+                AR 3D Face Studio
+            </div>
+
+            <div id="status">
+                Starting...
+            </div>
+        </div>
+
+        <div id="recording">
+
+            <div id="recordDot"></div>
+
+            REC
+
         </div>
 
     </div>
 
+
+    <div id="controls">
+
+        <div class="section">
+
+            <div class="sectionTitle">
+                3D CHARACTER
+            </div>
+
+            <div
+                id="modelInfo">
+                No model loaded
+            </div>
+
+        </div>
+
+
+        <div class="section">
+
+            <div class="sectionTitle">
+                POSITION
+            </div>
+
+            <div class="row">
+
+                <label>Left / Right</label>
+
+                <input
+                    id="posX"
+                    type="range"
+                    min="-2"
+                    max="2"
+                    step="0.01"
+                    value="0">
+
+                <div
+                    class="value"
+                    id="posXVal">
+                    0
+                </div>
+
+            </div>
+
+
+            <div class="row">
+
+                <label>Up / Down</label>
+
+                <input
+                    id="posY"
+                    type="range"
+                    min="-2"
+                    max="2"
+                    step="0.01"
+                    value="0">
+
+                <div
+                    class="value"
+                    id="posYVal">
+                    0
+                </div>
+
+            </div>
+
+
+            <div class="row">
+
+                <label>Depth</label>
+
+                <input
+                    id="posZ"
+                    type="range"
+                    min="-2"
+                    max="2"
+                    step="0.01"
+                    value="0">
+
+                <div
+                    class="value"
+                    id="posZVal">
+                    0
+                </div>
+
+            </div>
+
+
+            <div class="row">
+
+                <label>Size</label>
+
+                <input
+                    id="scale"
+                    type="range"
+                    min="0.1"
+                    max="3"
+                    step="0.01"
+                    value="1">
+
+                <div
+                    class="value"
+                    id="scaleVal">
+                    1
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="section">
+
+            <div class="sectionTitle">
+                ROTATION
+            </div>
+
+
+            <div class="row">
+
+                <label>Rotation X</label>
+
+                <input
+                    id="rotX"
+                    type="range"
+                    min="0"
+                    max="360"
+                    step="1"
+                    value="0">
+
+                <div
+                    class="value"
+                    id="rotXVal">
+                    0°
+                </div>
+
+            </div>
+
+
+            <div class="row">
+
+                <label>Rotation Y</label>
+
+                <input
+                    id="rotY"
+                    type="range"
+                    min="0"
+                    max="360"
+                    step="1"
+                    value="180">
+
+                <div
+                    class="value"
+                    id="rotYVal">
+                    180°
+                </div>
+
+            </div>
+
+
+            <div class="row">
+
+                <label>Rotation Z</label>
+
+                <input
+                    id="rotZ"
+                    type="range"
+                    min="0"
+                    max="360"
+                    step="1"
+                    value="0">
+
+                <div
+                    class="value"
+                    id="rotZVal">
+                    0°
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="section">
+
+            <div class="sectionTitle">
+                MODEL
+            </div>
+
+            <div class="buttonGrid">
+
+                <button
+                    id="resetModel">
+                    Reset
+                </button>
+
+                <button
+                    id="removeModel"
+                    class="danger">
+                    Remove
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <div class="section">
+
+            <div class="sectionTitle">
+                PROJECT
+            </div>
+
+            <div class="buttonGrid">
+
+                <button
+                    id="exportSettings">
+                    Export Settings
+                </button>
+
+                <label class="fileButton">
+
+                    <button
+                        type="button">
+                        Import Settings
+                    </button>
+
+                    <input
+                        id="settingsInput"
+                        type="file"
+                        accept=".json">
+
+                </label>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div id="bottomBar">
+
+        <label class="fileButton">
+
+            <button
+                class="primary"
+                type="button">
+                Import 3D
+            </button>
+
+            <input
+                id="modelInput"
+                type="file"
+                multiple
+                accept=".glb,.gltf,.bin,.fbx,.obj,.mtl,.png,.jpg,.jpeg,.webp">
+
+        </label>
+
+
+        <button id="cameraButton">
+            Camera
+        </button>
+
+
+        <button id="mirrorButton">
+            Mirror
+        </button>
+
+
+        <button id="controlButton">
+            Controls
+        </button>
+
+
+        <button
+            id="recordButton"
+            class="danger">
+            Record
+        </button>
+
+    </div>
+
+
+    <div id="message"></div>
+
 </div>
-
-
-<script type="importmap">
-{
-    "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
-    }
-}
-</script>
 
 
 <script type="module">
 
-import * as THREE from
-    "three";
+import * as THREE from "three";
 
+import {
+    GLTFLoader
+} from "three/addons/loaders/GLTFLoader.js";
+
+import {
+    FBXLoader
+} from "three/addons/loaders/FBXLoader.js";
+
+import {
+    OBJLoader
+} from "three/addons/loaders/OBJLoader.js";
+
+import {
+    MTLLoader
+} from "three/addons/loaders/MTLLoader.js";
 
 import {
     FaceLandmarker,
     FilesetResolver
-} from
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.mjs";
+} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.mjs";
 
-
-/* =========================================
-   DOM
-========================================= */
 
 const video =
     document.getElementById("video");
 
-const canvas =
-    document.getElementById("threeCanvas");
-
-const status =
-    document.getElementById("status");
-
-const loading =
-    document.getElementById("loading");
-
-const cameraBtn =
-    document.getElementById("cameraBtn");
-
-const mirrorBtn =
-    document.getElementById("mirrorBtn");
-
 const stage =
     document.getElementById("stage");
 
+const canvas =
+    document.getElementById("threeCanvas");
 
-/* =========================================
-   CAMERA
-========================================= */
+const statusText =
+    document.getElementById("status");
 
-let currentFacingMode =
-    "user";
+const message =
+    document.getElementById("message");
 
-let cameraStream =
-    null;
+const controls =
+    document.getElementById("controls");
 
-
-async function startCamera(){
-
-    if(cameraStream){
-
-        cameraStream
-            .getTracks()
-            .forEach(
-                track =>
-                track.stop()
-            );
-
-        cameraStream =
-            null;
-    }
+const modelInfo =
+    document.getElementById("modelInfo");
 
 
-    status.textContent =
-        "Opening camera...";
+let stream = null;
+
+let facingMode = "user";
+
+let mirror = true;
+
+let faceLandmarker = null;
+
+let trackingStarted = false;
+
+let lastVideoTime = -1;
+
+let currentModel = null;
+
+let currentModelName = "";
+
+let modelFiles = new Map();
+
+let objectURLs = [];
+
+let mediaRecorder = null;
+
+let recordedChunks = [];
+
+let isRecording = false;
+
+let faceVisible = false;
+
+let smoothX = 0;
+
+let smoothY = 0;
+
+let smoothZ = 0;
+
+let smoothQuaternion =
+    new THREE.Quaternion();
+
+let hasSmoothRotation = false;
 
 
-    try{
+/* ---------------------------
+   THREE SCENE
+--------------------------- */
 
-        cameraStream =
-            await navigator
-            .mediaDevices
-            .getUserMedia({
-
-                video:{
-                    facingMode:{
-                        ideal:
-                        currentFacingMode
-                    },
-
-                    width:{
-                        ideal:1280
-                    },
-
-                    height:{
-                        ideal:720
-                    },
-
-                    frameRate:{
-                        ideal:30,
-                        max:30
-                    }
-                },
-
-                audio:false
-            });
+const scene =
+    new THREE.Scene();
 
 
-        video.srcObject =
-            cameraStream;
+const camera =
+    new THREE.OrthographicCamera(
+        -1,
+        1,
+        1,
+        -1,
+        0.01,
+        100
+    );
 
 
-        await video.play();
-
-
-        status.textContent =
-            "Camera ready - looking for face...";
-
-
-    }catch(error){
-
-        console.error(error);
-
-        status.textContent =
-            "Camera Error";
-
-        alert(
-            "Camera open नहीं हुआ.\n\n" +
-            "Browser में Camera Permission Allow करें."
-        );
-
-        throw error;
-    }
-}
-
-
-/* =========================================
-   CAMERA SWITCH
-========================================= */
-
-cameraBtn.addEventListener(
-    "click",
-    async()=>{
-
-        currentFacingMode =
-            currentFacingMode === "user"
-            ? "environment"
-            : "user";
-
-        await startCamera();
-
-    }
+camera.position.set(
+    0,
+    0,
+    5
 );
 
-
-/* =========================================
-   MIRROR
-========================================= */
-
-let mirrorEnabled =
-    true;
-
-
-mirrorBtn.addEventListener(
-    "click",
-    ()=>{
-
-        mirrorEnabled =
-            !mirrorEnabled;
-
-
-        stage.style.transform =
-            mirrorEnabled
-            ? "scaleX(-1)"
-            : "scaleX(1)";
-
-
-        mirrorBtn.textContent =
-            mirrorEnabled
-            ? "🪞 Mirror ON"
-            : "🪞 Mirror OFF";
-
-    }
-);
-
-
-/* =========================================
-   THREE.JS
-========================================= */
 
 const renderer =
     new THREE.WebGLRenderer({
-
         canvas:canvas,
-
         alpha:true,
-
         antialias:true,
-
-        powerPreference:
-            "high-performance"
-
+        preserveDrawingBuffer:true
     });
 
 
@@ -420,757 +766,888 @@ renderer.outputColorSpace =
     THREE.SRGBColorSpace;
 
 
-const scene =
-    new THREE.Scene();
+/* ---------------------------
+   LIGHTS
+--------------------------- */
 
-
-const arCamera =
-    new THREE.OrthographicCamera(
-        -1,
-        1,
-        1,
-        -1,
-        0.01,
-        100
-    );
-
-
-/* =========================================
-   LIGHT
-========================================= */
-
-const ambientLight =
-    new THREE.AmbientLight(
+const ambient =
+    new THREE.HemisphereLight(
         0xffffff,
-        2
+        0x444444,
+        2.0
     );
 
-scene.add(
-    ambientLight
-);
+scene.add(ambient);
 
 
-const directionalLight =
+const keyLight =
     new THREE.DirectionalLight(
         0xffffff,
-        2
+        2.5
     );
 
-directionalLight.position.set(
-    0,
+keyLight.position.set(
     2,
-    4
+    3,
+    5
 );
 
-scene.add(
-    directionalLight
-);
+scene.add(keyLight);
 
 
-/* =========================================
+/* ---------------------------
    HEAD ANCHOR
-========================================= */
+--------------------------- */
 
 const headAnchor =
-    new THREE.Group();
+    new THREE.Object3D();
 
-scene.add(
-    headAnchor
-);
+scene.add(headAnchor);
 
 
 /*
-    All future 3D characters
-    will go inside this group.
+    The modelOffset is separate from
+    the tracked head.
+
+    This is important.
+
+    Face tracking moves headAnchor.
+
+    User controls move modelOffset.
 */
 
 const modelOffset =
-    new THREE.Group();
+    new THREE.Object3D();
 
-headAnchor.add(
-    modelOffset
-);
+headAnchor.add(modelOffset);
 
 
-/* =========================================
-   TEST 3D OBJECT
-========================================= */
+/* ---------------------------
+   MODEL SETTINGS
+--------------------------- */
 
-const testHead =
-    new THREE.Mesh(
+const modelSettings = {
 
-        new THREE.SphereGeometry(
-            0.12,
-            24,
-            24
-        ),
+    x:0,
 
-        new THREE.MeshStandardMaterial({
+    y:0,
 
-            color:0x00ffcc,
+    z:0,
 
-            transparent:true,
+    scale:1,
 
-            opacity:.85
+    rotX:0,
 
-        })
+    rotY:180,
 
-    );
+    rotZ:0
+
+};
 
 
-modelOffset.add(
-    testHead
-);
+/* ---------------------------
+   UI HELPERS
+--------------------------- */
+
+function showMessage(text){
+
+    message.textContent = text;
+
+    message.style.display = "block";
+
+    setTimeout(()=>{
+        message.style.display = "none";
+    },2500);
+}
 
 
-/*
-    X = Red
-    Y = Green
-    Z = Blue
-*/
+function setStatus(text){
 
-const axes =
-    new THREE.AxesHelper(
-        0.45
-    );
-
-modelOffset.add(
-    axes
-);
-
-
-/* =========================================
-   MEDIAPIPE
-========================================= */
-
-let faceLandmarker =
-    null;
-
-
-async function createFaceLandmarker(){
-
-    status.textContent =
-        "Loading face tracking...";
-
-
-    const vision =
-        await FilesetResolver
-        .forVisionTasks(
-
-            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
-
-        );
-
-
-    faceLandmarker =
-        await FaceLandmarker
-        .createFromOptions(
-
-            vision,
-
-            {
-
-                baseOptions:{
-
-                    modelAssetPath:
-                        "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-
-                    delegate:
-                        "GPU"
-
-                },
-
-
-                runningMode:
-                    "VIDEO",
-
-
-                numFaces:
-                    1,
-
-
-                minFaceDetectionConfidence:
-                    0.5,
-
-
-                minFacePresenceConfidence:
-                    0.5,
-
-
-                minTrackingConfidence:
-                    0.5,
-
-
-                outputFaceBlendshapes:
-                    false,
-
-
-                /*
-                    IMPORTANT:
-                    Real facial transformation
-                    matrix.
-                */
-
-                outputFacialTransformationMatrixes:
-                    true
-
-            }
-
-        );
-
-
-    status.textContent =
-        "3D Head Tracking Ready";
+    statusText.textContent = text;
 
 }
 
 
-/* =========================================
+/* ---------------------------
    RESIZE
-========================================= */
+--------------------------- */
 
 function resize(){
 
+    const w =
+        window.innerWidth;
+
+    const h =
+        window.innerHeight;
+
     renderer.setSize(
-        window.innerWidth,
-        window.innerHeight,
+        w,
+        h,
         false
     );
 
-
     const aspect =
-        window.innerWidth /
-        window.innerHeight;
+        w / h;
 
-
-    arCamera.left =
+    camera.left =
         -aspect;
 
-    arCamera.right =
+    camera.right =
         aspect;
 
-    arCamera.top =
+    camera.top =
         1;
 
-    arCamera.bottom =
+    camera.bottom =
         -1;
 
+    camera.updateProjectionMatrix();
 
-    arCamera.updateProjectionMatrix();
 }
-
 
 window.addEventListener(
     "resize",
     resize
 );
 
+resize();/* =====================================================
+   PART 2
+   CAMERA + MEDIAPIPE FACE TRACKING
+===================================================== */
 
-resize();
 
+/* ---------------------------
+   CAMERA
+--------------------------- */
 
-/* =========================================
-   MATRIX
-========================================= */
-
-const faceMatrix =
-    new THREE.Matrix4();
-
-
-const facePosition =
-    new THREE.Vector3();
-
-
-const faceQuaternion =
-    new THREE.Quaternion();
-
-
-const faceScale =
-    new THREE.Vector3();
-
-
-/* =========================================
-   HEAD TRACKING
-========================================= */
-
-function updateHeadTracking(
-    result
-){
-
-    if(
-
-        !result ||
-
-        !result.facialTransformationMatrixes ||
-
-        result
-        .facialTransformationMatrixes
-        .length === 0
-
-    ){
-
-        headAnchor.visible =
-            false;
-
-        status.textContent =
-            "Face not detected";
-
-        return;
-    }
-
-
-    headAnchor.visible =
-        true;
-
-
-    const matrixData =
-        result
-        .facialTransformationMatrixes[0];
-
-
-    const raw =
-        matrixData.data ||
-        matrixData;
-
-
-    if(
-        !raw ||
-        raw.length !== 16
-    ){
-
-        headAnchor.visible =
-            false;
-
-        return;
-    }
-
-
-    faceMatrix.fromArray(
-        raw
-    );
-
-
-    faceMatrix.decompose(
-
-        facePosition,
-
-        faceQuaternion,
-
-        faceScale
-
-    );
-
-
-    /*
-        MediaPipe → Three.js
-        coordinate conversion
-    */
-
-    headAnchor.position.set(
-
-        facePosition.x,
-
-        -facePosition.y,
-
-        facePosition.z
-
-    );
-
-
-    /*
-        TRUE 3D HEAD ROTATION
-    */
-
-    headAnchor.quaternion.copy(
-        faceQuaternion
-    );
-
-
-    /*
-        Character scale will be
-        controlled separately later.
-    */
-
-    headAnchor.scale.set(
-        1,
-        1,
-        1
-    );
-
-
-    status.textContent =
-        "3D HEAD TRACKING ACTIVE";
-}
-
-
-/* =========================================
-   TRACKING LOOP
-========================================= */
-
-let lastVideoTime =
-    -1;
-
-
-async function trackingLoop(){
-
-    requestAnimationFrame(
-        trackingLoop
-    );
-
-
-    if(
-        !faceLandmarker ||
-        video.readyState < 2
-    ){
-
-        return;
-    }
-
-
-    if(
-        video.currentTime ===
-        lastVideoTime
-    ){
-
-        return;
-    }
-
-
-    lastVideoTime =
-        video.currentTime;
-
+async function startCamera(){
 
     try{
 
-        const timestamp =
-            performance.now();
+        if(stream){
+
+            stream.getTracks()
+                .forEach(track=>{
+                    track.stop();
+                });
+
+            stream = null;
+        }
 
 
-        const result =
-            faceLandmarker
-            .detectForVideo(
+        setStatus(
+            "Opening camera..."
+        );
 
-                video,
 
-                timestamp
+        stream =
+            await navigator.mediaDevices
+            .getUserMedia({
 
+                video:{
+                    facingMode:{
+                        ideal:facingMode
+                    },
+
+                    width:{
+                        ideal:1280
+                    },
+
+                    height:{
+                        ideal:720
+                    },
+
+                    frameRate:{
+                        ideal:30,
+                        max:30
+                    }
+                },
+
+                audio:true
+
+            });
+
+
+        video.srcObject =
+            stream;
+
+
+        await video.play();
+
+
+        setStatus(
+            "Camera ready - finding face..."
+        );
+
+
+        if(!faceLandmarker){
+
+            await initFaceTracking();
+
+        }
+
+
+        if(!trackingStarted){
+
+            trackingStarted = true;
+
+            requestAnimationFrame(
+                trackingLoop
+            );
+
+        }
+
+    }catch(error){
+
+        console.error(error);
+
+        setStatus(
+            "Camera error"
+        );
+
+        showMessage(
+            "Camera start नहीं हुआ। Camera permission allow करें."
+        );
+
+    }
+
+}
+
+
+/* ---------------------------
+   MEDIAPIPE INITIALIZATION
+--------------------------- */
+
+async function initFaceTracking(){
+
+    try{
+
+        setStatus(
+            "Loading face tracking..."
+        );
+
+
+        const vision =
+            await FilesetResolver
+            .forVisionTasks(
+                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
             );
 
 
-        updateHeadTracking(
-            result
+        faceLandmarker =
+            await FaceLandmarker.createFromOptions(
+                vision,
+                {
+
+                    baseOptions:{
+
+                        modelAssetPath:
+                        "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+
+                        delegate:"GPU"
+
+                    },
+
+                    runningMode:"VIDEO",
+
+                    numFaces:1,
+
+                    minFaceDetectionConfidence:
+                        0.5,
+
+                    minFacePresenceConfidence:
+                        0.5,
+
+                    minTrackingConfidence:
+                        0.5,
+
+                    outputFaceBlendshapes:false,
+
+                    outputFacialTransformationMatrixes:true
+
+                }
+            );
+
+
+        setStatus(
+            "Face tracking ready"
         );
 
 
     }catch(error){
 
         console.error(
-            "Tracking Error:",
+            "FaceLandmarker error:",
             error
         );
 
-    }
 
-
-    renderer.render(
-        scene,
-        arCamera
-    );
-
-}
-
-
-/* =========================================
-   START APP
-========================================= */
-
-async function start(){
-
-    try{
-
-        await startCamera();
-
-        await createFaceLandmarker();
-
-
-        loading.classList.add(
-            "hidden"
+        setStatus(
+            "Face tracker failed"
         );
 
 
-        trackingLoop();
-
-
-    }catch(error){
-
-        console.error(error);
-
-        status.textContent =
-            "App Start Failed";
+        showMessage(
+            "Face tracking model load नहीं हुआ। Internet connection check करें."
+        );
 
     }
 
 }
 
 
-start();
-
-</script>
-
-</body>
-</html><!-- =====================================================
-     PART 2 — 3D MODEL IMPORT
-     GLB / GLTF / FBX / OBJ
-===================================================== -->
-
-<!-- IMPORT PANEL -->
-<div id="modelPanel">
-
-    <label class="modelButton">
-
-        📦 IMPORT 3D MODEL
-
-        <input
-            id="modelFile"
-            type="file"
-            accept=".glb,.gltf,.fbx,.obj"
-            hidden
-        >
-
-    </label>
-
-
-    <button
-        id="removeModel"
-        class="modelButton">
-
-        🗑 REMOVE
-
-    </button>
-
-</div>
-
-
-<style>
-
-#modelPanel{
-
-    position:absolute;
-
-    z-index:40;
-
-    left:10px;
-    right:10px;
-
-    bottom:60px;
-
-    display:flex;
-
-    justify-content:center;
-
-    align-items:center;
-
-    gap:10px;
-
-    transform:scaleX(-1);
-}
-
-
-.modelButton{
-
-    border:0;
-
-    border-radius:12px;
-
-    padding:11px 15px;
-
-    background:rgba(20,20,20,.88);
-
-    color:white;
-
-    font-size:14px;
-
-    font-weight:bold;
-
-    cursor:pointer;
-
-    backdrop-filter:blur(8px);
-
-}
-
-
-.modelButton:active{
-
-    transform:scale(.96);
-
-}
-
-</style>
-
-
-<script type="module">
-
-/* =====================================================
-   THREE.JS LOADERS
-===================================================== */
-
-import * as THREE from
-"three";
-
-
-import { GLTFLoader }
-from
-"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js";
-
-
-import { FBXLoader }
-from
-"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/FBXLoader.js";
-
-
-import { OBJLoader }
-from
-"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/OBJLoader.js";
-
-
-
-/* =====================================================
-   GET EXISTING HEAD ANCHOR
-===================================================== */
-
-/*
-   Part 1 में ये groups बने हुए हैं:
-
-       headAnchor
-           ↓
-       modelOffset
-           ↓
-       3D Model
-*/
-
-
-const head =
-    window.headAnchor ||
-    null;
-
-
-const offset =
-    window.modelOffset ||
-    null;
-
-
-
-/* =====================================================
-   CHECK PART 1
-===================================================== */
-
-if(!head || !offset){
-
-    console.error(
-        "Part 1 Head Anchor नहीं मिला."
-    );
-
-    alert(
-        "पहले Part 1 का code चलाएँ."
+/* ---------------------------
+   CLAMP
+--------------------------- */
+
+function clamp(
+    value,
+    min,
+    max
+){
+
+    return Math.max(
+        min,
+        Math.min(
+            max,
+            value
+        )
     );
 
 }
 
 
+/* ---------------------------
+   FACE BOUNDING BOX
+--------------------------- */
 
-/* =====================================================
-   DOM
-===================================================== */
+function getFaceBox(
+    landmarks
+){
 
-const modelFile =
-    document.getElementById(
-        "modelFile"
-    );
+    let minX = 1;
 
+    let minY = 1;
 
-const removeModel =
-    document.getElementById(
-        "removeModel"
-    );
+    let maxX = 0;
 
-
-
-/* =====================================================
-   CURRENT MODEL
-===================================================== */
-
-let currentModel =
-    null;
+    let maxY = 0;
 
 
+    for(
+        const p of landmarks
+    ){
 
-/* =====================================================
-   DELETE MODEL
-===================================================== */
+        if(p.x < minX)
+            minX = p.x;
 
-function deleteCurrentModel(){
+        if(p.y < minY)
+            minY = p.y;
 
-    if(!currentModel){
+        if(p.x > maxX)
+            maxX = p.x;
+
+        if(p.y > maxY)
+            maxY = p.y;
+
+    }
+
+
+    return {
+
+        centerX:
+            (minX + maxX) / 2,
+
+        centerY:
+            (minY + maxY) / 2,
+
+        width:
+            maxX - minX,
+
+        height:
+            maxY - minY
+
+    };
+
+}
+
+
+/* ---------------------------
+   TRACKING LOOP
+--------------------------- */
+
+function trackingLoop(){
+
+    if(
+        !video.videoWidth ||
+        !faceLandmarker
+    ){
+
+        requestAnimationFrame(
+            trackingLoop
+        );
 
         return;
 
     }
 
 
-    offset.remove(
-        currentModel
+    if(
+        video.currentTime !==
+        lastVideoTime
+    ){
+
+        lastVideoTime =
+            video.currentTime;
+
+
+        try{
+
+            const result =
+                faceLandmarker.detectForVideo(
+                    video,
+                    performance.now()
+                );
+
+
+            processFaceResult(
+                result
+            );
+
+
+        }catch(error){
+
+            console.error(
+                "Tracking error:",
+                error
+            );
+
+        }
+
+    }
+
+
+    renderer.render(
+        scene,
+        camera
     );
 
 
-    currentModel.traverse(
-        object => {
+    requestAnimationFrame(
+        trackingLoop
+    );
 
-            if(object.geometry){
+}
 
-                object.geometry.dispose();
+
+/* ---------------------------
+   PROCESS FACE
+--------------------------- */
+
+function processFaceResult(
+    result
+){
+
+    if(
+        !result ||
+        !result.faceLandmarks ||
+        !result.faceLandmarks.length
+    ){
+
+        faceVisible = false;
+
+        setStatus(
+            "Face not detected"
+        );
+
+        /*
+            Slowly return only the tracking
+            position. Model controls remain.
+        */
+
+        smoothX *= 0.92;
+
+        smoothY *= 0.92;
+
+        smoothZ *= 0.92;
+
+
+        headAnchor.position.set(
+            smoothX,
+            smoothY,
+            smoothZ
+        );
+
+
+        return;
+
+    }
+
+
+    faceVisible = true;
+
+
+    const landmarks =
+        result.faceLandmarks[0];
+
+
+    const box =
+        getFaceBox(
+            landmarks
+        );
+
+
+    /*
+       Screen position.
+
+       This is only used to place the
+       3D head anchor where the real
+       face is.
+
+       Rotation comes from the
+       facial transformation matrix below.
+    */
+
+    const aspect =
+        window.innerWidth /
+        window.innerHeight;
+
+
+    let targetX =
+        (0.5 - box.centerX)
+        * 2
+        * aspect;
+
+
+    let targetY =
+        (0.5 - box.centerY)
+        * 2;
+
+
+    /*
+       Face size controls approximate
+       depth.
+
+       Larger face = closer camera.
+    */
+
+    let targetZ =
+        (0.18 /
+        Math.max(
+            box.width,
+            0.001
+        )) - 1;
+
+
+    targetX =
+        clamp(
+            targetX,
+            -2.5,
+            2.5
+        );
+
+
+    targetY =
+        clamp(
+            targetY,
+            -2.0,
+            2.0
+        );
+
+
+    targetZ =
+        clamp(
+            targetZ,
+            -1.2,
+            2.5
+        );
+
+
+    /*
+       Smooth position.
+    */
+
+    smoothX =
+        THREE.MathUtils.lerp(
+            smoothX,
+            targetX,
+            0.35
+        );
+
+
+    smoothY =
+        THREE.MathUtils.lerp(
+            smoothY,
+            targetY,
+            0.35
+        );
+
+
+    smoothZ =
+        THREE.MathUtils.lerp(
+            smoothZ,
+            targetZ,
+            0.25
+        );
+
+
+    headAnchor.position.set(
+        smoothX,
+        smoothY,
+        smoothZ
+    );
+
+
+    /* ---------------------------
+       TRUE 3D FACE ROTATION
+    --------------------------- */
+
+    if(
+        result.facialTransformationMatrixes &&
+        result.facialTransformationMatrixes.length
+    ){
+
+        const matrixData =
+            result.facialTransformationMatrixes[0].data;
+
+
+        if(
+            matrixData &&
+            matrixData.length === 16
+        ){
+
+            const faceMatrix =
+                new THREE.Matrix4();
+
+
+            faceMatrix.fromArray(
+                matrixData
+            );
+
+
+            const facePosition =
+                new THREE.Vector3();
+
+
+            const faceQuaternion =
+                new THREE.Quaternion();
+
+
+            const faceScale =
+                new THREE.Vector3();
+
+
+            faceMatrix.decompose(
+                facePosition,
+                faceQuaternion,
+                faceScale
+            );
+
+
+            /*
+                MediaPipe and Three.js may use
+                different forward directions.
+
+                We apply a Y-axis correction
+                to the tracked head coordinate.
+            */
+
+            const correction =
+                new THREE.Quaternion()
+                .setFromEuler(
+                    new THREE.Euler(
+                        0,
+                        Math.PI,
+                        0
+                    )
+                );
+
+
+            const targetQuaternion =
+                faceQuaternion
+                .clone()
+                .multiply(
+                    correction
+                );
+
+
+            if(!hasSmoothRotation){
+
+                smoothQuaternion.copy(
+                    targetQuaternion
+                );
+
+                hasSmoothRotation =
+                    true;
+
+            }else{
+
+                smoothQuaternion.slerp(
+                    targetQuaternion,
+                    0.35
+                );
 
             }
 
 
-            if(object.material){
+            headAnchor.quaternion.copy(
+                smoothQuaternion
+            );
+
+        }
+
+    }
+
+
+    setStatus(
+        "Face tracking active"
+    );
+
+}
+
+
+/* ---------------------------
+   MIRROR
+--------------------------- */
+
+function updateMirror(){
+
+    stage.style.transform =
+        mirror
+        ? "scaleX(-1)"
+        : "scaleX(1)";
+
+}
+
+
+function toggleMirror(){
+
+    mirror =
+        !mirror;
+
+    updateMirror();
+
+}
+
+
+updateMirror();
+
+
+/* ---------------------------
+   CAMERA SWITCH
+--------------------------- */
+
+async function switchCamera(){
+
+    facingMode =
+        facingMode === "user"
+        ? "environment"
+        : "user";
+
+
+    hasSmoothRotation = false;
+
+
+    await startCamera();
+
+}
+
+
+/* ---------------------------
+   INITIAL CAMERA BUTTON
+--------------------------- */
+
+document
+    .getElementById("cameraButton")
+    .addEventListener(
+        "click",
+        switchCamera
+    );
+
+
+document
+    .getElementById("mirrorButton")
+    .addEventListener(
+        "click",
+        toggleMirror
+    );
+
+
+document
+    .getElementById("controlButton")
+    .addEventListener(
+        "click",
+        ()=>{
+
+            controls.style.display =
+                controls.style.display === "block"
+                ? "none"
+                : "block";
+
+        }
+    );/* =====================================================
+   PART 3
+   3D MODEL IMPORT SYSTEM
+===================================================== */
+
+
+/* ---------------------------
+   CLEAN OLD MODEL
+--------------------------- */
+
+function disposeObject(
+    object
+){
+
+    if(!object)
+        return;
+
+
+    object.traverse(
+        child=>{
+
+            if(child.geometry){
+
+                child.geometry.dispose();
+
+            }
+
+
+            if(child.material){
 
                 const materials =
                     Array.isArray(
-                        object.material
+                        child.material
                     )
-                    ? object.material
-                    : [object.material];
+                    ? child.material
+                    : [child.material];
 
 
                 materials.forEach(
-                    material => {
+                    material=>{
 
-                        if(material.map){
-
+                        if(
+                            material.map
+                        )
                             material.map.dispose();
 
-                        }
 
-
-                        if(material.normalMap){
-
+                        if(
+                            material.normalMap
+                        )
                             material.normalMap.dispose();
 
-                        }
 
-
-                        if(material.roughnessMap){
-
+                        if(
+                            material.roughnessMap
+                        )
                             material.roughnessMap.dispose();
 
-                        }
 
-
-                        if(material.metalnessMap){
-
+                        if(
+                            material.metalnessMap
+                        )
                             material.metalnessMap.dispose();
-
-                        }
 
 
                         material.dispose();
@@ -1183,113 +1660,177 @@ function deleteCurrentModel(){
         }
     );
 
+}
 
-    currentModel =
-        null;
+
+/* ---------------------------
+   REMOVE MODEL
+--------------------------- */
+
+function removeCurrentModel(){
+
+    if(currentModel){
+
+        modelOffset.remove(
+            currentModel
+        );
+
+        disposeObject(
+            currentModel
+        );
+
+        currentModel = null;
+
+    }
+
+
+    currentModelName = "";
+
+    modelInfo.textContent =
+        "No model loaded";
 
 }
 
 
+/* ---------------------------
+   CREATE LOADING MANAGER
+--------------------------- */
 
-/* =====================================================
-   CENTER + NORMALIZE MODEL
-===================================================== */
+function createFileManager(){
 
-function prepareModel(
-    model
+    const manager =
+        new THREE.LoadingManager();
+
+
+    manager.setURLModifier(
+        (url)=>{
+
+            const cleanURL =
+                url.split("?")[0]
+                   .split("#")[0];
+
+
+            const fileName =
+                decodeURIComponent(
+                    cleanURL
+                        .split("/")
+                        .pop()
+                );
+
+
+            /*
+                First try exact filename.
+            */
+
+            if(
+                modelFiles.has(
+                    fileName
+                )
+            ){
+
+                const file =
+                    modelFiles.get(
+                        fileName
+                    );
+
+
+                const objectURL =
+                    URL.createObjectURL(
+                        file
+                    );
+
+
+                objectURLs.push(
+                    objectURL
+                );
+
+
+                return objectURL;
+
+            }
+
+
+            /*
+                Sometimes GLTF/OBJ references
+                filenames with different paths.
+                Try only basename.
+            */
+
+            for(
+                const [
+                    name,
+                    file
+                ]
+                of modelFiles
+            ){
+
+                if(
+                    name.toLowerCase() ===
+                    fileName.toLowerCase()
+                ){
+
+                    const objectURL =
+                        URL.createObjectURL(
+                            file
+                        );
+
+
+                    objectURLs.push(
+                        objectURL
+                    );
+
+
+                    return objectURL;
+
+                }
+
+            }
+
+
+            return url;
+
+        }
+    );
+
+
+    return manager;
+
+}
+
+
+/* ---------------------------
+   NORMALIZE MODEL
+--------------------------- */
+
+function normalizeModel(
+    root
 ){
 
-    /*
-       Remove previous character
-    */
-
-    deleteCurrentModel();
-
-
-
-    currentModel =
-        model;
-
-
-
-    /*
-       Reset transform
-    */
-
-    model.position.set(
-        0,
-        0,
-        0
+    root.updateMatrixWorld(
+        true
     );
 
-
-    model.rotation.set(
-        0,
-        0,
-        0
-    );
-
-
-    model.scale.set(
-        1,
-        1,
-        1
-    );
-
-
-
-    /* =================================================
-       FIND MODEL BOUNDING BOX
-    ================================================= */
 
     const box =
         new THREE.Box3()
         .setFromObject(
-            model
+            root
         );
 
 
     const size =
-        new THREE.Vector3();
+        box.getSize(
+            new THREE.Vector3()
+        );
 
 
     const center =
-        new THREE.Vector3();
+        box.getCenter(
+            new THREE.Vector3()
+        );
 
 
-    box.getSize(
-        size
-    );
-
-
-    box.getCenter(
-        center
-    );
-
-
-
-    /* =================================================
-       CENTER MODEL
-    ================================================= */
-
-    model.position.x -=
-        center.x;
-
-
-    model.position.y -=
-        center.y;
-
-
-    model.position.z -=
-        center.z;
-
-
-
-    /* =================================================
-       AUTO SIZE
-    ================================================= */
-
-    const biggest =
+    const largest =
         Math.max(
             size.x,
             size.y,
@@ -1298,1273 +1839,1144 @@ function prepareModel(
 
 
     if(
-        biggest > 0 &&
-        Number.isFinite(biggest)
+        largest > 0
     ){
 
-        const automaticScale =
-            0.55 / biggest;
+        const targetSize =
+            0.85;
 
 
-        model.scale.setScalar(
-            automaticScale
+        const scaleFactor =
+            targetSize /
+            largest;
+
+
+        root.scale.multiplyScalar(
+            scaleFactor
         );
 
     }
 
 
+    /*
+       Recalculate after scaling.
+    */
 
-    /* =================================================
-       ADD TO HEAD ANCHOR
-    ================================================= */
-
-    offset.add(
-        model
+    root.updateMatrixWorld(
+        true
     );
 
 
-
-    /*
-       Make sure model follows
-       the tracked head.
-    */
-
-    model.matrixAutoUpdate =
-        true;
-
-
-
-    console.log(
-        "3D model attached to head."
-    );
-
-
-
-    /*
-       Hide Part 1 test objects
-       if they exist.
-    */
-
-    const testHead =
-        window.testHead;
-
-
-    const axes =
-        window.axes;
-
-
-    if(testHead){
-
-        testHead.visible =
-            false;
-
-    }
-
-
-    if(axes){
-
-        axes.visible =
-            false;
-
-    }
-
-
-
-    const status =
-        document.getElementById(
-            "status"
+    const box2 =
+        new THREE.Box3()
+        .setFromObject(
+            root
         );
 
 
-    if(status){
+    const center2 =
+        box2.getCenter(
+            new THREE.Vector3()
+        );
 
-        status.textContent =
-            "3D MODEL ATTACHED";
 
-    }
+    /*
+       Put model origin near
+       its visual center.
+    */
+
+    root.position.x -=
+        center2.x;
+
+
+    root.position.y -=
+        center2.y;
+
+
+    root.position.z -=
+        center2.z;
+
+
+    /*
+       Enable shadows.
+    */
+
+    root.traverse(
+        child=>{
+
+            if(
+                child.isMesh
+            ){
+
+                child.castShadow =
+                    true;
+
+                child.receiveShadow =
+                    true;
+
+                if(
+                    child.material
+                ){
+
+                    const materials =
+                        Array.isArray(
+                            child.material
+                        )
+                        ? child.material
+                        : [child.material];
+
+
+                    materials.forEach(
+                        material=>{
+
+                            material.needsUpdate =
+                                true;
+
+                        }
+                    );
+
+                }
+
+            }
+
+        }
+    );
+
+
+    return root;
 
 }
 
 
-
-/* =====================================================
-   GLB / GLTF
-===================================================== */
+/* ---------------------------
+   LOAD GLB / GLTF
+--------------------------- */
 
 async function loadGLTF(
     file
 ){
 
+    const manager =
+        createFileManager();
+
+
     const loader =
-        new GLTFLoader();
-
-
-    const url =
-        URL.createObjectURL(
-            file
+        new GLTFLoader(
+            manager
         );
 
 
-    try{
-
-        const result =
-            await loader.loadAsync(
-                url
-            );
+    const buffer =
+        await file.arrayBuffer();
 
 
-        prepareModel(
-            result.scene
+    const result =
+        await loader.parseAsync(
+            buffer,
+            ""
         );
 
 
-    }
-    finally{
-
-        URL.revokeObjectURL(
-            url
-        );
-
-    }
+    return result.scene;
 
 }
 
 
-
-/* =====================================================
-   FBX
-===================================================== */
+/* ---------------------------
+   LOAD FBX
+--------------------------- */
 
 async function loadFBX(
     file
 ){
 
+    const manager =
+        createFileManager();
+
+
     const loader =
-        new FBXLoader();
-
-
-    const url =
-        URL.createObjectURL(
-            file
+        new FBXLoader(
+            manager
         );
 
 
-    try{
-
-        const result =
-            await loader.loadAsync(
-                url
-            );
+    const buffer =
+        await file.arrayBuffer();
 
 
-        prepareModel(
-            result
+    const root =
+        loader.parse(
+            buffer,
+            ""
         );
 
 
-    }
-    finally{
-
-        URL.revokeObjectURL(
-            url
-        );
-
-    }
+    return root;
 
 }
 
 
-
-/* =====================================================
-   OBJ
-===================================================== */
+/* ---------------------------
+   LOAD OBJ
+--------------------------- */
 
 async function loadOBJ(
     file
 ){
 
-    const loader =
-        new OBJLoader();
+    const manager =
+        createFileManager();
 
 
-    const url =
-        URL.createObjectURL(
-            file
-        );
+    let materials = null;
 
 
-    try{
+    /*
+       Search for matching MTL.
 
-        const result =
-            await loader.loadAsync(
-                url
+       Prefer same base filename.
+
+       Example:
+
+       character.obj
+       character.mtl
+    */
+
+    const baseName =
+        file.name
+            .replace(
+                /\.obj$/i,
+                ""
             );
 
 
-        prepareModel(
-            result
-        );
+    for(
+        const [
+            name,
+            mtlFile
+        ]
+        of modelFiles
+    ){
 
+        if(
+            /\.mtl$/i.test(
+                name
+            )
+        ){
 
-    }
-    finally{
-
-        URL.revokeObjectURL(
-            url
-        );
-
-    }
-
-}
-
-
-
-/* =====================================================
-   FILE SELECT
-===================================================== */
-
-modelFile.addEventListener(
-    "change",
-
-    async event => {
-
-
-        const file =
-            event.target.files[0];
-
-
-        if(!file){
-
-            return;
-
-        }
-
-
-        const filename =
-            file.name.toLowerCase();
-
-
-
-        try{
-
-
-            const status =
-                document.getElementById(
-                    "status"
+            const mtlBase =
+                name.replace(
+                    /\.mtl$/i,
+                    ""
                 );
 
-
-            if(status){
-
-                status.textContent =
-                    "Loading 3D Model...";
-
-            }
-
-
-
-            /* =========================================
-               GLB
-            ========================================= */
 
             if(
-                filename.endsWith(
-                    ".glb"
-                )
+                mtlBase.toLowerCase() ===
+                baseName.toLowerCase()
             ){
 
-                await loadGLTF(
-                    file
-                );
+                const mtlLoader =
+                    new MTLLoader(
+                        manager
+                    );
+
+
+                const mtlText =
+                    await mtlFile.text();
+
+
+                materials =
+                    mtlLoader.parse(
+                        mtlText,
+                        ""
+                    );
+
+
+                materials.preload();
+
+
+                break;
 
             }
-
-
-
-            /* =========================================
-               GLTF
-            ========================================= */
-
-            else if(
-                filename.endsWith(
-                    ".gltf"
-                )
-            ){
-
-                await loadGLTF(
-                    file
-                );
-
-            }
-
-
-
-            /* =========================================
-               FBX
-            ========================================= */
-
-            else if(
-                filename.endsWith(
-                    ".fbx"
-                )
-            ){
-
-                await loadFBX(
-                    file
-                );
-
-            }
-
-
-
-            /* =========================================
-               OBJ
-            ========================================= */
-
-            else if(
-                filename.endsWith(
-                    ".obj"
-                )
-            ){
-
-                await loadOBJ(
-                    file
-                );
-
-            }
-
-
-
-            else{
-
-                alert(
-                    "केवल GLB, GLTF, FBX या OBJ file चुनें."
-                );
-
-            }
-
-
-        }
-        catch(error){
-
-            console.error(
-                "MODEL ERROR:",
-                error
-            );
-
-
-            alert(
-                "3D Model Load नहीं हुआ.\n\n" +
-                error.message
-            );
-
-
-            const status =
-                document.getElementById(
-                    "status"
-                );
-
-
-            if(status){
-
-                status.textContent =
-                    "MODEL LOAD FAILED";
-
-            }
-
-        }
-
-
-
-        /*
-           Same file दोबारा select
-           करने की अनुमति.
-        */
-
-        modelFile.value =
-            "";
-
-    }
-);
-
-
-
-/* =====================================================
-   REMOVE BUTTON
-===================================================== */
-
-removeModel.addEventListener(
-    "click",
-
-    () => {
-
-
-        deleteCurrentModel();
-
-
-
-        const testHead =
-            window.testHead;
-
-
-        const axes =
-            window.axes;
-
-
-        if(testHead){
-
-            testHead.visible =
-                true;
-
-        }
-
-
-        if(axes){
-
-            axes.visible =
-                true;
-
-        }
-
-
-        const status =
-            document.getElementById(
-                "status"
-            );
-
-
-        if(status){
-
-            status.textContent =
-                "3D MODEL REMOVED";
 
         }
 
     }
-);
 
 
-      </script><!-- =====================================================
-     PART 3 — 3D CHARACTER CONTROLS
-===================================================== -->
+    const loader =
+        new OBJLoader(
+            manager
+        );
 
-<div id="characterControls">
 
-    <div class="controlHeader">
-        <span>🎛️ 3D CHARACTER</span>
+    if(materials){
 
-        <button id="resetCharacter">
-            RESET
-        </button>
-    </div>
+        loader.setMaterials(
+            materials
+        );
 
+    }
 
-    <!-- UP / DOWN -->
 
-    <div class="sliderRow">
+    const text =
+        await file.text();
 
-        <label>
-            Up / Down
-            <span id="upDownValue">0</span>
-        </label>
 
-        <input
-            id="upDown"
-            type="range"
-            min="-2"
-            max="2"
-            step="0.01"
-            value="0"
-        >
+    const root =
+        loader.parse(
+            text
+        );
 
-    </div>
 
-
-    <!-- LEFT / RIGHT -->
-
-    <div class="sliderRow">
-
-        <label>
-            Left / Right
-            <span id="leftRightValue">0</span>
-        </label>
-
-        <input
-            id="leftRight"
-            type="range"
-            min="-2"
-            max="2"
-            step="0.01"
-            value="0"
-        >
-
-    </div>
-
-
-    <!-- FRONT / BACK -->
-
-    <div class="sliderRow">
-
-        <label>
-            Front / Back
-            <span id="frontBackValue">0</span>
-        </label>
-
-        <input
-            id="frontBack"
-            type="range"
-            min="-2"
-            max="2"
-            step="0.01"
-            value="0"
-        >
-
-    </div>
-
-
-    <!-- SIZE -->
-
-    <div class="sliderRow">
-
-        <label>
-            Size
-            <span id="sizeValue">1.00</span>
-        </label>
-
-        <input
-            id="modelSize"
-            type="range"
-            min="0.05"
-            max="5"
-            step="0.01"
-            value="1"
-        >
-
-    </div>
-
-
-    <!-- ROTATION X -->
-
-    <div class="sliderRow">
-
-        <label>
-            Rotation X
-            <span id="rotationXValue">0°</span>
-        </label>
-
-        <input
-            id="rotationX"
-            type="range"
-            min="0"
-            max="360"
-            step="1"
-            value="0"
-        >
-
-    </div>
-
-
-    <!-- ROTATION Y -->
-
-    <div class="sliderRow">
-
-        <label>
-            Rotation Y
-            <span id="rotationYValue">0°</span>
-        </label>
-
-        <input
-            id="rotationY"
-            type="range"
-            min="0"
-            max="360"
-            step="1"
-            value="0"
-        >
-
-    </div>
-
-
-    <!-- ROTATION Z -->
-
-    <div class="sliderRow">
-
-        <label>
-            Rotation Z
-            <span id="rotationZValue">0°</span>
-        </label>
-
-        <input
-            id="rotationZ"
-            type="range"
-            min="0"
-            max="360"
-            step="1"
-            value="0"
-        >
-
-    </div>
-
-</div>
-
-
-
-<style>
-
-/* =====================================================
-   CONTROL PANEL
-===================================================== */
-
-#characterControls{
-
-    position:absolute;
-
-    z-index:45;
-
-    left:10px;
-    right:10px;
-
-    bottom:10px;
-
-    max-height:48vh;
-
-    overflow-y:auto;
-
-    padding:12px;
-
-    border-radius:16px;
-
-    background:rgba(10,10,10,.88);
-
-    backdrop-filter:blur(12px);
-
-    color:white;
-
-    transform:scaleX(-1);
+    return root;
 
 }
 
 
-/* HEADER */
+/* ---------------------------
+   PREPARE MODEL
+--------------------------- */
 
-.controlHeader{
+function prepareModel(
+    root,
+    name
+){
 
-    display:flex;
+    normalizeModel(
+        root
+    );
 
-    align-items:center;
 
-    justify-content:space-between;
+    /*
+       User-controlled offset.
+    */
 
-    margin-bottom:8px;
+    root.position.set(
+        modelSettings.x,
+        modelSettings.y,
+        modelSettings.z
+    );
 
-    font-size:14px;
 
-    font-weight:bold;
+    root.scale.setScalar(
+        modelSettings.scale
+    );
+
+
+    root.rotation.set(
+        THREE.MathUtils.degToRad(
+            modelSettings.rotX
+        ),
+
+        THREE.MathUtils.degToRad(
+            modelSettings.rotY
+        ),
+
+        THREE.MathUtils.degToRad(
+            modelSettings.rotZ
+        )
+    );
+
+
+    modelOffset.add(
+        root
+    );
+
+
+    currentModel =
+        root;
+
+
+    currentModelName =
+        name;
+
+
+    modelInfo.textContent =
+        "Loaded: " + name;
+
+
+    updateModelUI();
+
 
 }
 
 
-.controlHeader button{
-
-    border:0;
-
-    border-radius:8px;
-
-    padding:7px 10px;
-
-    background:#333;
-
-    color:white;
-
-    font-size:11px;
-
-    font-weight:bold;
-
-}
-
-
-/* SLIDER */
-
-.sliderRow{
-
-    margin:8px 0;
-
-}
-
-
-.sliderRow label{
-
-    display:flex;
-
-    justify-content:space-between;
-
-    align-items:center;
-
-    margin-bottom:4px;
-
-    font-size:12px;
-
-}
-
-
-.sliderRow label span{
-
-    opacity:.8;
-
-    min-width:45px;
-
-    text-align:right;
-
-}
-
-
-.sliderRow input{
-
-    width:100%;
-
-    height:5px;
-
-    accent-color:white;
-
-    cursor:pointer;
-
-}
-
-</style>
-
-
-
-<script>
-
-/* =====================================================
-   PART 3 — CHARACTER CONTROL SYSTEM
-===================================================== */
-
-
-/*
-   Part 2 से आया हुआ modelOffset
-   tracking head के अंदर है.
-
-   इसलिए हम केवल modelOffset को
-   manually adjust करेंगे.
-
-   Head tracking अपनी जगह चलता रहेगा.
-*/
-
-
-const characterOffset =
-    window.modelOffset;
-
-
-/* =====================================================
-   CHECK
-===================================================== */
-
-if(!characterOffset){
-
-    console.error(
-        "modelOffset नहीं मिला."
-    );
-
-}
-
-
-/* =====================================================
-   CONTROLS
-===================================================== */
-
-const upDown =
-    document.getElementById(
-        "upDown"
-    );
-
-const leftRight =
-    document.getElementById(
-        "leftRight"
-    );
-
-const frontBack =
-    document.getElementById(
-        "frontBack"
-    );
-
-const modelSize =
-    document.getElementById(
-        "modelSize"
-    );
-
-const rotationX =
-    document.getElementById(
-        "rotationX"
-    );
-
-const rotationY =
-    document.getElementById(
-        "rotationY"
-    );
-
-const rotationZ =
-    document.getElementById(
-        "rotationZ"
-    );
-
-
-const upDownValue =
-    document.getElementById(
-        "upDownValue"
-    );
-
-const leftRightValue =
-    document.getElementById(
-        "leftRightValue"
-    );
-
-const frontBackValue =
-    document.getElementById(
-        "frontBackValue"
-    );
-
-const sizeValue =
-    document.getElementById(
-        "sizeValue"
-    );
-
-const rotationXValue =
-    document.getElementById(
-        "rotationXValue"
-    );
-
-const rotationYValue =
-    document.getElementById(
-        "rotationYValue"
-    );
-
-const rotationZValue =
-    document.getElementById(
-        "rotationZValue"
-    );
-
-
-const resetCharacter =
-    document.getElementById(
-        "resetCharacter"
-    );
-
-
-/* =====================================================
-   DEFAULT VALUES
-===================================================== */
-
-const defaultSettings = {
-
-    x:0,
-
-    y:0,
-
-    z:0,
-
-    scale:1,
-
-    rx:0,
-
-    ry:0,
-
-    rz:0
-
-};
-
-
-/* =====================================================
-   APPLY CONTROLS
-===================================================== */
-
-function updateCharacter(){
-
-    if(!characterOffset){
+/* ---------------------------
+   IMPORT MODEL
+--------------------------- */
+
+async function importModelFiles(
+    files
+){
+
+    if(
+        !files ||
+        !files.length
+    ){
 
         return;
 
     }
 
 
-    /* ---------------------------------------------
-       POSITION
-    --------------------------------------------- */
+    try{
 
-    characterOffset.position.x =
-        Number(
-            leftRight.value
+        setStatus(
+            "Loading 3D model..."
         );
 
 
-    characterOffset.position.y =
-        Number(
-            upDown.value
+        removeCurrentModel();
+
+
+        /*
+           Clear previous files.
+        */
+
+        modelFiles.clear();
+
+
+        /*
+           Clear old blob URLs.
+        */
+
+        objectURLs.forEach(
+            url=>{
+                URL.revokeObjectURL(
+                    url
+                );
+            }
         );
 
 
-    characterOffset.position.z =
-        Number(
-            frontBack.value
+        objectURLs = [];
+
+
+        /*
+           Store all selected files.
+
+           This is important for:
+
+           GLTF + BIN + textures
+
+           OBJ + MTL + textures
+        */
+
+        for(
+            const file of files
+        ){
+
+            modelFiles.set(
+                file.name,
+                file
+            );
+
+        }
+
+
+        let mainFile =
+            null;
+
+
+        /*
+           Priority:
+
+           GLB
+           GLTF
+           FBX
+           OBJ
+        */
+
+        mainFile =
+            [...files].find(
+                f =>
+                    /\.glb$/i.test(
+                        f.name
+                    )
+            );
+
+
+        if(!mainFile){
+
+            mainFile =
+                [...files].find(
+                    f =>
+                        /\.gltf$/i.test(
+                            f.name
+                        )
+                );
+
+        }
+
+
+        if(!mainFile){
+
+            mainFile =
+                [...files].find(
+                    f =>
+                        /\.fbx$/i.test(
+                            f.name
+                        )
+                );
+
+        }
+
+
+        if(!mainFile){
+
+            mainFile =
+                [...files].find(
+                    f =>
+                        /\.obj$/i.test(
+                            f.name
+                        )
+                );
+
+        }
+
+
+        if(!mainFile){
+
+            throw new Error(
+                "GLB / GLTF / FBX / OBJ file नहीं मिला"
+            );
+
+        }
+
+
+        let root;
+
+
+        const lower =
+            mainFile.name
+                .toLowerCase();
+
+
+        if(
+            lower.endsWith(".glb") ||
+            lower.endsWith(".gltf")
+        ){
+
+            root =
+                await loadGLTF(
+                    mainFile
+                );
+
+        }
+
+        else if(
+            lower.endsWith(".fbx")
+        ){
+
+            root =
+                await loadFBX(
+                    mainFile
+                );
+
+        }
+
+        else if(
+            lower.endsWith(".obj")
+        ){
+
+            root =
+                await loadOBJ(
+                    mainFile
+                );
+
+        }
+
+
+        if(!root){
+
+            throw new Error(
+                "3D model load नहीं हुआ"
+            );
+
+        }
+
+
+        prepareModel(
+            root,
+            mainFile.name
         );
 
 
-    /* ---------------------------------------------
-       ROTATION
-    --------------------------------------------- */
-
-    characterOffset.rotation.x =
-        THREE.MathUtils.degToRad(
-            Number(
-                rotationX.value
-            )
+        setStatus(
+            "3D model loaded"
         );
 
 
-    characterOffset.rotation.y =
-        THREE.MathUtils.degToRad(
-            Number(
-                rotationY.value
-            )
+        showMessage(
+            "3D model successfully imported"
         );
 
 
-    characterOffset.rotation.z =
-        THREE.MathUtils.degToRad(
-            Number(
-                rotationZ.value
-            )
+    }catch(error){
+
+        console.error(
+            "MODEL IMPORT ERROR:",
+            error
         );
 
 
-    /* ---------------------------------------------
-       SCALE
-    --------------------------------------------- */
-
-    const scale =
-        Number(
-            modelSize.value
+        setStatus(
+            "Model import failed"
         );
 
 
-    characterOffset.scale.set(
-        scale,
-        scale,
-        scale
-    );
-
-
-    /* ---------------------------------------------
-       VALUES ON SCREEN
-    --------------------------------------------- */
-
-    upDownValue.textContent =
-        Number(
-            upDown.value
-        ).toFixed(2);
-
-
-    leftRightValue.textContent =
-        Number(
-            leftRight.value
-        ).toFixed(2);
-
-
-    frontBackValue.textContent =
-        Number(
-            frontBack.value
-        ).toFixed(2);
-
-
-    sizeValue.textContent =
-        Number(
-            modelSize.value
-        ).toFixed(2);
-
-
-    rotationXValue.textContent =
-        rotationX.value + "°";
-
-
-    rotationYValue.textContent =
-        rotationY.value + "°";
-
-
-    rotationZValue.textContent =
-        rotationZ.value + "°";
-
-}
-
-
-/* =====================================================
-   SLIDER EVENTS
-===================================================== */
-
-upDown.addEventListener(
-    "input",
-    updateCharacter
-);
-
-
-leftRight.addEventListener(
-    "input",
-    updateCharacter
-);
-
-
-frontBack.addEventListener(
-    "input",
-    updateCharacter
-);
-
-
-modelSize.addEventListener(
-    "input",
-    updateCharacter
-);
-
-
-rotationX.addEventListener(
-    "input",
-    updateCharacter
-);
-
-
-rotationY.addEventListener(
-    "input",
-    updateCharacter
-);
-
-
-rotationZ.addEventListener(
-    "input",
-    updateCharacter
-);
-
-
-/* =====================================================
-   RESET
-===================================================== */
-
-resetCharacter.addEventListener(
-    "click",
-
-    () => {
-
-        upDown.value =
-            defaultSettings.y;
-
-        leftRight.value =
-            defaultSettings.x;
-
-        frontBack.value =
-            defaultSettings.z;
-
-        modelSize.value =
-            defaultSettings.scale;
-
-        rotationX.value =
-            defaultSettings.rx;
-
-        rotationY.value =
-            defaultSettings.ry;
-
-        rotationZ.value =
-            defaultSettings.rz;
-
-
-        updateCharacter();
+        showMessage(
+            "Model import error: " +
+            error.message
+        );
 
     }
+
+}
+
+
+/* ---------------------------
+   FILE INPUT
+--------------------------- */
+
+document
+    .getElementById("modelInput")
+    .addEventListener(
+        "change",
+        event=>{
+
+            importModelFiles(
+                [...event.target.files]
+            );
+
+        }
+    );
+
+
+/* ---------------------------
+   REMOVE BUTTON
+--------------------------- */
+
+document
+    .getElementById("removeModel")
+    .addEventListener(
+        "click",
+        ()=>{
+
+            removeCurrentModel();
+
+            setStatus(
+                "Model removed"
+            );
+
+        }
+    );/* =====================================================
+   PART 4
+   CONTROLS + RECORDING + SETTINGS + STARTUP
+===================================================== */
+
+
+/* ---------------------------
+   UI ELEMENTS
+--------------------------- */
+
+const posX =
+    document.getElementById(
+        "posX"
+    );
+
+const posY =
+    document.getElementById(
+        "posY"
+    );
+
+const posZ =
+    document.getElementById(
+        "posZ"
+    );
+
+const scale =
+    document.getElementById(
+        "scale"
+    );
+
+const rotX =
+    document.getElementById(
+        "rotX"
+    );
+
+const rotY =
+    document.getElementById(
+        "rotY"
+    );
+
+const rotZ =
+    document.getElementById(
+        "rotZ"
+    );
+
+
+/* ---------------------------
+   UPDATE MODEL UI
+--------------------------- */
+
+function updateModelUI(){
+
+    posX.value =
+        modelSettings.x;
+
+    posY.value =
+        modelSettings.y;
+
+    posZ.value =
+        modelSettings.z;
+
+    scale.value =
+        modelSettings.scale;
+
+    rotX.value =
+        modelSettings.rotX;
+
+    rotY.value =
+        modelSettings.rotY;
+
+    rotZ.value =
+        modelSettings.rotZ;
+
+
+    document.getElementById(
+        "posXVal"
+    ).textContent =
+        Number(
+            modelSettings.x
+        ).toFixed(2);
+
+
+    document.getElementById(
+        "posYVal"
+    ).textContent =
+        Number(
+            modelSettings.y
+        ).toFixed(2);
+
+
+    document.getElementById(
+        "posZVal"
+    ).textContent =
+        Number(
+            modelSettings.z
+        ).toFixed(2);
+
+
+    document.getElementById(
+        "scaleVal"
+    ).textContent =
+        Number(
+            modelSettings.scale
+        ).toFixed(2);
+
+
+    document.getElementById(
+        "rotXVal"
+    ).textContent =
+        Math.round(
+            modelSettings.rotX
+        ) + "°";
+
+
+    document.getElementById(
+        "rotYVal"
+    ).textContent =
+        Math.round(
+            modelSettings.rotY
+        ) + "°";
+
+
+    document.getElementById(
+        "rotZVal"
+    ).textContent =
+        Math.round(
+            modelSettings.rotZ
+        ) + "°";
+
+
+    applyModelSettings();
+
+}
+
+
+/* ---------------------------
+   APPLY MODEL SETTINGS
+--------------------------- */
+
+function applyModelSettings(){
+
+    if(!currentModel)
+        return;
+
+
+    currentModel.position.set(
+        modelSettings.x,
+        modelSettings.y,
+        modelSettings.z
+    );
+
+
+    currentModel.scale.setScalar(
+        modelSettings.scale
+    );
+
+
+    currentModel.rotation.set(
+        THREE.MathUtils.degToRad(
+            modelSettings.rotX
+        ),
+
+        THREE.MathUtils.degToRad(
+            modelSettings.rotY
+        ),
+
+        THREE.MathUtils.degToRad(
+            modelSettings.rotZ
+        )
+    );
+
+}
+
+
+/* ---------------------------
+   SLIDER HELPER
+--------------------------- */
+
+function bindSlider(
+    element,
+    key,
+    valueElement,
+    decimals = 2
+){
+
+    element.addEventListener(
+        "input",
+        ()=>{
+
+            modelSettings[key] =
+                Number(
+                    element.value
+                );
+
+
+            if(decimals === 0){
+
+                valueElement.textContent =
+                    Math.round(
+                        modelSettings[key]
+                    ) + "°";
+
+            }else{
+
+                valueElement.textContent =
+                    Number(
+                        modelSettings[key]
+                    ).toFixed(
+                        decimals
+                    );
+
+            }
+
+
+            applyModelSettings();
+
+        }
+    );
+
+}
+
+
+bindSlider(
+    posX,
+    "x",
+    document.getElementById(
+        "posXVal"
+    ),
+    2
 );
 
 
-/* =====================================================
-   INITIAL UPDATE
-===================================================== */
-
-updateCharacter();
-
-      </script><!-- =====================================================
-     PART 4 — RECORDING + CAMERA
-===================================================== -->
-
-<div id="recordPanel">
-
-    <button
-        id="recordBtn"
-        class="recordButton">
-
-        🔴 START RECORDING
-
-    </button>
-
-
-    <button
-        id="stopRecordBtn"
-        class="recordButton"
-        disabled>
-
-        ⏹ STOP
-
-    </button>
-
-
-    <button
-        id="downloadRecordBtn"
-        class="recordButton"
-        disabled>
-
-        📥 SAVE VIDEO
-
-    </button>
-
-</div>
-
-
-<style>
-
-/* =====================================================
-   RECORD PANEL
-===================================================== */
-
-#recordPanel{
-
-    position:absolute;
-
-    z-index:50;
-
-    top:58px;
-
-    left:10px;
-    right:10px;
-
-    display:flex;
-
-    justify-content:center;
-
-    gap:7px;
-
-    flex-wrap:wrap;
-
-    transform:scaleX(-1);
-
-}
-
-
-.recordButton{
-
-    border:0;
-
-    border-radius:11px;
-
-    padding:9px 12px;
-
-    background:rgba(15,15,15,.88);
-
-    color:white;
-
-    font-size:12px;
-
-    font-weight:bold;
-
-    cursor:pointer;
-
-}
-
-
-.recordButton:disabled{
-
-    opacity:.35;
-
-    cursor:not-allowed;
-
-}
-
-
-.recordButton:active{
-
-    transform:scale(.96);
-
-}
-
-</style>
-
-
-<script>
-
-/* =====================================================
-   PART 4
-   VIDEO RECORDING SYSTEM
-===================================================== */
-
-
-/* =====================================================
-   DOM
-===================================================== */
-
-const recordBtn =
+bindSlider(
+    posY,
+    "y",
     document.getElementById(
-        "recordBtn"
+        "posYVal"
+    ),
+    2
+);
+
+
+bindSlider(
+    posZ,
+    "z",
+    document.getElementById(
+        "posZVal"
+    ),
+    2
+);
+
+
+bindSlider(
+    scale,
+    "scale",
+    document.getElementById(
+        "scaleVal"
+    ),
+    2
+);
+
+
+bindSlider(
+    rotX,
+    "rotX",
+    document.getElementById(
+        "rotXVal"
+    ),
+    0
+);
+
+
+bindSlider(
+    rotY,
+    "rotY",
+    document.getElementById(
+        "rotYVal"
+    ),
+    0
+);
+
+
+bindSlider(
+    rotZ,
+    "rotZ",
+    document.getElementById(
+        "rotZVal"
+    ),
+    0
+);
+
+
+/* ---------------------------
+   RESET MODEL
+--------------------------- */
+
+document
+    .getElementById(
+        "resetModel"
+    )
+    .addEventListener(
+        "click",
+        ()=>{
+
+            modelSettings.x = 0;
+
+            modelSettings.y = 0;
+
+            modelSettings.z = 0;
+
+            modelSettings.scale = 1;
+
+            modelSettings.rotX = 0;
+
+            modelSettings.rotY = 180;
+
+            modelSettings.rotZ = 0;
+
+
+            updateModelUI();
+
+        }
     );
 
 
-const stopRecordBtn =
-    document.getElementById(
-        "stopRecordBtn"
+/* ---------------------------
+   EXPORT SETTINGS
+--------------------------- */
+
+document
+    .getElementById(
+        "exportSettings"
+    )
+    .addEventListener(
+        "click",
+        ()=>{
+
+            const data = {
+
+                version:1,
+
+                modelName:
+                    currentModelName,
+
+                mirror:
+                    mirror,
+
+                facingMode:
+                    facingMode,
+
+                modelSettings:{
+                    ...modelSettings
+                }
+
+            };
+
+
+            const blob =
+                new Blob(
+                    [
+                        JSON.stringify(
+                            data,
+                            null,
+                            2
+                        )
+                    ],
+                    {
+                        type:
+                            "application/json"
+                    }
+                );
+
+
+            const url =
+                URL.createObjectURL(
+                    blob
+                );
+
+
+            const a =
+                document.createElement(
+                    "a"
+                );
+
+
+            a.href = url;
+
+            a.download =
+                "ar-project-settings.json";
+
+
+            a.click();
+
+
+            URL.revokeObjectURL(
+                url
+            );
+
+
+            showMessage(
+                "Settings exported"
+            );
+
+        }
     );
 
 
-const downloadRecordBtn =
-    document.getElementById(
-        "downloadRecordBtn"
-    );
+/* ---------------------------
+   IMPORT SETTINGS
+--------------------------- */
+
+document
+    .getElementById(
+        "settingsInput"
+    )
+    .addEventListener(
+        "change",
+        async event=>{
+
+            const file =
+                event.target.files[0];
 
 
-const videoElement =
-    document.getElementById(
-        "video"
-    );
+            if(!file)
+                return;
 
 
-const threeCanvasElement =
-    document.getElementById(
-        "threeCanvas"
+            try{
+
+                const text =
+                    await file.text();
+
+
+                const data =
+                    JSON.parse(
+                        text
+                    );
+
+
+                if(data.mirror !== undefined){
+
+                    mirror =
+                        Boolean(
+                            data.mirror
+                        );
+
+                    updateMirror();
+
+                }
+
+
+                if(
+                    data.facingMode
+                ){
+
+                    facingMode =
+                        data.facingMode;
+
+                }
+
+
+                if(
+                    data.modelSettings
+                ){
+
+                    Object.assign(
+                        modelSettings,
+                        data.modelSettings
+                    );
+
+                    updateModelUI();
+
+                }
+
+
+                showMessage(
+                    "Settings imported"
+                );
+
+
+            }catch(error){
+
+                console.error(
+                    error
+                );
+
+
+                showMessage(
+                    "Settings file गलत है"
+                );
+
+            }
+
+        }
     );
 
 
 /* =====================================================
-   VARIABLES
+   RECORDING
 ===================================================== */
 
-let mediaRecorder =
-    null;
 
-
-let recordedChunks =
-    [];
-
-
-let recordedVideoBlob =
-    null;
-
-
-let recordedVideoURL =
-    null;
-
-
-
-/* =====================================================
+/* ---------------------------
    RECORDING CANVAS
-===================================================== */
-
-/*
-    Camera video + Three.js AR layer
-    एक ही canvas में combine होंगे।
-
-    इससे recording में 3D character
-    भी दिखाई देगा।
-*/
+--------------------------- */
 
 const recordCanvas =
     document.createElement(
@@ -2578,1410 +2990,493 @@ const recordContext =
     );
 
 
+function drawRecordingFrame(){
 
-/* =====================================================
-   RECORDING SIZE
-===================================================== */
+    if(
+        !recordCanvas.width ||
+        !recordCanvas.height
+    ){
 
-function resizeRecordingCanvas(){
+        return;
+
+    }
+
+
+    const w =
+        recordCanvas.width;
+
+    const h =
+        recordCanvas.height;
+
+
+    recordContext.clearRect(
+        0,
+        0,
+        w,
+        h
+    );
+
+
+    /*
+       Mirror video if mirror is enabled.
+    */
+
+    recordContext.save();
+
+
+    if(mirror){
+
+        recordContext.translate(
+            w,
+            0
+        );
+
+        recordContext.scale(
+            -1,
+            1
+        );
+
+    }
+
+
+    /*
+       object-fit: cover
+       calculation.
+    */
+
+    const videoW =
+        video.videoWidth ||
+        w;
+
+    const videoH =
+        video.videoHeight ||
+        h;
+
+
+    const videoAspect =
+        videoW / videoH;
+
+    const canvasAspect =
+        w / h;
+
+
+    let drawW;
+
+    let drawH;
+
+    let offsetX = 0;
+
+    let offsetY = 0;
+
+
+    if(
+        videoAspect >
+        canvasAspect
+    ){
+
+        drawH = h;
+
+        drawW =
+            h * videoAspect;
+
+        offsetX =
+            (w - drawW) / 2;
+
+    }else{
+
+        drawW = w;
+
+        drawH =
+            w / videoAspect;
+
+        offsetY =
+            (h - drawH) / 2;
+
+    }
+
+
+    recordContext.drawImage(
+        video,
+        offsetX,
+        offsetY,
+        drawW,
+        drawH
+    );
+
+
+    recordContext.restore();
+
+
+    /*
+       Draw transparent Three.js layer.
+    */
+
+    recordContext.drawImage(
+        canvas,
+        0,
+        0,
+        w,
+        h
+    );
+
+}
+
+
+/* ---------------------------
+   START RECORDING
+--------------------------- */
+
+function startRecording(){
+
+    if(!stream){
+
+        showMessage(
+            "Camera पहले start करें"
+        );
+
+        return;
+
+    }
+
 
     const width =
-        videoElement.videoWidth ||
+        video.videoWidth ||
         1280;
 
 
     const height =
-        videoElement.videoHeight ||
+        video.videoHeight ||
         720;
 
 
     recordCanvas.width =
         width;
 
-
     recordCanvas.height =
         height;
 
-}
+
+    const captureStream =
+        recordCanvas.captureStream(
+            30
+        );
 
 
-videoElement.addEventListener(
-    "loadedmetadata",
-    resizeRecordingCanvas
-);
+    /*
+       Add microphone/camera audio.
+    */
+
+    if(stream){
+
+        const audioTracks =
+            stream.getAudioTracks();
 
 
+        audioTracks.forEach(
+            track=>{
 
-/* =====================================================
-   DRAW CAMERA + AR
-===================================================== */
+                captureStream.addTrack(
+                    track
+                );
 
-function drawRecordingFrame(){
+            }
+        );
+
+    }
+
+
+    let mimeType =
+        "video/webm;codecs=vp9";
+
 
     if(
-        !recordContext
+        !MediaRecorder.isTypeSupported(
+            mimeType
+        )
     ){
+
+        mimeType =
+            "video/webm;codecs=vp8";
+
+    }
+
+
+    if(
+        !MediaRecorder.isTypeSupported(
+            mimeType
+        )
+    ){
+
+        mimeType =
+            "video/webm";
+
+    }
+
+
+    recordedChunks = [];
+
+
+    try{
+
+        mediaRecorder =
+            new MediaRecorder(
+                captureStream,
+                {
+                    mimeType:
+                        mimeType
+                }
+            );
+
+
+    }catch(error){
+
+        console.error(
+            error
+        );
+
+
+        showMessage(
+            "Recording इस browser में supported नहीं है"
+        );
 
         return;
 
     }
 
 
-    const width =
-        recordCanvas.width;
-
-
-    const height =
-        recordCanvas.height;
-
-
-    /*
-        Clear
-    */
-
-    recordContext.clearRect(
-        0,
-        0,
-        width,
-        height
-    );
-
-
-    /*
-        MIRROR
-
-        Camera और 3D canvas को
-        preview जैसा mirror करेंगे।
-    */
-
-    if(
-        window.mirrorEnabled !== false
-    ){
-
-        recordContext.save();
-
-        recordContext.translate(
-            width,
-            0
-        );
-
-        recordContext.scale(
-            -1,
-            1
-        );
-
-        recordContext.drawImage(
-            videoElement,
-            0,
-            0,
-            width,
-            height
-        );
-
-        recordContext.restore();
-
-
-    }else{
-
-        recordContext.drawImage(
-            videoElement,
-            0,
-            0,
-            width,
-            height
-        );
-
-    }
-
-
-    /*
-        Three.js canvas overlay
-    */
-
-    if(
-        window.mirrorEnabled !== false
-    ){
-
-        recordContext.save();
-
-        recordContext.translate(
-            width,
-            0
-        );
-
-        recordContext.scale(
-            -1,
-            1
-        );
-
-        recordContext.drawImage(
-            threeCanvasElement,
-            0,
-            0,
-            width,
-            height
-        );
-
-        recordContext.restore();
-
-
-    }else{
-
-        recordContext.drawImage(
-            threeCanvasElement,
-            0,
-            0,
-            width,
-            height
-        );
-
-    }
-
-
-    /*
-        Continue while recording.
-    */
-
-    if(
-        mediaRecorder &&
-        mediaRecorder.state ===
-        "recording"
-    ){
-
-        requestAnimationFrame(
-            drawRecordingFrame
-        );
-
-    }
-
-}
-
-
-
-/* =====================================================
-   FIND SUPPORTED VIDEO FORMAT
-===================================================== */
-
-function getRecordingMimeType(){
-
-    const formats = [
-
-        "video/webm;codecs=vp9",
-
-        "video/webm;codecs=vp8",
-
-        "video/webm",
-
-        "video/mp4"
-
-    ];
-
-
-    for(
-        const type of formats
-    ){
-
-        if(
-            MediaRecorder.isTypeSupported(
-                type
-            )
-        ){
-
-            return type;
-
-        }
-
-    }
-
-
-    return "";
-
-}
-
-
-
-/* =====================================================
-   START RECORDING
-===================================================== */
-
-recordBtn.addEventListener(
-    "click",
-
-    () => {
-
-
-        if(
-            !videoElement.srcObject
-        ){
-
-            alert(
-                "पहले camera start करें."
-            );
-
-            return;
-
-        }
-
-
-        resizeRecordingCanvas();
-
-
-        recordedChunks =
-            [];
-
-
-        recordedVideoBlob =
-            null;
-
-
-        if(
-            recordedVideoURL
-        ){
-
-            URL.revokeObjectURL(
-                recordedVideoURL
-            );
-
-            recordedVideoURL =
-                null;
-
-        }
-
-
-        const stream =
-            recordCanvas.captureStream(
-                30
-            );
-
-
-        const mimeType =
-            getRecordingMimeType();
-
-
-        try{
-
-
-            mediaRecorder =
-                mimeType
-
-                ? new MediaRecorder(
-                    stream,
-                    {
-                        mimeType:
-                            mimeType
-                    }
-                )
-
-                : new MediaRecorder(
-                    stream
+    mediaRecorder.ondataavailable =
+        event=>{
+
+            if(
+                event.data &&
+                event.data.size > 0
+            ){
+
+                recordedChunks.push(
+                    event.data
                 );
 
-
-        }catch(error){
-
-            console.error(
-                error
-            );
-
-
-            alert(
-                "इस browser में video recording supported नहीं है."
-            );
-
-            return;
-
-        }
-
-
-
-        /* =============================================
-           DATA
-        ============================================= */
-
-        mediaRecorder.ondataavailable =
-            event => {
-
-                if(
-                    event.data &&
-                    event.data.size > 0
-                ){
-
-                    recordedChunks.push(
-                        event.data
-                    );
-
-                }
-
-            };
-
-
-
-        /* =============================================
-           RECORDING COMPLETE
-        ============================================= */
-
-        mediaRecorder.onstop =
-            () => {
-
-
-                const finalType =
-                    mimeType ||
-                    "video/webm";
-
-
-                recordedVideoBlob =
-                    new Blob(
-                        recordedChunks,
-                        {
-                            type:
-                                finalType
-                        }
-                    );
-
-
-                recordedVideoURL =
-                    URL.createObjectURL(
-                        recordedVideoBlob
-                    );
-
-
-                downloadRecordBtn.disabled =
-                    false;
-
-
-                recordBtn.disabled =
-                    false;
-
-
-                stopRecordBtn.disabled =
-                    true;
-
-
-                const status =
-                    document.getElementById(
-                        "status"
-                    );
-
-
-                if(status){
-
-                    status.textContent =
-                        "RECORDING READY";
-
-                }
-
-            };
-
-
-
-        /* =============================================
-           START
-        ============================================= */
-
-        mediaRecorder.start(
-            1000
-        );
-
-
-        recordBtn.disabled =
-            true;
-
-
-        stopRecordBtn.disabled =
-            false;
-
-
-        downloadRecordBtn.disabled =
-            true;
-
-
-        const status =
-            document.getElementById(
-                "status"
-            );
-
-
-        if(status){
-
-            status.textContent =
-                "🔴 RECORDING";
-
-        }
-
-
-        drawRecordingFrame();
-
-    }
-
-);
-
-
-
-/* =====================================================
-   STOP RECORDING
-===================================================== */
-
-stopRecordBtn.addEventListener(
-    "click",
-
-    () => {
-
-        if(
-            mediaRecorder &&
-            mediaRecorder.state ===
-            "recording"
-        ){
-
-            mediaRecorder.stop();
-
-        }
-
-    }
-);
-
-
-
-/* =====================================================
-   SAVE VIDEO
-===================================================== */
-
-downloadRecordBtn.addEventListener(
-    "click",
-
-    () => {
-
-
-        if(
-            !recordedVideoBlob
-        ){
-
-            return;
-
-        }
-
-
-        const link =
-            document.createElement(
-                "a"
-            );
-
-
-        link.href =
-            recordedVideoURL;
-
-
-        /*
-            Browser-compatible extension
-        */
-
-        const extension =
-            recordedVideoBlob.type
-            .includes("mp4")
-            ? "mp4"
-            : "webm";
-
-
-        link.download =
-            "AR-Character-Recording." +
-            extension;
-
-
-        document.body.appendChild(
-            link
-        );
-
-
-        link.click();
-
-
-        link.remove();
-
-    }
-
-);
-
-
-
-/* =====================================================
-   IMPORTANT:
-   MAKE MIRROR VARIABLE GLOBAL
-===================================================== */
-
-window.mirrorEnabled =
-    true;
-
-
-
-/* =====================================================
-   PATCH MIRROR BUTTON
-===================================================== */
-
-if(
-    typeof mirrorBtn !==
-    "undefined"
-){
-
-    mirrorBtn.addEventListener(
-        "click",
-
-        () => {
-
-            window.mirrorEnabled =
-                !window.mirrorEnabled;
-
-        }
-    );
-
-}
-
-
-
-/* =====================================================
-   CAMERA BUTTON
-===================================================== */
-
-if(
-    typeof cameraBtn !==
-    "undefined"
-){
-
-    cameraBtn.textContent =
-        "🔄 SWITCH CAMERA";
-
-}
-
-              </script><!-- =====================================================
-     PART 5 — EXPORT / IMPORT SETTINGS
-===================================================== -->
-
-<div id="projectPanel">
-
-    <button
-        id="exportProject"
-        class="projectButton">
-
-        📤 EXPORT SETTINGS
-
-    </button>
-
-
-    <label
-        class="projectButton">
-
-        📥 IMPORT SETTINGS
-
-        <input
-            id="importProject"
-            type="file"
-            accept=".json"
-            hidden
-        >
-
-    </label>
-
-</div>
-
-
-<style>
-
-/* =====================================================
-   PROJECT PANEL
-===================================================== */
-
-#projectPanel{
-
-    position:absolute;
-
-    z-index:60;
-
-    bottom:18px;
-
-    left:10px;
-    right:10px;
-
-    display:flex;
-
-    justify-content:center;
-
-    gap:8px;
-
-    flex-wrap:wrap;
-
-    transform:scaleX(-1);
-
-}
-
-
-.projectButton{
-
-    display:inline-flex;
-
-    align-items:center;
-
-    justify-content:center;
-
-    border:0;
-
-    border-radius:11px;
-
-    padding:10px 13px;
-
-    background:rgba(15,15,15,.90);
-
-    color:#fff;
-
-    font-size:12px;
-
-    font-weight:bold;
-
-    cursor:pointer;
-
-}
-
-
-.projectButton:active{
-
-    transform:scale(.96);
-
-}
-
-</style>
-
-
-<script>
-
-/* =====================================================
-   PART 5
-   PROJECT SETTINGS SYSTEM
-===================================================== */
-
-
-/* =====================================================
-   ELEMENTS
-===================================================== */
-
-const exportProject =
-    document.getElementById(
-        "exportProject"
-    );
-
-
-const importProject =
-    document.getElementById(
-        "importProject"
-    );
-
-
-
-/* =====================================================
-   SAFE NUMBER
-===================================================== */
-
-function safeNumber(
-    value,
-    fallback = 0
-){
-
-    const number =
-        Number(value);
-
-
-    return Number.isFinite(number)
-        ? number
-        : fallback;
-
-}
-
-
-
-/* =====================================================
-   GET CURRENT CHARACTER SETTINGS
-===================================================== */
-
-function getCharacterSettings(){
-
-    const offset =
-        window.modelOffset;
-
-
-    if(
-        !offset
-    ){
-
-        return null;
-
-    }
-
-
-    return {
-
-        position:{
-
-            x:
-                safeNumber(
-                    offset.position.x
-                ),
-
-            y:
-                safeNumber(
-                    offset.position.y
-                ),
-
-            z:
-                safeNumber(
-                    offset.position.z
-                )
-
-        },
-
-
-        rotation:{
-
-            x:
-                safeNumber(
-                    THREE.MathUtils.radToDeg(
-                        offset.rotation.x
-                    )
-                ),
-
-            y:
-                safeNumber(
-                    THREE.MathUtils.radToDeg(
-                        offset.rotation.y
-                    )
-                ),
-
-            z:
-                safeNumber(
-                    THREE.MathUtils.radToDeg(
-                        offset.rotation.z
-                    )
-                )
-
-        },
-
-
-        scale:{
-
-            x:
-                safeNumber(
-                    offset.scale.x,
-                    1
-                ),
-
-            y:
-                safeNumber(
-                    offset.scale.y,
-                    1
-                ),
-
-            z:
-                safeNumber(
-                    offset.scale.z,
-                    1
-                )
-
-        }
-
-    };
-
-}
-
-
-
-/* =====================================================
-   EXPORT
-===================================================== */
-
-exportProject.addEventListener(
-    "click",
-
-    () => {
-
-        const character =
-            getCharacterSettings();
-
-
-        if(
-            !character
-        ){
-
-            alert(
-                "3D character system अभी तैयार नहीं है."
-            );
-
-            return;
-
-        }
-
-
-        const project = {
-
-            app:
-
-                "AR 3D Face Tracking",
-
-
-            version:
-
-                "1.0",
-
-
-            created:
-
-                new Date().toISOString(),
-
-
-            camera:
-
-                window.currentFacingMode ||
-                "user",
-
-
-            mirror:
-
-                window.mirrorEnabled !== false,
-
-
-            model:
-
-                {
-
-                    filename:
-
-                        window.currentModelName ||
-                        "",
-
-                    settings:
-
-                        character
-
-                }
+            }
 
         };
 
 
-        const json =
-            JSON.stringify(
-                project,
-                null,
-                2
-            );
+    mediaRecorder.onstop =
+        ()=>{
+
+            const blob =
+                new Blob(
+                    recordedChunks,
+                    {
+                        type:
+                            mimeType
+                    }
+                );
 
 
-        const blob =
-            new Blob(
-                [json],
-                {
-                    type:
-                        "application/json"
-                }
-            );
+            const url =
+                URL.createObjectURL(
+                    blob
+                );
 
 
-        const url =
-            URL.createObjectURL(
-                blob
-            );
+            const a =
+                document.createElement(
+                    "a"
+                );
 
 
-        const link =
-            document.createElement(
-                "a"
-            );
+            a.href = url;
+
+            a.download =
+                "AR-face-video.webm";
 
 
-        link.href =
-            url;
+            a.click();
 
 
-        link.download =
-            "AR-Character-Project.json";
-
-
-        document.body.appendChild(
-            link
-        );
-
-
-        link.click();
-
-
-        link.remove();
-
-
-        URL.revokeObjectURL(
-            url
-        );
-
-
-        const status =
-            document.getElementById(
-                "status"
-            );
-
-
-        if(status){
-
-            status.textContent =
-                "SETTINGS EXPORTED";
-
-        }
-
-    }
-
-);
-
-
-
-/* =====================================================
-   IMPORT
-===================================================== */
-
-importProject.addEventListener(
-    "change",
-
-    event => {
-
-
-        const file =
-            event.target.files[0];
-
-
-        if(
-            !file
-        ){
-
-            return;
-
-        }
-
-
-        const reader =
-            new FileReader();
-
-
-        reader.onload =
-            () => {
-
-                try{
-
-                    const project =
-                        JSON.parse(
-                            reader.result
-                        );
-
-
-                    applyProjectSettings(
-                        project
+            setTimeout(
+                ()=>{
+                    URL.revokeObjectURL(
+                        url
                     );
-
-
-                }catch(error){
-
-                    console.error(
-                        error
-                    );
-
-
-                    alert(
-                        "Invalid project JSON file."
-                    );
-
-                }
-
-            };
-
-
-        reader.readAsText(
-            file
-        );
-
-
-        /*
-            Same file को दोबारा
-            select करने की अनुमति
-        */
-
-        event.target.value =
-            "";
-
-    }
-
-);
-
-
-
-/* =====================================================
-   APPLY PROJECT
-===================================================== */
-
-function applyProjectSettings(
-    project
-){
-
-    if(
-        !project ||
-        !project.model ||
-        !project.model.settings
-    ){
-
-        alert(
-            "Project settings नहीं मिले."
-        );
-
-        return;
-
-    }
-
-
-    const offset =
-        window.modelOffset;
-
-
-    if(
-        !offset
-    ){
-
-        alert(
-            "पहले Part 1 initialize होने दें."
-        );
-
-        return;
-
-    }
-
-
-    const settings =
-        project.model.settings;
-
-
-
-    /* =================================================
-       POSITION
-    ================================================= */
-
-    if(
-        settings.position
-    ){
-
-        offset.position.set(
-
-            safeNumber(
-                settings.position.x
-            ),
-
-            safeNumber(
-                settings.position.y
-            ),
-
-            safeNumber(
-                settings.position.z
-            )
-
-        );
-
-    }
-
-
-
-    /* =================================================
-       ROTATION
-    ================================================= */
-
-    if(
-        settings.rotation
-    ){
-
-        offset.rotation.set(
-
-            THREE.MathUtils.degToRad(
-                safeNumber(
-                    settings.rotation.x
-                )
-            ),
-
-            THREE.MathUtils.degToRad(
-                safeNumber(
-                    settings.rotation.y
-                )
-            ),
-
-            THREE.MathUtils.degToRad(
-                safeNumber(
-                    settings.rotation.z
-                )
-            )
-
-        );
-
-    }
-
-
-
-    /* =================================================
-       SCALE
-    ================================================= */
-
-    if(
-        settings.scale
-    ){
-
-        offset.scale.set(
-
-            safeNumber(
-                settings.scale.x,
-                1
-            ),
-
-            safeNumber(
-                settings.scale.y,
-                1
-            ),
-
-            safeNumber(
-                settings.scale.z,
-                1
-            )
-
-        );
-
-    }
-
-
-
-    /* =================================================
-       MIRROR
-    ================================================= */
-
-    if(
-        typeof project.mirror ===
-        "boolean"
-    ){
-
-        window.mirrorEnabled =
-            project.mirror;
-
-
-        /*
-            Part 1 mirror variable
-        */
-
-        if(
-            typeof mirrorEnabled !==
-            "undefined"
-        ){
-
-            mirrorEnabled =
-                project.mirror;
-
-        }
-
-
-        const stage =
-            document.getElementById(
-                "stage"
+                },
+                1000
             );
 
 
-        if(stage){
+            showMessage(
+                "Video saved"
+            );
 
-            stage.style.transform =
-                project.mirror
-                ? "scaleX(-1)"
-                : "scaleX(1)";
-
-        }
-
-    }
+        };
 
 
-
-    /* =================================================
-       UPDATE SLIDERS
-    ================================================= */
-
-    updateControlSlidersFromModel();
+    mediaRecorder.start(
+        1000
+    );
 
 
-
-    /* =================================================
-       STATUS
-    ================================================= */
-
-    const status =
-        document.getElementById(
-            "status"
-        );
+    isRecording = true;
 
 
-    if(status){
+    document.getElementById(
+        "recording"
+    ).style.display =
+        "flex";
 
-        status.textContent =
-            "SETTINGS IMPORTED";
 
-    }
+    document.getElementById(
+        "recordButton"
+    ).textContent =
+        "Stop";
+
+
+    setStatus(
+        "Recording..."
+    );
+
+
+    recordingLoop();
 
 }
 
 
+/* ---------------------------
+   RECORDING LOOP
+--------------------------- */
 
-/* =====================================================
-   UPDATE PART 3 SLIDERS
-===================================================== */
+function recordingLoop(){
 
-function updateControlSlidersFromModel(){
-
-    const offset =
-        window.modelOffset;
-
-
-    if(
-        !offset
-    ){
-
+    if(!isRecording)
         return;
 
-    }
+
+    drawRecordingFrame();
 
 
-    const upDown =
-        document.getElementById(
-            "upDown"
-        );
-
-
-    const leftRight =
-        document.getElementById(
-            "leftRight"
-        );
-
-
-    const frontBack =
-        document.getElementById(
-            "frontBack"
-        );
-
-
-    const modelSize =
-        document.getElementById(
-            "modelSize"
-        );
-
-
-    const rotationX =
-        document.getElementById(
-            "rotationX"
-        );
-
-
-    const rotationY =
-        document.getElementById(
-            "rotationY"
-        );
-
-
-    const rotationZ =
-        document.getElementById(
-            "rotationZ"
-        );
-
-
-
-    if(upDown){
-
-        upDown.value =
-            offset.position.y;
-
-    }
-
-
-    if(leftRight){
-
-        leftRight.value =
-            offset.position.x;
-
-    }
-
-
-    if(frontBack){
-
-        frontBack.value =
-            offset.position.z;
-
-    }
-
-
-    if(modelSize){
-
-        modelSize.value =
-            offset.scale.x;
-
-    }
-
-
-    if(rotationX){
-
-        rotationX.value =
-            THREE.MathUtils.radToDeg(
-                offset.rotation.x
-            );
-
-    }
-
-
-    if(rotationY){
-
-        rotationY.value =
-            THREE.MathUtils.radToDeg(
-                offset.rotation.y
-            );
-
-    }
-
-
-    if(rotationZ){
-
-        rotationZ.value =
-            THREE.MathUtils.radToDeg(
-                offset.rotation.z
-            );
-
-    }
+    requestAnimationFrame(
+        recordingLoop
+    );
 
 }
 
 
+/* ---------------------------
+   STOP RECORDING
+--------------------------- */
+
+function stopRecording(){
+
+    if(
+        mediaRecorder &&
+        mediaRecorder.state !==
+        "inactive"
+    ){
+
+        mediaRecorder.stop();
+
+    }
+
+
+    isRecording = false;
+
+
+    document.getElementById(
+        "recording"
+    ).style.display =
+        "none";
+
+
+    document.getElementById(
+        "recordButton"
+    ).textContent =
+        "Record";
+
+
+    setStatus(
+        faceVisible
+        ? "Face tracking active"
+        : "Face not detected"
+    );
+
+}
+
+
+/* ---------------------------
+   RECORD BUTTON
+--------------------------- */
+
+document
+    .getElementById(
+        "recordButton"
+    )
+    .addEventListener(
+        "click",
+        ()=>{
+
+            if(isRecording){
+
+                stopRecording();
+
+            }else{
+
+                startRecording();
+
+            }
+
+        }
+    );
+
 
 /* =====================================================
-   CURRENT MODEL NAME
+   START APP
 ===================================================== */
 
-window.currentModelName =
-    "";
+updateModelUI();
 
 
-
-/* =====================================================
-   HELPER FOR PART 2
-===================================================== */
-
-window.setCurrentModelName =
-    function(name){
-
-        window.currentModelName =
-            name || "";
-
-    };
-
-
-
-/* =====================================================
-   FINAL STATUS
-===================================================== */
-
-console.log(
-    "PART 5 READY"
+setStatus(
+    "Starting camera..."
 );
 
-                      </script>
+
+startCamera();
+
+
+/* =====================================================
+   PAGE CLEANUP
+===================================================== */
+
+window.addEventListener(
+    "beforeunload",
+    ()=>{
+
+        if(stream){
+
+            stream.getTracks()
+                .forEach(
+                    track=>{
+                        track.stop();
+                    }
+                );
+
+        }
+
+
+        objectURLs.forEach(
+            url=>{
+                URL.revokeObjectURL(
+                    url
+                );
+            }
+        );
+
+    }
+);
+
+
+</script>
+
+</body>
+</html>
