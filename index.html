@@ -6,72 +6,65 @@
 
 <style>
 html,body{
-    margin:0;
-    width:100%;
-    height:100%;
-    background:#000;
-    overflow:hidden;
+margin:0;
+width:100%;
+height:100%;
+background:#000;
+overflow:hidden;
 }
 
 video{
-    width:100%;
-    height:100%;
-    object-fit:cover;
+width:100%;
+height:100%;
+object-fit:cover;
 }
 
 button{
-    position:fixed;
-    bottom:30px;
-    left:50%;
-    transform:translateX(-50%);
-    z-index:10;
-    padding:15px 25px;
-    font-size:18px;
+position:fixed;
+bottom:30px;
+left:50%;
+transform:translateX(-50%);
+z-index:10;
+padding:18px 30px;
+font-size:20px;
 }
 </style>
 </head>
 
 <body>
 
-<video
-id="camera"
-autoplay
-playsinline
-muted>
-</video>
+<video id="camera" autoplay playsinline muted></video>
 
-<button id="open">
-OPEN CAMERA
-</button>
+<button id="open">OPEN CAMERA</button>
 
 <script>
 
-document.getElementById("open").onclick =
-async function(){
+const video = document.getElementById("camera");
+const button = document.getElementById("open");
 
-    try{
+button.onclick = async function(){
 
-        const stream =
-        await navigator.mediaDevices.getUserMedia({
-            video:true,
-            audio:false
-        });
+try{
 
-        document.getElementById("camera").srcObject =
-        stream;
+const stream = await navigator.mediaDevices.getUserMedia({
+video:true,
+audio:false
+});
 
-        this.style.display="none";
+video.srcObject = stream;
 
-    }catch(error){
+button.style.display = "none";
 
-        alert(
-            "Camera Error:\n" +
-            error.name +
-            "\n\n" +
-            error.message
-        );
+}catch(error){
 
-    }
+alert(
+"CAMERA ERROR\n\n" +
+error.name +
+"\n" +
+error.message
+);
+
+}
 
 };
 
