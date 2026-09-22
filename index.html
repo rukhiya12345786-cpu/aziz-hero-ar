@@ -23,7 +23,7 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transform: scaleX(-1); /* मिरर इफ़ेक्ट */
+            transform: scaleX(-1);
             z-index: 1;
         }
         #canvas3d {
@@ -55,7 +55,7 @@
 </head>
 <body>
 
-    <div id="loading">3D मॉडल और कैमरा लोड हो रहा है...</div>
+    <div id="loading">Loading 3D Model and Camera...</div>
     
     <div id="container">
         <video id="webcam" autoplay playsinline muted></video>
@@ -86,7 +86,6 @@
             directionalLight.position.set(0, 10, 5);
             scene.add(directionalLight);
 
-            // यहाँ आपका 3D मॉडल लोड हो रहा है (अगर आपकी अपनी मॉडल फाइल है, तो उसका लिंक यहाँ डाल सकते हैं)
             const loader = new THREE.GLTFLoader();
             loader.load(
                 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/models/gltf/RobotExpressive/RobotExpressive.gltf', 
@@ -99,8 +98,8 @@
                 },
                 undefined,
                 function (error) {
-                    console.error('मॉडल लोड एरर:', error);
-                    loadingElement.innerText = "3D मॉडल लोड करने में विफल!";
+                    console.error('Model loading error:', error);
+                    loadingElement.innerText = "Failed to load 3D model!";
                 }
             );
 
@@ -138,23 +137,20 @@
             });
 
             cameraUtils.start().catch(err => {
-                loadingElement.innerText = "कैमरा एरर: " + err.message;
+                loadingElement.innerText = "Camera error: " + err.message;
             });
         }
 
-        // 360-डिग्री हेड ट्रैकिंग और फेस बाइंडिंग फंक्शन
         function onFaceResults(results) {
             if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
                 const landmarks = results.multiFaceLandmarks[0];
                 
-                // चेहरे के मुख्य पॉइंट्स से लाइव पोजीशन और एंगल्स निकालना
                 const nose = landmarks[1];
                 const leftEar = landmarks[234];
                 const rightEar = landmarks[454];
                 const topHead = landmarks[10];
                 const chin = landmarks[152];
 
-                // स्क्रीन पर पोजीशन सेट करना ताकि मॉडल चेहरे के साथ हिले
                 const x = -(nose.x - 0.5) * 4.0;
                 const y = -(nose.y - 0.5) * 4.0;
                 const z = -nose.z * 2.0;
@@ -163,7 +159,6 @@
                     headModel.visible = true;
                     headModel.position.set(x, y - 0.2, z);
 
-                    // सिर के घूमने के हिसाब से 360-डिग्री रोटेशन कैलकुलेट करना
                     const dx = rightEar.x - leftEar.x;
                     const dy = rightEar.y - leftEar.y;
                     const dz = rightEar.z - leftEar.z;
@@ -172,7 +167,6 @@
                     const pitch = Math.atan2(chin.y - topHead.y, chin.z - topHead.z);
                     const roll = Math.atan2(dy, dx);
 
-                    // मॉडल पर रोटेशन अप्लाई करना ताकि जिधर सिर घूमे, मॉडल भी उधर ही घूमे
                     headModel.rotation.y = -yaw + Math.PI / 2;
                     headModel.rotation.x = pitch;
                     headModel.rotation.z = roll;
