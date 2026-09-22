@@ -1,141 +1,153 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
 <meta charset="UTF-8">
+
 <meta name="viewport"
-      content="width=device-width,initial-scale=1.0">
+      content="width=device-width,
+               initial-scale=1.0,
+               maximum-scale=1.0,
+               user-scalable=no">
 
 <title>Azeez AR - 3D Head Tracking</title>
 
 <style>
 
-*{
-    box-sizing:border-box;
+* {
+    box-sizing: border-box;
 }
 
 html,
-body{
-    margin:0;
-    padding:0;
-    width:100%;
-    height:100%;
-    overflow:hidden;
-    background:#000;
-    font-family:Arial,sans-serif;
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: #000;
+    font-family: Arial, sans-serif;
 }
 
-#cameraStream{
-    position:fixed;
-    inset:0;
-
-    width:100%;
-    height:100%;
-
-    object-fit:cover;
-
-    z-index:1;
-
-    transform:scaleX(-1);
+#camera {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: #000;
+    z-index: 1;
+    transform: scaleX(-1);
 }
 
-#threeCanvas{
-    position:fixed;
-    inset:0;
-
-    width:100%;
-    height:100%;
-
-    z-index:2;
-
-    pointer-events:none;
+#arCanvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    pointer-events: none;
 }
 
-#ui{
-    position:fixed;
-
-    left:10px;
-    right:10px;
-    bottom:10px;
-
-    z-index:10;
-
-    padding:12px;
-
-    border-radius:16px;
-
-    background:rgba(0,0,0,.70);
-
-    color:white;
-
-    backdrop-filter:blur(10px);
+#status {
+    position: fixed;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+    padding: 8px 14px;
+    border-radius: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    font-size: 13px;
+    white-space: nowrap;
 }
 
-#status{
-    text-align:center;
-
-    font-size:14px;
-
-    margin-bottom:10px;
-
-    color:#00ff9d;
+#cameraError {
+    position: fixed;
+    left: 20px;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 50;
+    display: none;
+    padding: 18px;
+    border-radius: 15px;
+    background: rgba(120, 0, 0, 0.94);
+    color: #fff;
+    text-align: center;
+    line-height: 1.5;
 }
 
-.row{
-    display:flex;
+#controls {
+    position: fixed;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    z-index: 20;
+    padding: 12px;
+    border-radius: 18px;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(10px);
+    color: #fff;
+}
 
-    gap:7px;
-
-    margin-top:7px;
+.buttonRow {
+    display: flex;
+    gap: 7px;
+    margin-bottom: 8px;
 }
 
 button,
-label{
-    flex:1;
-
-    border:0;
-
-    border-radius:10px;
-
-    padding:11px 7px;
-
-    background:#222;
-
-    color:white;
-
-    text-align:center;
-
-    font-size:13px;
+.fileButton {
+    flex: 1;
+    min-height: 44px;
+    border: 0;
+    border-radius: 11px;
+    background: #252525;
+    color: #fff;
+    font-size: 12px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    cursor: pointer;
 }
 
 button:active,
-label:active{
-    transform:scale(.97);
+.fileButton:active {
+    transform: scale(0.96);
 }
 
-input[type=file]{
-    display:none;
+#recordButton {
+    background: #b00020;
 }
 
-.control{
-    margin-top:8px;
+#recordButton.recording {
+    background: #ff1744;
 }
 
-.control span{
-    display:block;
-
-    font-size:12px;
-
-    margin-bottom:3px;
+#modelFile {
+    display: none;
 }
 
-input[type=range]{
-    width:100%;
+.sliderBox {
+    margin-top: 8px;
+}
+
+.sliderBox span {
+    display: block;
+    margin-bottom: 3px;
+    font-size: 12px;
+}
+
+.sliderBox input {
+    width: 100%;
 }
 
 </style>
-
-
-<!-- THREE.JS -->
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 
@@ -145,253 +157,224 @@ input[type=range]{
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
 
-
-<!-- MEDIAPIPE -->
-
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 
 </head>
 
-
 <body>
 
-
-<!-- CAMERA -->
-
 <video
-    id="cameraStream"
+    id="camera"
     autoplay
-    playsinline
-    muted>
+    muted
+    playsinline>
 </video>
 
+<canvas id="arCanvas"></canvas>
 
-<!-- THREE CANVAS -->
+<div id="status">
+    Starting Camera...
+</div>
 
-<canvas id="threeCanvas"></canvas>
+<div id="cameraError">
 
+    <strong>Camera could not start</strong>
 
-<!-- UI -->
+    <br><br>
 
-<div id="ui">
+    Please allow camera permission
+    and use HTTPS or localhost.
 
-    <div id="status">
-        Starting camera...
-    </div>
+</div>
 
+<div id="controls">
 
-    <div class="row">
+    <div class="buttonRow">
 
-        <label for="modelInput">
-            Import 3D
+        <label
+            class="fileButton"
+            for="modelFile">
+            3D Model
         </label>
 
-        <button
-            id="resetBtn">
+        <button id="recordButton">
+            Record
+        </button>
+
+        <button id="flipButton">
+            Flip Camera
+        </button>
+
+        <button id="resetButton">
             Reset
         </button>
 
-        <button
-            id="flipBtn">
-            Flip
-        </button>
-
-        <button
-            id="snapshotBtn">
-            Photo
-        </button>
-
     </div>
 
-
     <input
-        id="modelInput"
+        id="modelFile"
         type="file"
         accept=".glb,.gltf,.obj,.fbx">
 
+    <div class="sliderBox">
 
-    <div class="control">
-
-        <span>
-            Character Size
-        </span>
+        <span>Model Size</span>
 
         <input
             id="sizeSlider"
             type="range"
             min="0.3"
             max="2"
-            step="0.01"
-            value="1">
+            value="1"
+            step="0.01">
 
     </div>
 
+    <div class="sliderBox">
 
-    <div class="control">
-
-        <span>
-            Head Up / Down
-        </span>
+        <span>Head Up / Down</span>
 
         <input
-            id="upSlider"
+            id="heightSlider"
             type="range"
             min="-1"
             max="1"
-            step="0.01"
-            value="0">
+            value="0"
+            step="0.01">
 
     </div>
 
+    <div class="sliderBox">
 
-    <div class="control">
-
-        <span>
-            Head Forward / Back
-        </span>
+        <span>Head Forward / Back</span>
 
         <input
             id="depthSlider"
             type="range"
             min="-1"
             max="1"
-            step="0.01"
-            value="0">
+            value="0"
+            step="0.01">
 
     </div>
 
 </div>
 
-
 <script>
 
-
-/* ==================================================
-   GLOBAL VARIABLES
-================================================== */
-
 const video =
-document.getElementById(
-    "cameraStream"
-);
+    document.getElementById("camera");
 
 const canvas =
-document.getElementById(
-    "threeCanvas"
-);
+    document.getElementById("arCanvas");
 
-const statusBox =
-document.getElementById(
-    "status"
-);
+const status =
+    document.getElementById("status");
 
+const cameraError =
+    document.getElementById("cameraError");
 
-let scene;
+const recordButton =
+    document.getElementById("recordButton");
 
-let camera3D;
+const flipButton =
+    document.getElementById("flipButton");
 
-let renderer;
+const resetButton =
+    document.getElementById("resetButton");
 
+const modelFile =
+    document.getElementById("modelFile");
 
-let faceMesh;
+const sizeSlider =
+    document.getElementById("sizeSlider");
 
-let mpCamera;
+const heightSlider =
+    document.getElementById("heightSlider");
 
+const depthSlider =
+    document.getElementById("depthSlider");
 
-let headGroup;
+let scene = null;
 
-let faceOccluder;
+let threeCamera = null;
 
-let importedModel =
-null;
+let renderer = null;
 
+let headGroup = null;
 
-let sizeValue =
-1;
+let faceOccluder = null;
 
-let upValue =
-0;
+let importedModel = null;
 
-let depthValue =
-0;
+let faceMesh = null;
 
+let mpCamera = null;
+
+let cameraFacing = "user";
+
+let poseStarted = false;
 
 let smoothPosition =
-new THREE.Vector3(
-    0,
-    0,
-    0
-);
-
+    new THREE.Vector3();
 
 let smoothQuaternion =
-new THREE.Quaternion();
+    new THREE.Quaternion();
 
+let smoothScale = 1;
 
-let smoothScale =
-1;
+let modelSize = 1;
 
+let heightValue = 0;
 
-let poseStarted =
-false;
+let depthValue = 0;
 
+let mediaRecorder = null;
 
-let cameraFacing =
-"user";
+let recordedChunks = [];
 
+let isRecording = false;
 
-/* ==================================================
-   THREE INITIALIZATION
-================================================== */
+let recordCanvas = null;
 
-function initThree(){
+let recordContext = null;
+
+let recordAnimationId = null;
+
+function initializeThree() {
 
     scene =
-    new THREE.Scene();
+        new THREE.Scene();
 
+    threeCamera =
+        new THREE.PerspectiveCamera(
+            45,
+            window.innerWidth /
+            window.innerHeight,
+            0.01,
+            100
+        );
 
-    camera3D =
-    new THREE.PerspectiveCamera(
-
-        45,
-
-        window.innerWidth /
-        window.innerHeight,
-
-        0.01,
-
-        100
-
-    );
-
-
-    /*
-       Camera is in front of the
-       3D head space.
-    */
-
-    camera3D.position.set(
+    threeCamera.position.set(
         0,
         0,
         3
     );
 
-
     renderer =
-    new THREE.WebGLRenderer({
+        new THREE.WebGLRenderer({
 
-        canvas:canvas,
+            canvas: canvas,
 
-        alpha:true,
+            alpha: true,
 
-        antialias:true,
+            antialias: true,
 
-        preserveDrawingBuffer:true
+            preserveDrawingBuffer: true
 
-    });
-
+        });
 
     renderer.setPixelRatio(
         Math.min(
@@ -400,79 +383,53 @@ function initThree(){
         )
     );
 
-
     renderer.setSize(
-
         window.innerWidth,
-
         window.innerHeight,
-
         false
-
     );
 
-
     renderer.outputEncoding =
-    THREE.sRGBEncoding;
-
-
-    /*
-       HEAD GROUP
-
-       Everything imported will be
-       attached here.
-    */
+        THREE.sRGBEncoding;
 
     headGroup =
-    new THREE.Group();
-
+        new THREE.Group();
 
     scene.add(
         headGroup
     );
 
-
-    /* ==================================================
-       LIGHTING
-    ================================================== */
-
-    const ambient =
-    new THREE.AmbientLight(
-        0xffffff,
-        1.2
-    );
-
+    const ambientLight =
+        new THREE.AmbientLight(
+            0xffffff,
+            1.2
+        );
 
     scene.add(
-        ambient
+        ambientLight
     );
 
+    const mainLight =
+        new THREE.DirectionalLight(
+            0xffffff,
+            1.5
+        );
 
-    const keyLight =
-    new THREE.DirectionalLight(
-        0xffffff,
-        1.5
-    );
-
-
-    keyLight.position.set(
+    mainLight.position.set(
         2,
         3,
         4
     );
 
-
     scene.add(
-        keyLight
+        mainLight
     );
-
 
     const fillLight =
-    new THREE.DirectionalLight(
-        0xffffff,
-        .7
-    );
-
+        new THREE.DirectionalLight(
+            0xffffff,
+            0.7
+        );
 
     fillLight.position.set(
         -3,
@@ -480,118 +437,87 @@ function initThree(){
         2
     );
 
-
     scene.add(
         fillLight
     );
 
-
-    /*
-       Invisible face depth object.
-    */
-
     createFaceOccluder();
-
 
     window.addEventListener(
         "resize",
-        resizeThree
+        resizeAR
     );
 
-
-    resizeThree();
-
+    resizeAR();
 
     renderLoop();
 
 }
 
+function resizeAR() {
 
-/* ==================================================
-   RESIZE
-================================================== */
-
-function resizeThree(){
-
-    if(!renderer)
+    if (!renderer) {
         return;
+    }
 
+    const width =
+        window.innerWidth;
 
-    const w =
-    window.innerWidth;
+    const height =
+        window.innerHeight;
 
+    threeCamera.aspect =
+        width / height;
 
-    const h =
-    window.innerHeight;
-
-
-    camera3D.aspect =
-    w / h;
-
-
-    camera3D.updateProjectionMatrix();
-
+    threeCamera.updateProjectionMatrix();
 
     renderer.setSize(
-        w,
-        h,
+        width,
+        height,
         false
     );
 
 }
 
-
-/* ==================================================
-   FACE OCCLUDER
-================================================== */
-
-function createFaceOccluder(){
+function createFaceOccluder() {
 
     const geometry =
-    new THREE.SphereGeometry(
-        1,
-        32,
-        24
-    );
-
+        new THREE.SphereGeometry(
+            1,
+            32,
+            24
+        );
 
     const material =
-    new THREE.MeshBasicMaterial({
+        new THREE.MeshBasicMaterial({
 
-        color:0x000000,
+            color: 0x000000,
 
-        transparent:true,
+            transparent: true,
 
-        opacity:0,
+            opacity: 0,
 
-        colorWrite:false,
+            colorWrite: false,
 
-        depthWrite:true,
+            depthWrite: true,
 
-        depthTest:true,
+            depthTest: true,
 
-        side:THREE.DoubleSide
+            side: THREE.DoubleSide
 
-    });
-
+        });
 
     faceOccluder =
-    new THREE.Mesh(
-
-        geometry,
-
-        material
-
-    );
-
+        new THREE.Mesh(
+            geometry,
+            material
+        );
 
     faceOccluder.visible =
-    false;
-
+        false;
 
     faceOccluder.renderOrder =
-    0;
-
+        0;
 
     scene.add(
         faceOccluder
@@ -599,22 +525,152 @@ function createFaceOccluder(){
 
 }
 
+function renderLoop() {
 
-/* ==================================================
-   MEDIAPIPE
-================================================== */
+    requestAnimationFrame(
+        renderLoop
+    );
 
-function initFaceTracking(){
+    if (renderer) {
 
-    faceMesh =
-    new FaceMesh({
+        renderer.render(
+            scene,
+            threeCamera
+        );
 
-        locateFile:
-        function(file){
+    }
 
-            return
-            "https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/"
-            + file;
+}
+
+function cameraSupported() {
+
+    return !!(
+        navigator.mediaDevices &&
+        navigator.mediaDevices.getUserMedia
+    );
+
+}
+
+async function startCamera() {
+
+    status.innerText =
+        "Opening Camera...";
+
+    cameraError.style.display =
+        "none";
+
+    try {
+
+        if (video.srcObject) {
+
+            video.srcObject
+                .getTracks()
+                .forEach(
+                    function(track) {
+                        track.stop();
+                    }
+                );
+
+        }
+
+        const stream =
+            await navigator
+                .mediaDevices
+                .getUserMedia({
+
+                    video: {
+
+                        facingMode: {
+                            ideal: "user"
+                        },
+
+                        width: {
+                            ideal: 1280
+                        },
+
+                        height: {
+                            ideal: 720
+                        },
+
+                        frameRate: {
+                            ideal: 30
+                        }
+
+                    },
+
+                    audio: true
+
+                });
+
+        video.srcObject =
+            stream;
+
+        cameraFacing =
+            "user";
+
+        video.style.transform =
+            "scaleX(-1)";
+
+        await new Promise(
+            function(resolve) {
+
+                if (video.readyState >= 2) {
+
+                    resolve();
+
+                    return;
+
+                }
+
+                video.onloadedmetadata =
+                    function() {
+
+                        resolve();
+
+                    };
+
+            }
+        );
+
+        await video.play();
+
+        status.innerText =
+            "Camera Ready";
+
+        return true;
+
+    } catch (error) {
+
+        console.error(
+            "Camera Error:",
+            error
+        );
+
+        status.innerText =
+            "Camera Error";
+
+        cameraError.style.display =
+            "block";
+
+        return false;
+
+    }
+
+}/* ==============================
+   FACE TRACKING INITIALIZATION
+============================== */
+
+function initializeFaceTracking() {
+
+    faceMesh = new FaceMesh({
+
+        locateFile: function(file) {
+
+            return (
+                "https://cdn.jsdelivr.net/npm/" +
+                "@mediapipe/face_mesh/" +
+                file
+            );
 
         }
 
@@ -623,47 +679,39 @@ function initFaceTracking(){
 
     faceMesh.setOptions({
 
-        maxNumFaces:1,
+        maxNumFaces: 1,
 
-        refineLandmarks:true,
+        refineLandmarks: true,
 
-        minDetectionConfidence:.55,
+        minDetectionConfidence: 0.5,
 
-        minTrackingConfidence:.55
+        minTrackingConfidence: 0.5
 
     });
 
 
     faceMesh.onResults(
-        onFaceResults
+        processFace
     );
 
 
-    mpCamera =
-    new Camera(
+    mpCamera = new Camera(
 
         video,
 
         {
 
-            onFrame:
-            async function(){
+            onFrame: async function() {
 
-                if(faceMesh){
-
-                    await faceMesh.send({
-
-                        image:video
-
-                    });
-
-                }
+                await faceMesh.send({
+                    image: video
+                });
 
             },
 
-            width:1280,
+            width: 1280,
 
-            height:720
+            height: 720
 
         }
 
@@ -672,372 +720,297 @@ function initFaceTracking(){
 
     mpCamera.start();
 
-}
 
-
-/* ==================================================
-   LANDMARK CONVERSION
-================================================== */
-
-function landmarkPoint(lm){
-
-    /*
-       IMPORTANT:
-
-       Front camera is mirrored.
-
-       Therefore X is intentionally
-       reversed here.
-
-       This fixes the previous
-       left/right inversion.
-    */
-
-    let x;
-
-
-    if(cameraFacing === "user"){
-
-        x =
-        0.5 - lm.x;
-
-    }
-    else{
-
-        x =
-        lm.x - 0.5;
-
-    }
-
-
-    return new THREE.Vector3(
-
-        x,
-
-        0.5 - lm.y,
-
-        -lm.z
-
-    );
+    status.innerText =
+        "Face Tracking Ready";
 
 }
 
 
-/* ==================================================
-   FACE RESULTS
-================================================== */
+/* ==============================
+   FACE LANDMARK PROCESSING
+============================== */
 
-function onFaceResults(results){
+function processFace(results) {
 
-    if(
+    if (
         !results.multiFaceLandmarks ||
         results.multiFaceLandmarks.length === 0
-    ){
+    ) {
 
-        statusBox.innerText =
-        "FACE NOT DETECTED";
+        poseStarted = false;
 
+        if (!importedModel) {
 
-        faceOccluder.visible =
-        false;
+            status.innerText =
+                "Show Your Face";
 
+        }
 
         return;
 
     }
 
 
-    const lm =
-    results.multiFaceLandmarks[0];
-
-
-    /*
-       IMPORTANT FACE POINTS
-    */
-
-    const leftCheek =
-    landmarkPoint(
-        lm[234]
-    );
-
-
-    const rightCheek =
-    landmarkPoint(
-        lm[454]
-    );
+    const landmarks =
+        results.multiFaceLandmarks[0];
 
 
     const forehead =
-    landmarkPoint(
-        lm[10]
-    );
-
+        landmarks[10];
 
     const chin =
-    landmarkPoint(
-        lm[152]
-    );
+        landmarks[152];
 
+    const leftCheek =
+        landmarks[234];
+
+    const rightCheek =
+        landmarks[454];
 
     const nose =
-    landmarkPoint(
-        lm[1]
-    );
+        landmarks[1];
 
 
-    /* ==================================================
-       HEAD CENTER
-    ================================================== */
+    const leftX =
+        1 - leftCheek.x;
 
-    const horizontalCenter =
-    leftCheek.clone()
-    .add(rightCheek)
-    .multiplyScalar(.5);
+    const rightX =
+        1 - rightCheek.x;
 
+    const foreheadX =
+        1 - forehead.x;
 
-    const verticalCenter =
-    forehead.clone()
-    .add(chin)
-    .multiplyScalar(.5);
+    const chinX =
+        1 - chin.x;
 
-
-    const headCenter =
-    horizontalCenter.clone()
-    .add(verticalCenter)
-    .multiplyScalar(.5);
+    const noseX =
+        1 - nose.x;
 
 
-    /* ==================================================
-       HEAD AXES
-    ================================================== */
+    const centerX =
+        (leftX + rightX) * 0.5;
 
-    /*
-       X = left → right
-    */
-
-    let xAxis =
-    rightCheek.clone()
-    .sub(leftCheek)
-    .normalize();
+    const centerY =
+        (forehead.y + chin.y) * 0.5;
 
 
-    /*
-       Y = chin → forehead
-    */
+    const faceWidth =
+        Math.abs(
+            rightX - leftX
+        );
 
-    let yAxis =
-    forehead.clone()
-    .sub(chin)
-    .normalize();
-
-
-    /*
-       Z = face normal
-    */
-
-    let zAxis =
-    xAxis.clone()
-    .cross(yAxis)
-    .normalize();
+    const faceHeight =
+        Math.abs(
+            chin.y - forehead.y
+        );
 
 
-    /*
-       Make Z point toward nose.
-    */
+    if (faceWidth < 0.02) {
 
-    const noseDirection =
-    nose.clone()
-    .sub(headCenter);
+        return;
+
+    }
 
 
-    if(
+    const targetX =
+        (centerX - 0.5) * 2.2;
+
+    const targetY =
+        -(centerY - 0.5) * 1.65;
+
+
+    const targetScale =
+        THREE.MathUtils.clamp(
+
+            faceWidth * 3.2,
+
+            0.45,
+
+            2.2
+
+        );
+
+
+    const leftPoint =
+        new THREE.Vector3(
+
+            leftX,
+            -leftCheek.y,
+            leftCheek.z
+
+        );
+
+
+    const rightPoint =
+        new THREE.Vector3(
+
+            rightX,
+            -rightCheek.y,
+            rightCheek.z
+
+        );
+
+
+    const topPoint =
+        new THREE.Vector3(
+
+            foreheadX,
+            -forehead.y,
+            forehead.z
+
+        );
+
+
+    const bottomPoint =
+        new THREE.Vector3(
+
+            chinX,
+            -chin.y,
+            chin.z
+
+        );
+
+
+    const nosePoint =
+        new THREE.Vector3(
+
+            noseX,
+            -nose.y,
+            nose.z
+
+        );
+
+
+    const xAxis =
+        new THREE.Vector3()
+            .subVectors(
+                rightPoint,
+                leftPoint
+            )
+            .normalize();
+
+
+    const yAxis =
+        new THREE.Vector3()
+            .subVectors(
+                topPoint,
+                bottomPoint
+            )
+            .normalize();
+
+
+    const zAxis =
+        new THREE.Vector3()
+            .crossVectors(
+                xAxis,
+                yAxis
+            )
+            .normalize();
+
+
+    const faceCenter =
+        new THREE.Vector3()
+            .addVectors(
+                leftPoint,
+                rightPoint
+            )
+            .multiplyScalar(0.5);
+
+
+    const faceDirection =
+        new THREE.Vector3()
+            .subVectors(
+                nosePoint,
+                faceCenter
+            )
+            .normalize();
+
+
+    if (
         zAxis.dot(
-            noseDirection
+            faceDirection
         ) < 0
-    ){
+    ) {
 
         zAxis.negate();
 
     }
 
 
-    /*
-       Rebuild X so the three axes
-       stay perpendicular.
-    */
+    yAxis
+        .crossVectors(
+            zAxis,
+            xAxis
+        )
+        .normalize();
 
-    xAxis =
-    yAxis.clone()
-    .cross(zAxis)
-    .normalize();
-
-
-    /*
-       Restore correct left/right
-       direction.
-    */
-
-    if(
-        xAxis.dot(
-            rightCheek.clone()
-            .sub(leftCheek)
-        ) < 0
-    ){
-
-        xAxis.negate();
-
-    }
-
-
-    yAxis =
-    zAxis.clone()
-    .cross(xAxis)
-    .normalize();
-
-
-    /* ==================================================
-       ROTATION
-    ================================================== */
 
     const rotationMatrix =
-    new THREE.Matrix4();
+        new THREE.Matrix4();
 
 
     rotationMatrix.makeBasis(
 
         xAxis,
-
         yAxis,
-
         zAxis
 
     );
 
 
     const targetQuaternion =
-    new THREE.Quaternion();
+        new THREE.Quaternion();
 
 
-    targetQuaternion.setFromRotationMatrix(
-        rotationMatrix
-    );
-
-
-    /* ==================================================
-       FACE SIZE
-    ================================================== */
-
-    const faceWidth =
-    leftCheek.distanceTo(
-        rightCheek
-    );
-
-
-    const faceHeight =
-    forehead.distanceTo(
-        chin
-    );
-
-
-    /* ==================================================
-       POSITION
-    ================================================== */
-
-    const targetX =
-    headCenter.x * 3.2;
-
-
-    const targetY =
-    headCenter.y * 2.6;
-
-
-    const targetZ =
-    depthValue * .35;
+    targetQuaternion
+        .setFromRotationMatrix(
+            rotationMatrix
+        );
 
 
     const targetPosition =
-    new THREE.Vector3(
+        new THREE.Vector3(
 
-        targetX,
+            targetX,
 
-        targetY +
-        upValue * .35,
+            targetY +
+            heightValue,
 
-        targetZ
+            depthValue
 
-    );
+        );
 
-
-    /* ==================================================
-       MODEL SCALE
-    ================================================== */
-
-    let targetScale =
-    faceWidth * 3.0;
-
-
-    targetScale *=
-    sizeValue;
-
-
-    targetScale =
-    THREE.MathUtils.clamp(
-
-        targetScale,
-
-        .15,
-
-        4
-
-    );
-
-
-    /* ==================================================
-       SMOOTHING
-    ================================================== */
 
     smoothPosition.lerp(
 
         targetPosition,
 
-        .30
+        0.35
 
     );
 
 
-    if(!poseStarted){
+    smoothQuaternion.slerp(
 
-        smoothQuaternion.copy(
-            targetQuaternion
-        );
+        targetQuaternion,
 
-        poseStarted =
-        true;
+        0.35
 
-    }
-    else{
+    );
 
-        smoothQuaternion.slerp(
 
-            targetQuaternion,
-
-            .28
-
-        );
-
-    }
+    const finalScale =
+        targetScale *
+        modelSize;
 
 
     smoothScale +=
-    (
-        targetScale -
-        smoothScale
-    ) * .25;
+        (
+            finalScale -
+            smoothScale
+        ) * 0.25;
 
-
-    /* ==================================================
-       APPLY HEAD TRANSFORM
-    ================================================== */
 
     headGroup.position.copy(
         smoothPosition
@@ -1054,1040 +1027,1596 @@ function onFaceResults(results){
     );
 
 
-    /* ==================================================
-       FACE OCCLUSION
-    ================================================== */
+    if (faceOccluder) {
 
-    updateFaceOccluder(
-
-        faceWidth,
-
-        faceHeight,
-
-        smoothQuaternion
-
-    );
+        faceOccluder.visible =
+            true;
 
 
-    statusBox.innerText =
-    "FACE TRACKING ON";
-
-}
-
-
-/* ==================================================
-   OCCLUDER UPDATE
-================================================== */
-
-function updateFaceOccluder(
-
-    faceWidth,
-
-    faceHeight,
-
-    quaternion
-
-){
-
-    faceOccluder.visible =
-    true;
+        faceOccluder.position.copy(
+            smoothPosition
+        );
 
 
-    faceOccluder.position.copy(
-        smoothPosition
-    );
+        faceOccluder.quaternion.copy(
+            smoothQuaternion
+        );
 
 
-    faceOccluder.quaternion.copy(
-        quaternion
-    );
+        const occluderWidth =
+            faceWidth * 3.0;
 
 
-    faceOccluder.scale.set(
-
-        faceWidth * 2.0,
-
-        faceHeight * 1.45,
-
-        faceWidth * 1.25
-
-    );
-
-}
+        const occluderHeight =
+            faceHeight * 2.8;
 
 
-/* ==================================================
-   RENDER LOOP
-================================================== */
+        faceOccluder.scale.set(
 
-function renderLoop(){
+            occluderWidth,
 
-    requestAnimationFrame(
-        renderLoop
-    );
+            occluderHeight,
 
-
-    if(renderer){
-
-        renderer.render(
-
-            scene,
-
-            camera3D
+            occluderWidth * 0.8
 
         );
 
     }
 
-}<script>
 
-/* ==================================================
-   MODEL MATERIAL
-================================================== */
+    poseStarted = true;
 
-function prepareMaterial(material){
 
-    if(!material)
-        return;
+    if (importedModel) {
 
-    material.side =
-    THREE.DoubleSide;
+        status.innerText =
+            "3D Tracking Active";
 
-    material.depthTest =
-    true;
-
-    material.depthWrite =
-    true;
-
-    material.needsUpdate =
-    true;
+    }
 
 }
 
 
-/* ==================================================
-   PREPARE MODEL
-================================================== */
+/* ==============================
+   MODEL FILE INPUT
+============================== */
 
-function prepareModel(object){
+modelFile.addEventListener(
 
-    if(!object)
-        return;
+    "change",
+
+    function(event) {
+
+        const file =
+            event.target.files[0];
+
+        if (!file) {
+            return;
+        }
+
+        loadLocalModel(file);
+
+    }
+
+);
 
 
-    /* REMOVE PREVIOUS MODEL */
+/* ==============================
+   LOCAL MODEL LOADING
+============================== */
 
-    if(importedModel){
+function loadLocalModel(file) {
+
+    const fileName =
+        file.name.toLowerCase();
+
+
+    const objectURL =
+        URL.createObjectURL(file);
+
+
+    status.innerText =
+        "Loading 3D Model...";
+
+
+    if (importedModel) {
 
         headGroup.remove(
             importedModel
         );
 
-        importedModel =
-        null;
 
-    }
+        importedModel.traverse(
 
+            function(child) {
 
-    importedModel =
-    object;
+                if (child.geometry) {
 
-
-    /* ==================================================
-       PREPARE ALL MESHES
-    ================================================== */
-
-    importedModel.traverse(
-
-        function(child){
-
-            if(!child.isMesh)
-                return;
-
-
-            if(child.material){
-
-                if(
-                    Array.isArray(
-                        child.material
-                    )
-                ){
-
-                    child.material.forEach(
-                        prepareMaterial
-                    );
+                    child.geometry.dispose();
 
                 }
-                else{
 
-                    prepareMaterial(
-                        child.material
-                    );
+
+                if (child.material) {
+
+                    if (
+                        Array.isArray(
+                            child.material
+                        )
+                    ) {
+
+                        child.material.forEach(
+                            disposeMaterial
+                        );
+
+                    } else {
+
+                        disposeMaterial(
+                            child.material
+                        );
+
+                    }
 
                 }
 
             }
 
+        );
 
-            /*
-               Model renders after
-               invisible face occluder.
-            */
 
-            child.renderOrder =
-            1;
+        importedModel =
+            null;
 
-        }
+    }
 
+
+    if (
+        fileName.endsWith(".glb") ||
+        fileName.endsWith(".gltf")
+    ) {
+
+        const loader =
+            new THREE.GLTFLoader();
+
+
+        loader.load(
+
+            objectURL,
+
+            function(gltf) {
+
+                prepareImportedModel(
+                    gltf.scene
+                );
+
+                URL.revokeObjectURL(
+                    objectURL
+                );
+
+            },
+
+            undefined,
+
+            function(error) {
+
+                console.error(
+                    error
+                );
+
+                status.innerText =
+                    "GLTF Load Failed";
+
+                URL.revokeObjectURL(
+                    objectURL
+                );
+
+            }
+
+        );
+
+        return;
+
+    }
+
+
+    if (
+        fileName.endsWith(".obj")
+    ) {
+
+        const loader =
+            new THREE.OBJLoader();
+
+
+        loader.load(
+
+            objectURL,
+
+            function(object) {
+
+                prepareImportedModel(
+                    object
+                );
+
+                URL.revokeObjectURL(
+                    objectURL
+                );
+
+            },
+
+            undefined,
+
+            function(error) {
+
+                console.error(
+                    error
+                );
+
+                status.innerText =
+                    "OBJ Load Failed";
+
+                URL.revokeObjectURL(
+                    objectURL
+                );
+
+            }
+
+        );
+
+        return;
+
+    }
+
+
+    if (
+        fileName.endsWith(".fbx")
+    ) {
+
+        const loader =
+            new THREE.FBXLoader();
+
+
+        loader.load(
+
+            objectURL,
+
+            function(object) {
+
+                prepareImportedModel(
+                    object
+                );
+
+                URL.revokeObjectURL(
+                    objectURL
+                );
+
+            },
+
+            undefined,
+
+            function(error) {
+
+                console.error(
+                    error
+                );
+
+                status.innerText =
+                    "FBX Load Failed";
+
+                URL.revokeObjectURL(
+                    objectURL
+                );
+
+            }
+
+        );
+
+        return;
+
+    }
+
+
+    URL.revokeObjectURL(
+        objectURL
     );
 
 
-    /* ==================================================
-       GET MODEL BOUNDING BOX
-    ================================================== */
+    status.innerText =
+        "Unsupported 3D Model";
 
-    let box =
-    new THREE.Box3()
-    .setFromObject(
-        importedModel
+}
+
+
+/* ==============================
+   MODEL PREPARATION
+============================== */
+
+function prepareImportedModel(model) {
+
+    if (!model) {
+        return;
+    }
+
+
+    importedModel =
+        model;
+
+
+    const box =
+        new THREE.Box3()
+            .setFromObject(
+                importedModel
+            );
+
+
+    const size =
+        new THREE.Vector3();
+
+
+    const center =
+        new THREE.Vector3();
+
+
+    box.getSize(size);
+
+    box.getCenter(center);
+
+
+    importedModel.position.sub(
+        center
     );
 
 
-    const modelSize =
-    box.getSize(
-        new THREE.Vector3()
-    );
+    const maxDimension =
+        Math.max(
+            size.x,
+            size.y,
+            size.z
+        );
 
 
-    const maxSize =
-    Math.max(
-
-        modelSize.x,
-
-        modelSize.y,
-
-        modelSize.z
-
-    );
-
-
-    /* ==================================================
-       NORMALIZE MODEL
-    ================================================== */
-
-    if(maxSize > 0){
+    if (maxDimension > 0) {
 
         importedModel.scale.setScalar(
-
-            1.8 /
-            maxSize
-
+            1.8 / maxDimension
         );
 
     }
 
 
-    /* ==================================================
-       CENTER MODEL
-    ================================================== */
+    importedModel.traverse(
 
-    box =
-    new THREE.Box3()
-    .setFromObject(
-        importedModel
+        function(child) {
+
+            if (child.isMesh) {
+
+                child.frustumCulled =
+                    false;
+
+                child.renderOrder =
+                    1;
+
+
+                if (child.material) {
+
+                    if (
+                        Array.isArray(
+                            child.material
+                        )
+                    ) {
+
+                        child.material.forEach(
+
+                            function(material) {
+
+                                material.depthTest =
+                                    true;
+
+                                material.depthWrite =
+                                    true;
+
+                                material.side =
+                                    THREE.DoubleSide;
+
+                            }
+
+                        );
+
+                    } else {
+
+                        child.material.depthTest =
+                            true;
+
+                        child.material.depthWrite =
+                            true;
+
+                        child.material.side =
+                            THREE.DoubleSide;
+
+                    }
+
+                }
+
+            }
+
+        }
+
     );
 
-
-    const center =
-    box.getCenter(
-        new THREE.Vector3()
-    );
-
-
-    /*
-       Put the geometric center of
-       the imported 3D mesh at the
-       head tracking origin.
-    */
-
-    importedModel.position.x -=
-    center.x;
-
-
-    importedModel.position.y -=
-    center.y;
-
-
-    importedModel.position.z -=
-    center.z;
-
-
-    /*
-       Small correction so the
-       model does not sit too low.
-    */
-
-    importedModel.position.y +=
-    .02;
-
-
-    /* ==================================================
-       ADD MODEL TO HEAD
-    ================================================== */
 
     headGroup.add(
         importedModel
     );
 
 
-    /* RESET TRACKING */
+    importedModel.visible =
+        true;
+
+
+    status.innerText =
+        "3D Model Loaded";
+
 
     poseStarted =
-    false;
-
-
-    smoothPosition.set(
-        0,
-        0,
-        0
-    );
-
-
-    smoothQuaternion.identity();
-
-
-    smoothScale =
-    1;
-
-
-    statusBox.innerText =
-    "3D MODEL READY";
+        false;
 
 }
 
 
-/* ==================================================
-   GLB / GLTF
-================================================== */
+/* ==============================
+   MATERIAL CLEANUP
+============================== */
 
-function loadGLTF(file){
+function disposeMaterial(material) {
 
-    statusBox.innerText =
-    "LOADING GLB / GLTF...";
-
-
-    const loader =
-    new THREE.GLTFLoader();
+    if (!material) {
+        return;
+    }
 
 
-    const reader =
-    new FileReader();
+    if (material.map) {
+        material.map.dispose();
+    }
 
 
-    reader.onload =
-    function(event){
-
-        try{
-
-            loader.parse(
-
-                event.target.result,
-
-                "",
-
-                function(gltf){
-
-                    if(
-                        gltf &&
-                        gltf.scene
-                    ){
-
-                        prepareModel(
-                            gltf.scene
-                        );
-
-                    }
-                    else{
-
-                        statusBox.innerText =
-                        "INVALID GLTF MODEL";
-
-                    }
-
-                },
-
-                function(error){
-
-                    console.error(
-                        error
-                    );
-
-                    statusBox.innerText =
-                    "GLTF LOAD ERROR";
-
-                }
-
-            );
-
-        }
-        catch(error){
-
-            console.error(
-                error
-            );
-
-            statusBox.innerText =
-            "MODEL ERROR";
-
-        }
-
-    };
+    if (material.normalMap) {
+        material.normalMap.dispose();
+    }
 
 
-    reader.readAsArrayBuffer(
-        file
-    );
+    if (material.roughnessMap) {
+        material.roughnessMap.dispose();
+    }
+
+
+    if (material.metalnessMap) {
+        material.metalnessMap.dispose();
+    }
+
+
+    if (material.emissiveMap) {
+        material.emissiveMap.dispose();
+    }
+
+
+    material.dispose();
 
 }
 
 
-/* ==================================================
-   OBJ
-================================================== */
+/* ==============================
+   CONTROL EVENTS
+============================== */
 
-function loadOBJ(file){
+sizeSlider.addEventListener(
 
-    statusBox.innerText =
-    "LOADING OBJ...";
+    "input",
 
+    function() {
 
-    const loader =
-    new THREE.OBJLoader();
-
-
-    const reader =
-    new FileReader();
-
-
-    reader.onload =
-    function(event){
-
-        try{
-
-            const object =
-            loader.parse(
-                event.target.result
+        modelSize =
+            parseFloat(
+                sizeSlider.value
             );
-
-
-            prepareModel(
-                object
-            );
-
-        }
-        catch(error){
-
-            console.error(
-                error
-            );
-
-            statusBox.innerText =
-            "OBJ LOAD ERROR";
-
-        }
-
-    };
-
-
-    reader.readAsText(
-        file
-    );
-
-}
-
-
-/* ==================================================
-   FBX
-================================================== */
-
-function loadFBX(file){
-
-    statusBox.innerText =
-    "LOADING FBX...";
-
-
-    const loader =
-    new THREE.FBXLoader();
-
-
-    const reader =
-    new FileReader();
-
-
-    reader.onload =
-    function(event){
-
-        try{
-
-            const object =
-            loader.parse(
-
-                event.target.result,
-
-                ""
-
-            );
-
-
-            prepareModel(
-                object
-            );
-
-        }
-        catch(error){
-
-            console.error(
-                error
-            );
-
-            statusBox.innerText =
-            "FBX LOAD ERROR";
-
-        }
-
-    };
-
-
-    reader.readAsArrayBuffer(
-        file
-    );
-
-}
-
-
-/* ==================================================
-   MODEL FILE INPUT
-================================================== */
-
-document
-.getElementById(
-    "modelInput"
-)
-.addEventListener(
-
-    "change",
-
-    function(event){
-
-        const file =
-        event.target.files[0];
-
-
-        if(!file)
-            return;
-
-
-        const name =
-        file.name.toLowerCase();
-
-
-        if(
-            name.endsWith(".glb") ||
-            name.endsWith(".gltf")
-        ){
-
-            loadGLTF(
-                file
-            );
-
-            return;
-
-        }
-
-
-        if(
-            name.endsWith(".obj")
-        ){
-
-            loadOBJ(
-                file
-            );
-
-            return;
-
-        }
-
-
-        if(
-            name.endsWith(".fbx")
-        ){
-
-            loadFBX(
-                file
-            );
-
-            return;
-
-        }
-
-
-        statusBox.innerText =
-        "UNSUPPORTED 3D FORMAT";
 
     }
 
 );
 
 
-/* ==================================================
-   SIZE CONTROL
-================================================== */
-
-document
-.getElementById(
-    "sizeSlider"
-)
-.addEventListener(
+heightSlider.addEventListener(
 
     "input",
 
-    function(){
+    function() {
 
-        sizeValue =
-        parseFloat(
-            this.value
-        );
+        heightValue =
+            parseFloat(
+                heightSlider.value
+            );
 
     }
 
 );
 
 
-/* ==================================================
-   UP / DOWN
-================================================== */
-
-document
-.getElementById(
-    "upSlider"
-)
-.addEventListener(
+depthSlider.addEventListener(
 
     "input",
 
-    function(){
-
-        upValue =
-        parseFloat(
-            this.value
-        );
-
-    }
-
-);
-
-
-/* ==================================================
-   DEPTH
-================================================== */
-
-document
-.getElementById(
-    "depthSlider"
-)
-.addEventListener(
-
-    "input",
-
-    function(){
+    function() {
 
         depthValue =
-        parseFloat(
-            this.value
-        );
+            parseFloat(
+                depthSlider.value
+            );
 
     }
 
-);
+);/* ==============================
+   RECORDING CANVAS
+============================== */
 
+function initializeRecordingCanvas() {
 
-/* ==================================================
-   RESET
-================================================== */
+    recordCanvas =
+        document.createElement("canvas");
 
-function resetAR(){
-
-    sizeValue =
-    1;
-
-    upValue =
-    0;
-
-    depthValue =
-    0;
-
-
-    document.getElementById(
-        "sizeSlider"
-    ).value =
-    "1";
-
-
-    document.getElementById(
-        "upSlider"
-    ).value =
-    "0";
-
-
-    document.getElementById(
-        "depthSlider"
-    ).value =
-    "0";
-
-
-    poseStarted =
-    false;
-
-
-    smoothPosition.set(
-        0,
-        0,
-        0
-    );
-
-
-    smoothQuaternion.identity();
-
-
-    smoothScale =
-    1;
-
-
-    headGroup.position.set(
-        0,
-        0,
-        0
-    );
-
-
-    headGroup.quaternion.identity();
-
-
-    headGroup.scale.set(
-        1,
-        1,
-        1
-    );
-
-
-    statusBox.innerText =
-    "RESET";
+    recordContext =
+        recordCanvas.getContext("2d");
 
 }
 
 
-/* ==================================================
-   CAMERA FLIP
-================================================== */
+/* ==============================
+   UPDATE RECORDING FRAME
+============================== */
 
-async function flipCamera(){
+function updateRecordCanvas() {
 
-    try{
+    if (
+        !recordCanvas ||
+        !recordContext
+    ) {
 
-        if(video.srcObject){
+        return;
 
-            const tracks =
-            video.srcObject
-            .getTracks();
+    }
 
 
-            tracks.forEach(
-                function(track){
+    const width =
+        video.videoWidth ||
+        window.innerWidth;
 
-                    track.stop();
 
-                }
+    const height =
+        video.videoHeight ||
+        window.innerHeight;
+
+
+    if (
+        recordCanvas.width !== width ||
+        recordCanvas.height !== height
+    ) {
+
+        recordCanvas.width =
+            width;
+
+        recordCanvas.height =
+            height;
+
+    }
+
+
+    recordContext.clearRect(
+
+        0,
+        0,
+        width,
+        height
+
+    );
+
+
+    if (
+        cameraFacing === "user"
+    ) {
+
+        recordContext.save();
+
+
+        recordContext.translate(
+            width,
+            0
+        );
+
+
+        recordContext.scale(
+            -1,
+            1
+        );
+
+
+        recordContext.drawImage(
+
+            video,
+
+            0,
+            0,
+            width,
+            height
+
+        );
+
+
+        recordContext.restore();
+
+    } else {
+
+        recordContext.drawImage(
+
+            video,
+
+            0,
+            0,
+            width,
+            height
+
+        );
+
+    }
+
+
+    recordContext.drawImage(
+
+        canvas,
+
+        0,
+        0,
+        width,
+        height
+
+    );
+
+
+    if (isRecording) {
+
+        recordAnimationId =
+            requestAnimationFrame(
+                updateRecordCanvas
             );
+
+    }
+
+}
+
+
+/* ==============================
+   START RECORDING
+============================== */
+
+async function startRecording() {
+
+    if (isRecording) {
+        return;
+    }
+
+
+    if (!window.MediaRecorder) {
+
+        alert(
+            "Video recording is not supported."
+        );
+
+        return;
+
+    }
+
+
+    if (!video.srcObject) {
+
+        alert(
+            "Camera is not ready."
+        );
+
+        return;
+
+    }
+
+
+    try {
+
+        if (!recordCanvas) {
+
+            initializeRecordingCanvas();
 
         }
 
 
-        cameraFacing =
-        cameraFacing === "user"
-        ? "environment"
-        : "user";
+        recordedChunks = [];
+
+
+        isRecording = true;
+
+
+        updateRecordCanvas();
 
 
         const stream =
-        await navigator
-        .mediaDevices
-        .getUserMedia({
+            recordCanvas.captureStream(30);
 
-            video:{
 
-                facingMode:{
-                    ideal:
-                    cameraFacing
-                },
+        const audioTracks =
+            video.srcObject
+                .getAudioTracks();
 
-                width:{
-                    ideal:1280
-                },
 
-                height:{
-                    ideal:720
+        audioTracks.forEach(
+
+            function(track) {
+
+                stream.addTrack(
+                    track
+                );
+
+            }
+
+        );
+
+
+        let mimeType = "";
+
+
+        if (
+            MediaRecorder.isTypeSupported(
+                "video/webm;codecs=vp9"
+            )
+        ) {
+
+            mimeType =
+                "video/webm;codecs=vp9";
+
+        } else if (
+            MediaRecorder.isTypeSupported(
+                "video/webm;codecs=vp8"
+            )
+        ) {
+
+            mimeType =
+                "video/webm;codecs=vp8";
+
+        } else if (
+            MediaRecorder.isTypeSupported(
+                "video/webm"
+            )
+        ) {
+
+            mimeType =
+                "video/webm";
+
+        }
+
+
+        if (mimeType) {
+
+            mediaRecorder =
+                new MediaRecorder(
+
+                    stream,
+
+                    {
+                        mimeType:
+                            mimeType
+                    }
+
+                );
+
+        } else {
+
+            mediaRecorder =
+                new MediaRecorder(
+                    stream
+                );
+
+        }
+
+
+        mediaRecorder.ondataavailable =
+            function(event) {
+
+                if (
+                    event.data &&
+                    event.data.size > 0
+                ) {
+
+                    recordedChunks.push(
+                        event.data
+                    );
+
                 }
 
-            },
-
-            audio:false
-
-        });
+            };
 
 
-        video.srcObject =
-        stream;
+        mediaRecorder.onstop =
+            function() {
+
+                finishRecording();
+
+            };
 
 
-        /*
-           Selfie camera is mirrored.
-           Rear camera is not.
-        */
+        mediaRecorder.onerror =
+            function(event) {
 
-        if(
-            cameraFacing === "user"
-        ){
+                console.error(
+                    "Recording Error:",
+                    event
+                );
 
-            video.style.transform =
-            "scaleX(-1)";
+                isRecording = false;
 
-        }
-        else{
+                recordButton.innerText =
+                    "Record";
 
-            video.style.transform =
-            "scaleX(1)";
+                recordButton.classList.remove(
+                    "recording"
+                );
 
-        }
-
-
-        await video.play();
+            };
 
 
-        statusBox.innerText =
-        "CAMERA SWITCHED";
+        mediaRecorder.start(200);
+
+
+        recordButton.innerText =
+            "Stop Recording";
+
+
+        recordButton.classList.add(
+            "recording"
+        );
+
+
+        status.innerText =
+            "Recording...";
 
     }
-    catch(error){
+    catch (error) {
 
         console.error(
+            "Recording Error:",
             error
         );
 
 
-        statusBox.innerText =
-        "CAMERA SWITCH ERROR";
+        isRecording = false;
+
+
+        recordButton.innerText =
+            "Record";
+
+
+        recordButton.classList.remove(
+            "recording"
+        );
+
+
+        status.innerText =
+            "Recording Failed";
 
     }
 
 }
 
 
-/* ==================================================
-   SNAPSHOT
-================================================== */
+/* ==============================
+   STOP RECORDING
+============================== */
 
-function takeSnapshot(){
+function stopRecording() {
 
-    if(!renderer)
+    if (!isRecording) {
+        return;
+    }
+
+
+    isRecording = false;
+
+
+    if (recordAnimationId) {
+
+        cancelAnimationFrame(
+            recordAnimationId
+        );
+
+        recordAnimationId =
+            null;
+
+    }
+
+
+    if (
+        mediaRecorder &&
+        mediaRecorder.state !== "inactive"
+    ) {
+
+        mediaRecorder.stop();
+
+    }
+
+
+    recordButton.innerText =
+        "Record";
+
+
+    recordButton.classList.remove(
+        "recording"
+    );
+
+
+    status.innerText =
+        "Processing Video...";
+
+}
+
+
+/* ==============================
+   FINISH RECORDING
+============================== */
+
+function finishRecording() {
+
+    if (
+        recordedChunks.length === 0
+    ) {
+
+        status.innerText =
+            "No Video Recorded";
+
         return;
 
+    }
 
-    try{
 
-        const image =
-        canvas.toDataURL(
-            "image/png"
+    const blob =
+        new Blob(
+
+            recordedChunks,
+
+            {
+                type: "video/webm"
+            }
+
         );
 
 
-        const link =
+    const url =
+        URL.createObjectURL(
+            blob
+        );
+
+
+    const link =
         document.createElement(
             "a"
         );
 
 
-        link.href =
-        image;
+    link.href =
+        url;
 
 
-        link.download =
-        "azeez-ar.png";
+    link.download =
+        "Azeez-AR-" +
+        Date.now() +
+        ".webm";
 
 
-        link.click();
+    document.body.appendChild(
+        link
+    );
 
-    }
-    catch(error){
 
-        console.error(
-            error
-        );
+    link.click();
 
-    }
+
+    link.remove();
+
+
+    setTimeout(
+
+        function() {
+
+            URL.revokeObjectURL(
+                url
+            );
+
+        },
+
+        2000
+
+    );
+
+
+    recordedChunks = [];
+
+
+    status.innerText =
+        "Video Saved";
 
 }
 
 
-/* ==================================================
-   CAMERA START
-================================================== */
+/* ==============================
+   RECORD BUTTON
+============================== */
 
-async function startCamera(){
+recordButton.addEventListener(
 
-    try{
+    "click",
 
-        cameraFacing =
-        "user";
+    function() {
+
+        if (isRecording) {
+
+            stopRecording();
+
+        } else {
+
+            startRecording();
+
+        }
+
+    }
+
+);
 
 
-        const stream =
-        await navigator
-        .mediaDevices
-        .getUserMedia({
+/* ==============================
+   CAMERA FLIP
+============================== */
 
-            video:{
+flipButton.addEventListener(
 
-                facingMode:{
-                    ideal:"user"
-                },
+    "click",
 
-                width:{
-                    ideal:1280
-                },
+    async function() {
 
-                height:{
-                    ideal:720
-                },
+        const nextFacing =
+            cameraFacing === "user"
+            ? "environment"
+            : "user";
 
-                frameRate:{
-                    ideal:30
+
+        try {
+
+            if (video.srcObject) {
+
+                video.srcObject
+                    .getTracks()
+                    .forEach(
+
+                        function(track) {
+
+                            track.stop();
+
+                        }
+
+                    );
+
+            }
+
+
+            let stream;
+
+
+            try {
+
+                stream =
+                    await navigator
+                        .mediaDevices
+                        .getUserMedia({
+
+                            video: {
+
+                                facingMode: {
+                                    exact:
+                                        nextFacing
+                                },
+
+                                width: {
+                                    ideal: 1280
+                                },
+
+                                height: {
+                                    ideal: 720
+                                }
+
+                            },
+
+                            audio: true
+
+                        });
+
+            }
+            catch (firstError) {
+
+                stream =
+                    await navigator
+                        .mediaDevices
+                        .getUserMedia({
+
+                            video: {
+
+                                facingMode: {
+                                    ideal:
+                                        nextFacing
+                                }
+
+                            },
+
+                            audio: true
+
+                        });
+
+            }
+
+
+            video.srcObject =
+                stream;
+
+
+            cameraFacing =
+                nextFacing;
+
+
+            video.style.transform =
+                cameraFacing === "user"
+                ? "scaleX(-1)"
+                : "scaleX(1)";
+
+
+            await video.play();
+
+
+            status.innerText =
+                "Camera Ready";
+
+        }
+        catch (error) {
+
+            console.error(
+                "Camera Flip Error:",
+                error
+            );
+
+
+            status.innerText =
+                "Camera Flip Failed";
+
+        }
+
+    }
+
+);
+
+
+/* ==============================
+   RESET CONTROLS
+============================== */
+
+resetButton.addEventListener(
+
+    "click",
+
+    function() {
+
+        sizeSlider.value =
+            "1";
+
+
+        heightSlider.value =
+            "0";
+
+
+        depthSlider.value =
+            "0";
+
+
+        modelSize =
+            1;
+
+
+        heightValue =
+            0;
+
+
+        depthValue =
+            0;
+
+
+        smoothPosition.set(
+            0,
+            0,
+            0
+        );
+
+
+        smoothQuaternion.identity();
+
+
+        smoothScale =
+            1;
+
+
+        if (headGroup) {
+
+            headGroup.position.set(
+                0,
+                0,
+                0
+            );
+
+
+            headGroup.rotation.set(
+                0,
+                0,
+                0
+            );
+
+
+            headGroup.scale.set(
+                1,
+                1,
+                1
+            );
+
+        }
+
+
+        status.innerText =
+            importedModel
+            ? "Model Reset"
+            : "Ready";
+
+    }
+
+);
+
+
+/* ==============================
+   PAGE VISIBILITY
+============================== */
+
+document.addEventListener(
+
+    "visibilitychange",
+
+    async function() {
+
+        if (
+            document.visibilityState ===
+            "visible"
+        ) {
+
+            if (
+                video.srcObject &&
+                video.paused
+            ) {
+
+                try {
+
+                    await video.play();
+
+                }
+                catch (error) {
+
+                    console.error(
+                        "Video Resume Error:",
+                        error
+                    );
+
                 }
 
-            },
+            }
 
-            audio:false
-
-        });
-
-
-        video.srcObject =
-        stream;
-
-
-        video.style.transform =
-        "scaleX(-1)";
-
-
-        await video.play();
-
-
-        statusBox.innerText =
-        "CAMERA READY";
+        }
 
     }
-    catch(error){
 
-        console.error(
-            error
+);async function startApplication() {
+    initializeThree();
+
+    if (!cameraSupported()) {
+        status.innerText = "Camera Not Supported";
+        cameraError.style.display = "block";
+        return;
+    }
+
+    const cameraStarted = await startCamera();
+
+    if (!cameraStarted) {
+        return;
+    }
+
+    initializeRecordingCanvas();
+    initializeFaceTracking();
+
+    status.innerText = "Face Tracking Active";
+}
+
+function stopCameraTracks() {
+    if (!video.srcObject) {
+        return;
+    }
+
+    const tracks = video.srcObject.getTracks();
+
+    tracks.forEach(function(track) {
+        track.stop();
+    });
+
+    video.srcObject = null;
+}
+
+function cleanupThreeObject(object) {
+    if (!object) {
+        return;
+    }
+
+    object.traverse(function(child) {
+        if (!child.isMesh) {
+            return;
+        }
+
+        if (child.geometry) {
+            child.geometry.dispose();
+        }
+
+        if (Array.isArray(child.material)) {
+            child.material.forEach(function(material) {
+                disposeMaterial(material);
+            });
+        } else if (child.material) {
+            disposeMaterial(child.material);
+        }
+    });
+}
+
+function resetTrackingState() {
+    poseStarted = false;
+
+    smoothPosition.set(0, 0, 0);
+    smoothQuaternion.identity();
+    smoothScale = 1;
+
+    if (headGroup) {
+        headGroup.position.set(0, 0, 0);
+        headGroup.quaternion.identity();
+        headGroup.scale.set(1, 1, 1);
+    }
+
+    if (faceOccluder) {
+        faceOccluder.position.set(0, 0, 0);
+        faceOccluder.quaternion.identity();
+        faceOccluder.scale.set(1, 1, 1);
+    }
+}
+
+function setCameraMirror() {
+    if (cameraFacing === "user") {
+        video.style.transform = "scaleX(-1)";
+    } else {
+        video.style.transform = "scaleX(1)";
+    }
+}
+
+function updateCameraLayout() {
+    if (!video.videoWidth || !video.videoHeight) {
+        return;
+    }
+
+    resizeAR();
+    setCameraMirror();
+}
+
+video.addEventListener("loadedmetadata", function() {
+    updateCameraLayout();
+});
+
+window.addEventListener("orientationchange", function() {
+    setTimeout(function() {
+        updateCameraLayout();
+    }, 250);
+});
+
+window.addEventListener("resize", function() {
+    updateCameraLayout();
+});
+
+function showStatus(message) {
+    if (status) {
+        status.innerText = message;
+    }
+}
+
+function showCameraError(message) {
+    if (!cameraError) {
+        return;
+    }
+
+    cameraError.innerHTML = message;
+    cameraError.style.display = "block";
+}
+
+function hideCameraError() {
+    if (!cameraError) {
+        return;
+    }
+
+    cameraError.style.display = "none";
+}
+
+function isModelLoaded() {
+    return importedModel !== null;
+}
+
+function getCurrentModelScale() {
+    return modelSize;
+}
+
+function getCurrentHeightOffset() {
+    return heightValue;
+}
+
+function getCurrentDepthOffset() {
+    return depthValue;
+}
+
+function applyManualModelOffsets() {
+    if (!headGroup) {
+        return;
+    }
+
+    headGroup.position.y += getCurrentHeightOffset() * 0.25;
+    headGroup.position.z += getCurrentDepthOffset() * 0.25;
+}
+
+function prepareForRecording() {
+    if (!renderer || !canvas) {
+        return false;
+    }
+
+    if (!renderer.domElement) {
+        return false;
+    }
+
+    if (!canvas.width || !canvas.height) {
+        resizeAR();
+    }
+
+    return true;
+}
+
+function stopRecordingIfActive() {
+    if (!isRecording) {
+        return;
+    }
+
+    stopRecording();
+}
+
+function releaseApplicationResources() {
+    stopRecordingIfActive();
+
+    if (mpCamera) {
+        try {
+            mpCamera.stop();
+        } catch (error) {
+            console.warn(error);
+        }
+    }
+
+    stopCameraTracks();
+
+    if (importedModel) {
+        cleanupThreeObject(importedModel);
+        importedModel = null;
+    }
+
+    if (faceOccluder && scene) {
+        scene.remove(faceOccluder);
+        faceOccluder.geometry.dispose();
+
+        if (faceOccluder.material) {
+            faceOccluder.material.dispose();
+        }
+
+        faceOccluder = null;
+    }
+
+    if (renderer) {
+        renderer.dispose();
+    }
+}
+
+function prepareApplicationUI() {
+    hideCameraError();
+
+    if (recordButton) {
+        recordButton.innerText = "Record";
+        recordButton.classList.remove("recording");
+    }
+
+    if (flipButton) {
+        flipButton.disabled = false;
+    }
+
+    if (resetButton) {
+        resetButton.disabled = false;
+    }
+
+    if (modelFile) {
+        modelFile.value = "";
+    }
+
+    if (sizeSlider) {
+        sizeSlider.value = "1";
+    }
+
+    if (heightSlider) {
+        heightSlider.value = "0";
+    }
+
+    if (depthSlider) {
+        depthSlider.value = "0";
+    }
+}
+
+function initializeApplicationState() {
+    modelSize = 1;
+    heightValue = 0;
+    depthValue = 0;
+
+    resetTrackingState();
+    prepareApplicationUI();
+}initializeApplicationState();
+
+window.addEventListener("load", async function() {
+    try {
+        await startApplication();
+    } catch (error) {
+        console.error("Application startup error:", error);
+
+        showStatus("Application Startup Failed");
+
+        showCameraError(
+            "Unable to start the application.<br><br>" +
+            "Please check camera permission and reload the page."
         );
-
-
-        statusBox.innerText =
-        "CAMERA PERMISSION ERROR";
-
     }
+});
 
+window.addEventListener("beforeunload", function() {
+    releaseApplicationResources();
+});
+
+document.addEventListener("visibilitychange", function() {
+    if (document.visibilityState === "visible") {
+        if (video && video.srcObject) {
+            video.play().catch(function(error) {
+                console.warn(error);
+            });
+        }
+    }
+});
+
+if (document.readyState === "complete") {
+    startApplication().catch(function(error) {
+        console.error("Application startup error:", error);
+    });
 }
-
-
-/* ==================================================
-   BUTTONS
-================================================== */
-
-document
-.getElementById(
-    "resetBtn"
-)
-.addEventListener(
-    "click",
-    resetAR
-);
-
-
-document
-.getElementById(
-    "flipBtn"
-)
-.addEventListener(
-    "click",
-    flipCamera
-);
-
-
-document
-.getElementById(
-    "snapshotBtn"
-)
-.addEventListener(
-    "click",
-    takeSnapshot
-);
-
-
-/* ==================================================
-   START APPLICATION
-================================================== */
-
-async function startApp(){
-
-    /*
-       FIRST:
-       initialize Three.js
-    */
-
-    initThree();
-
-
-    /*
-       SECOND:
-       start camera
-    */
-
-    await startCamera();
-
-
-    /*
-       THIRD:
-       start MediaPipe
-    */
-
-    initFaceTracking();
-
-
-    statusBox.innerText =
-    "FACE TRACKING STARTING...";
-
-}
-
-
-/* ==================================================
-   RUN
-================================================== */
-
-startApp();
-
 
 </script>
-
 </body>
 </html>
