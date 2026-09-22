@@ -2,11 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Azeez AR - Universal 3D</title>
+<meta name="viewport"
+      content="width=device-width,initial-scale=1.0">
+
+<title>Azeez AR - Universal Head Tracking</title>
 
 <style>
-*{box-sizing:border-box}
+*{
+    box-sizing:border-box;
+}
 
 html,body{
     margin:0;
@@ -42,12 +46,16 @@ html,body{
     top:12px;
     left:50%;
     transform:translateX(-50%);
-    z-index:20;
+    z-index:30;
+
     color:#fff;
     background:rgba(0,0,0,.65);
-    padding:8px 14px;
+
+    padding:8px 15px;
     border-radius:20px;
+
     font-size:13px;
+    white-space:nowrap;
 }
 
 #controls{
@@ -55,22 +63,29 @@ html,body{
     left:0;
     right:0;
     bottom:0;
-    z-index:30;
-    padding:10px;
-    background:rgba(0,0,0,.72);
+
+    z-index:40;
+
     display:flex;
     flex-wrap:wrap;
-    gap:7px;
     justify-content:center;
+    gap:7px;
+
+    padding:10px;
+
+    background:rgba(0,0,0,.75);
 }
 
 button,
 label{
     border:0;
     border-radius:9px;
+
     padding:10px 13px;
+
     background:#fff;
     color:#111;
+
     font-size:13px;
     font-weight:bold;
 }
@@ -86,8 +101,9 @@ input[type=file]{
 
 .sliderBox{
     width:100%;
-    max-width:420px;
-    color:white;
+    max-width:430px;
+
+    color:#fff;
     font-size:12px;
 }
 
@@ -97,21 +113,28 @@ input[type=file]{
 
 #loading{
     display:none;
+
     position:fixed;
     inset:0;
-    z-index:50;
+
+    z-index:100;
+
     background:rgba(0,0,0,.65);
+
     color:#fff;
+
     align-items:center;
     justify-content:center;
+
     font-size:18px;
 }
 </style>
 
+
 <!-- THREE -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
-<!-- THREE LOADERS -->
+<!-- LOADERS -->
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
@@ -119,15 +142,28 @@ input[type=file]{
 <!-- MEDIAPIPE -->
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
+
 </head>
 
 <body>
 
-<video id="cameraStream" autoplay muted playsinline></video>
+<video
+    id="cameraStream"
+    autoplay
+    muted
+    playsinline>
+</video>
+
 <canvas id="threeCanvas"></canvas>
 
-<div id="status">Starting...</div>
-<div id="loading">Loading 3D Character...</div>
+<div id="status">
+    Starting...
+</div>
+
+<div id="loading">
+    Loading 3D Character...
+</div>
+
 
 <div id="controls">
 
@@ -136,219 +172,297 @@ input[type=file]{
         <input
             id="modelInput"
             type="file"
-            accept=".glb,.gltf,.obj,.fbx"
-        >
+            accept=".glb,.gltf,.obj,.fbx">
     </label>
 
-    <button id="flipBtn">Flip Camera</button>
-    <button id="resetBtn">Reset</button>
+    <button id="flipBtn">
+        Flip Camera
+    </button>
+
+    <button id="resetBtn">
+        Reset
+    </button>
+
 
     <div class="sliderBox">
         Character Size
-        <input id="scaleSlider"
-               type="range"
-               min="0.4"
-               max="2.5"
-               step="0.01"
-               value="1">
+        <input
+            id="scaleSlider"
+            type="range"
+            min="0.5"
+            max="2.5"
+            step="0.01"
+            value="1">
     </div>
+
 
     <div class="sliderBox">
-        X Position
-        <input id="xSlider"
-               type="range"
-               min="-1"
-               max="1"
-               step="0.01"
-               value="0">
+        Head Up / Down
+        <input
+            id="headYSlider"
+            type="range"
+            min="-0.6"
+            max="0.6"
+            step="0.01"
+            value="0">
     </div>
+
 
     <div class="sliderBox">
-        Y Position
-        <input id="ySlider"
-               type="range"
-               min="-1"
-               max="1"
-               step="0.01"
-               value="0">
+        Head Forward / Back
+        <input
+            id="headZSlider"
+            type="range"
+            min="-0.5"
+            max="0.5"
+            step="0.01"
+            value="0">
     </div>
 
-    <div class="sliderBox">
-        Z Position
-        <input id="zSlider"
-               type="range"
-               min="-1"
-               max="1"
-               step="0.01"
-               value="0">
-    </div>
 
-    <button id="snapshotBtn">Snapshot</button>
-    <button id="recordBtn">Rec</button>
-    <button id="stopBtn">Stop</button>
-    <button id="downloadBtn">Download</button>
+    <button id="snapshotBtn">
+        Snapshot
+    </button>
+
+    <button id="recordBtn">
+        Rec
+    </button>
+
+    <button id="stopBtn">
+        Stop
+    </button>
+
+    <button id="downloadBtn">
+        Download
+    </button>
 
 </div>
+
 
 <script>
 
 /* =========================================================
-   UNIVERSAL 3D AR SYSTEM
+   GLOBALS
    ========================================================= */
 
-const video = document.getElementById("cameraStream");
-const canvas = document.getElementById("threeCanvas");
-const statusEl = document.getElementById("status");
-const loadingEl = document.getElementById("loading");
+const video =
+    document.getElementById("cameraStream");
+
+const canvas =
+    document.getElementById("threeCanvas");
+
+const statusEl =
+    document.getElementById("status");
+
+const loadingEl =
+    document.getElementById("loading");
+
 
 let scene;
 let renderer;
 let arCamera;
+
 let faceMesh;
 let cameraController;
 
-let currentModel = null;
 let modelContainer = null;
+let currentModel = null;
 
 let useFrontCamera = true;
 
-/* User adjustments */
-let userScale = 1;
-let userX = 0;
-let userY = 0;
-let userZ = 0;
-
-/* Smooth tracking */
-const smooth = {
-    x:0,
-    y:0,
-    z:0,
-    yaw:0,
-    pitch:0,
-    roll:0,
-    scale:1
-};
-
-let faceVisible = false;
+let faceDetected = false;
 
 
 /* =========================================================
-   THREE.JS INIT
+   USER ADJUSTMENTS
+   ========================================================= */
+
+let userScale = 1;
+
+let headYOffset = 0;
+
+let headZOffset = 0;
+
+
+/* =========================================================
+   SMOOTH TRACKING
+   ========================================================= */
+
+const tracking = {
+
+    x:0,
+    y:0,
+    z:0,
+
+    yaw:0,
+    pitch:0,
+    roll:0,
+
+    scale:1
+};
+
+
+/* =========================================================
+   MODEL BASE DATA
+   ========================================================= */
+
+let modelBaseScale = 1;
+
+
+/* =========================================================
+   THREE INIT
    ========================================================= */
 
 function init3D(){
 
-    scene = new THREE.Scene();
+    scene =
+        new THREE.Scene();
+
+
+    arCamera =
+        new THREE.PerspectiveCamera(
+            45,
+            window.innerWidth /
+            window.innerHeight,
+
+            0.01,
+            100
+        );
+
 
     /*
-       Perspective camera.
-       Character stays in front of the camera.
+       Camera is fixed.
+
+       The AR character moves relative
+       to this camera.
     */
-    arCamera = new THREE.PerspectiveCamera(
-        45,
-        window.innerWidth / window.innerHeight,
-        0.01,
-        100
+
+    arCamera.position.set(
+        0,
+        0,
+        3
     );
 
-    arCamera.position.set(0,0,3);
 
-    renderer = new THREE.WebGLRenderer({
-        canvas:canvas,
-        alpha:true,
-        antialias:true,
-        preserveDrawingBuffer:true
-    });
+    renderer =
+        new THREE.WebGLRenderer({
+
+            canvas:canvas,
+
+            alpha:true,
+
+            antialias:true,
+
+            preserveDrawingBuffer:true
+        });
+
 
     renderer.setPixelRatio(
-        Math.min(window.devicePixelRatio,2)
+        Math.min(
+            window.devicePixelRatio,
+            2
+        )
     );
+
 
     renderer.setSize(
         window.innerWidth,
         window.innerHeight
     );
 
-    renderer.outputEncoding = THREE.sRGBEncoding;
 
-    /* Lights */
+    renderer.outputEncoding =
+        THREE.sRGBEncoding;
 
-    const ambient = new THREE.AmbientLight(
-        0xffffff,
-        1.4
+
+    /* =====================================================
+       LIGHTS
+       ===================================================== */
+
+    const ambient =
+        new THREE.AmbientLight(
+            0xffffff,
+            1.6
+        );
+
+    scene.add(
+        ambient
     );
 
-    scene.add(ambient);
 
-    const light1 = new THREE.DirectionalLight(
-        0xffffff,
-        1.5
-    );
+    const light1 =
+        new THREE.DirectionalLight(
+            0xffffff,
+            1.5
+        );
 
     light1.position.set(
         2,
-        3,
+        4,
         5
     );
 
-    scene.add(light1);
-
-    const light2 = new THREE.DirectionalLight(
-        0xffffff,
-        0.7
+    scene.add(
+        light1
     );
+
+
+    const light2 =
+        new THREE.DirectionalLight(
+            0xffffff,
+            0.8
+        );
 
     light2.position.set(
         -3,
-        1,
-        2
+        2,
+        3
     );
 
-    scene.add(light2);
+    scene.add(
+        light2
+    );
 
 
-    /*
-       Container is important.
+    /* =====================================================
+       HEAD CONTAINER
 
-       We don't directly move the imported model.
-       We move this container.
+       THIS is the important part.
 
-       Therefore GLB / GLTF / OBJ / FBX can all
-       use the same face-tracking system.
-    */
+       We attach the character to this container,
+       not directly to the face.
+    ===================================================== */
 
-    modelContainer = new THREE.Group();
-
-    modelContainer.visible = false;
-
-    scene.add(modelContainer);
+    modelContainer =
+        new THREE.Group();
 
 
-    /*
-       Render loop
-    */
+    modelContainer.visible =
+        false;
+
+
+    scene.add(
+        modelContainer
+    );
+
+
+    /* =====================================================
+       RENDER
+    ===================================================== */
 
     function render(){
 
-        requestAnimationFrame(render);
+        requestAnimationFrame(
+            render
+        );
 
-        if(currentModel){
-
-            /*
-               Extra user controls
-            */
-
-            currentModel.scale.setScalar(
-                userScale
-            );
-
-        }
 
         renderer.render(
             scene,
             arCamera
         );
     }
+
 
     render();
 
@@ -366,13 +480,22 @@ function init3D(){
 
 function resizeRenderer(){
 
-    if(!renderer || !arCamera) return;
+    if(
+        !renderer ||
+        !arCamera
+    ){
+
+        return;
+    }
+
 
     arCamera.aspect =
         window.innerWidth /
         window.innerHeight;
 
+
     arCamera.updateProjectionMatrix();
+
 
     renderer.setSize(
         window.innerWidth,
@@ -382,19 +505,24 @@ function resizeRenderer(){
 
 
 /* =========================================================
-   MEDIAPIPE FACE MESH
+   FACE MESH
    ========================================================= */
 
 function initFaceTracking(){
 
-    faceMesh = new FaceMesh({
-        locateFile: function(file){
+    faceMesh =
+        new FaceMesh({
 
-            return
-            "https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/"
-            + file;
-        }
-    });
+            locateFile:function(file){
+
+                return (
+                    "https://cdn.jsdelivr.net/npm/" +
+                    "@mediapipe/face_mesh/" +
+                    file
+                );
+            }
+        });
+
 
     faceMesh.setOptions({
 
@@ -402,10 +530,9 @@ function initFaceTracking(){
 
         refineLandmarks:true,
 
-        minDetectionConfidence:0.55,
+        minDetectionConfidence:0.6,
 
-        minTrackingConfidence:0.55
-
+        minTrackingConfidence:0.6
     });
 
 
@@ -416,7 +543,7 @@ function initFaceTracking(){
 
 
 /* =========================================================
-   FACE RESULT
+   FACE TRACKING
    ========================================================= */
 
 function onFaceResults(results){
@@ -426,13 +553,16 @@ function onFaceResults(results){
         results.multiFaceLandmarks.length === 0
     ){
 
-        faceVisible = false;
+        faceDetected =
+            false;
+
 
         if(modelContainer){
 
-            modelContainer.visible = false;
-
+            modelContainer.visible =
+                false;
         }
+
 
         statusEl.innerText =
             "Face not detected";
@@ -441,64 +571,47 @@ function onFaceResults(results){
     }
 
 
-    faceVisible = true;
+    faceDetected =
+        true;
 
-    if(modelContainer){
 
-        modelContainer.visible = true;
-
-    }
+    modelContainer.visible =
+        currentModel !== null;
 
 
     const lm =
         results.multiFaceLandmarks[0];
 
 
-    /*
-       Important face points
-    */
+    /* =====================================================
+       IMPORTANT LANDMARKS
+    ===================================================== */
 
-    const nose = lm[1];
+    const nose =
+        lm[1];
 
-    const forehead = lm[10];
+    const forehead =
+        lm[10];
 
-    const chin = lm[152];
+    const chin =
+        lm[152];
 
-    const leftFace = lm[234];
+    const leftFace =
+        lm[234];
 
-    const rightFace = lm[454];
+    const rightFace =
+        lm[454];
 
-    const leftEye = lm[33];
+    const leftEye =
+        lm[33];
 
-    const rightEye = lm[263];
-
-
-    /*
-       Face center
-
-       We use forehead + chin instead of
-       only nose. This makes character placement
-       much more stable.
-    */
-
-    const centerX =
-        (
-            forehead.x +
-            chin.x +
-            nose.x
-        ) / 3;
-
-    const centerY =
-        (
-            forehead.y +
-            chin.y +
-            nose.y
-        ) / 3;
+    const rightEye =
+        lm[263];
 
 
-    /*
-       Face width
-    */
+    /* =====================================================
+       FACE WIDTH
+    ===================================================== */
 
     const faceWidth =
         Math.abs(
@@ -507,10 +620,6 @@ function onFaceResults(results){
         );
 
 
-    /*
-       Face height
-    */
-
     const faceHeight =
         Math.abs(
             chin.y -
@@ -518,63 +627,83 @@ function onFaceResults(results){
         );
 
 
-    /*
-       Convert mirrored screen coordinates
-       to Three.js coordinates.
-    */
+    /* =====================================================
+       HEAD ANCHOR
 
-    const targetX =
-        (0.5 - centerX) * 3.2
-        + userX;
+       IMPORTANT:
 
-    const targetY =
-        (0.5 - centerY) * 2.6
-        + userY;
+       We DON'T use nose as character center.
 
+       The anchor is moved toward the forehead/top
+       of the head.
 
-    /*
-       Stable depth.
+       This prevents the character from appearing
+       like it is floating in front of the face.
+    ===================================================== */
 
-       We DO NOT use raw MediaPipe nose.z
-       directly because that causes the model
-       to jump around.
-
-       Instead face size controls depth.
-    */
-
-    const sizeFactor =
-        THREE.MathUtils.clamp(
-            faceWidth,
-            0.05,
-            0.55
-        );
-
-    const targetZ =
-        userZ;
-
-
-    /*
-       =====================================================
-       YAW
-       =====================================================
-
-       Compare nose position with eye center.
-
-       This is much more stable than using only
-       nose.z.
-    */
-
-    const eyeCenterX =
+    const headAnchorX =
         (
-            leftEye.x +
-            rightEye.x
+            leftFace.x +
+            rightFace.x
         ) / 2;
 
 
-    const yawRaw =
+    /*
+       Forehead is above the face.
+
+       Move a little above forehead so helmets,
+       masks and head characters sit around the head.
+    */
+
+    const headAnchorY =
+        forehead.y -
+        faceHeight * 0.16;
+
+
+    /* =====================================================
+       SCREEN POSITION
+    ===================================================== */
+
+    const targetX =
+        (0.5 - headAnchorX)
+        * 3.2;
+
+
+    const targetY =
+        (0.5 - headAnchorY)
+        * 2.6
+        +
+        headYOffset;
+
+
+    /*
+       Z is kept stable.
+
+       Raw MediaPipe z is NOT used as absolute
+       character depth because that causes jumping.
+    */
+
+    const targetZ =
+        headZOffset;
+
+
+    /* =====================================================
+       YAW
+
+       Use nose relative to cheek center.
+    ===================================================== */
+
+    const cheekCenterX =
+        (
+            leftFace.x +
+            rightFace.x
+        ) / 2;
+
+
+    const yawAmount =
         (
             nose.x -
-            eyeCenterX
+            cheekCenterX
         ) /
         Math.max(
             faceWidth,
@@ -584,25 +713,25 @@ function onFaceResults(results){
 
     const targetYaw =
         THREE.MathUtils.clamp(
-            yawRaw * 2.2,
-            -0.9,
-            0.9
+            yawAmount * 2.8,
+            -1.15,
+            1.15
         );
 
 
-    /*
-       =====================================================
+    /* =====================================================
        ROLL
-       =====================================================
-    */
+    ===================================================== */
 
     const eyeDX =
         rightEye.x -
         leftEye.x;
 
+
     const eyeDY =
         rightEye.y -
         leftEye.y;
+
 
     const targetRoll =
         -Math.atan2(
@@ -611,125 +740,160 @@ function onFaceResults(results){
         );
 
 
-    /*
-       =====================================================
+    /* =====================================================
        PITCH
-       =====================================================
-    */
+    ===================================================== */
 
-    const verticalFace =
+    const faceVertical =
         Math.max(
-            chin.y -
-            forehead.y,
+            faceHeight,
             0.001
         );
 
-    const noseVertical =
+
+    const noseFromForehead =
         nose.y -
         forehead.y;
 
+
     const pitchRatio =
-        noseVertical /
-        verticalFace;
+        noseFromForehead /
+        faceVertical;
 
 
     const targetPitch =
         THREE.MathUtils.clamp(
-            (pitchRatio - 0.48) * 2.5,
-            -0.7,
-            0.7
+            (pitchRatio - 0.48)
+            * 2.2,
+
+            -0.75,
+            0.75
         );
 
 
-    /*
-       =====================================================
-       AUTOMATIC CHARACTER SCALE
-       =====================================================
+    /* =====================================================
+       AUTOMATIC SCALE
 
-       This is the important universal part.
-
-       Different characters can have different
-       original sizes.
-
-       We normalize their bounding box when imported,
-       then face width controls their size.
-    */
+       Character size follows face size.
+    ===================================================== */
 
     const targetScale =
         THREE.MathUtils.clamp(
-            sizeFactor * 7.0,
-            0.35,
-            3.0
-        ) * userScale;
+            faceWidth * 6.8,
+            0.45,
+            2.8
+        )
+        *
+        userScale
+        *
+        modelBaseScale;
 
 
-    /*
-       =====================================================
+    /* =====================================================
        SMOOTHING
-       =====================================================
-    */
+    ===================================================== */
 
-    const speed = 0.28;
-
-    smooth.x +=
-        (targetX - smooth.x) *
-        speed;
-
-    smooth.y +=
-        (targetY - smooth.y) *
-        speed;
-
-    smooth.z +=
-        (targetZ - smooth.z) *
-        speed;
-
-    smooth.yaw +=
-        (targetYaw - smooth.yaw) *
-        speed;
-
-    smooth.pitch +=
-        (targetPitch - smooth.pitch) *
-        speed;
-
-    smooth.roll +=
-        (targetRoll - smooth.roll) *
-        speed;
-
-    smooth.scale +=
-        (targetScale - smooth.scale) *
-        speed;
+    const smoothAmount =
+        0.32;
 
 
-    /*
-       Apply tracking to container.
-    */
+    tracking.x +=
+        (
+            targetX -
+            tracking.x
+        )
+        *
+        smoothAmount;
+
+
+    tracking.y +=
+        (
+            targetY -
+            tracking.y
+        )
+        *
+        smoothAmount;
+
+
+    tracking.z +=
+        (
+            targetZ -
+            tracking.z
+        )
+        *
+        smoothAmount;
+
+
+    tracking.yaw +=
+        (
+            targetYaw -
+            tracking.yaw
+        )
+        *
+        smoothAmount;
+
+
+    tracking.pitch +=
+        (
+            targetPitch -
+            tracking.pitch
+        )
+        *
+        smoothAmount;
+
+
+    tracking.roll +=
+        (
+            targetRoll -
+            tracking.roll
+        )
+        *
+        smoothAmount;
+
+
+    tracking.scale +=
+        (
+            targetScale -
+            tracking.scale
+        )
+        *
+        smoothAmount;
+
+
+    /* =====================================================
+       APPLY TO HEAD CONTAINER
+    ===================================================== */
 
     modelContainer.position.set(
-        smooth.x,
-        smooth.y,
-        smooth.z
+        tracking.x,
+        tracking.y,
+        tracking.z
     );
+
 
     modelContainer.rotation.order =
         "YXZ";
 
+
     modelContainer.rotation.y =
-        smooth.yaw;
+        tracking.yaw;
+
 
     modelContainer.rotation.x =
-        smooth.pitch;
+        tracking.pitch;
+
 
     modelContainer.rotation.z =
-        smooth.roll;
+        tracking.roll;
 
 
-    /*
-       Current model itself stays centered
-       inside the container.
-    */
+    modelContainer.scale.setScalar(
+        tracking.scale
+    );
+
 
     statusEl.innerText =
-        "Face Tracking ON";
+        "HEAD TRACKING ON";
 }
 
 
@@ -748,10 +912,13 @@ async function startCamera(){
         if(cameraController){
 
             try{
+
                 cameraController.stop();
+
             }catch(e){}
 
-            cameraController = null;
+            cameraController =
+                null;
         }
 
 
@@ -760,18 +927,25 @@ async function startCamera(){
             video.srcObject
                 .getTracks()
                 .forEach(
-                    track => track.stop()
+                    function(track){
+
+                        track.stop();
+                    }
                 );
 
-            video.srcObject = null;
+
+            video.srcObject =
+                null;
         }
 
 
         const stream =
-            await navigator.mediaDevices
+            await navigator
+            .mediaDevices
             .getUserMedia({
 
                 video:{
+
                     facingMode:
                         useFrontCamera
                         ? "user"
@@ -794,21 +968,26 @@ async function startCamera(){
             });
 
 
-        video.srcObject = stream;
+        video.srcObject =
+            stream;
+
 
         await video.play();
 
 
         cameraController =
             new Camera(
+
                 video,
+
                 {
-                    onFrame:async function(){
+
+                    onFrame:
+                    async function(){
 
                         await faceMesh.send({
                             image:video
                         });
-
                     },
 
                     width:640,
@@ -822,7 +1001,7 @@ async function startCamera(){
 
 
         statusEl.innerText =
-            "Camera ON - Show your face";
+            "Camera ON";
 
 
     }catch(error){
@@ -830,14 +1009,13 @@ async function startCamera(){
         console.error(error);
 
         statusEl.innerText =
-            "Camera error: " +
-            error.message;
+            "Camera Error";
     }
 }
 
 
 /* =========================================================
-   FLIP CAMERA
+   FLIP
    ========================================================= */
 
 document
@@ -855,7 +1033,7 @@ document
 
 
 /* =========================================================
-   SLIDERS
+   USER CONTROLS
    ========================================================= */
 
 document
@@ -865,43 +1043,37 @@ document
     function(){
 
         userScale =
-            parseFloat(this.value);
+            parseFloat(
+                this.value
+            );
     }
 );
 
 
 document
-.getElementById("xSlider")
+.getElementById("headYSlider")
 .addEventListener(
     "input",
     function(){
 
-        userX =
-            parseFloat(this.value);
+        headYOffset =
+            parseFloat(
+                this.value
+            );
     }
 );
 
 
 document
-.getElementById("ySlider")
+.getElementById("headZSlider")
 .addEventListener(
     "input",
     function(){
 
-        userY =
-            parseFloat(this.value);
-    }
-);
-
-
-document
-.getElementById("zSlider")
-.addEventListener(
-    "input",
-    function(){
-
-        userZ =
-            parseFloat(this.value);
+        headZOffset =
+            parseFloat(
+                this.value
+            );
     }
 );
 
@@ -917,34 +1089,34 @@ document
     function(){
 
         userScale = 1;
-        userX = 0;
-        userY = 0;
-        userZ = 0;
+
+        headYOffset = 0;
+
+        headZOffset = 0;
+
 
         document
         .getElementById("scaleSlider")
         .value = 1;
 
-        document
-        .getElementById("xSlider")
-        .value = 0;
 
         document
-        .getElementById("ySlider")
+        .getElementById("headYSlider")
         .value = 0;
 
+
         document
-        .getElementById("zSlider")
+        .getElementById("headZSlider")
         .value = 0;
     }
 );/* =========================================================
    UNIVERSAL MODEL NORMALIZATION
    ========================================================= */
 
-function normalizeModel(object){
+function prepareModel(object){
 
     /*
-       Remove old model
+       Remove previous character
     */
 
     if(currentModel){
@@ -953,22 +1125,29 @@ function normalizeModel(object){
             currentModel
         );
 
-        currentModel = null;
+        currentModel =
+            null;
     }
 
 
-    /*
-       Put imported object into container
-    */
-
-    currentModel = object;
+    currentModel =
+        object;
 
 
     /*
-       Calculate original bounding box
+       Put model inside head container.
     */
 
-    const box =
+    modelContainer.add(
+        currentModel
+    );
+
+
+    /* =====================================================
+       FIND MODEL BOUNDING BOX
+    ===================================================== */
+
+    let box =
         new THREE.Box3()
         .setFromObject(
             currentModel
@@ -978,20 +1157,22 @@ function normalizeModel(object){
     const size =
         new THREE.Vector3();
 
+
     const center =
         new THREE.Vector3();
 
 
-    box.getSize(size);
+    box.getSize(
+        size
+    );
 
-    box.getCenter(center);
+
+    box.getCenter(
+        center
+    );
 
 
-    /*
-       Find biggest dimension.
-    */
-
-    const maxDimension =
+    const biggest =
         Math.max(
             size.x,
             size.y,
@@ -1000,105 +1181,121 @@ function normalizeModel(object){
 
 
     if(
-        !isFinite(maxDimension) ||
-        maxDimension <= 0
+        !isFinite(biggest) ||
+        biggest <= 0
     ){
 
-        console.warn(
-            "Invalid 3D model size"
+        throw new Error(
+            "Invalid 3D model"
         );
-
-        return;
     }
 
 
-    /*
-       Normalize every model to approximately
-       the same base size.
+    /* =====================================================
+       NORMALIZE MODEL
 
-       This is what makes GLB / GLTF / OBJ / FBX
-       interchangeable.
-    */
+       Every imported model becomes approximately
+       the same physical size.
+    ===================================================== */
 
-    const normalizedSize = 2.0;
+    const standardSize =
+        1.9;
 
-    const factor =
-        normalizedSize /
-        maxDimension;
+
+    const normalizeFactor =
+        standardSize /
+        biggest;
 
 
     currentModel.scale.setScalar(
-        factor
+        normalizeFactor
     );
 
 
     /*
-       Recalculate center after scaling.
+       Recalculate bounding box after scaling.
     */
 
-    const scaledBox =
+    box =
         new THREE.Box3()
         .setFromObject(
             currentModel
         );
 
-    const scaledCenter =
-        new THREE.Vector3();
 
-    scaledBox.getCenter(
-        scaledCenter
+    box.getCenter(
+        center
     );
 
 
     /*
-       Move model so its center is at
-       container origin.
+       Move model to container center.
     */
 
-    currentModel.position.sub(
-        scaledCenter
-    );
+    currentModel.position.x -=
+        center.x;
+
+
+    currentModel.position.y -=
+        center.y;
+
+
+    currentModel.position.z -=
+        center.z;
+
+
+    /* =====================================================
+       IMPORTANT HEAD OFFSET
+       
+       The model is placed slightly above the
+       face anchor.
+
+       This is what makes the character sit on
+       the head instead of hanging in front of
+       the face.
+    ===================================================== */
+
+    currentModel.position.y +=
+        0.15;
 
 
     /*
-       Add model to tracking container.
+       Slightly behind the face plane.
+
+       This prevents the model from looking
+       like it is floating far in front.
     */
 
-    modelContainer.add(
-        currentModel
-    );
+    currentModel.position.z -=
+        0.10;
 
 
-    /*
-       Enable shadows where possible.
-    */
+    /* =====================================================
+       MATERIAL / MESH
+    ===================================================== */
 
     currentModel.traverse(
         function(child){
 
             if(child.isMesh){
 
-                child.frustumCulled = false;
-
-                child.castShadow = true;
-
-                child.receiveShadow = true;
+                child.frustumCulled =
+                    false;
 
 
-                /*
-                   Some imported models have
-                   no material. Give them a basic
-                   material so they remain visible.
-                */
+                child.castShadow =
+                    true;
 
-                if(!child.material){
 
-                    child.material =
-                        new THREE.MeshStandardMaterial({
-                            color:0xffffff,
-                            roughness:0.7,
-                            metalness:0.05
-                        });
+                child.receiveShadow =
+                    true;
+
+
+                if(child.material){
+
+                    child.material
+                        .side =
+                        THREE.DoubleSide;
                 }
             }
         }
@@ -1106,26 +1303,20 @@ function normalizeModel(object){
 
 
     /*
-       Show model.
+       Character visible only when face exists.
     */
 
     modelContainer.visible =
-        faceVisible;
+        faceDetected;
 
 
     statusEl.innerText =
-        "3D Character Loaded";
-
-
-    console.log(
-        "Universal model loaded:",
-        currentModel
-    );
+        "3D HEAD READY";
 }
 
 
 /* =========================================================
-   GLB / GLTF
+   GLB / GLTF LOADER
    ========================================================= */
 
 function loadGLTF(file){
@@ -1155,20 +1346,21 @@ function loadGLTF(file){
                             resolve(
                                 gltf.scene
                             );
-
                         },
 
                         function(error){
 
                             reject(error);
-
                         }
                     );
                 };
 
 
             reader.onerror =
-                reject;
+                function(error){
+
+                    reject(error);
+                };
 
 
             reader.readAsArrayBuffer(
@@ -1207,7 +1399,9 @@ function loadOBJ(file){
                             );
 
 
-                        resolve(object);
+                        resolve(
+                            object
+                        );
 
                     }catch(error){
 
@@ -1217,7 +1411,10 @@ function loadOBJ(file){
 
 
             reader.onerror =
-                reject;
+                function(error){
+
+                    reject(error);
+                };
 
 
             reader.readAsText(
@@ -1257,7 +1454,9 @@ function loadFBX(file){
                             );
 
 
-                        resolve(object);
+                        resolve(
+                            object
+                        );
 
                     }catch(error){
 
@@ -1267,7 +1466,10 @@ function loadFBX(file){
 
 
             reader.onerror =
-                reject;
+                function(error){
+
+                    reject(error);
+                };
 
 
             reader.readAsArrayBuffer(
@@ -1279,7 +1481,7 @@ function loadFBX(file){
 
 
 /* =========================================================
-   IMPORT 3D
+   IMPORT
    ========================================================= */
 
 document
@@ -1298,75 +1500,67 @@ document
         }
 
 
-        const name =
+        const filename =
             file.name.toLowerCase();
 
 
         loadingEl.style.display =
             "flex";
 
+
         statusEl.innerText =
-            "Loading " + file.name;
+            "Loading 3D Head...";
 
 
         try{
 
-            let object = null;
+            let object;
 
-
-            /*
-               GLB / GLTF
-            */
 
             if(
-                name.endsWith(".glb") ||
-                name.endsWith(".gltf")
+                filename.endsWith(".glb") ||
+                filename.endsWith(".gltf")
             ){
 
                 object =
-                    await loadGLTF(file);
+                    await loadGLTF(
+                        file
+                    );
             }
-
-
-            /*
-               OBJ
-            */
 
             else if(
-                name.endsWith(".obj")
+                filename.endsWith(".obj")
             ){
 
                 object =
-                    await loadOBJ(file);
+                    await loadOBJ(
+                        file
+                    );
             }
-
-
-            /*
-               FBX
-            */
 
             else if(
-                name.endsWith(".fbx")
+                filename.endsWith(".fbx")
             ){
 
                 object =
-                    await loadFBX(file);
+                    await loadFBX(
+                        file
+                    );
             }
-
 
             else{
 
                 throw new Error(
-                    "Unsupported 3D format"
+                    "Unsupported format"
                 );
             }
 
 
             /*
-               Universal normalization
+               Universal preparation
             */
 
-            normalizeModel(
+            prepareModel(
                 object
             );
 
@@ -1374,18 +1568,18 @@ document
         }catch(error){
 
             console.error(
-                "3D LOAD ERROR:",
                 error
             );
-
-            statusEl.innerText =
-                "Model loading failed";
 
 
             alert(
                 "3D model load nahi hua.\n\n" +
                 "GLB format sabse reliable hai."
             );
+
+
+            statusEl.innerText =
+                "3D Load Failed";
 
         }finally{
 
@@ -1406,18 +1600,16 @@ document
     "click",
     function(){
 
-        /*
-           Create final image canvas.
-        */
-
         const output =
             document.createElement(
                 "canvas"
             );
 
+
         output.width =
             video.videoWidth ||
             window.innerWidth;
+
 
         output.height =
             video.videoHeight ||
@@ -1425,20 +1617,23 @@ document
 
 
         const ctx =
-            output.getContext("2d");
+            output.getContext(
+                "2d"
+            );
 
 
         /*
-           Mirror camera so snapshot
-           looks like the screen.
+           Mirror camera
         */
 
         ctx.save();
+
 
         ctx.translate(
             output.width,
             0
         );
+
 
         ctx.scale(
             -1,
@@ -1454,12 +1649,12 @@ document
             output.height
         );
 
+
         ctx.restore();
 
 
         /*
-           Draw Three.js character
-           on top.
+           Draw 3D layer
         */
 
         ctx.drawImage(
@@ -1471,31 +1666,37 @@ document
         );
 
 
-        const link =
+        const a =
             document.createElement(
                 "a"
             );
 
-        link.download =
+
+        a.download =
             "azeez-ar.jpg";
 
-        link.href =
+
+        a.href =
             output.toDataURL(
                 "image/jpeg",
                 0.95
             );
 
-        link.click();
+
+        a.click();
     }
 );
 
 
 /* =========================================================
-   VIDEO RECORDING
+   RECORDING
    ========================================================= */
 
-let mediaRecorder = null;
-let recordedChunks = [];
+let mediaRecorder =
+    null;
+
+let recordedChunks =
+    [];
 
 
 document
@@ -1509,47 +1710,21 @@ document
         ){
 
             alert(
-                "Video recording is not supported."
+                "Recording supported nahi hai."
             );
 
             return;
         }
 
 
-        recordedChunks = [];
+        recordedChunks =
+            [];
 
 
         const stream =
-            canvas.captureStream(30);
-
-
-        /*
-           Add camera stream to recording.
-        */
-
-        const tracks =
-            stream.getVideoTracks();
-
-
-        const cameraTracks =
-            video.srcObject
-            ? video.srcObject.getVideoTracks()
-            : [];
-
-
-        cameraTracks.forEach(
-            function(track){
-
-                /*
-                   We use canvas video composition.
-                   Camera itself is not added because
-                   canvas is transparent.
-
-                   For best browser compatibility,
-                   recording will capture the 3D layer.
-                */
-            }
-        );
+            canvas.captureStream(
+                30
+            );
 
 
         try{
@@ -1563,7 +1738,7 @@ document
                     }
                 );
 
-        }catch(error){
+        }catch(e){
 
             mediaRecorder =
                 new MediaRecorder(
@@ -1611,10 +1786,14 @@ document
                         "a"
                     );
 
-                a.href = url;
+
+                a.href =
+                    url;
+
 
                 a.download =
-                    "azeez-ar-recording.webm";
+                    "azeez-ar.webm";
+
 
                 a.click();
 
@@ -1634,6 +1813,7 @@ document
 
         mediaRecorder.start();
 
+
         statusEl.innerText =
             "Recording ON";
     }
@@ -1641,7 +1821,7 @@ document
 
 
 /* =========================================================
-   STOP RECORDING
+   STOP
    ========================================================= */
 
 document
@@ -1652,20 +1832,91 @@ document
 
         if(
             mediaRecorder &&
-            mediaRecorder.state !== "inactive"
+            mediaRecorder.state !==
+            "inactive"
         ){
 
             mediaRecorder.stop();
 
+
             statusEl.innerText =
-                "Recording saved";
+                "Recording Saved";
         }
     }
 );
 
 
 /* =========================================================
-   START EVERYTHING
+   DOWNLOAD BUTTON
+   ========================================================= */
+
+document
+.getElementById("downloadBtn")
+.addEventListener(
+    "click",
+    function(){
+
+        if(
+            recordedChunks.length === 0
+        ){
+
+            alert(
+                "Pehle recording karein."
+            );
+
+            return;
+        }
+
+
+        const blob =
+            new Blob(
+                recordedChunks,
+                {
+                    type:
+                        "video/webm"
+                }
+            );
+
+
+        const url =
+            URL.createObjectURL(
+                blob
+            );
+
+
+        const a =
+            document.createElement(
+                "a"
+            );
+
+
+        a.href =
+            url;
+
+
+        a.download =
+            "azeez-ar-video.webm";
+
+
+        a.click();
+
+
+        setTimeout(
+            function(){
+
+                URL.revokeObjectURL(
+                    url
+                );
+
+            },
+            1000
+        );
+    }
+);
+
+
+/* =========================================================
+   START APP
    ========================================================= */
 
 async function startApp(){
