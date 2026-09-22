@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VRM Face Tracking Adjuster</title>
+    <title>Multi-Format 3D Character Adjuster</title>
     <style>
         * {
             box-sizing: border-box;
@@ -94,10 +94,11 @@
         }
     </style>
 
-    <!-- Import Three.js, GLTFLoader, and VRM Libraries via CDN -->
     <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
     <script src="https://unpkg.com/three@0.160.0/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://unpkg.com/@pixiv/three-vrm@2.0.6/lib/three-vrm.js"></script>
+    <script src="https://unpkg.com/three@0.160.0/examples/js/loaders/OBJLoader.js"></script>
+    <script src="https://unpkg.com/three@0.160.0/examples/js/loaders/FBXLoader.js"></script>
+    <script src="https://unpkg.com/three@0.160.0/examples/js/libs/fflate.min.js"></script>
 </head>
 <body>
 
@@ -113,7 +114,7 @@
     <div class="control-panel">
         <div class="slider-group">
             <label>Scale (Size)</label>
-            <input type="range" id="scale-slider" min="0.5" max="3" step="0.05" value="1">
+            <input type="range" id="scale-slider" min="0.1" max="3" step="0.05" value="1">
         </div>
         <div class="slider-group">
             <label>Position X (Left/Right)</label>
@@ -137,10 +138,9 @@
         </div>
     </div>
 
-    <input type="file" id="file-input" accept=".vrm" style="display: none;">
+    <input type="file" id="file-input" accept=".glb, .gltf, .obj, .fbx, .vrm" style="display: none;">
 
     <script>
-        // Camera Initialization
         const videoElement = document.getElementById('webcam-video');
         let useFrontCamera = true;
         let currentStream = null;
@@ -175,7 +175,7 @@
             initCamera();
         });
 
-        // Three.js Scene Setup for VRM Model Rendering
+        // Three.js Scene Setup
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
 
@@ -187,24 +187,21 @@
         renderer.setPixelRatio(window.devicePixelRatio);
         container.appendChild(renderer.domElement);
 
-        // Lighting
         const light = new THREE.DirectionalLight(0xffffff, Math.PI);
         light.position.set(1, 1, 1).normalize();
         scene.add(light);
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
         scene.add(ambientLight);
 
-        let currentVRM = null;
+        let currentModel = null;
 
-        // Handle Window Resize
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // Import and Load VRM Model
         const importBtn = document.getElementById('import-btn');
         const fileInput = document.getElementById('file-input');
 
@@ -213,46 +210,59 @@
             fileInput.click();
         });
 
+        // Handle File Import based on file extension
         fileInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
             if (!file) return;
 
             const fileURL = URL.createObjectURL(file);
-            const loader = new THREE.GLTFLoader();
+            const fileName = file.name.toLowerCase();
 
-            loader.load(
-                fileURL,
-                (gltf) => {
-                    THREE.VRM.from(gltf).then((vrm) => {
-                        if (currentVRM) {
-                            scene.remove(currentVRM.scene);
-                            currentVRM.dispose();
-                        }
+            if (currentModel) {
+                scene.remove(currentModel);
+                currentModel = null;
+            }
 
-                        currentVRM = vrm;
-                        scene.add(vrm.scene);
-
-                        // Rotate model if needed (VRM standard faces -Z, rotate to +Z facing camera)
-                        vrm.scene.rotation.y = Math.PI;
-
-                        console.log("VRM Model Loaded Successfully");
-                        alert("Model loaded successfully: " + file.name);
-                    }).catch((err) => {
-                        console.error("VRM parsing error:", err);
-                        alert("Failed to parse VRM model format.");
-                    });
-                },
-                (progress) => {
-                    console.log('Loading progress: ' + (progress.loaded / progress.total * 100) + '%');
-                },
-                (error) => {
+            if (fileName.endsWith('.glb') || fileName.endsWith('.gltf') || fileName.endsWith('.vrm')) {
+                const loader = new THREE.GLTFLoader();
+                loader.load(fileURL, (gltf) => {
+                    currentModel = gltf.scene;
+                    scene.add(currentModel);
+                    currentModel.rotation.y = Math.PI;
+                    alert("GLB/VRM Model loaded successfully: " + file.name);
+                }, undefined, (error) => {
                     console.error("GLTF load error:", error);
-                    alert("Failed to load 3D model file.");
-                }
-            );
+                    alert("Failed to load GLB/VRM file.");
+                });
+            } 
+            else if (fileName.endsWith('.obj')) {
+                const loader = new THREE.OBJLoader();
+                loader.load(fileURL, (obj) => {
+                    currentModel = obj;
+                    scene.add(currentModel);
+                    alert("OBJ Model loaded successfully: " + file.name);
+                }, undefined, (error) => {
+                    console.error("OBJ load error:", error);
+                    alert("Failed to load OBJ file.");
+                });
+            } 
+            else if (fileName.endsWith('.fbx')) {
+                const loader = new THREE.FBXLoader();
+                loader.load(fileURL, (fbx) => {
+                    currentModel = fbx;
+                    scene.add(currentModel);
+                    currentModel.scale.set(0.01, 0.01, 0.01); // FBX models are usually large in scale
+                    alert("FBX Model loaded successfully: " + file.name);
+                }, undefined, (error) => {
+                    console.error("FBX load error:", error);
+                    alert("Failed to load FBX file.");
+                });
+            } else {
+                alert("Unsupported file format!");
+            }
         });
 
-        // Slider Adjustment Logic for the Loaded Model
+        // Sliders Adjustment Logic
         const scaleSlider = document.getElementById('scale-slider');
         const posXSlider = document.getElementById('pos-x-slider');
         const posYSlider = document.getElementById('pos-y-slider');
@@ -261,38 +271,29 @@
         const rotYSlider = document.getElementById('rot-y-slider');
 
         function updateModelTransform() {
-            if (!currentVRM) return;
+            if (!currentModel) return;
             const s = parseFloat(scaleSlider.value);
-            currentVRM.scene.scale.set(s, s, s);
+            currentModel.scale.set(s, s, s);
 
-            currentVRM.scene.position.set(
+            currentModel.position.set(
                 parseFloat(posXSlider.value),
-                parseFloat(posYSlider.value) + 1.2, // Offset to match head level
+                parseFloat(posYSlider.value) + 1.2,
                 parseFloat(posZSlider.value)
             );
 
-            currentVRM.scene.rotation.x = parseFloat(rotXSlider.value);
-            currentVRM.scene.rotation.y = Math.PI + parseFloat(rotYSlider.value);
+            currentModel.rotation.x = parseFloat(rotXSlider.value);
+            currentModel.rotation.y = Math.PI + parseFloat(rotYSlider.value);
         }
 
         [scaleSlider, posXSlider, posYSlider, posZSlider, rotXSlider, rotYSlider].forEach(slider => {
             slider.addEventListener('input', updateModelTransform);
         });
 
-        // Render Loop
-        const clock = new THREE.Clock();
         function animate() {
             requestAnimationFrame(animate);
-            const delta = clock.getDelta();
-
-            if (currentVRM) {
-                currentVRM.update(delta);
-            }
-
             renderer.render(scene, camera);
         }
         animate();
     </script>
 </body>
 </html>
-
