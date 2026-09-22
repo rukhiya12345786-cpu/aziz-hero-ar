@@ -3,48 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Azeez AR - 3D & Camera</title>
+    <title>Azeez AR - Full Screen</title>
     <style>
-        body {
+        * {
+            box-sizing: border-box;
+        }
+        body, html {
             margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
             background: #000;
             overflow: hidden;
             font-family: sans-serif;
             color: #fff;
         }
         #cameraStream {
-            position: absolute;
+            position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
-            height: 100vw;
+            height: 100vh;
             object-fit: cover;
             z-index: 1;
         }
         #webgl-container {
-            position: absolute;
+            position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
             z-index: 2;
-            pointer-events: none; /* Allows touch to pass through 3D canvas */
+            pointer-events: none;
         }
         .ui-layer {
-            position: absolute;
+            position: fixed;
             bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 10;
             display: flex;
-            gap: 10px;
+            gap: 8px;
             flex-wrap: wrap;
             justify-content: center;
-            width: 90%;
-            max-width: 500px;
+            width: 95%;
+            max-width: 600px;
         }
         button, label.upload-btn {
-            padding: 10px 15px;
+            padding: 10px 14px;
             font-size: 14px;
             color: white;
             background: #007bff;
@@ -53,50 +59,63 @@
             cursor: pointer;
             font-weight: bold;
             text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
         label.upload-btn {
             background: #ffc107;
             color: #000;
-            display: inline-block;
         }
         input[type="file"] {
             display: none;
         }
         #recordBtn { background: #28a745; }
         #stopBtn { background: #dc3545; display: none; }
+        #downloadLink {
+            background: #17a2b8;
+            color: #fff;
+            text-decoration: none;
+            display: none;
+            align-items: center;
+        }
     </style>
 
-    <!-- Libraries for Three.js and loading 3D models -->
+    <!-- Libraries for Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 </head>
 <body>
 
-    <!-- Camera video background -->
+    <!-- Full Screen Camera Background -->
     <video id="cameraStream" autoplay playsinline muted></video>
 
-    <!-- Screen to show 3D model -->
+    <!-- 3D Canvas Layer -->
     <div id="webgl-container"></div>
 
-    <!-- Controls and buttons -->
+    <!-- UI Controls Layer -->
     <div class="ui-layer">
         <button id="flipBtn">Flip Camera</button>
         <label class="upload-btn">
-            Upload 3D (GLB)
+            Upload 3D
             <input type="file" id="fileInput" accept=".glb,.gltf">
         </label>
-        <button id="recordBtn">Record</button>
-        <button id="stopBtn">Stop</button>
+        <button id="recordBtn">Start Rec</button>
+        <button id="stopBtn">Stop Rec</button>
+        <a id="downloadLink" download="azeez-ar-video.webm">Download</a>
     </div>
 
     <script>
         const videoElement = document.getElementById('cameraStream');
         const flipBtn = document.getElementById('flipBtn');
         const fileInput = document.getElementById('fileInput');
+        const recordBtn = document.getElementById('recordBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const downloadLink = document.getElementById('downloadLink');
         
         let useFrontCamera = true;
         let currentStream;
         let scene, camera, renderer, currentModel;
+        let mediaRecorder;
+        let recordedChunks = [];
 
         // Start camera function
         async function startCamera() {
@@ -133,7 +152,6 @@
             renderer.setPixelRatio(window.devicePixelRatio);
             container.appendChild(renderer.domElement);
 
-            // Add lighting so 3D model is clearly visible
             const ambientLight = new THREE.AmbientLight(0xffffff, 1);
             scene.add(ambientLight);
 
@@ -146,7 +164,6 @@
 
         function animate() {
             requestAnimationFrame(animate);
-            // Rotate model slightly if loaded (for test)
             if (currentModel) {
                 currentModel.rotation.y += 0.01;
             }
@@ -168,7 +185,7 @@
                         scene.remove(currentModel);
                     }
                     currentModel = gltf.scene;
-                    currentModel.scale.set(1.5, 1.5, 1.5); // Set model scale
+                    currentModel.scale.set(1.5, 1.5, 1.5);
                     scene.add(currentModel);
                 }, (error) => {
                     alert("Error loading 3D model: " + error);
@@ -177,11 +194,52 @@
             reader.readAsArrayBuffer(file);
         });
 
+        // Video Recording logic
+        recordBtn.addEventListener('click', () => {
+            recordedChunks = [];
+            try {
+                let options = { mimeType: 'video/webm;codecs=vp8,opus' };
+                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                    options = { mimeType: 'video/webm' };
+                }
+                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                    options = {};
+                }
+
+                mediaRecorder = new MediaRecorder(currentStream, options);
+
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data && event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                    const videoURL = URL.createObjectURL(blob);
+                    downloadLink.href = videoURL;
+                    downloadLink.style.display = 'inline-block';
+                };
+
+                mediaRecorder.start();
+                recordBtn.style.display = 'none';
+                stopBtn.style.display = 'inline-block';
+                downloadLink.style.display = 'none';
+            } catch (err) {
+                alert("Recording failed: " + err);
+            }
+        });
+
+        stopBtn.addEventListener('click', () => {
+            mediaRecorder.stop();
+            stopBtn.style.display = 'none';
+            recordBtn.style.display = 'inline-block';
+        });
+
         // Start app
         startCamera();
         init3D();
 
-        // Adjust on screen size change
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
