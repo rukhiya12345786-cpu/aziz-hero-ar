@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Azeez AR - Full App</title>
+    <title>Azeez AR App</title>
     <style>
         * { box-sizing: border-box; }
         body, html {
@@ -23,51 +23,50 @@
             z-index: 2; pointer-events: none;
         }
         .ui-layer {
-            position: fixed; bottom: 15px; left: 50%;
+            position: fixed; bottom: 20px; left: 50%;
             transform: translateX(-50%);
             z-index: 10; display: flex;
-            gap: 6px; flex-wrap: wrap;
-            justify-content: center; width: 98%; max-width: 650px;
+            gap: 8px; flex-wrap: wrap;
+            justify-content: center; width: 95%; max-width: 600px;
         }
         button, label.upload-btn {
-            padding: 8px 12px; font-size: 13px;
+            padding: 10px 14px; font-size: 13px;
             color: white; background: #007bff;
-            border: none; border-radius: 6px;
+            border: none; border-radius: 8px;
             cursor: pointer; font-weight: bold;
-            text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+            text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.4);
         }
         label.upload-btn { background: #ffc107; color: #000; }
         input[type="file"] { display: none; }
+        #exportBtn { background: #17a2b8; }
         #recordBtn { background: #28a745; }
         #stopBtn { background: #dc3545; display: none; }
-        #downloadLink { background: #17a2b8; color: #fff; text-decoration: none; display: none; line-height: 28px; padding: 0 10px; border-radius: 6px;}
+        #downloadLink { background: #6c757d; color: #fff; text-decoration: none; display: none; line-height: 35px; padding: 0 12px; border-radius: 8px;}
 
         /* Sliders Panel */
         .sliders-panel {
             position: fixed; top: 15px; left: 50%;
             transform: translateX(-50%);
-            z-index: 10; background: rgba(0,0,0,0.7);
-            padding: 8px 12px; border-radius: 8px;
-            display: flex; flex-direction: column; gap: 5px;
-            width: 90%; max-width: 400px; font-size: 12px;
+            z-index: 10; background: rgba(0,0,0,0.75);
+            padding: 10px 15px; border-radius: 10px;
+            display: flex; flex-direction: column; gap: 8px;
+            width: 90%; max-width: 350px; font-size: 12px;
+            backdrop-filter: blur(5px);
         }
         .slider-row { display: flex; align-items: center; justify-content: space-between; }
-        .slider-row input { width: 65%; }
+        .slider-row input { width: 65%; cursor: pointer; }
     </style>
 
-    <!-- Three.js & GLTF Loader -->
+    <!-- Three.js & GLTF Loader via CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-    <!-- MediaPipe Face Detector for Face Tracking -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.js" crossorigin="anonymous"></script>
 </head>
 <body>
 
     <video id="cameraStream" autoplay playsinline muted></video>
     <div id="webgl-container"></div>
 
-    <!-- Sliders for 3D Model Customization (Scale, Rotate, Position) -->
+    <!-- Sliders for 3D Model Control -->
     <div class="sliders-panel">
         <div class="slider-row">
             <span>Size (Scale):</span>
@@ -87,17 +86,17 @@
         </div>
     </div>
 
-    <!-- UI Buttons Layer -->
+    <!-- Action Buttons -->
     <div class="ui-layer">
         <button id="flipBtn">Flip</button>
         <label class="upload-btn">
             Import 3D
-            <input type="file" id="fileInput" accept=".glb,.gltf,.obj">
+            <input type="file" id="fileInput" accept=".glb,.gltf">
         </label>
-        <button id="exportBtn">Export 3D</button>
+        <button id="exportBtn">Export</button>
         <button id="recordBtn">Rec</button>
         <button id="stopBtn">Stop</button>
-        <a id="downloadLink" download="azeez-ar-video.webm">Download</a>
+        <a id="downloadLink" download="azeez-ar-video.webm">Download Video</a>
     </div>
 
     <script>
@@ -119,9 +118,8 @@
         let scene, camera, renderer, currentModel;
         let mediaRecorder;
         let recordedChunks = [];
-        let faceDetectedPosition = { x: 0, y: 0 };
 
-        // Camera Initialization
+        // Start Camera
         async function startCamera() {
             try {
                 if (currentStream) {
@@ -143,14 +141,14 @@
             startCamera();
         });
 
-        // Three.js Setup
+        // Initialize 3D Scene
         function init3D() {
             const container = document.getElementById('webgl-container');
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.z = 5;
 
-            renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
             container.appendChild(renderer.domElement);
@@ -166,19 +164,16 @@
         function animate() {
             requestAnimationFrame(animate);
             if (currentModel) {
-                // Apply slider values for transformation and face tracking sync
                 let baseScale = parseFloat(scaleSlider.value);
                 currentModel.scale.set(baseScale, baseScale, baseScale);
                 currentModel.rotation.y = parseFloat(rotateSlider.value);
-                
-                // Combine manual sliders with face tracking offset
-                currentModel.position.x = parseFloat(posXSlider.value) + faceDetectedPosition.x;
-                currentModel.position.y = parseFloat(posYSlider.value) + faceDetectedPosition.y;
+                currentModel.position.x = parseFloat(posXSlider.value);
+                currentModel.position.y = parseFloat(posYSlider.value);
             }
             renderer.render(scene, camera);
         }
 
-        // Import 3D Model (GLB/GLTF)
+        // Import 3D Model
         fileInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
             if (!file) return;
@@ -194,12 +189,8 @@
             reader.readAsArrayBuffer(file);
         });
 
-        // Export 3D Scene / Model Snapshot option
+        // Export Snapshot
         exportBtn.addEventListener('click', () => {
-            if (!currentModel) {
-                alert("No 3D model loaded to export!");
-                return;
-            }
             renderer.render(scene, camera);
             const dataURL = renderer.domElement.toDataURL('image/png');
             const link = document.createElement('a');
@@ -208,29 +199,7 @@
             link.click();
         });
 
-        // MediaPipe Face Detection for Head/Helmet Tracking
-        const faceDetection = new FaceDetection({
-            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/${file}`
-        });
-        faceDetection.setOptions({ model: 'short', minDetectionConfidence: 0.5 });
-        faceDetection.onResults((results) => {
-            if (results.detections && results.detections.length > 0) {
-                const bbox = results.detections[0].boundingBox;
-                // Map face position to 3D space coordinates
-                faceDetectedPosition.x = (bbox.xCenter - 0.5) * -4;
-                faceDetectedPosition.y = (bbox.yCenter - 0.5) * -4 + 0.5; // Sit slightly above head like a helmet
-            }
-        });
-
-        const mpCamera = new Camera(videoElement, {
-            onFrame: async () => {
-                await faceDetection.send({ image: videoElement });
-            },
-            width: 640, height: 480
-        });
-        mpCamera.start();
-
-        // Video & Audio Recording
+        // Video Recording
         recordBtn.addEventListener('click', () => {
             recordedChunks = [];
             try {
