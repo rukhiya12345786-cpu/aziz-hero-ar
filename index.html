@@ -3,42 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Aijaz AR Memoji Studio - Ultimate</title>
+    <title>Aijaz Snapchat Style AR Studio</title>
     <style>
         * { box-sizing: border-box; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; }
         
-        /* Hidden or minimized tracking webcam feed */
-        #webcam { position: absolute; top: -9999px; left: -9999px; width: 640px; height: 480px; opacity: 0; pointer-events: none; }
-        #webgl-container { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; transform: scaleX(-1); }
+        /* Fullscreen Live Camera Background */
+        #webcam {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            object-fit: cover; z-index: 1; transform: scaleX(-1);
+        }
         
-        /* Transparent Glassmorphism UI */
+        /* 3D Canvas Overlay */
+        #webgl-container {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2; pointer-events: none;
+        }
+
+        /* Transparent Glassmorphism UI Panel */
         .top-panel {
             position: absolute; top: 15px; right: 15px; z-index: 20; display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;
         }
         .glass-btn {
-            background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3); color: #fff; padding: 8px 14px; font-size: 11px;
-            border-radius: 20px; cursor: pointer; font-weight: bold; transition: 0.2s;
+            background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3); color: #fff; padding: 10px 16px; font-size: 12px;
+            border-radius: 20px; cursor: pointer; font-weight: bold; transition: 0.2s; pointer-events: auto;
         }
-        .glass-btn:active { background: rgba(0, 255, 136, 0.4); color: #000; }
-        .btn-red { background: rgba(255, 71, 87, 0.3); border-color: rgba(255, 71, 87, 0.6); }
-        .btn-blue { background: rgba(30, 144, 255, 0.3); border-color: rgba(30, 144, 255, 0.6); }
+        .glass-btn:active { background: rgba(0, 255, 136, 0.6); color: #000; }
+        .btn-red { background: rgba(255, 71, 87, 0.7); border-color: rgba(255, 71, 87, 0.9); }
+        .btn-blue { background: rgba(30, 144, 255, 0.7); border-color: rgba(30, 144, 255, 0.9); }
 
-        /* Transparent Adjustment Panel */
+        /* 360 Full Adjustment Panel */
         .controls-panel {
             position: absolute; bottom: 15px; left: 15px; right: 15px; z-index: 20;
-            background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-            padding: 12px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.2);
-            display: flex; flex-direction: column; gap: 8px; color: #fff; font-size: 11px;
+            background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            padding: 12px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.3);
+            display: flex; flex-direction: column; gap: 6px; color: #fff; font-size: 11px;
+            pointer-events: auto; max-height: 200px; overflow-y: auto;
         }
         .control-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-        .control-row input { width: 70%; cursor: pointer; accent-color: #00ff88; }
+        .control-row input { width: 65%; cursor: pointer; accent-color: #00ff88; }
 
         .status-bar {
             position: absolute; top: 15px; left: 15px; z-index: 20; color: #00ff88; font-size: 11px;
-            background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); padding: 6px 12px; border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); padding: 8px 14px; border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.2); pointer-events: none;
         }
     </style>
 
@@ -57,7 +65,7 @@
 <body>
 
     <video id="webcam" autoplay playsinline muted></video>
-    <div class="status-bar" id="status">Memoji Studio Ready</div>
+    <div class="status-bar" id="status">Snapchat Filter Active</div>
     
     <div class="top-panel">
         <button id="upload-btn" class="glass-btn">📁 Import Model</button>
@@ -66,19 +74,35 @@
         <input type="file" id="file-input" style="display: none;" accept=".obj,.glb,.gltf,.fbx">
     </div>
 
-    <!-- Transparent Adjustment Sliders -->
+    <!-- 360 Adjustment Sliders -->
     <div class="controls-panel">
         <div class="control-row">
-            <span>Avatar Scale:</span>
-            <input type="range" id="scale-slider" min="0.5" max="4.0" step="0.1" value="1.8">
+            <span>Scale (Size):</span>
+            <input type="range" id="scale-slider" min="0.2" max="5.0" step="0.1" value="1.8">
         </div>
         <div class="control-row">
-            <span>Depth (Z Offset):</span>
-            <input type="range" id="posz-slider" min="-2.0" max="2.0" step="0.1" value="0.0">
+            <span>Position X (Left/Right):</span>
+            <input type="range" id="posx-slider" min="-2.0" max="2.0" step="0.05" value="0.0">
         </div>
         <div class="control-row">
-            <span>Manual Rotate Y:</span>
-            <input type="range" id="roty-slider" min="-3.14" max="3.14" step="0.1" value="0.0">
+            <span>Position Y (Up/Down):</span>
+            <input type="range" id="posy-slider" min="-2.0" max="2.0" step="0.05" value="0.0">
+        </div>
+        <div class="control-row">
+            <span>Position Z (Depth):</span>
+            <input type="range" id="posz-slider" min="-2.0" max="2.0" step="0.05" value="0.0">
+        </div>
+        <div class="control-row">
+            <span>360° Rotate X:</span>
+            <input type="range" id="rotx-slider" min="-3.14" max="3.14" step="0.05" value="0.0">
+        </div>
+        <div class="control-row">
+            <span>360° Rotate Y:</span>
+            <input type="range" id="roty-slider" min="-3.14" max="3.14" step="0.05" value="0.0">
+        </div>
+        <div class="control-row">
+            <span>360° Rotate Z:</span>
+            <input type="range" id="rotz-slider" min="-3.14" max="3.14" step="0.05" value="0.0">
         </div>
     </div>
 
@@ -88,15 +112,18 @@
         let scene, camera, renderer, videoElement, mediaStream;
         let currentModel = null;
         
-        // Tracking variables for full head locking
         let targetPosition = new THREE.Vector3(0, 0, 0);
         let currentPosition = new THREE.Vector3(0, 0, 0);
         let targetRotation = new THREE.Euler();
         let currentRotation = new THREE.Euler();
         
         let userScale = 1.8;
+        let userPosX = 0.0;
+        let userPosY = 0.0;
         let userPosZ = 0.0;
+        let userRotX = 0.0;
         let userRotY = 0.0;
+        let userRotZ = 0.0;
         let baseScaleMultiplier = 1.0;
         let useFrontCamera = true;
 
@@ -114,7 +141,6 @@
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             document.getElementById('webgl-container').appendChild(renderer.domElement);
 
-            // Rich Studio Lighting for 3D textures
             scene.add(new THREE.AmbientLight(0xffffff, 2.2));
             const light1 = new THREE.DirectionalLight(0xffffff, 1.8);
             light1.position.set(0, 10, 10);
@@ -123,9 +149,8 @@
             light2.position.set(0, -10, -10);
             scene.add(light2);
 
-            loadDefaultMemojiHead();
+            loadDefaultHead();
 
-            // UI Hooks
             document.getElementById('upload-btn').addEventListener('click', () => document.getElementById('file-input').click());
             document.getElementById('flip-btn').addEventListener('click', () => {
                 useFrontCamera = !useFrontCamera;
@@ -134,17 +159,20 @@
             document.getElementById('record-btn').addEventListener('click', toggleRecording);
 
             document.getElementById('scale-slider').addEventListener('input', (e) => userScale = parseFloat(e.target.value));
+            document.getElementById('posx-slider').addEventListener('input', (e) => userPosX = parseFloat(e.target.value));
+            document.getElementById('posy-slider').addEventListener('input', (e) => userPosY = parseFloat(e.target.value));
             document.getElementById('posz-slider').addEventListener('input', (e) => userPosZ = parseFloat(e.target.value));
+            document.getElementById('rotx-slider').addEventListener('input', (e) => userRotX = parseFloat(e.target.value));
             document.getElementById('roty-slider').addEventListener('input', (e) => userRotY = parseFloat(e.target.value));
+            document.getElementById('rotz-slider').addEventListener('input', (e) => userRotZ = parseFloat(e.target.value));
 
-            // File Importer with Full Texture Support
             document.getElementById('file-input').addEventListener('change', (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
                 const fileURL = URL.createObjectURL(file);
                 const ext = file.name.split('.').pop().toLowerCase();
 
-                document.getElementById('status').innerText = "Loading 3D Avatar...";
+                document.getElementById('status').innerText = "Loading Model...";
 
                 const setupModel = (object) => {
                     if (currentModel) scene.remove(currentModel);
@@ -158,7 +186,6 @@
                         }
                     });
 
-                    // Center and normalize model bounds
                     const box = new THREE.Box3().setFromObject(object);
                     const center = box.getCenter(new THREE.Vector3());
                     const size = box.getSize(new THREE.Vector3());
@@ -166,20 +193,20 @@
 
                     const maxAxis = Math.max(size.x, size.y, size.z);
                     if (maxAxis > 0) {
-                        baseScaleMultiplier = 1.2 / maxAxis;
+                        baseScaleMultiplier = 1.0 / maxAxis;
                     }
 
                     currentModel = object;
                     scene.add(currentModel);
-                    document.getElementById('status').innerText = "Avatar Loaded Successfully!";
+                    document.getElementById('status').innerText = "Model Active!";
                 };
 
                 if (ext === 'obj') {
-                    new THREE.OBJLoader().load(fileURL, (obj) => setupModel(obj), undefined, () => alert("OBJ Load Error"));
+                    new THREE.OBJLoader().load(fileURL, (obj) => setupModel(obj), undefined, () => alert("OBJ Error"));
                 } else if (ext === 'glb' || ext === 'gltf') {
-                    new THREE.GLTFLoader().load(fileURL, (gltf) => setupModel(gltf.scene), undefined, () => alert("GLB Load Error"));
+                    new THREE.GLTFLoader().load(fileURL, (gltf) => setupModel(gltf.scene), undefined, () => alert("GLB Error"));
                 } else if (ext === 'fbx') {
-                    new THREE.FBXLoader().load(fileURL, (obj) => setupModel(obj), undefined, () => alert("FBX Load Error"));
+                    new THREE.FBXLoader().load(fileURL, (obj) => setupModel(obj), undefined, () => alert("FBX Error"));
                 }
             });
 
@@ -194,11 +221,10 @@
             animate();
         }
 
-        function loadDefaultMemojiHead() {
+        function loadDefaultHead() {
             const group = new THREE.Group();
-            // Default placeholder sphere head mimicking a 3D avatar head
             const geometry = new THREE.SphereGeometry(0.5, 32, 32);
-            const material = new THREE.MeshStandardMaterial({ color: 0xffdbac, roughness: 0.4 }); // Skin tone
+            const material = new THREE.MeshStandardMaterial({ color: 0xffdbac, roughness: 0.4 });
             const mesh = new THREE.Mesh(geometry, material);
             group.add(mesh);
             currentModel = group;
@@ -210,13 +236,13 @@
                 mediaStream.getTracks().forEach(track => track.stop());
             }
             navigator.mediaDevices.getUserMedia({
-                video: { facingMode: useFrontCamera ? 'user' : 'environment', width: 640, height: 480 }
+                video: { facingMode: useFrontCamera ? 'user' : 'environment', width: 1280, height: 720 }
             }).then(stream => {
                 mediaStream = stream;
                 videoElement.srcObject = stream;
             }).catch(err => {
                 console.error(err);
-                alert("Camera permission denied or unavailable.");
+                alert("Camera access denied.");
             });
         }
 
@@ -244,7 +270,6 @@
                     });
 
                     if (riggedFace) {
-                        // Precise head mapping to lock avatar right onto the face position
                         targetPosition.x = riggedFace.position.x * 1.5;
                         targetPosition.y = -riggedFace.position.y * 1.5;
                         targetPosition.z = -riggedFace.position.z * 1.2;
@@ -262,8 +287,8 @@
                         await faceMesh.send({ image: videoElement });
                     }
                 },
-                width: 640,
-                height: 480
+                width: 1280,
+                height: 720
             });
             cameraUtils.start();
         }
@@ -273,8 +298,18 @@
             if (!isRecording) {
                 recordedChunks = [];
                 const canvasStream = renderer.domElement.captureStream(30);
+                const combinedStream = new MediaStream([
+                    ...canvasStream.getVideoTracks(),
+                    ...(mediaStream ? mediaStream.getAudioTracks() : [])
+                ]);
+
+                let options = { mimeType: 'video/webm;codecs=vp9' };
+                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                    options = { mimeType: 'video/webm' };
+                }
+
                 try {
-                    mediaRecorder = new MediaRecorder(canvasStream, { mimeType: 'video/webm;codecs=vp9' });
+                    mediaRecorder = new MediaRecorder(combinedStream, options);
                 } catch (e) {
                     mediaRecorder = new MediaRecorder(canvasStream);
                 }
@@ -288,21 +323,21 @@
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = 'aijaz-memoji-recording.webm';
+                    a.download = 'snapchat-filter-recording.webm';
                     a.click();
                     window.URL.revokeObjectURL(url);
-                    document.getElementById('status').innerText = "Video Saved Successfully!";
+                    document.getElementById('status').innerText = "Video Saved!";
                 };
 
                 mediaRecorder.start();
                 isRecording = true;
                 recordBtn.innerText = "⏹️ Stop Recording";
-                document.getElementById('status').innerText = "Recording in progress...";
+                document.getElementById('status').innerText = "Recording...";
             } else {
                 mediaRecorder.stop();
                 isRecording = false;
                 recordBtn.innerText = "🔴 Record Video";
-                document.getElementById('status').innerText = "Processing video...";
+                document.getElementById('status').innerText = "Saved!";
             }
         }
 
@@ -310,18 +345,26 @@
             requestAnimationFrame(animate);
             
             if (currentModel) {
-                // Smooth interpolation for fluid head movement
-                currentPosition.x += (targetPosition.x - currentPosition.x) * 0.35;
-                currentPosition.y += (targetPosition.y - currentPosition.y) * 0.35;
-                currentPosition.z += (targetPosition.z - currentPosition.z) * 0.35;
+                currentPosition.x += (targetPosition.x - currentPosition.x) * 0.4;
+                currentPosition.y += (targetPosition.y - currentPosition.y) * 0.4;
+                currentPosition.z += (targetPosition.z - currentPosition.z) * 0.4;
 
-                currentRotation.x += (targetRotation.x - currentRotation.x) * 0.35;
-                currentRotation.y += ((targetRotation.y + userRotY) - currentRotation.y) * 0.35;
-                currentRotation.z += (targetRotation.z - currentRotation.z) * 0.35;
+                currentRotation.x += (targetRotation.x - currentRotation.x) * 0.4;
+                currentRotation.y += (targetRotation.y - currentRotation.y) * 0.4;
+                currentRotation.z += (targetRotation.z - currentRotation.z) * 0.4;
 
-                // Apply correct scaling and positions to cover the face completely like Memoji
-                currentModel.position.set(currentPosition.x, currentPosition.y, currentPosition.z + userPosZ);
-                currentModel.rotation.set(currentRotation.x, currentRotation.y, currentRotation.z, 'YXZ');
+                currentModel.position.set(
+                    currentPosition.x + userPosX, 
+                    currentPosition.y + userPosY, 
+                    currentPosition.z + userPosZ
+                );
+                
+                currentModel.rotation.set(
+                    currentRotation.x + userRotX, 
+                    currentRotation.y + userRotY, 
+                    currentRotation.z + userRotZ, 
+                    'YXZ'
+                );
                 
                 const finalScale = baseScaleMultiplier * userScale;
                 currentModel.scale.set(finalScale, finalScale, finalScale);
