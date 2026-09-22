@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Azeez AR - Pro Face Matrix Tracking</title>
+    <title>Azeez AR - Final Fixed</title>
     <style>
         * { box-sizing: border-box; }
         body, html {
@@ -16,7 +16,7 @@
             position: fixed; top: 0; left: 0;
             width: 100vw; height: 100vh;
             object-fit: cover; z-index: 1;
-            transform: scaleX(-1); /* Mirror camera for front view */
+            transform: scaleX(-1);
         }
         #webgl-container {
             position: fixed; top: 0; left: 0;
@@ -57,8 +57,10 @@
         .slider-row input { width: 65%; cursor: pointer; }
     </style>
 
+    <!-- Three.js & GLTF Loader -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <!-- MediaPipe Face Mesh -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
 </head>
@@ -70,19 +72,19 @@
     <div class="sliders-panel">
         <div class="slider-row">
             <span>Model Scale:</span>
-            <input type="range" id="scaleSlider" min="0.1" max="3" step="0.05" value="1.0">
+            <input type="range" id="scaleSlider" min="0.1" max="5" step="0.05" value="1.5">
         </div>
         <div class="slider-row">
             <span>Offset X (Left/Right):</span>
-            <input type="range" id="offsetX" min="-1" max="1" step="0.01" value="0">
+            <input type="range" id="offsetX" min="-2" max="2" step="0.05" value="0">
         </div>
         <div class="slider-row">
             <span>Offset Y (Up/Down):</span>
-            <input type="range" id="offsetY" min="-1" max="1" step="0.01" value="0.1">
+            <input type="range" id="offsetY" min="-2" max="2" step="0.05" value="0.2">
         </div>
         <div class="slider-row">
             <span>Offset Z (Depth):</span>
-            <input type="range" id="offsetZ" min="-1" max="1" step="0.01" value="0">
+            <input type="range" id="offsetZ" min="-3" max="3" step="0.05" value="0">
         </div>
     </div>
 
@@ -118,8 +120,7 @@
         let mediaRecorder;
         let recordedChunks = [];
         
-        let matrixWorld = new THREE.Matrix4();
-        let hasFace = false;
+        let targetPosition = new THREE.Vector3(0, 0, 0);
 
         async function startCamera() {
             try {
@@ -127,7 +128,7 @@
                     currentStream.getTracks().forEach(track => track.stop());
                 }
                 const constraints = {
-                    video: { facingMode: useFrontCamera ? 'user' : 'environment', width: 640, height: 480 },
+                    video: { facingMode: useFrontCamera ? 'user' : 'environment' },
                     audio: true
                 };
                 currentStream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -145,8 +146,8 @@
         function init3D() {
             const container = document.getElementById('webgl-container');
             scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.z = 1;
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 2.5;
 
             renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -164,54 +165,43 @@
         function animate() {
             requestAnimationFrame(animate);
             if (currentModel) {
-                if (hasFace) {
-                    currentModel.visible = true;
-                    // Apply Face Tracking Matrix
-                    currentModel.matrixAutoUpdate = false;
-                    
-                    let baseScale = parseFloat(scaleSlider.value);
-                    let xOff = parseFloat(offsetXSlider.value);
-                    let yOff = parseFloat(offsetYSlider.value);
-                    let zOff = parseFloat(offsetZSlider.value);
+                let scale = parseFloat(scaleSlider.value);
+                currentModel.scale.set(scale, scale, scale);
 
-                    let customMatrix = matrixWorld.clone();
-                    
-                    // Apply offsets
-                    let position = new THREE.Vector3();
-                    let quaternion = new THREE.Quaternion();
-                    let scale = new THREE.Vector3();
-                    customMatrix.decompose(position, quaternion, scale);
+                let xOff = parseFloat(offsetXSlider.value);
+                let yOff = parseFloat(offsetYSlider.value);
+                let zOff = parseFloat(offsetZSlider.value);
 
-                    position.x += xOff;
-                    position.y += yOff;
-                    position.z += zOff;
-                    scale.set(baseScale, baseScale, baseScale);
-
-                    customMatrix.compose(position, quaternion, scale);
-                    currentModel.matrix.copy(customMatrix);
-                } else {
-                    currentModel.visible = false;
-                }
+                let desiredPos = new THREE.Vector3(
+                    targetPosition.x + xOff,
+                    targetPosition.y + yOff,
+                    targetPosition.z + zOff
+                );
+                currentModel.position.lerp(desiredPos, 0.3);
             }
             renderer.render(scene, camera);
         }
 
+        // Fixed GLB File Importer
         fileInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
             if (!file) return;
             const reader = new FileReader();
             reader.onload = function (e) {
+                const contents = e.target.result;
                 const loader = new THREE.GLTFLoader();
-                loader.parse(e.target.result, '', (gltf) => {
+                loader.parse(contents, '', (gltf) => {
                     if (currentModel) scene.remove(currentModel);
                     currentModel = gltf.scene;
                     scene.add(currentModel);
-                }, (err) => { alert("Load error: " + err); });
+                }, (error) => {
+                    alert('Model load error: ' + error.message);
+                });
             };
             reader.readAsArrayBuffer(file);
         });
 
-        // MediaPipe Face Mesh with Matrix Output
+        // MediaPipe Face Tracking
         const faceMesh = new FaceMesh({
             locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
         });
@@ -223,22 +213,15 @@
         });
 
         faceMesh.onResults((results) => {
-            if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0 && results.allFaces && results.allFaces.length > 0) {
-                // MediaPipe gives transformation matrix if available, or we compute from landmarks
-                hasFace = true;
+            if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
                 const landmarks = results.multiFaceLandmarks[0];
-                
-                // Approximate head position and rotation from nose (1) and forehead (10)
-                let nose = landmarks[1];
-                let forehead = landmarks[10];
+                const head = landmarks[10]; // Top of head / forehead point
 
-                let x = -(nose.x - 0.5) * 2;
-                let y = -(nose.y - 0.5) * 2;
-                let z = -nose.z * 2;
+                let x = -(head.x - 0.5) * 3;
+                let y = -(head.y - 0.5) * 3;
+                let z = -head.z * 1.5;
 
-                matrixWorld.makeTranslation(x, y + 0.1, z);
-            } else {
-                hasFace = false;
+                targetPosition.set(x, y, z);
             }
         });
 
@@ -297,4 +280,3 @@
     </script>
 </body>
 </html>
-
