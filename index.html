@@ -17,7 +17,8 @@
             top: 0;
             left: 0;
             width: 100vw;
-            height: 100vh;
+            height: 100vw; /* Fix for mobile camera stretch */
+            min-height: 100vh;
             object-fit: cover;
             z-index: 1;
         }
@@ -48,8 +49,8 @@
             font-size: 14px;
             backdrop-filter: blur(5px);
         }
-        .btn:hover {
-            background: rgba(255, 255, 255, 0.2);
+        .btn:active {
+            background: rgba(255, 255, 255, 0.4);
         }
         .control-panel {
             position: absolute;
@@ -67,12 +68,12 @@
             box-shadow: 0 4px 20px rgba(0,0,0,0.5);
         }
         .slider-group {
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
         .slider-group label {
             display: block;
-            font-size: 12px;
-            margin-bottom: 4px;
+            font-size: 11px;
+            margin-bottom: 2px;
             color: #ccc;
         }
         .slider-group input {
@@ -128,18 +129,39 @@
     <input type="file" id="file-input" accept=".vrm" style="display: none;">
 
     <script>
-        // Start Camera
         const videoElement = document.getElementById('webcam-video');
-        async function startCamera() {
+        let currentFacingMode = 'user'; // 'user' for front camera, 'environment' for back camera
+
+        async function startCamera(facingMode) {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+                if (videoElement.srcObject) {
+                    const tracks = videoElement.srcObject.getTracks();
+                    tracks.forEach(track => track.stop());
+                }
+
+                const constraints = {
+                    video: { facingMode: facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+                    audio: false
+                };
+
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
                 videoElement.srcObject = stream;
             } catch (err) {
                 console.error("Camera access error:", err);
+                alert("Camera access failed! Please allow camera permissions in browser settings.");
             }
         }
-        startCamera();
 
+        // Initialize Camera on load
+        startCamera(currentFacingMode);
+
+        // Flip Camera Button Logic
+        document.getElementById('flip-cam-btn').addEventListener('click', () => {
+            currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+            startCamera(currentFacingMode);
+        });
+
+        // Import Model Button Logic
         const importBtn = document.getElementById('import-btn');
         const fileInput = document.getElementById('file-input');
 
@@ -152,6 +174,7 @@
             if (file) {
                 const url = URL.createObjectURL(file);
                 console.log("Selected VRM file URL:", url);
+                alert("Model selected successfully: " + file.name);
             }
         });
     </script>
