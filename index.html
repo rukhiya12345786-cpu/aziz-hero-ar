@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -54,17 +54,17 @@
 </head>
 <body>
 
-    <!-- Video element to display camera feed -->
+    <!-- कैमरा फीड दिखाने के लिए वीडियो एलिमेंट -->
     <video id="videoElement" autoplay playsinline></video>
 
-    <!-- UI Controls -->
+    <!-- कंट्रोल्स -->
     <div class="controls">
-        <button id="switchCameraBtn">Switch Camera</button>
-        <button id="recordBtn">Start Recording</button>
+        <button id="switchCameraBtn">कैमरा बदलो (Front/Back)</button>
+        <button id="recordBtn">रिकॉर्ड शुरू करें</button>
     </div>
 
     <script>
-        let currentFacingMode = 'user'; // 'user' for front camera, 'environment' for back camera
+        let currentFacingMode = 'user'; // 'user' यानी फ्रंट, 'environment' यानी बैक
         let videoStream = null;
 
         const videoElement = document.getElementById('videoElement');
@@ -83,18 +83,18 @@
                 videoStream = await navigator.mediaDevices.getUserMedia(constraints);
                 videoElement.srcObject = videoStream;
             } catch (error) {
-                console.error("Error accessing camera:", error);
-                alert("Camera access denied or not supported!");
+                console.error("कैमरा शुरू करने में एरर:", error);
+                alert("कैमरा एक्सेस नहीं मिल पाया!");
             }
         }
 
-        // Switch camera button event listener
+        // कैमरा स्विच करने का बटन
         switchCameraBtn.addEventListener('click', () => {
             currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
             startCamera(currentFacingMode);
         });
 
-        // Initialize front camera on load
+        // ऐप लोड होते ही फ्रंट कैमरा चालू करें
         startCamera(currentFacingMode);
     </script>
 
