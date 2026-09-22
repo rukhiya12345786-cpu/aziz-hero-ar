@@ -2573,50 +2573,24 @@ function prepareApplicationUI() {
     }
 }
 
-function initializeApplicationState() {
-    modelSize = 1;
-    heightValue = 0;
-    depthValue = 0;
+function initializeApplicationState();
 
-    resetTrackingState();
-    prepareApplicationUI();
-}initializeApplicationState();
-
-window.addEventListener("load", async function() {
-    try {
-        await startApplication();
-    } catch (error) {
+window.addEventListener("load", function() {
+    startApplication().catch(function(error) {
         console.error("Application startup error:", error);
 
-        showStatus("Application Startup Failed");
+        showStatus("Camera Start Failed");
 
         showCameraError(
-            "Unable to start the application.<br><br>" +
-            "Please check camera permission and reload the page."
+            "Camera could not start.<br><br>" +
+            "Allow camera permission and open this page using HTTPS or localhost."
         );
-    }
+    });
 });
 
 window.addEventListener("beforeunload", function() {
     releaseApplicationResources();
 });
-
-document.addEventListener("visibilitychange", function() {
-    if (document.visibilityState === "visible") {
-        if (video && video.srcObject) {
-            video.play().catch(function(error) {
-                console.warn(error);
-            });
-        }
-    }
-});
-
-if (document.readyState === "complete") {
-    startApplication().catch(function(error) {
-        console.error("Application startup error:", error);
-    });
-}
-
 </script>
 </body>
 </html>
