@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AR Face Mask Studio - Working Edition</title>
+    <title>AR Face Mask Studio - Fixed Edition</title>
     <style>
         * {
             box-sizing: border-box;
@@ -158,7 +158,6 @@
 </head>
 <body>
 
-    <!-- Start Screen to bypass browser autoplay blocks -->
     <div id="start-screen">
         <h2>AR Face Mask Studio</h2>
         <p>Click the button below to grant camera permissions and start the app.</p>
@@ -167,6 +166,9 @@
 
     <video id="webcam-video" autoplay playsinline muted></video>
     <div id="canvas-container"></div>
+
+    <!-- Hidden canvas used to merge video + 3D graphics for recording -->
+    <canvas id="recording-canvas" style="display:none;"></canvas>
 
     <div class="overlay-ui">
         <div class="top-tools">
@@ -202,6 +204,7 @@
         let videoElement = document.getElementById('webcam-video');
         let currentModel = null;
         let renderer, scene, camera;
+        let webcamStream = null;
         
         let manualScale = 1.0;
         let manualOffsetX = 0;
@@ -216,11 +219,11 @@
 
             // 1. Start Camera safely
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({
+                webcamStream = await navigator.mediaDevices.getUserMedia({
                     video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
                     audio: true
                 });
-                videoElement.srcObject = stream;
+                videoElement.srcObject = webcamStream;
                 await videoElement.play();
             } catch (err) {
                 alert("Camera permission denied or not supported on this browser.");
@@ -387,8 +390,10 @@
             sendFrame();
         }
 
-        // Video & Audio Recording
+        // Fixed Video & Audio Recording (Merging Webcam + 3D Canvas)
         const recordBtn = document.getElementById('record-btn');
+        let recordInterval = null;
+
         recordBtn.addEventListener('click', () => {
             if (!mediaRecorder || mediaRecorder.state === "inactive") {
                 startRecording();
@@ -403,12 +408,39 @@
                 return;
             }
             recordedChunks = [];
-            const canvasStream = renderer.domElement.captureStream(30);
+
+            // Create a merged canvas to draw both webcam and 3D graphics together
+            const recCanvas = document.getElementById('recording-canvas');
+            recCanvas.width = videoElement.videoWidth || 1280;
+            recCanvas.height = videoElement.videoHeight || 720;
+            const recCtx = recCanvas.getContext('2d');
+
+            // Draw frames continuously into the recording canvas
+            recordInterval = setInterval(() => {
+                recCtx.save();
+                recCtx.scale(-1, 1); // Flip horizontally to match mirror preview
+                recCtx.drawImage(videoElement, -recCanvas.width, 0, recCanvas.width, recCanvas.height);
+                recCtx.restore();
+                
+                // Draw Three.js canvas on top
+                recCtx.drawImage(renderer.domElement, 0, 0, recCanvas.width, recCanvas.height);
+            }, 30);
+
+            const canvasStream = recCanvas.captureStream(30);
             
+            // Add microphone audio if available
+            if (webcamStream && webcamStream.getAudioTracks().length > 0) {
+                canvasStream.addTrack(webcamStream.getAudioTracks()[0]);
+            }
+
             try {
-                mediaRecorder = new MediaRecorder(canvasStream, { mimeType: 'video/webm' });
+                mediaRecorder = new MediaRecorder(canvasStream, { mimeType: 'video/webm; codecs=vp9' });
             } catch (e) {
-                mediaRecorder = new MediaRecorder(canvasStream);
+                try {
+                    mediaRecorder = new MediaRecorder(canvasStream, { mimeType: 'video/webm' });
+                } catch (err) {
+                    mediaRecorder = new MediaRecorder(canvasStream);
+                }
             }
 
             mediaRecorder.ondataavailable = (e) => {
@@ -416,11 +448,12 @@
             };
 
             mediaRecorder.onstop = () => {
+                clearInterval(recordInterval);
                 const blob = new Blob(recordedChunks, { type: 'video/webm' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'ar-recording.webm';
+                a.download = 'ar-face-recording.webm';
                 document.body.appendChild(a);
                 a.click();
                 setTimeout(() => document.body.removeChild(a), 100);
@@ -432,7 +465,12 @@
         }
 
         function stopRecording() {
-            mediaRecorder.stop();
+            if (mediaRecorder && mediaRecorder.state !== "inactive") {
+                mediaRecorder.stop();
+            }
+            if (recordInterval) {
+                clearInterval(recordInterval);
+            }
             recordBtn.textContent = "🔴 Record Video";
             recordBtn.classList.remove("recording");
         }
