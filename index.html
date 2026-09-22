@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Aijaz AR Face Studio - Pro 360</title>
+    <title>Aijaz AR Memoji Studio - Ultimate</title>
     <style>
         * { box-sizing: border-box; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; }
         
-        /* Webcam Preview Thumbnail */
-        #webcam { position: absolute; top: 15px; left: 15px; width: 80px; height: 106px; border-radius: 8px; z-index: 10; border: 2px solid rgba(0,255,136,0.8); object-fit: cover; background: #111; }
-        #webgl-container { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
+        /* Hidden or minimized tracking webcam feed */
+        #webcam { position: absolute; top: -9999px; left: -9999px; width: 640px; height: 480px; opacity: 0; pointer-events: none; }
+        #webgl-container { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; transform: scaleX(-1); }
         
         /* Transparent Glassmorphism UI */
         .top-panel {
@@ -36,9 +36,9 @@
         .control-row input { width: 70%; cursor: pointer; accent-color: #00ff88; }
 
         .status-bar {
-            position: absolute; top: 130px; left: 15px; z-index: 20; color: #00ff88; font-size: 10px;
-            background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 4px; max-width: 120px;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            position: absolute; top: 15px; left: 15px; z-index: 20; color: #00ff88; font-size: 11px;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); padding: 6px 12px; border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.2);
         }
     </style>
 
@@ -57,27 +57,27 @@
 <body>
 
     <video id="webcam" autoplay playsinline muted></video>
-    <div class="status-bar" id="status">Ready</div>
+    <div class="status-bar" id="status">Memoji Studio Ready</div>
     
     <div class="top-panel">
-        <button id="upload-btn" class="glass-btn">📁 Import</button>
+        <button id="upload-btn" class="glass-btn">📁 Import Model</button>
         <button id="flip-btn" class="glass-btn btn-blue">🔄 Flip Cam</button>
-        <button id="record-btn" class="glass-btn btn-red">🔴 Record</button>
+        <button id="record-btn" class="glass-btn btn-red">🔴 Record Video</button>
         <input type="file" id="file-input" style="display: none;" accept=".obj,.glb,.gltf,.fbx">
     </div>
 
     <!-- Transparent Adjustment Sliders -->
     <div class="controls-panel">
         <div class="control-row">
-            <span>Size (Scale):</span>
-            <input type="range" id="scale-slider" min="0.2" max="3.0" step="0.1" value="1.0">
+            <span>Avatar Scale:</span>
+            <input type="range" id="scale-slider" min="0.5" max="4.0" step="0.1" value="1.8">
         </div>
         <div class="control-row">
-            <span>Depth (Pos Z):</span>
+            <span>Depth (Z Offset):</span>
             <input type="range" id="posz-slider" min="-2.0" max="2.0" step="0.1" value="0.0">
         </div>
         <div class="control-row">
-            <span>Rotate (Y):</span>
+            <span>Manual Rotate Y:</span>
             <input type="range" id="roty-slider" min="-3.14" max="3.14" step="0.1" value="0.0">
         </div>
     </div>
@@ -88,13 +88,13 @@
         let scene, camera, renderer, videoElement, mediaStream;
         let currentModel = null;
         
-        // Tracking variables
+        // Tracking variables for full head locking
         let targetPosition = new THREE.Vector3(0, 0, 0);
         let currentPosition = new THREE.Vector3(0, 0, 0);
         let targetRotation = new THREE.Euler();
         let currentRotation = new THREE.Euler();
         
-        let userScale = 1.0;
+        let userScale = 1.8;
         let userPosZ = 0.0;
         let userRotY = 0.0;
         let baseScaleMultiplier = 1.0;
@@ -114,16 +114,16 @@
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             document.getElementById('webgl-container').appendChild(renderer.domElement);
 
-            // Studio Lighting to ensure textures look bright and clear
-            scene.add(new THREE.AmbientLight(0xffffff, 2.0));
-            const light1 = new THREE.DirectionalLight(0xffffff, 1.5);
+            // Rich Studio Lighting for 3D textures
+            scene.add(new THREE.AmbientLight(0xffffff, 2.2));
+            const light1 = new THREE.DirectionalLight(0xffffff, 1.8);
             light1.position.set(0, 10, 10);
             scene.add(light1);
             const light2 = new THREE.DirectionalLight(0xffffff, 1.0);
             light2.position.set(0, -10, -10);
             scene.add(light2);
 
-            loadDefaultHead();
+            loadDefaultMemojiHead();
 
             // UI Hooks
             document.getElementById('upload-btn').addEventListener('click', () => document.getElementById('file-input').click());
@@ -137,30 +137,28 @@
             document.getElementById('posz-slider').addEventListener('input', (e) => userPosZ = parseFloat(e.target.value));
             document.getElementById('roty-slider').addEventListener('input', (e) => userRotY = parseFloat(e.target.value));
 
-            // File Importer with Texture Preservation
+            // File Importer with Full Texture Support
             document.getElementById('file-input').addEventListener('change', (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
                 const fileURL = URL.createObjectURL(file);
                 const ext = file.name.split('.').pop().toLowerCase();
 
-                document.getElementById('status').innerText = "Loading model...";
+                document.getElementById('status').innerText = "Loading 3D Avatar...";
 
                 const setupModel = (object) => {
                     if (currentModel) scene.remove(currentModel);
                     
-                    // Keep original textures and fix materials
                     object.traverse((child) => {
                         if (child.isMesh) {
                             if (child.material) {
                                 child.material.side = THREE.DoubleSide;
-                                // Ensure textures are enabled if present
                                 if (child.material.map) child.material.map.encoding = THREE.sRGBEncoding;
                             }
                         }
                     });
 
-                    // Center model and scale to fit face bounds nicely
+                    // Center and normalize model bounds
                     const box = new THREE.Box3().setFromObject(object);
                     const center = box.getCenter(new THREE.Vector3());
                     const size = box.getSize(new THREE.Vector3());
@@ -168,20 +166,20 @@
 
                     const maxAxis = Math.max(size.x, size.y, size.z);
                     if (maxAxis > 0) {
-                        baseScaleMultiplier = 1.0 / maxAxis;
+                        baseScaleMultiplier = 1.2 / maxAxis;
                     }
 
                     currentModel = object;
                     scene.add(currentModel);
-                    document.getElementById('status').innerText = "Loaded!";
+                    document.getElementById('status').innerText = "Avatar Loaded Successfully!";
                 };
 
                 if (ext === 'obj') {
-                    new THREE.OBJLoader().load(fileURL, (obj) => setupModel(obj), undefined, () => alert("OBJ Error"));
+                    new THREE.OBJLoader().load(fileURL, (obj) => setupModel(obj), undefined, () => alert("OBJ Load Error"));
                 } else if (ext === 'glb' || ext === 'gltf') {
-                    new THREE.GLTFLoader().load(fileURL, (gltf) => setupModel(gltf.scene), undefined, () => alert("GLB Error"));
+                    new THREE.GLTFLoader().load(fileURL, (gltf) => setupModel(gltf.scene), undefined, () => alert("GLB Load Error"));
                 } else if (ext === 'fbx') {
-                    new THREE.FBXLoader().load(fileURL, (obj) => setupModel(obj), undefined, () => alert("FBX Error"));
+                    new THREE.FBXLoader().load(fileURL, (obj) => setupModel(obj), undefined, () => alert("FBX Load Error"));
                 }
             });
 
@@ -196,10 +194,11 @@
             animate();
         }
 
-        function loadDefaultHead() {
+        function loadDefaultMemojiHead() {
             const group = new THREE.Group();
-            const geometry = new THREE.SphereGeometry(0.3, 32, 32);
-            const material = new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.3 });
+            // Default placeholder sphere head mimicking a 3D avatar head
+            const geometry = new THREE.SphereGeometry(0.5, 32, 32);
+            const material = new THREE.MeshStandardMaterial({ color: 0xffdbac, roughness: 0.4 }); // Skin tone
             const mesh = new THREE.Mesh(geometry, material);
             group.add(mesh);
             currentModel = group;
@@ -215,10 +214,9 @@
             }).then(stream => {
                 mediaStream = stream;
                 videoElement.srcObject = stream;
-                videoElement.style.transform = useFrontCamera ? 'scaleX(-1)' : 'scaleX(1)';
             }).catch(err => {
                 console.error(err);
-                alert("Camera access denied.");
+                alert("Camera permission denied or unavailable.");
             });
         }
 
@@ -246,10 +244,10 @@
                     });
 
                     if (riggedFace) {
-                        // Correct head-locked mapping so model stays right on top of face
-                        targetPosition.x = riggedFace.position.x * 1.2;
-                        targetPosition.y = -riggedFace.position.y * 1.2;
-                        targetPosition.z = -riggedFace.position.z * 1.0;
+                        // Precise head mapping to lock avatar right onto the face position
+                        targetPosition.x = riggedFace.position.x * 1.5;
+                        targetPosition.y = -riggedFace.position.y * 1.5;
+                        targetPosition.z = -riggedFace.position.z * 1.2;
 
                         targetRotation.x = riggedFace.head.x;
                         targetRotation.y = riggedFace.head.y;
@@ -290,21 +288,21 @@
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = 'aijaz-ar-studio.webm';
+                    a.download = 'aijaz-memoji-recording.webm';
                     a.click();
                     window.URL.revokeObjectURL(url);
-                    document.getElementById('status').innerText = "Saved!";
+                    document.getElementById('status').innerText = "Video Saved Successfully!";
                 };
 
                 mediaRecorder.start();
                 isRecording = true;
-                recordBtn.innerText = "⏹️ Stop";
-                document.getElementById('status').innerText = "Recording...";
+                recordBtn.innerText = "⏹️ Stop Recording";
+                document.getElementById('status').innerText = "Recording in progress...";
             } else {
                 mediaRecorder.stop();
                 isRecording = false;
-                recordBtn.innerText = "🔴 Record";
-                document.getElementById('status').innerText = "Saved!";
+                recordBtn.innerText = "🔴 Record Video";
+                document.getElementById('status').innerText = "Processing video...";
             }
         }
 
@@ -312,20 +310,20 @@
             requestAnimationFrame(animate);
             
             if (currentModel) {
-                // Smooth interpolation for fluid head tracking
-                currentPosition.x += (targetPosition.x - currentPosition.x) * 0.3;
-                currentPosition.y += (targetPosition.y - currentPosition.y) * 0.3;
-                currentPosition.z += (targetPosition.z - currentPosition.z) * 0.3;
+                // Smooth interpolation for fluid head movement
+                currentPosition.x += (targetPosition.x - currentPosition.x) * 0.35;
+                currentPosition.y += (targetPosition.y - currentPosition.y) * 0.35;
+                currentPosition.z += (targetPosition.z - currentPosition.z) * 0.35;
 
-                currentRotation.x += (targetRotation.x - currentRotation.x) * 0.3;
-                currentRotation.y += ((targetRotation.y + userRotY) - currentRotation.y) * 0.3;
-                currentRotation.z += (targetRotation.z - currentRotation.z) * 0.3;
+                currentRotation.x += (targetRotation.x - currentRotation.x) * 0.35;
+                currentRotation.y += ((targetRotation.y + userRotY) - currentRotation.y) * 0.35;
+                currentRotation.z += (targetRotation.z - currentRotation.z) * 0.35;
 
-                // Apply correct transforms
+                // Apply correct scaling and positions to cover the face completely like Memoji
                 currentModel.position.set(currentPosition.x, currentPosition.y, currentPosition.z + userPosZ);
                 currentModel.rotation.set(currentRotation.x, currentRotation.y, currentRotation.z, 'YXZ');
                 
-                const finalScale = baseScaleMultiplier * userScale * 1.5;
+                const finalScale = baseScaleMultiplier * userScale;
                 currentModel.scale.set(finalScale, finalScale, finalScale);
             }
 
@@ -336,4 +334,3 @@
     </script>
 </body>
 </html>
-
