@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Aijaz AR Face Studio - Ultimate</title>
+    <title>Aijaz AR Face Studio - Pro 360</title>
     <style>
         * { box-sizing: border-box; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; }
         
         /* Webcam Preview Thumbnail */
-        #webcam { position: absolute; top: 15px; left: 15px; width: 90px; height: 120px; border-radius: 10px; z-index: 10; border: 2px solid rgba(0,255,136,0.8); object-fit: cover; background: #111; }
+        #webcam { position: absolute; top: 15px; left: 15px; width: 80px; height: 106px; border-radius: 8px; z-index: 10; border: 2px solid rgba(0,255,136,0.8); object-fit: cover; background: #111; }
         #webgl-container { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
         
         /* Transparent Glassmorphism UI */
@@ -36,8 +36,8 @@
         .control-row input { width: 70%; cursor: pointer; accent-color: #00ff88; }
 
         .status-bar {
-            position: absolute; top: 145px; left: 15px; z-index: 20; color: #00ff88; font-size: 10px;
-            background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 4px; max-width: 150px;
+            position: absolute; top: 130px; left: 15px; z-index: 20; color: #00ff88; font-size: 10px;
+            background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 4px; max-width: 120px;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
     </style>
@@ -87,15 +87,17 @@
     <script>
         let scene, camera, renderer, videoElement, mediaStream;
         let currentModel = null;
-        let targetPosition = new THREE.Vector3();
-        let currentPosition = new THREE.Vector3();
+        
+        // Tracking variables
+        let targetPosition = new THREE.Vector3(0, 0, 0);
+        let currentPosition = new THREE.Vector3(0, 0, 0);
         let targetRotation = new THREE.Euler();
         let currentRotation = new THREE.Euler();
         
         let userScale = 1.0;
         let userPosZ = 0.0;
         let userRotY = 0.0;
-        let baseScaleMultiplier = 1.2;
+        let baseScaleMultiplier = 1.0;
         let useFrontCamera = true;
 
         let mediaRecorder;
@@ -105,23 +107,23 @@
         function init() {
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.z = 2.5;
+            camera.position.z = 2.0;
 
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             document.getElementById('webgl-container').appendChild(renderer.domElement);
 
-            // Studio Lighting
-            scene.add(new THREE.AmbientLight(0xffffff, 2.5));
-            const light1 = new THREE.DirectionalLight(0xffffff, 2.0);
+            // Studio Lighting to ensure textures look bright and clear
+            scene.add(new THREE.AmbientLight(0xffffff, 2.0));
+            const light1 = new THREE.DirectionalLight(0xffffff, 1.5);
             light1.position.set(0, 10, 10);
             scene.add(light1);
             const light2 = new THREE.DirectionalLight(0xffffff, 1.0);
             light2.position.set(0, -10, -10);
             scene.add(light2);
 
-            loadDefaultMask();
+            loadDefaultHead();
 
             // UI Hooks
             document.getElementById('upload-btn').addEventListener('click', () => document.getElementById('file-input').click());
@@ -135,28 +137,30 @@
             document.getElementById('posz-slider').addEventListener('input', (e) => userPosZ = parseFloat(e.target.value));
             document.getElementById('roty-slider').addEventListener('input', (e) => userRotY = parseFloat(e.target.value));
 
-            // File Importer
+            // File Importer with Texture Preservation
             document.getElementById('file-input').addEventListener('change', (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
                 const fileURL = URL.createObjectURL(file);
                 const ext = file.name.split('.').pop().toLowerCase();
 
-                document.getElementById('status').innerText = "Loading...";
+                document.getElementById('status').innerText = "Loading model...";
 
                 const setupModel = (object) => {
                     if (currentModel) scene.remove(currentModel);
                     
+                    // Keep original textures and fix materials
                     object.traverse((child) => {
                         if (child.isMesh) {
-                            if (!child.material || child.material.opacity === 0) {
-                                child.material = new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.3 });
-                            } else {
+                            if (child.material) {
                                 child.material.side = THREE.DoubleSide;
+                                // Ensure textures are enabled if present
+                                if (child.material.map) child.material.map.encoding = THREE.sRGBEncoding;
                             }
                         }
                     });
 
+                    // Center model and scale to fit face bounds nicely
                     const box = new THREE.Box3().setFromObject(object);
                     const center = box.getCenter(new THREE.Vector3());
                     const size = box.getSize(new THREE.Vector3());
@@ -164,7 +168,7 @@
 
                     const maxAxis = Math.max(size.x, size.y, size.z);
                     if (maxAxis > 0) {
-                        baseScaleMultiplier = 1.2 / maxAxis;
+                        baseScaleMultiplier = 1.0 / maxAxis;
                     }
 
                     currentModel = object;
@@ -192,9 +196,9 @@
             animate();
         }
 
-        function loadDefaultMask() {
+        function loadDefaultHead() {
             const group = new THREE.Group();
-            const geometry = new THREE.BoxGeometry(0.4, 0.5, 0.4);
+            const geometry = new THREE.SphereGeometry(0.3, 32, 32);
             const material = new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.3 });
             const mesh = new THREE.Mesh(geometry, material);
             group.add(mesh);
@@ -229,8 +233,8 @@
             faceMesh.setOptions({
                 maxNumFaces: 1,
                 refineLandmarks: true,
-                minDetectionConfidence: 0.5,
-                minTrackingConfidence: 0.5
+                minDetectionConfidence: 0.6,
+                minTrackingConfidence: 0.6
             });
 
             faceMesh.onResults((results) => {
@@ -242,12 +246,11 @@
                     });
 
                     if (riggedFace) {
-                        // Position tracking mapping (Face tracking coordinates)
-                        targetPosition.x = (riggedFace.position.x * 2.0);
-                        targetPosition.y = -(riggedFace.position.y * 2.0);
-                        targetPosition.z = -(riggedFace.position.z * 1.5);
+                        // Correct head-locked mapping so model stays right on top of face
+                        targetPosition.x = riggedFace.position.x * 1.2;
+                        targetPosition.y = -riggedFace.position.y * 1.2;
+                        targetPosition.z = -riggedFace.position.z * 1.0;
 
-                        // Rotation tracking mapping
                         targetRotation.x = riggedFace.head.x;
                         targetRotation.y = riggedFace.head.y;
                         targetRotation.z = riggedFace.head.z;
@@ -309,20 +312,20 @@
             requestAnimationFrame(animate);
             
             if (currentModel) {
-                // Smooth interpolation for position and rotation
-                currentPosition.x += (targetPosition.x - currentPosition.x) * 0.2;
-                currentPosition.y += (targetPosition.y - currentPosition.y) * 0.2;
-                currentPosition.z += (targetPosition.z - currentPosition.z) * 0.2;
+                // Smooth interpolation for fluid head tracking
+                currentPosition.x += (targetPosition.x - currentPosition.x) * 0.3;
+                currentPosition.y += (targetPosition.y - currentPosition.y) * 0.3;
+                currentPosition.z += (targetPosition.z - currentPosition.z) * 0.3;
 
-                currentRotation.x += (targetRotation.x - currentRotation.x) * 0.2;
-                currentRotation.y += ((targetRotation.y + userRotY) - currentRotation.y) * 0.2;
-                currentRotation.z += (targetRotation.z - currentRotation.z) * 0.2;
+                currentRotation.x += (targetRotation.x - currentRotation.x) * 0.3;
+                currentRotation.y += ((targetRotation.y + userRotY) - currentRotation.y) * 0.3;
+                currentRotation.z += (targetRotation.z - currentRotation.z) * 0.3;
 
-                // Apply transforms with user offsets
+                // Apply correct transforms
                 currentModel.position.set(currentPosition.x, currentPosition.y, currentPosition.z + userPosZ);
                 currentModel.rotation.set(currentRotation.x, currentRotation.y, currentRotation.z, 'YXZ');
                 
-                const finalScale = baseScaleMultiplier * userScale;
+                const finalScale = baseScaleMultiplier * userScale * 1.5;
                 currentModel.scale.set(finalScale, finalScale, finalScale);
             }
 
@@ -333,3 +336,4 @@
     </script>
 </body>
 </html>
+
