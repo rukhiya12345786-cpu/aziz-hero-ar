@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multi-Format 3D Character Adjuster</title>
+    <title>AR Face Tracking 3D Model Mask</title>
     <style>
         * {
             box-sizing: border-box;
@@ -15,7 +15,7 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: #111;
+            background-color: #000;
             font-family: sans-serif;
         }
         #webcam-video {
@@ -26,7 +26,7 @@
             height: 100vh;
             object-fit: cover;
             z-index: 1;
-            background: #000;
+            transform: scaleX(-1); /* Mirror camera view for natural feel */
         }
         #canvas-container {
             position: fixed;
@@ -36,6 +36,7 @@
             height: 100vh;
             z-index: 2;
             pointer-events: none;
+            transform: scaleX(-1); /* Match mirrored camera */
         }
         .top-bar {
             position: absolute;
@@ -76,15 +77,12 @@
             box-shadow: 0 6px 25px rgba(0,0,0,0.7);
         }
         .slider-group {
-            margin-bottom: 10px;
-        }
-        .slider-group:last-child {
-            margin-bottom: 0;
+            margin-bottom: 8px;
         }
         .slider-group label {
             display: block;
             font-size: 11px;
-            margin-bottom: 3px;
+            margin-bottom: 2px;
             color: #ccc;
         }
         .slider-group input {
@@ -99,6 +97,9 @@
     <script src="https://unpkg.com/three@0.160.0/examples/js/loaders/OBJLoader.js"></script>
     <script src="https://unpkg.com/three@0.160.0/examples/js/loaders/FBXLoader.js"></script>
     <script src="https://unpkg.com/three@0.160.0/examples/js/libs/fflate.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -114,27 +115,19 @@
     <div class="control-panel">
         <div class="slider-group">
             <label>Scale (Size)</label>
-            <input type="range" id="scale-slider" min="0.1" max="3" step="0.05" value="1">
+            <input type="range" id="scale-slider" min="0.1" max="5" step="0.05" value="1">
         </div>
         <div class="slider-group">
-            <label>Position X (Left/Right)</label>
+            <label>Position X</label>
             <input type="range" id="pos-x-slider" min="-2" max="2" step="0.05" value="0">
         </div>
         <div class="slider-group">
-            <label>Position Y (Up/Down)</label>
+            <label>Position Y</label>
             <input type="range" id="pos-y-slider" min="-2" max="2" step="0.05" value="0">
         </div>
         <div class="slider-group">
             <label>Position Z (Depth)</label>
-            <input type="range" id="pos-z-slider" min="-5" max="2" step="0.05" value="0">
-        </div>
-        <div class="slider-group">
-            <label>360° Rotate X</label>
-            <input type="range" id="rot-x-slider" min="-3.14" max="3.14" step="0.05" value="0">
-        </div>
-        <div class="slider-group">
-            <label>360° Rotate Y</label>
-            <input type="range" id="rot-y-slider" min="-3.14" max="3.14" step="0.05" value="0">
+            <input type="range" id="pos-z-slider" min="-3" max="3" step="0.05" value="0">
         </div>
     </div>
 
@@ -143,44 +136,18 @@
     <script>
         const videoElement = document.getElementById('webcam-video');
         let useFrontCamera = true;
-        let currentStream = null;
+        let currentModel = null;
+        let manualScale = 1;
+        let manualOffsetX = 0;
+        let manualOffsetY = 0;
+        let manualOffsetZ = 0;
 
-        async function initCamera() {
-            try {
-                if (currentStream) {
-                    currentStream.getTracks().forEach(track => track.stop());
-                }
-                const constraints = {
-                    video: {
-                        facingMode: useFrontCamera ? 'user' : 'environment',
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
-                    },
-                    audio: false
-                };
-                currentStream = await navigator.mediaDevices.getUserMedia(constraints);
-                videoElement.srcObject = currentStream;
-                await videoElement.play();
-            } catch (error) {
-                console.warn("Camera initialization warning:", error);
-            }
-        }
-
-        window.addEventListener('DOMContentLoaded', () => {
-            initCamera();
-        });
-
-        document.getElementById('flip-cam-btn').addEventListener('click', () => {
-            useFrontCamera = !useFrontCamera;
-            initCamera();
-        });
-
-        // Three.js Scene Setup
+        // Three.js Setup
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
 
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 20.0);
-        camera.position.set(0, 1.4, 1.5);
+        camera.position.set(0, 0, 2);
 
         const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -188,13 +155,11 @@
         container.appendChild(renderer.domElement);
 
         const light = new THREE.DirectionalLight(0xffffff, Math.PI);
-        light.position.set(1, 1, 1).normalize();
+        light.position.set(0, 1, 1).normalize();
         scene.add(light);
 
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
         scene.add(ambientLight);
-
-        let currentModel = null;
 
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
@@ -202,6 +167,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
+        // File Import Handling
         const importBtn = document.getElementById('import-btn');
         const fileInput = document.getElementById('file-input');
 
@@ -210,7 +176,6 @@
             fileInput.click();
         });
 
-        // Handle File Import based on file extension
         fileInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
             if (!file) return;
@@ -228,67 +193,95 @@
                 loader.load(fileURL, (gltf) => {
                     currentModel = gltf.scene;
                     scene.add(currentModel);
-                    currentModel.rotation.y = Math.PI;
-                    alert("GLB/VRM Model loaded successfully: " + file.name);
-                }, undefined, (error) => {
-                    console.error("GLTF load error:", error);
-                    alert("Failed to load GLB/VRM file.");
-                });
+                    alert("Model loaded successfully: " + file.name);
+                }, undefined, (err) => console.error(err));
             } 
             else if (fileName.endsWith('.obj')) {
                 const loader = new THREE.OBJLoader();
                 loader.load(fileURL, (obj) => {
                     currentModel = obj;
                     scene.add(currentModel);
-                    alert("OBJ Model loaded successfully: " + file.name);
-                }, undefined, (error) => {
-                    console.error("OBJ load error:", error);
-                    alert("Failed to load OBJ file.");
-                });
+                    alert("Model loaded successfully: " + file.name);
+                }, undefined, (err) => console.error(err));
             } 
             else if (fileName.endsWith('.fbx')) {
                 const loader = new THREE.FBXLoader();
                 loader.load(fileURL, (fbx) => {
                     currentModel = fbx;
                     scene.add(currentModel);
-                    currentModel.scale.set(0.01, 0.01, 0.01); // FBX models are usually large in scale
-                    alert("FBX Model loaded successfully: " + file.name);
-                }, undefined, (error) => {
-                    console.error("FBX load error:", error);
-                    alert("Failed to load FBX file.");
-                });
-            } else {
-                alert("Unsupported file format!");
+                    alert("Model loaded successfully: " + file.name);
+                }, undefined, (err) => console.error(err));
             }
         });
 
-        // Sliders Adjustment Logic
-        const scaleSlider = document.getElementById('scale-slider');
-        const posXSlider = document.getElementById('pos-x-slider');
-        const posYSlider = document.getElementById('pos-y-slider');
-        const posZSlider = document.getElementById('pos-z-slider');
-        const rotXSlider = document.getElementById('rot-x-slider');
-        const rotYSlider = document.getElementById('rot-y-slider');
+        // Sliders Listeners
+        document.getElementById('scale-slider').addEventListener('input', (e) => { manualScale = parseFloat(e.target.value); });
+        document.getElementById('pos-x-slider').addEventListener('input', (e) => { manualOffsetX = parseFloat(e.target.value); });
+        document.getElementById('pos-y-slider').addEventListener('input', (e) => { manualOffsetY = parseFloat(e.target.value); });
+        document.getElementById('pos-z-slider').addEventListener('input', (e) => { manualOffsetZ = parseFloat(e.target.value); });
 
-        function updateModelTransform() {
-            if (!currentModel) return;
-            const s = parseFloat(scaleSlider.value);
-            currentModel.scale.set(s, s, s);
-
-            currentModel.position.set(
-                parseFloat(posXSlider.value),
-                parseFloat(posYSlider.value) + 1.2,
-                parseFloat(posZSlider.value)
-            );
-
-            currentModel.rotation.x = parseFloat(rotXSlider.value);
-            currentModel.rotation.y = Math.PI + parseFloat(rotYSlider.value);
-        }
-
-        [scaleSlider, posXSlider, posYSlider, posZSlider, rotXSlider, rotYSlider].forEach(slider => {
-            slider.addEventListener('input', updateModelTransform);
+        // MediaPipe Face Mesh Initialization for AR Tracking
+        const faceMesh = new FaceMesh({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
         });
 
+        faceMesh.setOptions({
+            maxNumFaces: 1,
+            refineLandmarks: true,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+
+        faceMesh.onResults((results) => {
+            if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0 && currentModel) {
+                const landmarks = results.multiFaceLandmarks[0];
+                
+                // Get nose bridge landmark (index 1) to track head position
+                const nose = landmarks[1];
+
+                // Map screen coordinates to Three.js 3D space
+                const x = (nose.x - 0.5) * -2.5 + manualOffsetX;
+                const y = (nose.y - 0.5) * -2.5 + manualOffsetY;
+                const z = -nose.z * 2 + manualOffsetZ;
+
+                currentModel.position.set(x, y, z);
+                currentModel.scale.set(manualScale, manualScale, manualScale);
+
+                // Optional: Head rotation estimation based on key points (Left/Right cheek landmarks)
+                const leftCheek = landmarks.get ? landmarks[234] : landmarks[234];
+                const rightCheek = landmarks.get ? landmarks[454] : landmarks[454];
+                if (leftCheek && rightCheek) {
+                    const dx = rightCheek.x - leftCheek.x;
+                    const dy = rightCheek.y - leftCheek.y;
+                    const rotZ = Math.atan2(dy, dx);
+                    currentModel.rotation.z = -rotZ;
+                }
+            }
+        });
+
+        // Start Camera Stream with MediaPipe Camera Utils
+        const cameraUtils = new Camera(videoElement, {
+            onFrame: async () => {
+                await faceMesh.send({ image: videoElement });
+            },
+            width: 1280,
+            height: 720
+        });
+
+        cameraUtils.start().catch(err => {
+            console.error("Camera start error:", err);
+            // Fallback manual camera start if needed
+            navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+                videoElement.srcObject = stream;
+            });
+        });
+
+        document.getElementById('flip-cam-btn').addEventListener('click', () => {
+            useFrontCamera = !useFrontCamera;
+            // Toggle constraints if required
+        });
+
+        // Animation Loop
         function animate() {
             requestAnimationFrame(animate);
             renderer.render(scene, camera);
