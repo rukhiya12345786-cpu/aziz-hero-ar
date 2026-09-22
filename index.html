@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AR Face Tracking 3D Model Mask</title>
+    <title>AR Face Mask 3D Tracker</title>
     <style>
         * {
             box-sizing: border-box;
@@ -26,7 +26,7 @@
             height: 100vh;
             object-fit: cover;
             z-index: 1;
-            transform: scaleX(-1); /* Mirror camera view for natural feel */
+            transform: scaleX(-1); /* Mirror camera view */
         }
         #canvas-container {
             position: fixed;
@@ -36,7 +36,7 @@
             height: 100vh;
             z-index: 2;
             pointer-events: none;
-            transform: scaleX(-1); /* Match mirrored camera */
+            transform: scaleX(-1); /* Align with mirrored camera */
         }
         .top-bar {
             position: absolute;
@@ -114,20 +114,20 @@
 
     <div class="control-panel">
         <div class="slider-group">
-            <label>Scale (Size)</label>
-            <input type="range" id="scale-slider" min="0.1" max="5" step="0.05" value="1">
+            <label>Mask Scale (Size)</label>
+            <input type="range" id="scale-slider" min="0.2" max="5" step="0.05" value="1.2">
         </div>
         <div class="slider-group">
-            <label>Position X</label>
-            <input type="range" id="pos-x-slider" min="-2" max="2" step="0.05" value="0">
+            <label>Offset X</label>
+            <input type="range" id="pos-x-slider" min="-1" max="1" step="0.01" value="0">
         </div>
         <div class="slider-group">
-            <label>Position Y</label>
-            <input type="range" id="pos-y-slider" min="-2" max="2" step="0.05" value="0">
+            <label>Offset Y</label>
+            <input type="range" id="pos-y-slider" min="-1" max="1" step="0.01" value="0">
         </div>
         <div class="slider-group">
-            <label>Position Z (Depth)</label>
-            <input type="range" id="pos-z-slider" min="-3" max="3" step="0.05" value="0">
+            <label>Offset Z (Depth)</label>
+            <input type="range" id="pos-z-slider" min="-2" max="2" step="0.01" value="0">
         </div>
     </div>
 
@@ -137,28 +137,28 @@
         const videoElement = document.getElementById('webcam-video');
         let useFrontCamera = true;
         let currentModel = null;
-        let manualScale = 1;
+        let manualScale = 1.2;
         let manualOffsetX = 0;
         let manualOffsetY = 0;
         let manualOffsetZ = 0;
 
-        // Three.js Setup
+        // Three.js Scene Setup
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
 
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 20.0);
-        camera.position.set(0, 0, 2);
+        camera.position.set(0, 0, 2.5);
 
         const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
         container.appendChild(renderer.domElement);
 
-        const light = new THREE.DirectionalLight(0xffffff, Math.PI);
-        light.position.set(0, 1, 1).normalize();
+        const light = new THREE.DirectionalLight(0xffffff, 1.5);
+        light.position.set(0, 1, 2).normalize();
         scene.add(light);
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
         scene.add(ambientLight);
 
         window.addEventListener('resize', () => {
@@ -167,7 +167,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // File Import Handling
+        // File Import Handling for GLB, OBJ, FBX, VRM
         const importBtn = document.getElementById('import-btn');
         const fileInput = document.getElementById('file-input');
 
@@ -214,13 +214,13 @@
             }
         });
 
-        // Sliders Listeners
+        // Sliders Control Listeners
         document.getElementById('scale-slider').addEventListener('input', (e) => { manualScale = parseFloat(e.target.value); });
         document.getElementById('pos-x-slider').addEventListener('input', (e) => { manualOffsetX = parseFloat(e.target.value); });
         document.getElementById('pos-y-slider').addEventListener('input', (e) => { manualOffsetY = parseFloat(e.target.value); });
         document.getElementById('pos-z-slider').addEventListener('input', (e) => { manualOffsetZ = parseFloat(e.target.value); });
 
-        // MediaPipe Face Mesh Initialization for AR Tracking
+        // MediaPipe Face Mesh Setup for Head Tracking
         const faceMesh = new FaceMesh({
             locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
         });
@@ -228,38 +228,48 @@
         faceMesh.setOptions({
             maxNumFaces: 1,
             refineLandmarks: true,
-            minDetectionConfidence: 0.5,
-            minTrackingConfidence: 0.5
+            minDetectionConfidence: 0.6,
+            minTrackingConfidence: 0.6
         });
 
         faceMesh.onResults((results) => {
             if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0 && currentModel) {
                 const landmarks = results.multiFaceLandmarks[0];
                 
-                // Get nose bridge landmark (index 1) to track head position
+                // Landmark 1 represents the nose tip / center of the face
                 const nose = landmarks[1];
+                // Landmark 234 and 454 represent left and right sides of the face for rotation
+                const leftCheek = landmarks[234];
+                const rightCheek = landmarks[454];
 
-                // Map screen coordinates to Three.js 3D space
-                const x = (nose.x - 0.5) * -2.5 + manualOffsetX;
-                const y = (nose.y - 0.5) * -2.5 + manualOffsetY;
-                const z = -nose.z * 2 + manualOffsetZ;
+                // Convert normalized coordinates to Three.js 3D space
+                const targetX = (nose.x - 0.5) * -3.0 + manualOffsetX;
+                const targetY = (nose.y - 0.5) * -3.0 + manualOffsetY;
+                const targetZ = -nose.z * 1.5 + manualOffsetZ;
 
-                currentModel.position.set(x, y, z);
+                // Smooth movement (Lerp) so it doesn't jitter
+                currentModel.position.x += (targetX - currentModel.position.x) * 0.3;
+                currentModel.position.y += (targetY - currentModel.position.y) * 0.3;
+                currentModel.position.z += (targetZ - currentModel.position.z) * 0.3;
+
                 currentModel.scale.set(manualScale, manualScale, manualScale);
 
-                // Optional: Head rotation estimation based on key points (Left/Right cheek landmarks)
-                const leftCheek = landmarks.get ? landmarks[234] : landmarks[234];
-                const rightCheek = landmarks.get ? landmarks[454] : landmarks[454];
+                // Calculate head tilt and rotation based on cheek landmarks
                 if (leftCheek && rightCheek) {
                     const dx = rightCheek.x - leftCheek.x;
                     const dy = rightCheek.y - leftCheek.y;
+                    const dz = rightCheek.z - leftCheek.z;
+
                     const rotZ = Math.atan2(dy, dx);
+                    const rotY = Math.atan2(dz, dx);
+
                     currentModel.rotation.z = -rotZ;
+                    currentModel.rotation.y = rotY + Math.PI;
                 }
             }
         });
 
-        // Start Camera Stream with MediaPipe Camera Utils
+        // Initialize Camera Tracking via MediaPipe Utils
         const cameraUtils = new Camera(videoElement, {
             onFrame: async () => {
                 await faceMesh.send({ image: videoElement });
@@ -270,18 +280,13 @@
 
         cameraUtils.start().catch(err => {
             console.error("Camera start error:", err);
-            // Fallback manual camera start if needed
-            navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
-                videoElement.srcObject = stream;
-            });
         });
 
         document.getElementById('flip-cam-btn').addEventListener('click', () => {
             useFrontCamera = !useFrontCamera;
-            // Toggle constraints if required
         });
 
-        // Animation Loop
+        // Render Loop
         function animate() {
             requestAnimationFrame(animate);
             renderer.render(scene, camera);
