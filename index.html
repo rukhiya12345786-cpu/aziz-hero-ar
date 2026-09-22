@@ -2,83 +2,78 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>3D Test</title>
+<title>Camera Test</title>
 
 <style>
 html,body{
-margin:0;
-width:100%;
-height:100%;
-overflow:hidden;
-background:#000;
+    margin:0;
+    width:100%;
+    height:100%;
+    background:#000;
+    overflow:hidden;
 }
 
-canvas{
-display:block;
+video{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+}
+
+button{
+    position:fixed;
+    bottom:30px;
+    left:50%;
+    transform:translateX(-50%);
+    z-index:10;
+    padding:15px 25px;
+    font-size:18px;
 }
 </style>
 </head>
 
 <body>
 
-<script type="module">
+<video
+id="camera"
+autoplay
+playsinline
+muted>
+</video>
 
-import * as THREE from
-"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
+<button id="open">
+OPEN CAMERA
+</button>
 
-const scene = new THREE.Scene();
+<script>
 
-const camera = new THREE.PerspectiveCamera(
-45,
-window.innerWidth / window.innerHeight,
-0.1,
-100
-);
+document.getElementById("open").onclick =
+async function(){
 
-camera.position.z = 3;
+    try{
 
-const renderer = new THREE.WebGLRenderer({
-antialias:true
-});
+        const stream =
+        await navigator.mediaDevices.getUserMedia({
+            video:true,
+            audio:false
+        });
 
-renderer.setSize(
-window.innerWidth,
-window.innerHeight
-);
+        document.getElementById("camera").srcObject =
+        stream;
 
-document.body.appendChild(
-renderer.domElement
-);
+        this.style.display="none";
 
-const geometry =
-new THREE.BoxGeometry(1,1,1);
+    }catch(error){
 
-const material =
-new THREE.MeshNormalMaterial();
+        alert(
+            "Camera Error:\n" +
+            error.name +
+            "\n\n" +
+            error.message
+        );
 
-const cube =
-new THREE.Mesh(
-geometry,
-material
-);
+    }
 
-scene.add(cube);
-
-function animate(){
-
-requestAnimationFrame(animate);
-
-cube.rotation.x += 0.01;
-cube.rotation.y += 0.01;
-
-renderer.render(
-scene,
-camera
-);
-
-}
-
-animate();
+};
 
 </script>
 
