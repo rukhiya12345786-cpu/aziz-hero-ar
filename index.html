@@ -3,39 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Aijaz AR Studio - Ultimate Pro</title>
+    <title>Aijaz AR Face Studio - Ultimate</title>
     <style>
         * { box-sizing: border-box; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; }
         
-        #webcam { position: absolute; top: 15px; left: 15px; width: 100px; height: 133px; border-radius: 8px; z-index: 10; border: 2px solid #00ff88; object-fit: cover; }
+        /* Webcam Preview Thumbnail */
+        #webcam { position: absolute; top: 15px; left: 15px; width: 90px; height: 120px; border-radius: 10px; z-index: 10; border: 2px solid rgba(0,255,136,0.8); object-fit: cover; background: #111; }
         #webgl-container { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
         
-        .ui-panel {
-            position: absolute; top: 15px; right: 15px; z-index: 20; display: flex; flex-direction: column; gap: 8px; align-items: flex-end;
+        /* Transparent Glassmorphism UI */
+        .top-panel {
+            position: absolute; top: 15px; right: 15px; z-index: 20; display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;
         }
-        .btn-group { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-        .btn {
-            background: #00ff88; color: #000; border: none;
-            padding: 8px 14px; font-size: 11px; border-radius: 20px; cursor: pointer; font-weight: bold;
-            box-shadow: 0 4px 10px rgba(0,255,136,0.3);
+        .glass-btn {
+            background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3); color: #fff; padding: 8px 14px; font-size: 11px;
+            border-radius: 20px; cursor: pointer; font-weight: bold; transition: 0.2s;
         }
-        .btn:active { background: #00cc6a; }
-        .btn-red { background: #ff4757; color: #fff; box-shadow: 0 4px 10px rgba(255,71,87,0.3); }
-        .btn-blue { background: #1e90ff; color: #fff; box-shadow: 0 4px 10px rgba(30,144,255,0.3); }
+        .glass-btn:active { background: rgba(0, 255, 136, 0.4); color: #000; }
+        .btn-red { background: rgba(255, 71, 87, 0.3); border-color: rgba(255, 71, 87, 0.6); }
+        .btn-blue { background: rgba(30, 144, 255, 0.3); border-color: rgba(30, 144, 255, 0.6); }
 
+        /* Transparent Adjustment Panel */
         .controls-panel {
-            position: absolute; bottom: 70px; left: 15px; right: 15px; z-index: 20;
-            background: rgba(0,0,0,0.85); padding: 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2);
-            display: flex; flex-direction: column; gap: 6px; color: #fff; font-size: 11px;
+            position: absolute; bottom: 15px; left: 15px; right: 15px; z-index: 20;
+            background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            padding: 12px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex; flex-direction: column; gap: 8px; color: #fff; font-size: 11px;
         }
         .control-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-        .control-row input { width: 65%; cursor: pointer; }
+        .control-row input { width: 70%; cursor: pointer; accent-color: #00ff88; }
 
         .status-bar {
-            position: absolute; bottom: 10px; left: 15px; right: 15px; text-align: center;
-            z-index: 20; color: #fff; font-size: 11px; background: rgba(0,0,0,0.7); padding: 6px; border-radius: 6px;
-            border: 1px solid rgba(255,255,255,0.2);
+            position: absolute; top: 145px; left: 15px; z-index: 20; color: #00ff88; font-size: 10px;
+            background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 4px; max-width: 150px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
     </style>
 
@@ -54,38 +57,38 @@
 <body>
 
     <video id="webcam" autoplay playsinline muted></video>
+    <div class="status-bar" id="status">Ready</div>
     
-    <div class="ui-panel">
-        <div class="btn-group">
-            <button id="upload-btn" class="btn">📁 Import</button>
-            <button id="flip-btn" class="btn btn-blue">🔄 Flip Cam</button>
-            <button id="record-btn" class="btn btn-red">🔴 Record</button>
-        </div>
+    <div class="top-panel">
+        <button id="upload-btn" class="glass-btn">📁 Import</button>
+        <button id="flip-btn" class="glass-btn btn-blue">🔄 Flip Cam</button>
+        <button id="record-btn" class="glass-btn btn-red">🔴 Record</button>
         <input type="file" id="file-input" style="display: none;" accept=".obj,.glb,.gltf,.fbx">
     </div>
 
-    <!-- Model Adjustment Sliders -->
+    <!-- Transparent Adjustment Sliders -->
     <div class="controls-panel">
         <div class="control-row">
-            <span>Scale:</span>
+            <span>Size (Scale):</span>
             <input type="range" id="scale-slider" min="0.2" max="3.0" step="0.1" value="1.0">
         </div>
         <div class="control-row">
-            <span>Position Z:</span>
+            <span>Depth (Pos Z):</span>
             <input type="range" id="posz-slider" min="-2.0" max="2.0" step="0.1" value="0.0">
         </div>
         <div class="control-row">
-            <span>Rotate Y:</span>
+            <span>Rotate (Y):</span>
             <input type="range" id="roty-slider" min="-3.14" max="3.14" step="0.1" value="0.0">
         </div>
     </div>
 
     <div id="webgl-container"></div>
-    <div class="status-bar" id="status">Initializing AR Studio...</div>
 
     <script>
         let scene, camera, renderer, videoElement, mediaStream;
         let currentModel = null;
+        let targetPosition = new THREE.Vector3();
+        let currentPosition = new THREE.Vector3();
         let targetRotation = new THREE.Euler();
         let currentRotation = new THREE.Euler();
         
@@ -109,6 +112,7 @@
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             document.getElementById('webgl-container').appendChild(renderer.domElement);
 
+            // Studio Lighting
             scene.add(new THREE.AmbientLight(0xffffff, 2.5));
             const light1 = new THREE.DirectionalLight(0xffffff, 2.0);
             light1.position.set(0, 10, 10);
@@ -117,31 +121,28 @@
             light2.position.set(0, -10, -10);
             scene.add(light2);
 
-            loadDefaultHead();
+            loadDefaultMask();
 
-            // Event Listeners
-            document.getElementById('upload-btn').addEventListener('click', () => {
-                document.getElementById('file-input').click();
-            });
-
+            // UI Hooks
+            document.getElementById('upload-btn').addEventListener('click', () => document.getElementById('file-input').click());
             document.getElementById('flip-btn').addEventListener('click', () => {
                 useFrontCamera = !useFrontCamera;
                 startCamera();
             });
-
             document.getElementById('record-btn').addEventListener('click', toggleRecording);
 
-            document.getElementById('scale-slider').addEventListener('input', (e) => { userScale = parseFloat(e.target.value); });
-            document.getElementById('posz-slider').addEventListener('input', (e) => { userPosZ = parseFloat(e.target.value); });
-            document.getElementById('roty-slider').addEventListener('input', (e) => { userRotY = parseFloat(e.target.value); });
+            document.getElementById('scale-slider').addEventListener('input', (e) => userScale = parseFloat(e.target.value));
+            document.getElementById('posz-slider').addEventListener('input', (e) => userPosZ = parseFloat(e.target.value));
+            document.getElementById('roty-slider').addEventListener('input', (e) => userRotY = parseFloat(e.target.value));
 
+            // File Importer
             document.getElementById('file-input').addEventListener('change', (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
                 const fileURL = URL.createObjectURL(file);
                 const ext = file.name.split('.').pop().toLowerCase();
 
-                document.getElementById('status').innerText = "Loading custom model...";
+                document.getElementById('status').innerText = "Loading...";
 
                 const setupModel = (object) => {
                     if (currentModel) scene.remove(currentModel);
@@ -168,15 +169,15 @@
 
                     currentModel = object;
                     scene.add(currentModel);
-                    document.getElementById('status').innerText = "Model loaded successfully!";
+                    document.getElementById('status').innerText = "Loaded!";
                 };
 
                 if (ext === 'obj') {
-                    new THREE.OBJLoader().load(fileURL, (obj) => setupModel(obj), undefined, () => alert("OBJ Load Error"));
+                    new THREE.OBJLoader().load(fileURL, (obj) => setupModel(obj), undefined, () => alert("OBJ Error"));
                 } else if (ext === 'glb' || ext === 'gltf') {
-                    new THREE.GLTFLoader().load(fileURL, (gltf) => setupModel(gltf.scene), undefined, () => alert("GLB Load Error"));
+                    new THREE.GLTFLoader().load(fileURL, (gltf) => setupModel(gltf.scene), undefined, () => alert("GLB Error"));
                 } else if (ext === 'fbx') {
-                    new THREE.FBXLoader().load(fileURL, (obj) => setupModel(obj), undefined, () => alert("FBX Load Error"));
+                    new THREE.FBXLoader().load(fileURL, (obj) => setupModel(obj), undefined, () => alert("FBX Error"));
                 }
             });
 
@@ -191,9 +192,9 @@
             animate();
         }
 
-        function loadDefaultHead() {
+        function loadDefaultMask() {
             const group = new THREE.Group();
-            const geometry = new THREE.BoxGeometry(0.5, 0.6, 0.5);
+            const geometry = new THREE.BoxGeometry(0.4, 0.5, 0.4);
             const material = new THREE.MeshStandardMaterial({ color: 0x00ff88, roughness: 0.3 });
             const mesh = new THREE.Mesh(geometry, material);
             group.add(mesh);
@@ -213,7 +214,7 @@
                 videoElement.style.transform = useFrontCamera ? 'scaleX(-1)' : 'scaleX(1)';
             }).catch(err => {
                 console.error(err);
-                alert("Camera permission denied or error.");
+                alert("Camera access denied.");
             });
         }
 
@@ -241,6 +242,12 @@
                     });
 
                     if (riggedFace) {
+                        // Position tracking mapping (Face tracking coordinates)
+                        targetPosition.x = (riggedFace.position.x * 2.0);
+                        targetPosition.y = -(riggedFace.position.y * 2.0);
+                        targetPosition.z = -(riggedFace.position.z * 1.5);
+
+                        // Rotation tracking mapping
                         targetRotation.x = riggedFace.head.x;
                         targetRotation.y = riggedFace.head.y;
                         targetRotation.z = riggedFace.head.z;
@@ -280,22 +287,21 @@
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = 'aijaz-ar-recording.webm';
+                    a.download = 'aijaz-ar-studio.webm';
                     a.click();
                     window.URL.revokeObjectURL(url);
-                    document.getElementById('status').innerText = "Recording saved successfully!";
+                    document.getElementById('status').innerText = "Saved!";
                 };
 
                 mediaRecorder.start();
                 isRecording = true;
                 recordBtn.innerText = "⏹️ Stop";
-                recordBtn.style.background = "#ffa502";
-                document.getElementById('status').innerText = "Recording video...";
+                document.getElementById('status').innerText = "Recording...";
             } else {
                 mediaRecorder.stop();
                 isRecording = false;
                 recordBtn.innerText = "🔴 Record";
-                recordBtn.style.background = "#ff4757";
+                document.getElementById('status').innerText = "Saved!";
             }
         }
 
@@ -303,15 +309,21 @@
             requestAnimationFrame(animate);
             
             if (currentModel) {
+                // Smooth interpolation for position and rotation
+                currentPosition.x += (targetPosition.x - currentPosition.x) * 0.2;
+                currentPosition.y += (targetPosition.y - currentPosition.y) * 0.2;
+                currentPosition.z += (targetPosition.z - currentPosition.z) * 0.2;
+
                 currentRotation.x += (targetRotation.x - currentRotation.x) * 0.2;
                 currentRotation.y += ((targetRotation.y + userRotY) - currentRotation.y) * 0.2;
                 currentRotation.z += (targetRotation.z - currentRotation.z) * 0.2;
 
+                // Apply transforms with user offsets
+                currentModel.position.set(currentPosition.x, currentPosition.y, currentPosition.z + userPosZ);
                 currentModel.rotation.set(currentRotation.x, currentRotation.y, currentRotation.z, 'YXZ');
                 
                 const finalScale = baseScaleMultiplier * userScale;
                 currentModel.scale.set(finalScale, finalScale, finalScale);
-                currentModel.position.z = userPosZ;
             }
 
             renderer.render(scene, camera);
