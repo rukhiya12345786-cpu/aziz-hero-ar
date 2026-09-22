@@ -1,190 +1,41 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>360 Head Tracking 3D Model</title>
-    <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-            background: #000;
-            font-family: sans-serif;
+function onFaceResults(results) {
+    if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+        // अगर MediaPipe का FaceMesh Matrix उपलब्ध है
+        if (results.allMeshFaces && results.allMeshFaces[0]) {
+            // डायरेक्ट मैट्रिक्स पास करने से 360-डिग्री रोटेशन और पोजीशन दोनों मिलती हैं
         }
-        #container {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
+        
+        const landmarks = results.multiFaceLandmarks[0];
+        const nose = landmarks[1]; // नाक की टिप
+
+        // पोजीशन सेट करें
+        const x = -(nose.x - 0.5) * 4.0;
+        const y = -(nose.y - 0.5) * 4.0;
+        const z = -nose.z * 2.0;
+
+        if (headModel) {
+            headModel.visible = true;
+            headModel.position.set(x, y, z);
+
+            // सिर के चारों तरफ घूमने (Yaw, Pitch, Roll) के लिए सही लैंडमार्क पॉइंट्स से एंगल कैलकुलेट करें
+            const leftEar = landmarks[234];
+            const rightEar = landmarks[454];
+            const upHead = landmarks[10];
+            const chin = landmarks[152];
+
+            // यहाँ हम इसे डायनेमिक रोटेशन दे रहे हैं ताकि सिर घुमाने पर मास्क भी घूमे
+            const angleX = Math.atan2(chin.y - upHead.y, chin.z - upHead.z);
+            const angleY = Math.atan2(rightEar.z - leftEar.z, rightEar.x - leftEar.x);
+            const angleZ = Math.atan2(rightEar.y - leftEar.y, rightEar.x - leftEar.x);
+
+            headModel.rotation.x = angleX;
+            headModel.rotation.y = angleY;
+            headModel.rotation.z = angleZ;
         }
-        #webcam {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transform: scaleX(-1); /* मिरर इफ़ेक्ट */
-            z-index: 1;
+    } else {
+        if (headModel) {
+            headModel.visible = false;
         }
-        #canvas3d {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 2;
-            pointer-events: none;
-        }
-        #loading {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            color: #fff;
-            background: rgba(0,0,0,0.7);
-            padding: 10px 15px;
-            border-radius: 5px;
-            z-index: 10;
-            font-size: 16px;
-        }
-    </style>
-
-    <!-- Three.js, GLTFLoader और MediaPipe की लाइब्रेरी -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
-</head>
-<body>
-
-    <div id="loading">360-डिग्री मॉडल लोड हो रहा है...</div>
-    
-    <div id="container">
-        <video id="webcam" autoplay playsinline muted></video>
-        <canvas id="canvas3d"></canvas>
-    </div>
-
-    <script>
-        const videoElement = document.getElementById('webcam');
-        const canvasElement = document.getElementById('canvas3d');
-        const loadingElement = document.getElementById('loading');
-
-        let scene, camera, renderer, headModel;
-
-        function initThreeJS() {
-            scene = new THREE.Scene();
-
-            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.z = 5;
-
-            renderer = new THREE.WebGLRenderer({ canvas: canvasElement, alpha: true, antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
-
-            const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
-            scene.add(ambientLight);
-
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
-            directionalLight.position.set(0, 10, 5);
-            scene.add(directionalLight);
-
-            // यहाँ अपना 3D मॉडल (.gltf या .glb फाइल) लोड करें
-            const loader = new THREE.GLTFLoader();
-            loader.load(
-                'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/models/gltf/RobotExpressive/RobotExpressive.gltf', 
-                function (gltf) {
-                    headModel = gltf.scene;
-                    headModel.scale.set(0.8, 0.8, 0.8);
-                    scene.add(headModel);
-                    headModel.visible = false;
-                    loadingElement.style.display = 'none';
-                },
-                undefined,
-                function (error) {
-                    console.error('मॉडल लोड एरर:', error);
-                    loadingElement.innerText = "3D मॉडल लोड करने में विफल!";
-                }
-            );
-
-            window.addEventListener('resize', onWindowResize);
-        }
-
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        }
-
-        function initFaceMesh() {
-            const faceMesh = new FaceMesh({
-                locateFile: (file) => {
-                    return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
-                }
-            });
-
-            faceMesh.setOptions({
-                maxNumFaces: 1,
-                refineLandmarks: true,
-                minDetectionConfidence: 0.6,
-                minTrackingConfidence: 0.6
-            });
-
-            faceMesh.onResults(onFaceResults);
-
-            const cameraUtils = new Camera(videoElement, {
-                onFrame: async () => {
-                    await faceMesh.send({ image: videoElement });
-                },
-                width: 1280,
-                height: 720
-            });
-
-            cameraUtils.start().catch(err => {
-                loadingElement.innerText = "कैमरा एरर: " + err.message;
-            });
-        }
-
-        // 360-डिग्री हेड ट्रैकिंग और रोटेशन लॉजिक
-        function onFaceResults(results) {
-            if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-                const landmarks = results.multiFaceLandmarks[0];
-                
-                const nose = landmarks[1];
-                const leftPoint = landmarks[234];
-                const rightPoint = landmarks[454];
-                const topPoint = landmarks[10];
-                const chinPoint = landmarks[152];
-
-                const x = -(nose.x - 0.5) * 4.0;
-                const y = -(nose.y - 0.5) * 4.0;
-                const z = -nose.z * 2.0;
-
-                if (headModel) {
-                    headModel.visible = true;
-                    headModel.position.set(x, y - 0.2, z);
-
-                    const dx = rightPoint.x - leftPoint.x;
-                    const dy = rightPoint.y - leftPoint.y;
-                    const dz = rightPoint.z - leftPoint.z;
-
-                    const yaw = Math.atan2(dz, dx);
-                    const pitch = Math.atan2(chinPoint.y - topPoint.y, chinPoint.z - topPoint.z);
-                    const roll = Math.atan2(dy, dx);
-
-                    headModel.rotation.y = -yaw + Math.PI / 2;
-                    headModel.rotation.x = pitch;
-                    headModel.rotation.z = roll;
-                }
-            } else {
-                if (headModel) {
-                    headModel.visible = false;
-                }
-            }
-
-            renderer.render(scene, camera);
-        }
-
-        initThreeJS();
-        initFaceMesh();
-    </script>
-</body>
-</html>
+    }
+    renderer.render(scene, camera);
+}
