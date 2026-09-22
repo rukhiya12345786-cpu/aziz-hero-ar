@@ -4,67 +4,67 @@
 
 <meta name="viewport" content="width=device-width,initial-scale=1">
 
-<title>Real 3D Head Tracking</title>
+<title>Camera and 3D Head Tracking</title>
 
 <style>
 
 html,body{
-margin:0;
-padding:0;
-width:100%;
-height:100%;
-background:#000;
-overflow:hidden;
+    margin:0;
+    padding:0;
+    width:100%;
+    height:100%;
+    background:#000;
+    overflow:hidden;
 }
 
 #camera{
-position:fixed;
-left:0;
-top:0;
-width:100%;
-height:100%;
-object-fit:cover;
-z-index:1;
+    position:fixed;
+    left:0;
+    top:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    z-index:1;
 }
 
 #three{
-position:fixed;
-left:0;
-top:0;
-width:100%;
-height:100%;
-z-index:2;
-pointer-events:none;
+    position:fixed;
+    left:0;
+    top:0;
+    width:100%;
+    height:100%;
+    z-index:2;
+    pointer-events:none;
 }
 
 #open{
-position:fixed;
-left:50%;
-bottom:30px;
-transform:translateX(-50%);
-z-index:10;
-padding:16px 28px;
-font-size:20px;
-font-weight:bold;
-border:0;
-border-radius:10px;
-background:white;
-color:black;
+    position:fixed;
+    left:50%;
+    bottom:30px;
+    transform:translateX(-50%);
+    z-index:10;
+    padding:16px 28px;
+    font-size:20px;
+    font-weight:bold;
+    border:0;
+    border-radius:10px;
+    background:white;
+    color:black;
 }
 
 #info{
-position:fixed;
-left:50%;
-top:20px;
-transform:translateX(-50%);
-z-index:10;
-padding:10px 16px;
-background:rgba(0,0,0,0.7);
-color:white;
-border-radius:10px;
-font-family:Arial,sans-serif;
-font-size:16px;
-text-align:center;
+    position:fixed;
+    left:50%;
+    top:20px;
+    transform:translateX(-50%);
+    z-index:10;
+    padding:10px 16px;
+    background:rgba(0,0,0,0.7);
+    color:white;
+    border-radius:10px;
+    font-family:Arial,sans-serif;
+    font-size:15px;
+    text-align:center;
 }
 
 </style>
@@ -74,20 +74,20 @@ text-align:center;
 <body>
 
 <video
-id="camera"
-autoplay
-playsinline
-muted>
+    id="camera"
+    autoplay
+    playsinline
+    muted>
 </video>
 
 <canvas id="three"></canvas>
 
 <div id="info">
-CAMERA READY
+    READY
 </div>
 
 <button id="open">
-OPEN CAMERA
+    OPEN CAMERA
 </button>
 
 
@@ -97,10 +97,9 @@ import * as THREE from
 "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
 
 import {
-FaceLandmarker,
-FilesetResolver
-}
-from
+    FaceLandmarker,
+    FilesetResolver
+} from
 "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.mjs";
 
 
@@ -125,65 +124,65 @@ new THREE.Scene();
 
 const camera3D =
 new THREE.PerspectiveCamera(
-45,
-window.innerWidth /
-window.innerHeight,
-0.01,
-100
+    45,
+    window.innerWidth / window.innerHeight,
+    0.01,
+    100
 );
 
 camera3D.position.set(
-0,
-0,
-5
+    0,
+    0,
+    4
 );
 
 
 const renderer =
 new THREE.WebGLRenderer({
-canvas:canvas,
-alpha:true,
-antialias:true
+    canvas:canvas,
+    alpha:true,
+    antialias:true
 });
 
 
 renderer.setSize(
-window.innerWidth,
-window.innerHeight
+    window.innerWidth,
+    window.innerHeight
 );
 
 
 renderer.setPixelRatio(
-Math.min(
-window.devicePixelRatio,
-2
-)
+    Math.min(
+        window.devicePixelRatio,
+        2
+    )
 );
 
 
 /* LIGHT */
 
-scene.add(
-new THREE.AmbientLight(
-0xffffff,
-2
-)
-);
-
-
 const light =
 new THREE.DirectionalLight(
-0xffffff,
-3
+    0xffffff,
+    3
 );
 
 light.position.set(
-2,
-3,
-5
+    2,
+    3,
+    5
 );
 
 scene.add(light);
+
+
+const ambient =
+new THREE.AmbientLight(
+    0xffffff,
+    2
+);
+
+scene.add(ambient);
 
 
 /* HEAD ANCHOR */
@@ -198,9 +197,9 @@ scene.add(headAnchor);
 
 const geometry =
 new THREE.BoxGeometry(
-1.0,
-1.0,
-1.0
+    1,
+    1,
+    1
 );
 
 
@@ -210,270 +209,216 @@ new THREE.MeshNormalMaterial();
 
 const cube =
 new THREE.Mesh(
-geometry,
-material
+    geometry,
+    material
 );
 
 
 /*
-This offset places the cube
-in front of the face.
+    Cube is a child of the head.
+    There is NO independent cube rotation.
 */
 
 cube.position.set(
-0,
-0,
-0.7
+    0,
+    0,
+    0
 );
 
 
 headAnchor.add(cube);
 
 
-cube.visible = false;
-
-
-/* TRACKER */
+/* FACE LANDMARKER */
 
 let faceLandmarker = null;
 
-let tracking = false;
+let lastVideoTime = -1;
 
 
-async function createTracker(){
+async function setupFaceTracking(){
 
-info.innerText =
-"LOADING TRACKER";
-
-
-const vision =
-await FilesetResolver.forVisionTasks(
-
-"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
-
-);
+    info.innerText =
+    "LOADING FACE TRACKING...";
 
 
-faceLandmarker =
-await FaceLandmarker.createFromOptions(
-
-vision,
-
-{
-
-baseOptions:{
-
-modelAssetPath:
-"https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-
-delegate:"GPU"
-
-},
-
-runningMode:"VIDEO",
-
-numFaces:1,
-
-minFaceDetectionConfidence:0.5,
-
-minFacePresenceConfidence:0.5,
-
-minTrackingConfidence:0.5,
-
-outputFaceBlendshapes:false,
-
-outputFacialTransformationMatrixes:true
-
-}
-
-);
+    const vision =
+    await FilesetResolver.forVisionTasks(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
+    );
 
 
-tracking = true;
+    faceLandmarker =
+    await FaceLandmarker.createFromOptions(
+        vision,
+        {
+            baseOptions:{
+                modelAssetPath:
+                "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
 
-info.innerText =
-"HEAD TRACKING ON";
+                delegate:"GPU"
+            },
+
+            runningMode:"VIDEO",
+
+            numFaces:1,
+
+            minFaceDetectionConfidence:0.5,
+
+            minFacePresenceConfidence:0.5,
+
+            minTrackingConfidence:0.5,
+
+            outputFaceBlendshapes:false,
+
+            outputFacialTransformationMatrixes:true
+        }
+    );
 
 
-trackHead();
-
+    info.innerText =
+    "FACE TRACKING READY";
 }
 
 
-/* REAL HEAD TRACKING */
+/* TRACK FACE */
 
-function trackHead(){
+function trackFace(){
 
-if(!tracking){
-return;
-}
+    if(
+        !faceLandmarker ||
+        video.readyState < 2
+    ){
 
+        requestAnimationFrame(
+            trackFace
+        );
 
-if(
-video.readyState >= 2 &&
-faceLandmarker
-){
-
-const result =
-faceLandmarker.detectForVideo(
-video,
-performance.now()
-);
+        return;
+    }
 
 
-if(
-result.facialTransformationMatrixes &&
-result.facialTransformationMatrixes.length > 0
-){
+    if(
+        video.currentTime !==
+        lastVideoTime
+    ){
 
-const data =
-result
-.facialTransformationMatrixes[0]
-.data;
+        lastVideoTime =
+        video.currentTime;
 
 
-const matrix =
-new THREE.Matrix4();
+        const result =
+        faceLandmarker.detectForVideo(
+            video,
+            performance.now()
+        );
 
 
-matrix.fromArray(data);
+        if(
+            result.facialTransformationMatrixes &&
+            result.facialTransformationMatrixes.length > 0
+        ){
+
+            const data =
+            result.facialTransformationMatrixes[0].data;
 
 
-const position =
-new THREE.Vector3();
+            const faceMatrix =
+            new THREE.Matrix4();
 
 
-const quaternion =
-new THREE.Quaternion();
+            faceMatrix.fromArray(
+                data
+            );
 
 
-const scale =
-new THREE.Vector3();
+            const facePosition =
+            new THREE.Vector3();
 
 
-matrix.decompose(
-position,
-quaternion,
-scale
-);
+            const faceQuaternion =
+            new THREE.Quaternion();
 
 
-/*
-Use the face transformation
-for the complete head pose.
-*/
-
-headAnchor.quaternion.copy(
-quaternion
-);
+            const faceScale =
+            new THREE.Vector3();
 
 
-/*
-Convert face position
-to screen/world position.
-*/
-
-if(
-result.faceLandmarks &&
-result.faceLandmarks.length > 0
-){
-
-const landmarks =
-result.faceLandmarks[0];
+            faceMatrix.decompose(
+                facePosition,
+                faceQuaternion,
+                faceScale
+            );
 
 
-let minX = 1;
-let maxX = 0;
-let minY = 1;
-let maxY = 0;
+            /*
+                MediaPipe face coordinates
+                are converted into the
+                Three.js coordinate system.
+            */
+
+            headAnchor.position.set(
+                facePosition.x * 0.035,
+                -facePosition.y * 0.035,
+                -facePosition.z * 0.035
+            );
 
 
-for(
-const point of landmarks
-){
+            /*
+                Head rotation comes ONLY
+                from the detected face.
+            */
 
-minX =
-Math.min(
-minX,
-point.x
-);
-
-maxX =
-Math.max(
-maxX,
-point.x
-);
-
-minY =
-Math.min(
-minY,
-point.y
-);
-
-maxY =
-Math.max(
-maxY,
-point.y
-);
-
-}
+            const correction =
+            new THREE.Quaternion().setFromEuler(
+                new THREE.Euler(
+                    0,
+                    Math.PI,
+                    0
+                )
+            );
 
 
-const centerX =
-(minX + maxX) / 2;
+            headAnchor.quaternion
+                .copy(faceQuaternion)
+                .multiply(correction);
 
 
-const centerY =
-(minY + maxY) / 2;
+            /*
+                Keep the cube size stable.
+            */
+
+            headAnchor.scale.set(
+                1,
+                1,
+                1
+            );
 
 
-headAnchor.position.x =
-(centerX - 0.5) * 4.5;
+            info.innerText =
+            "FACE TRACKING ON";
+
+        }
+
+        else{
+
+            info.innerText =
+            "NO FACE";
+
+        }
+
+    }
 
 
-headAnchor.position.y =
--(centerY - 0.5) * 3.2;
+    renderer.render(
+        scene,
+        camera3D
+    );
 
 
-/*
-Keep a stable depth
-for the visible AR object.
-*/
-
-headAnchor.position.z =
-0;
-
-}
-
-
-cube.visible = true;
-
-info.innerText =
-"REAL HEAD TRACKING ON";
-
-}
-else{
-
-cube.visible = false;
-
-info.innerText =
-"NO FACE";
-
-}
-
-}
-
-
-renderer.render(
-scene,
-camera3D
-);
-
-
-requestAnimationFrame(
-trackHead
-);
-
+    requestAnimationFrame(
+        trackFace
+    );
 }
 
 
@@ -482,54 +427,65 @@ trackHead
 button.onclick =
 async function(){
 
-try{
+    try{
 
-const stream =
-await navigator.mediaDevices
-.getUserMedia({
+        const stream =
+        await navigator.mediaDevices
+        .getUserMedia({
 
-video:{
-facingMode:"user"
-},
+            video:{
+                facingMode:"user",
 
-audio:false
+                width:{
+                    ideal:1280
+                },
 
-});
+                height:{
+                    ideal:720
+                }
+            },
 
+            audio:false
 
-video.srcObject =
-stream;
-
-
-await video.play();
-
-
-button.style.display =
-"none";
+        });
 
 
-info.innerText =
-"STARTING TRACKER";
+        video.srcObject =
+        stream;
 
 
-await createTracker();
+        await video.play();
 
 
-}
-catch(error){
-
-info.innerText =
-"ERROR";
+        button.style.display =
+        "none";
 
 
-alert(
-"ERROR\n\n" +
-error.name +
-"\n\n" +
-error.message
-);
+        info.innerText =
+        "STARTING...";
 
-}
+
+        await setupFaceTracking();
+
+
+        trackFace();
+
+    }
+
+    catch(error){
+
+        info.innerText =
+        "ERROR";
+
+
+        alert(
+            "ERROR\n\n" +
+            error.name +
+            "\n\n" +
+            error.message
+        );
+
+    }
 
 };
 
@@ -537,23 +493,24 @@ error.message
 /* RESIZE */
 
 window.addEventListener(
-"resize",
-function(){
+    "resize",
+    function(){
 
-camera3D.aspect =
-window.innerWidth /
-window.innerHeight;
-
-
-camera3D.updateProjectionMatrix();
+        camera3D.aspect =
+        window.innerWidth /
+        window.innerHeight;
 
 
-renderer.setSize(
-window.innerWidth,
-window.innerHeight
+        camera3D.updateProjectionMatrix();
+
+
+        renderer.setSize(
+            window.innerWidth,
+            window.innerHeight
+        );
+
+    }
 );
-
-});
 
 </script>
 
