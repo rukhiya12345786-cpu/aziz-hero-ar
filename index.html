@@ -2,53 +2,71 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Camera Check</title>
+<title>Camera</title>
 
 <style>
-body{
+html,body{
     margin:0;
-    background:#111;
-    color:white;
-    font-family:Arial;
-    text-align:center;
-    padding:25px;
+    width:100%;
+    height:100%;
+    background:#000;
+    overflow:hidden;
+}
+
+video{
+    width:100%;
+    height:100%;
+    object-fit:cover;
 }
 
 button{
+    position:fixed;
+    bottom:30px;
+    left:50%;
+    transform:translateX(-50%);
     padding:15px 25px;
     font-size:18px;
-}
-
-#video{
-    width:100%;
-    margin-top:20px;
-}
-
-#error{
-    margin-top:20px;
-    color:#ff5555;
-    word-break:break-word;
+    z-index:2;
 }
 </style>
 </head>
 
 <body>
 
-<h2>CAMERA CHECK</h2>
-
-<p id="status">Button दबाओ</p>
+<video id="video" autoplay playsinline muted></video>
 
 <button id="start">START CAMERA</button>
 
-<video id="video"
-       autoplay
-       playsinline
-       muted>
-</video>
-
-<div id="error"></div>
-
 <script>
 
-const video =
-document
+document.getElementById("start").onclick =
+async function(){
+
+    try{
+
+        const stream =
+        await navigator.mediaDevices.getUserMedia({
+            video:true,
+            audio:false
+        });
+
+        document.getElementById("video").srcObject =
+        stream;
+
+        this.style.display = "none";
+
+    }catch(error){
+
+        alert(
+            error.name + "\n\n" +
+            error.message
+        );
+
+    }
+
+};
+
+</script>
+
+</body>
+</html>
