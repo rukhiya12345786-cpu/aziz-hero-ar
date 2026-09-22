@@ -12,14 +12,24 @@
             background-color: #000;
             font-family: sans-serif;
         }
+        #webcam-video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            z-index: 1;
+        }
         #canvas-container {
             width: 100vw;
             height: 100vh;
             position: absolute;
             top: 0;
             left: 0;
+            z-index: 2;
+            pointer-events: none;
         }
-        /* Top Control Bar */
         .top-bar {
             position: absolute;
             top: 15px;
@@ -41,7 +51,6 @@
         .btn:hover {
             background: rgba(255, 255, 255, 0.2);
         }
-        /* Bottom Slider Panel */
         .control-panel {
             position: absolute;
             bottom: 20px;
@@ -74,7 +83,10 @@
 </head>
 <body>
 
-    <!-- Canvas and Camera Container -->
+    <!-- Camera Feed Video Element -->
+    <video id="webcam-video" autoplay playsinline muted></video>
+
+    <!-- Canvas Container -->
     <div id="canvas-container"></div>
 
     <!-- Top Action Buttons -->
@@ -116,6 +128,18 @@
     <input type="file" id="file-input" accept=".vrm" style="display: none;">
 
     <script>
+        // Start Camera
+        const videoElement = document.getElementById('webcam-video');
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+                videoElement.srcObject = stream;
+            } catch (err) {
+                console.error("Camera access error:", err);
+            }
+        }
+        startCamera();
+
         const importBtn = document.getElementById('import-btn');
         const fileInput = document.getElementById('file-input');
 
@@ -129,11 +153,6 @@
                 const url = URL.createObjectURL(file);
                 console.log("Selected VRM file URL:", url);
             }
-        });
-
-        document.getElementById('scale-slider').addEventListener('input', (e) => {
-            const scaleValue = e.target.value;
-            console.log("Scale changed to:", scaleValue);
         });
     </script>
 </body>
