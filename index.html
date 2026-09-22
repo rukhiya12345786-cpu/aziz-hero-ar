@@ -1,282 +1,1162 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Azeez AR - Final Fixed</title>
-    <style>
-        * { box-sizing: border-box; }
-        body, html {
-            margin: 0; padding: 0;
-            width: 100%; height: 100%;
-            background: #000; overflow: hidden;
-            font-family: sans-serif; color: #fff;
-        }
-        #cameraStream {
-            position: fixed; top: 0; left: 0;
-            width: 100vw; height: 100vh;
-            object-fit: cover; z-index: 1;
-            transform: scaleX(-1);
-        }
-        #webgl-container {
-            position: fixed; top: 0; left: 0;
-            width: 100vw; height: 100vh;
-            z-index: 2; pointer-events: none;
-        }
-        .ui-layer {
-            position: fixed; bottom: 20px; left: 50%;
-            transform: translateX(-50%);
-            z-index: 10; display: flex;
-            gap: 8px; flex-wrap: wrap;
-            justify-content: center; width: 95%; max-width: 600px;
-        }
-        button, label.upload-btn {
-            padding: 10px 14px; font-size: 13px;
-            color: white; background: #007bff;
-            border: none; border-radius: 8px;
-            cursor: pointer; font-weight: bold;
-            text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.4);
-        }
-        label.upload-btn { background: #ffc107; color: #000; }
-        input[type="file"] { display: none; }
-        #exportBtn { background: #17a2b8; }
-        #recordBtn { background: #28a745; }
-        #stopBtn { background: #dc3545; display: none; }
-        #downloadLink { background: #6c757d; color: #fff; text-decoration: none; display: none; line-height: 35px; padding: 0 12px; border-radius: 8px;}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        .sliders-panel {
-            position: fixed; top: 10px; left: 50%;
-            transform: translateX(-50%);
-            z-index: 10; background: rgba(0,0,0,0.85);
-            padding: 8px 12px; border-radius: 10px;
-            display: flex; flex-direction: column; gap: 5px;
-            width: 92%; max-width: 340px; font-size: 11px;
-            backdrop-filter: blur(5px);
-        }
-        .slider-row { display: flex; align-items: center; justify-content: space-between; }
-        .slider-row input { width: 65%; cursor: pointer; }
-    </style>
+<title>Azeez AR - Face Tracking</title>
 
-    <!-- Three.js & GLTF Loader -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-    <!-- MediaPipe Face Mesh -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+<style>
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    overflow: hidden;
+    font-family: sans-serif;
+    color: #fff;
+}
+
+#cameraStream {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    z-index: 1;
+    transform: scaleX(-1);
+}
+
+#webgl-container {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 2;
+    pointer-events: none;
+}
+
+#webgl-container canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.ui-layer {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+
+    z-index: 10;
+
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+
+    width: 95%;
+    max-width: 600px;
+}
+
+button,
+label.upload-btn {
+    padding: 10px 14px;
+    font-size: 13px;
+
+    color: white;
+    background: #007bff;
+
+    border: none;
+    border-radius: 8px;
+
+    cursor: pointer;
+    font-weight: bold;
+
+    text-align: center;
+
+    box-shadow:
+        0 4px 6px rgba(0,0,0,0.4);
+}
+
+label.upload-btn {
+    background: #ffc107;
+    color: #000;
+}
+
+input[type="file"] {
+    display: none;
+}
+
+#exportBtn {
+    background: #17a2b8;
+}
+
+#recordBtn {
+    background: #28a745;
+}
+
+#stopBtn {
+    background: #dc3545;
+    display: none;
+}
+
+#downloadLink {
+    background: #6c757d;
+    color: #fff;
+    text-decoration: none;
+    display: none;
+
+    line-height: 35px;
+    padding: 0 12px;
+
+    border-radius: 8px;
+}
+
+.sliders-panel {
+    position: fixed;
+    top: 10px;
+    left: 50%;
+
+    transform: translateX(-50%);
+
+    z-index: 10;
+
+    background: rgba(0,0,0,0.85);
+
+    padding: 8px 12px;
+
+    border-radius: 10px;
+
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+
+    width: 92%;
+    max-width: 360px;
+
+    font-size: 11px;
+
+    backdrop-filter: blur(5px);
+}
+
+.slider-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.slider-row input {
+    width: 65%;
+    cursor: pointer;
+}
+
+#status {
+    position: fixed;
+    top: 5px;
+    left: 5px;
+
+    z-index: 20;
+
+    background: rgba(0,0,0,0.6);
+
+    padding: 5px 8px;
+
+    border-radius: 5px;
+
+    font-size: 11px;
+
+    color: #00ff88;
+}
+
+</style>
+
+<!-- THREE.JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<!-- GLTF LOADER -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
+<!-- MEDIAPIPE CAMERA -->
+<script
+src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"
+crossorigin="anonymous">
+</script>
+
+<!-- MEDIAPIPE FACE MESH -->
+<script
+src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"
+crossorigin="anonymous">
+</script>
+
 </head>
+
 <body>
 
-    <video id="cameraStream" autoplay playsinline muted></video>
-    <div id="webgl-container"></div>
+<video
+id="cameraStream"
+autoplay
+playsinline
+muted>
+</video>
 
-    <div class="sliders-panel">
-        <div class="slider-row">
-            <span>Model Scale:</span>
-            <input type="range" id="scaleSlider" min="0.1" max="5" step="0.05" value="1.5">
-        </div>
-        <div class="slider-row">
-            <span>Offset X (Left/Right):</span>
-            <input type="range" id="offsetX" min="-2" max="2" step="0.05" value="0">
-        </div>
-        <div class="slider-row">
-            <span>Offset Y (Up/Down):</span>
-            <input type="range" id="offsetY" min="-2" max="2" step="0.05" value="0.2">
-        </div>
-        <div class="slider-row">
-            <span>Offset Z (Depth):</span>
-            <input type="range" id="offsetZ" min="-3" max="3" step="0.05" value="0">
-        </div>
+<div id="webgl-container"></div>
+
+<div id="status">
+Face tracking: starting...
+</div>
+
+<div class="sliders-panel">
+
+    <div class="slider-row">
+        <span>Model Scale:</span>
+
+        <input
+        type="range"
+        id="scaleSlider"
+        min="0.1"
+        max="5"
+        step="0.05"
+        value="1.5">
     </div>
 
-    <div class="ui-layer">
-        <button id="flipBtn">Flip</button>
-        <label class="upload-btn">
-            Import 3D
-            <input type="file" id="fileInput" accept=".glb,.gltf">
-        </label>
-        <button id="exportBtn">Snapshot</button>
-        <button id="recordBtn">Rec</button>
-        <button id="stopBtn">Stop</button>
-        <a id="downloadLink" download="azeez-ar-video.webm">Download Video</a>
+    <div class="slider-row">
+        <span>Offset X:</span>
+
+        <input
+        type="range"
+        id="offsetX"
+        min="-2"
+        max="2"
+        step="0.05"
+        value="0">
     </div>
 
-    <script>
-        const videoElement = document.getElementById('cameraStream');
-        const flipBtn = document.getElementById('flipBtn');
-        const fileInput = document.getElementById('fileInput');
-        const exportBtn = document.getElementById('exportBtn');
-        const recordBtn = document.getElementById('recordBtn');
-        const stopBtn = document.getElementById('stopBtn');
-        const downloadLink = document.getElementById('downloadLink');
+    <div class="slider-row">
+        <span>Offset Y:</span>
 
-        const scaleSlider = document.getElementById('scaleSlider');
-        const offsetXSlider = document.getElementById('offsetX');
-        const offsetYSlider = document.getElementById('offsetY');
-        const offsetZSlider = document.getElementById('offsetZ');
+        <input
+        type="range"
+        id="offsetY"
+        min="-2"
+        max="2"
+        step="0.05"
+        value="0.2">
+    </div>
 
-        let useFrontCamera = true;
-        let currentStream;
-        let scene, camera, renderer, currentModel;
-        let mediaRecorder;
-        let recordedChunks = [];
-        
-        let targetPosition = new THREE.Vector3(0, 0, 0);
+    <div class="slider-row">
+        <span>Offset Z:</span>
 
-        async function startCamera() {
-            try {
-                if (currentStream) {
-                    currentStream.getTracks().forEach(track => track.stop());
+        <input
+        type="range"
+        id="offsetZ"
+        min="-3"
+        max="3"
+        step="0.05"
+        value="0">
+    </div>
+
+</div>
+
+<div class="ui-layer">
+
+    <button id="flipBtn">
+        Flip
+    </button>
+
+    <label class="upload-btn">
+
+        Import 3D
+
+        <input
+        type="file"
+        id="fileInput"
+        accept=".glb,.gltf">
+
+    </label>
+
+    <button id="exportBtn">
+        Snapshot
+    </button>
+
+    <button id="recordBtn">
+        Rec
+    </button>
+
+    <button id="stopBtn">
+        Stop
+    </button>
+
+    <a
+    id="downloadLink"
+    download="azeez-ar-video.webm">
+
+        Download Video
+
+    </a>
+
+</div>
+
+<script>
+
+const videoElement =
+document.getElementById("cameraStream");
+
+const flipBtn =
+document.getElementById("flipBtn");
+
+const fileInput =
+document.getElementById("fileInput");
+
+const exportBtn =
+document.getElementById("exportBtn");
+
+const recordBtn =
+document.getElementById("recordBtn");
+
+const stopBtn =
+document.getElementById("stopBtn");
+
+const downloadLink =
+document.getElementById("downloadLink");
+
+const status =
+document.getElementById("status");
+
+const scaleSlider =
+document.getElementById("scaleSlider");
+
+const offsetXSlider =
+document.getElementById("offsetX");
+
+const offsetYSlider =
+document.getElementById("offsetY");
+
+const offsetZSlider =
+document.getElementById("offsetZ");
+
+
+let useFrontCamera = true;
+
+let currentStream = null;
+
+let scene;
+let camera;
+let renderer;
+
+let currentModel = null;
+
+let mediaRecorder = null;
+
+let recordedChunks = [];
+
+let trackingStarted = false;
+
+
+let targetPosition =
+new THREE.Vector3(0,0,0);
+
+let targetRotation =
+new THREE.Euler(0,0,0);
+
+let smoothPosition =
+new THREE.Vector3(0,0,0);
+
+let smoothRotation =
+new THREE.Euler(0,0,0);
+
+
+async function startCamera() {
+
+    try {
+
+        status.innerText =
+        "Camera starting...";
+
+        if (currentStream) {
+
+            currentStream
+            .getTracks()
+            .forEach(track =>
+                track.stop()
+            );
+        }
+
+        const constraints = {
+
+            video: {
+
+                facingMode:
+                useFrontCamera
+                ? "user"
+                : "environment",
+
+                width: {
+                    ideal: 640
+                },
+
+                height: {
+                    ideal: 480
                 }
-                const constraints = {
-                    video: { facingMode: useFrontCamera ? 'user' : 'environment' },
-                    audio: true
-                };
-                currentStream = await navigator.mediaDevices.getUserMedia(constraints);
-                videoElement.srcObject = currentStream;
-            } catch (error) {
-                alert("Camera error: " + error);
-            }
-        }
-
-        flipBtn.addEventListener('click', () => {
-            useFrontCamera = !useFrontCamera;
-            startCamera();
-        });
-
-        function init3D() {
-            const container = document.getElementById('webgl-container');
-            scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.z = 2.5;
-
-            renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
-            container.appendChild(renderer.domElement);
-
-            scene.add(new THREE.AmbientLight(0xffffff, 1.5));
-            const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-            dirLight.position.set(0, 10, 5);
-            scene.add(dirLight);
-
-            animate();
-        }
-
-        function animate() {
-            requestAnimationFrame(animate);
-            if (currentModel) {
-                let scale = parseFloat(scaleSlider.value);
-                currentModel.scale.set(scale, scale, scale);
-
-                let xOff = parseFloat(offsetXSlider.value);
-                let yOff = parseFloat(offsetYSlider.value);
-                let zOff = parseFloat(offsetZSlider.value);
-
-                let desiredPos = new THREE.Vector3(
-                    targetPosition.x + xOff,
-                    targetPosition.y + yOff,
-                    targetPosition.z + zOff
-                );
-                currentModel.position.lerp(desiredPos, 0.3);
-            }
-            renderer.render(scene, camera);
-        }
-
-        // Fixed GLB File Importer
-        fileInput.addEventListener('change', (event) => {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                const contents = e.target.result;
-                const loader = new THREE.GLTFLoader();
-                loader.parse(contents, '', (gltf) => {
-                    if (currentModel) scene.remove(currentModel);
-                    currentModel = gltf.scene;
-                    scene.add(currentModel);
-                }, (error) => {
-                    alert('Model load error: ' + error.message);
-                });
-            };
-            reader.readAsArrayBuffer(file);
-        });
-
-        // MediaPipe Face Tracking
-        const faceMesh = new FaceMesh({
-            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
-        });
-        faceMesh.setOptions({
-            maxNumFaces: 1,
-            refineLandmarks: true,
-            minDetectionConfidence: 0.5,
-            minTrackingConfidence: 0.5
-        });
-
-        faceMesh.onResults((results) => {
-            if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-                const landmarks = results.multiFaceLandmarks[0];
-                const head = landmarks[10]; // Top of head / forehead point
-
-                let x = -(head.x - 0.5) * 3;
-                let y = -(head.y - 0.5) * 3;
-                let z = -head.z * 1.5;
-
-                targetPosition.set(x, y, z);
-            }
-        });
-
-        const cameraUtils = new Camera(videoElement, {
-            onFrame: async () => {
-                await faceMesh.send({ image: videoElement });
             },
-            width: 640,
-            height: 480
-        });
-        cameraUtils.start();
 
-        exportBtn.addEventListener('click', () => {
-            renderer.render(scene, camera);
-            const dataURL = renderer.domElement.toDataURL('image/png');
-            const link = document.createElement('a');
-            link.download = 'azeez-ar-snapshot.png';
-            link.href = dataURL;
-            link.click();
-        });
+            audio: true
+        };
 
-        recordBtn.addEventListener('click', () => {
-            recordedChunks = [];
-            try {
-                let options = { mimeType: 'video/webm;codecs=vp8,opus' };
-                if (!MediaRecorder.isTypeSupported(options.mimeType)) options = { mimeType: 'video/webm' };
-                
-                mediaRecorder = new MediaRecorder(currentStream, options);
-                mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
-                mediaRecorder.onstop = () => {
-                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
-                    downloadLink.href = URL.createObjectURL(blob);
-                    downloadLink.style.display = 'inline-block';
-                };
-                mediaRecorder.start();
-                recordBtn.style.display = 'none';
-                stopBtn.style.display = 'inline-block';
-                downloadLink.style.display = 'none';
-            } catch (err) { alert("Recording error: " + err); }
-        });
+        currentStream =
+        await navigator
+        .mediaDevices
+        .getUserMedia(
+            constraints
+        );
 
-        stopBtn.addEventListener('click', () => {
-            mediaRecorder.stop();
-            stopBtn.style.display = 'none';
-            recordBtn.style.display = 'inline-block';
-        });
+        videoElement.srcObject =
+        currentStream;
 
-        startCamera();
-        init3D();
+        await videoElement.play();
 
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-    </script>
+        status.innerText =
+        "Camera OK - Face tracking...";
+
+        if (!trackingStarted) {
+
+            trackingStarted = true;
+
+            cameraUtils.start();
+        }
+
+    } catch(error) {
+
+        console.error(error);
+
+        status.innerText =
+        "Camera error";
+
+        alert(
+            "Camera error: " +
+            error.message
+        );
+    }
+}
+
+
+flipBtn.addEventListener(
+"click",
+async () => {
+
+    useFrontCamera =
+    !useFrontCamera;
+
+    await startCamera();
+
+});
+
+
+function init3D() {
+
+    const container =
+    document.getElementById(
+        "webgl-container"
+    );
+
+    scene =
+    new THREE.Scene();
+
+    camera =
+    new THREE.PerspectiveCamera(
+        60,
+        window.innerWidth /
+        window.innerHeight,
+        0.01,
+        100
+    );
+
+    camera.position.set(
+        0,
+        0,
+        3
+    );
+
+    renderer =
+    new THREE.WebGLRenderer({
+
+        alpha: true,
+
+        antialias: true,
+
+        preserveDrawingBuffer: true
+    });
+
+    renderer.setSize(
+        window.innerWidth,
+        window.innerHeight
+    );
+
+    renderer.setPixelRatio(
+        Math.min(
+            window.devicePixelRatio,
+            2
+        )
+    );
+
+    container.appendChild(
+        renderer.domElement
+    );
+
+    scene.add(
+        new THREE.AmbientLight(
+            0xffffff,
+            1.5
+        )
+    );
+
+    const dirLight =
+    new THREE.DirectionalLight(
+        0xffffff,
+        1
+    );
+
+    dirLight.position.set(
+        0,
+        10,
+        5
+    );
+
+    scene.add(dirLight);
+
+    animate();
+}
+
+
+function animate() {
+
+    requestAnimationFrame(
+        animate
+    );
+
+    if (currentModel) {
+
+        const scale =
+        parseFloat(
+            scaleSlider.value
+        );
+
+        currentModel.scale.set(
+            scale,
+            scale,
+            scale
+        );
+
+        const xOff =
+        parseFloat(
+            offsetXSlider.value
+        );
+
+        const yOff =
+        parseFloat(
+            offsetYSlider.value
+        );
+
+        const zOff =
+        parseFloat(
+            offsetZSlider.value
+        );
+
+        const desiredPosition =
+        new THREE.Vector3(
+
+            smoothPosition.x + xOff,
+
+            smoothPosition.y + yOff,
+
+            smoothPosition.z + zOff
+        );
+
+        currentModel.position.lerp(
+            desiredPosition,
+            0.35
+        );
+
+        currentModel.rotation.x =
+        THREE.MathUtils.lerp(
+            currentModel.rotation.x,
+            smoothRotation.x,
+            0.25
+        );
+
+        currentModel.rotation.y =
+        THREE.MathUtils.lerp(
+            currentModel.rotation.y,
+            smoothRotation.y,
+            0.25
+        );
+
+        currentModel.rotation.z =
+        THREE.MathUtils.lerp(
+            currentModel.rotation.z,
+            smoothRotation.z,
+            0.25
+        );
+    }
+
+    renderer.render(
+        scene,
+        camera
+    );
+}
+
+
+fileInput.addEventListener(
+"change",
+event => {
+
+    const file =
+    event.target.files[0];
+
+    if (!file) return;
+
+    const reader =
+    new FileReader();
+
+    reader.onload =
+    function(e) {
+
+        const contents =
+        e.target.result;
+
+        const loader =
+        new THREE.GLTFLoader();
+
+        loader.parse(
+
+            contents,
+
+            "",
+
+            gltf => {
+
+                if (currentModel) {
+
+                    scene.remove(
+                        currentModel
+                    );
+                }
+
+                currentModel =
+                gltf.scene;
+
+                currentModel.position.set(
+                    0,
+                    0,
+                    0
+                );
+
+                scene.add(
+                    currentModel
+                );
+
+                status.innerText =
+                "3D model loaded";
+            },
+
+            error => {
+
+                console.error(error);
+
+                alert(
+                    "Model load error"
+                );
+            }
+        );
+    };
+
+    reader.readAsArrayBuffer(
+        file
+    );
+});
+
+
+const faceMesh =
+new FaceMesh({
+
+    locateFile: file =>
+
+    `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+
+});
+
+
+faceMesh.setOptions({
+
+    maxNumFaces: 1,
+
+    refineLandmarks: true,
+
+    minDetectionConfidence: 0.5,
+
+    minTrackingConfidence: 0.5
+
+});faceMesh.onResults(
+results => {
+
+    if (
+        !results.multiFaceLandmarks ||
+        results.multiFaceLandmarks.length === 0
+    ) {
+
+        status.innerText =
+        "Searching for face...";
+
+        return;
+    }
+
+
+    status.innerText =
+    "Face tracking: ON";
+
+
+    const landmarks =
+    results.multiFaceLandmarks[0];
+
+
+    /*
+       FACE LANDMARKS
+
+       1   = Nose
+       10  = Forehead
+       152 = Chin
+       234 = Left side
+       454 = Right side
+       33  = Left eye
+       263 = Right eye
+    */
+
+
+    const nose =
+    landmarks[1];
+
+    const forehead =
+    landmarks[10];
+
+    const chin =
+    landmarks[152];
+
+    const leftSide =
+    landmarks[234];
+
+    const rightSide =
+    landmarks[454];
+
+    const leftEye =
+    landmarks[33];
+
+    const rightEye =
+    landmarks[263];
+
+
+    /*
+       FACE POSITION
+    */
+
+    const faceX =
+    nose.x;
+
+    const faceY =
+    nose.y;
+
+
+    /*
+       Convert camera
+       coordinates to
+       Three.js coordinates
+    */
+
+    const x =
+    (0.5 - faceX) * 3.2;
+
+    const y =
+    (0.5 - faceY) * 2.6;
+
+    const depth =
+    -nose.z * 1.2;
+
+
+    targetPosition.set(
+        x,
+        y,
+        depth
+    );
+
+
+    /*
+       HEAD YAW
+
+       Left / Right
+    */
+
+    const eyeCenterX =
+    (
+        leftEye.x +
+        rightEye.x
+    ) / 2;
+
+
+    const sideWidth =
+    Math.abs(
+        rightSide.x -
+        leftSide.x
+    );
+
+
+    let yaw =
+    (
+        nose.x -
+        eyeCenterX
+    ) /
+    Math.max(
+        sideWidth,
+        0.01
+    );
+
+
+    yaw =
+    THREE.MathUtils.clamp(
+        yaw * 1.8,
+        -1,
+        1
+    );
+
+
+    targetRotation.y =
+    yaw;
+
+
+    /*
+       HEAD ROLL
+
+       Tilt left/right
+    */
+
+    const dx =
+    rightEye.x -
+    leftEye.x;
+
+    const dy =
+    rightEye.y -
+    leftEye.y;
+
+
+    const roll =
+    Math.atan2(
+        dy,
+        dx
+    );
+
+
+    targetRotation.z =
+    -roll;
+
+
+    /*
+       HEAD PITCH
+
+       Looking up/down
+    */
+
+    const faceHeight =
+    Math.abs(
+        chin.y -
+        forehead.y
+    );
+
+
+    let pitch =
+    (
+        nose.y -
+        forehead.y
+    ) /
+    Math.max(
+        faceHeight,
+        0.01
+    );
+
+
+    pitch =
+    (pitch - 0.5) * 1.5;
+
+
+    pitch =
+    THREE.MathUtils.clamp(
+        pitch,
+        -0.8,
+        0.8
+    );
+
+
+    targetRotation.x =
+    pitch;
+
+
+    /*
+       SMOOTH TRACKING
+    */
+
+    smoothPosition.lerp(
+        targetPosition,
+        0.25
+    );
+
+
+    smoothRotation.x =
+    THREE.MathUtils.lerp(
+        smoothRotation.x,
+        targetRotation.x,
+        0.25
+    );
+
+
+    smoothRotation.y =
+    THREE.MathUtils.lerp(
+        smoothRotation.y,
+        targetRotation.y,
+        0.25
+    );
+
+
+    smoothRotation.z =
+    THREE.MathUtils.lerp(
+        smoothRotation.z,
+        targetRotation.z,
+        0.25
+    );
+
+});
+
+
+const cameraUtils =
+new Camera(
+    videoElement,
+    {
+
+        onFrame: async () => {
+
+            if (
+                videoElement.readyState >= 2
+            ) {
+
+                await faceMesh.send({
+                    image:
+                    videoElement
+                });
+            }
+        },
+
+        width: 640,
+
+        height: 480
+    }
+);
+
+
+exportBtn.addEventListener(
+"click",
+() => {
+
+    renderer.render(
+        scene,
+        camera
+    );
+
+    const dataURL =
+    renderer.domElement
+    .toDataURL(
+        "image/png"
+    );
+
+    const link =
+    document.createElement(
+        "a"
+    );
+
+    link.download =
+    "azeez-ar-snapshot.png";
+
+    link.href =
+    dataURL;
+
+    link.click();
+
+});
+
+
+recordBtn.addEventListener(
+"click",
+() => {
+
+    if (!currentStream) {
+
+        alert(
+            "Camera is not ready."
+        );
+
+        return;
+    }
+
+
+    recordedChunks = [];
+
+
+    try {
+
+        let options = {
+
+            mimeType:
+            "video/webm;codecs=vp8,opus"
+
+        };
+
+
+        if (
+            !MediaRecorder.isTypeSupported(
+                options.mimeType
+            )
+        ) {
+
+            options = {
+                mimeType:
+                "video/webm"
+            };
+        }
+
+
+        mediaRecorder =
+        new MediaRecorder(
+            currentStream,
+            options
+        );
+
+
+        mediaRecorder.ondataavailable =
+        e => {
+
+            if (
+                e.data.size > 0
+            ) {
+
+                recordedChunks.push(
+                    e.data
+                );
+            }
+        };
+
+
+        mediaRecorder.onstop =
+        () => {
+
+            const blob =
+            new Blob(
+                recordedChunks,
+                {
+                    type:
+                    "video/webm"
+                }
+            );
+
+
+            downloadLink.href =
+            URL.createObjectURL(
+                blob
+            );
+
+
+            downloadLink.style.display =
+            "inline-block";
+        };
+
+
+        mediaRecorder.start();
+
+
+        recordBtn.style.display =
+        "none";
+
+        stopBtn.style.display =
+        "inline-block";
+
+        downloadLink.style.display =
+        "none";
+
+
+    } catch(err) {
+
+        alert(
+            "Recording error: " +
+            err
+        );
+    }
+
+});
+
+
+stopBtn.addEventListener(
+"click",
+() => {
+
+    if (
+        mediaRecorder &&
+        mediaRecorder.state !==
+        "inactive"
+    ) {
+
+        mediaRecorder.stop();
+    }
+
+
+    stopBtn.style.display =
+    "none";
+
+    recordBtn.style.display =
+    "inline-block";
+
+});
+
+
+/*
+   START APP
+*/
+
+init3D();
+
+startCamera();
+
+
+/*
+   RESIZE
+*/
+
+window.addEventListener(
+"resize",
+() => {
+
+    camera.aspect =
+    window.innerWidth /
+    window.innerHeight;
+
+    camera.updateProjectionMatrix();
+
+    renderer.setSize(
+        window.innerWidth,
+        window.innerHeight
+    );
+
+});
+
+</script>
+
 </body>
 </html>
