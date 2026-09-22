@@ -19,6 +19,8 @@ inset:0;
 width:100%;
 height:100%;
 object-fit:cover;
+transform:scaleX(-1);
+z-index:1;
 }
 
 #three{
@@ -26,6 +28,7 @@ position:fixed;
 inset:0;
 width:100%;
 height:100%;
+z-index:2;
 pointer-events:none;
 }
 
@@ -91,6 +94,10 @@ window.innerWidth,
 window.innerHeight
 );
 
+renderer.setPixelRatio(
+window.devicePixelRatio
+);
+
 
 const geometry =
 new THREE.BoxGeometry(
@@ -110,6 +117,11 @@ geometry,
 material
 );
 
+cube.position.set(
+0,
+0,
+0
+);
 
 scene.add(cube);
 
@@ -138,7 +150,9 @@ try{
 
 const stream =
 await navigator.mediaDevices.getUserMedia({
-video:true,
+video:{
+facingMode:"user"
+},
 audio:false
 });
 
