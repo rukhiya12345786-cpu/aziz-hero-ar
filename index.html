@@ -2,381 +2,187 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Aijaz Snapchat Style AR Studio</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Tracking 3D Mask</title>
     <style>
-        * { box-sizing: border-box; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; }
-        
-        /* Fullscreen Live Camera Background */
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #000;
+            font-family: sans-serif;
+        }
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        /* कैमरा वीडियो को पीछे दिखाने के लिए */
         #webcam {
-            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
-            object-fit: cover; z-index: 1; transform: scaleX(-1);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1); /* मिरर इफ़ेक्ट ताकि सीधा दिखे */
+            z-index: 1;
         }
-        
-        /* 3D Canvas Overlay */
-        #webgl-container {
-            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2; pointer-events: none;
+        /* Three.js का कैनवास वीडियो के ठीक ऊपर आएगा */
+        #canvas3d {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none; /* ताकि क्लिक सीधा वीडियो/पेज पर जा सके */
         }
-
-        /* Transparent Glassmorphism UI Panel */
-        .top-panel {
-            position: absolute; top: 15px; right: 15px; z-index: 20; display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;
-        }
-        .glass-btn {
-            background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3); color: #fff; padding: 10px 16px; font-size: 12px;
-            border-radius: 20px; cursor: pointer; font-weight: bold; transition: 0.2s; pointer-events: auto;
-        }
-        .glass-btn:active { background: rgba(0, 255, 136, 0.6); color: #000; }
-        .btn-red { background: rgba(255, 71, 87, 0.7); border-color: rgba(255, 71, 87, 0.9); }
-        .btn-blue { background: rgba(30, 144, 255, 0.7); border-color: rgba(30, 144, 255, 0.9); }
-
-        /* 360 Full Adjustment Panel */
-        .controls-panel {
-            position: absolute; bottom: 15px; left: 15px; right: 15px; z-index: 20;
-            background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
-            padding: 12px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.3);
-            display: flex; flex-direction: column; gap: 6px; color: #fff; font-size: 11px;
-            pointer-events: auto; max-height: 200px; overflow-y: auto;
-        }
-        .control-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-        .control-row input { width: 65%; cursor: pointer; accent-color: #00ff88; }
-
-        .status-bar {
-            position: absolute; top: 15px; left: 15px; z-index: 20; color: #00ff88; font-size: 11px;
-            background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); padding: 8px 14px; border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.2); pointer-events: none;
+        #loading {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #fff;
+            background: rgba(0,0,0,0.7);
+            padding: 10px 15px;
+            border-radius: 5px;
+            z-index: 10;
+            font-size: 16px;
         }
     </style>
 
-    <!-- Three.js & Loaders -->
+    <!-- Three.js और MediaPipe की लाइब्रेरी लोड कर रहे हैं -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/inflate.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
-
-    <!-- MediaPipe & Kalidokit -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/kalidokit@1.1.4/dist/kalidokit.umd.js"></script>
 </head>
 <body>
 
-    <video id="webcam" autoplay playsinline muted></video>
-    <div class="status-bar" id="status">Snapchat Filter Active</div>
+    <div id="loading">कैमरा और मॉडल लोड हो रहा है...</div>
     
-    <div class="top-panel">
-        <button id="upload-btn" class="glass-btn">📁 Import Model</button>
-        <button id="flip-btn" class="glass-btn btn-blue">🔄 Flip Cam</button>
-        <button id="record-btn" class="glass-btn btn-red">🔴 Record Video</button>
-        <input type="file" id="file-input" style="display: none;" accept=".obj,.glb,.gltf,.fbx">
+    <div id="container">
+        <!-- लाइव कैमरा फीड के लिए वीडियो एलिमेंट -->
+        <video id="webcam" autoplay playsinline muted></video>
+        <!-- 3D मॉडल दिखाने के लिए कैनवास -->
+        <canvas id="canvas3d"></canvas>
     </div>
-
-    <!-- 360 Adjustment Sliders -->
-    <div class="controls-panel">
-        <div class="control-row">
-            <span>Scale (Size):</span>
-            <input type="range" id="scale-slider" min="0.2" max="5.0" step="0.1" value="1.8">
-        </div>
-        <div class="control-row">
-            <span>Position X (Left/Right):</span>
-            <input type="range" id="posx-slider" min="-2.0" max="2.0" step="0.05" value="0.0">
-        </div>
-        <div class="control-row">
-            <span>Position Y (Up/Down):</span>
-            <input type="range" id="posy-slider" min="-2.0" max="2.0" step="0.05" value="0.0">
-        </div>
-        <div class="control-row">
-            <span>Position Z (Depth):</span>
-            <input type="range" id="posz-slider" min="-2.0" max="2.0" step="0.05" value="0.0">
-        </div>
-        <div class="control-row">
-            <span>360° Rotate X:</span>
-            <input type="range" id="rotx-slider" min="-3.14" max="3.14" step="0.05" value="0.0">
-        </div>
-        <div class="control-row">
-            <span>360° Rotate Y:</span>
-            <input type="range" id="roty-slider" min="-3.14" max="3.14" step="0.05" value="0.0">
-        </div>
-        <div class="control-row">
-            <span>360° Rotate Z:</span>
-            <input type="range" id="rotz-slider" min="-3.14" max="3.14" step="0.05" value="0.0">
-        </div>
-    </div>
-
-    <div id="webgl-container"></div>
 
     <script>
-        let scene, camera, renderer, videoElement, mediaStream;
-        let currentModel = null;
-        
-        let targetPosition = new THREE.Vector3(0, 0, 0);
-        let currentPosition = new THREE.Vector3(0, 0, 0);
-        let targetRotation = new THREE.Euler();
-        let currentRotation = new THREE.Euler();
-        
-        let userScale = 1.8;
-        let userPosX = 0.0;
-        let userPosY = 0.0;
-        let userPosZ = 0.0;
-        let userRotX = 0.0;
-        let userRotY = 0.0;
-        let userRotZ = 0.0;
-        let baseScaleMultiplier = 1.0;
-        let useFrontCamera = true;
+        const videoElement = document.getElementById('webcam');
+        const canvasElement = document.getElementById('canvas3d');
+        const loadingElement = document.getElementById('loading');
 
-        let mediaRecorder;
-        let recordedChunks = [];
-        let isRecording = false;
+        let scene, camera, renderer, faceMeshModel;
 
-        function init() {
-            videoElement = document.getElementById('webcam');
-
+        // 1. Three.js सेटअप करना
+        function initThreeJS() {
             scene = new THREE.Scene();
+
+            // कैमरा सेटिंग्स
             camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.z = 2.0;
+            camera.position.z = 5;
 
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+            // रेंडरर (transparent ताकि पीछे का कैमरा दिखे)
+            renderer = new THREE.WebGLRenderer({ canvas: canvasElement, alpha: true, antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            document.getElementById('webgl-container').appendChild(renderer.domElement);
+            renderer.setPixelRatio(window.devicePixelRatio);
 
-            scene.add(new THREE.AmbientLight(0xffffff, 2.2));
-            const light1 = new THREE.DirectionalLight(0xffffff, 1.8);
-            light1.position.set(0, 10, 10);
-            scene.add(light1);
-            const light2 = new THREE.DirectionalLight(0xffffff, 1.0);
-            light2.position.set(0, -10, -10);
-            scene.add(light2);
+            // रोशनी जोड़ना ताकि 3D मॉडल साफ़ दिखे
+            const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+            scene.add(ambientLight);
 
-            loadDefaultHead();
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(0, 10, 5);
+            scene.add(directionalLight);
 
-            document.getElementById('upload-btn').addEventListener('click', () => document.getElementById('file-input').click());
-            document.getElementById('flip-btn').addEventListener('click', () => {
-                useFrontCamera = !useFrontCamera;
-                startCamera();
-            });
-            document.getElementById('record-btn').addEventListener('click', toggleRecording);
-
-            document.getElementById('scale-slider').addEventListener('input', (e) => userScale = parseFloat(e.target.value));
-            document.getElementById('posx-slider').addEventListener('input', (e) => userPosX = parseFloat(e.target.value));
-            document.getElementById('posy-slider').addEventListener('input', (e) => userPosY = parseFloat(e.target.value));
-            document.getElementById('posz-slider').addEventListener('input', (e) => userPosZ = parseFloat(e.target.value));
-            document.getElementById('rotx-slider').addEventListener('input', (e) => userRotX = parseFloat(e.target.value));
-            document.getElementById('roty-slider').addEventListener('input', (e) => userRotY = parseFloat(e.target.value));
-            document.getElementById('rotz-slider').addEventListener('input', (e) => userRotZ = parseFloat(e.target.value));
-
-            document.getElementById('file-input').addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                const fileURL = URL.createObjectURL(file);
-                const ext = file.name.split('.').pop().toLowerCase();
-
-                document.getElementById('status').innerText = "Loading Model...";
-
-                const setupModel = (object) => {
-                    if (currentModel) scene.remove(currentModel);
-                    
-                    object.traverse((child) => {
-                        if (child.isMesh) {
-                            if (child.material) {
-                                child.material.side = THREE.DoubleSide;
-                                if (child.material.map) child.material.map.encoding = THREE.sRGBEncoding;
-                            }
-                        }
-                    });
-
-                    const box = new THREE.Box3().setFromObject(object);
-                    const center = box.getCenter(new THREE.Vector3());
-                    const size = box.getSize(new THREE.Vector3());
-                    object.position.sub(center);
-
-                    const maxAxis = Math.max(size.x, size.y, size.z);
-                    if (maxAxis > 0) {
-                        baseScaleMultiplier = 1.0 / maxAxis;
-                    }
-
-                    currentModel = object;
-                    scene.add(currentModel);
-                    document.getElementById('status').innerText = "Model Active!";
-                };
-
-                if (ext === 'obj') {
-                    new THREE.OBJLoader().load(fileURL, (obj) => setupModel(obj), undefined, () => alert("OBJ Error"));
-                } else if (ext === 'glb' || ext === 'gltf') {
-                    new THREE.GLTFLoader().load(fileURL, (gltf) => setupModel(gltf.scene), undefined, () => alert("GLB Error"));
-                } else if (ext === 'fbx') {
-                    new THREE.FBXLoader().load(fileURL, (obj) => setupModel(obj), undefined, () => alert("FBX Error"));
-                }
-            });
-
-            startCameraAndTracking();
-
-            window.addEventListener('resize', () => {
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
-            });
-
-            animate();
-        }
-
-        function loadDefaultHead() {
-            const group = new THREE.Group();
+            // 2. यहाँ हम एक सैंपल 3D मास्क (जैसे चमकता हुआ स्फीयर या बॉक्स) बना रहे हैं
+            // (आप चाहें तो यहाँ अपना GLTF/OBJ 3D मॉडल लोड कर सकते हैं)
             const geometry = new THREE.SphereGeometry(0.5, 32, 32);
-            const material = new THREE.MeshStandardMaterial({ color: 0xffdbac, roughness: 0.4 });
-            const mesh = new THREE.Mesh(geometry, material);
-            group.add(mesh);
-            currentModel = group;
-            scene.add(currentModel);
+            const material = new THREE.MeshStandardMaterial({ color: 0x00ffcc, roughness: 0.3, metalness: 0.8 });
+            faceMeshModel = new THREE.Mesh(geometry, material);
+            scene.add(faceMeshModel);
+            
+            // शुरुआत में मॉडल छिपा कर रखें जब तक चेहरा डिटेक्ट न हो
+            faceMeshModel.visible = false;
+
+            window.addEventListener('resize', onWindowResize);
         }
 
-        function startCamera() {
-            if (mediaStream) {
-                mediaStream.getTracks().forEach(track => track.stop());
-            }
-            navigator.mediaDevices.getUserMedia({
-                video: { facingMode: useFrontCamera ? 'user' : 'environment', width: 1280, height: 720 },
-                audio: true
-            }).then(stream => {
-                mediaStream = stream;
-                videoElement.srcObject = stream;
-                videoElement.play();
-            }).catch(err => {
-                console.error(err);
-                alert("Camera access denied or not supported.");
-            });
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
-        function startCameraAndTracking() {
-            startCamera();
-
-            const faceMesh = new FaceMesh({
-                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+        // 3. MediaPipe FaceMesh सेटअप करना
+        function initFaceMesh() {
+            const faceMesh = new MediapipeFaceMesh({
+                locateFile: (file) => {
+                    return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
+                }
             });
 
             faceMesh.setOptions({
                 maxNumFaces: 1,
                 refineLandmarks: true,
-                minDetectionConfidence: 0.6,
-                minTrackingConfidence: 0.6
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5
             });
 
-            faceMesh.onResults((results) => {
-                if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-                    const landmarks = results.multiFaceLandmarks[0];
-                    const riggedFace = Kalidokit.Face.solve(landmarks, {
-                        runtime: "mediapipe",
-                        video: videoElement
-                    });
+            faceMesh.onResults(onFaceResults);
 
-                    if (riggedFace) {
-                        targetPosition.x = riggedFace.position.x * 1.5;
-                        targetPosition.y = -riggedFace.position.y * 1.5;
-                        targetPosition.z = -riggedFace.position.z * 1.2;
-
-                        targetRotation.x = riggedFace.head.x;
-                        targetRotation.y = riggedFace.head.y;
-                        targetRotation.z = riggedFace.head.z;
-                    }
-                }
-            });
-
+            // कैमरा चालू करना
             const cameraUtils = new Camera(videoElement, {
                 onFrame: async () => {
-                    if (videoElement && videoElement.readyState >= 2) {
-                        await faceMesh.send({ image: videoElement });
-                    }
+                    await faceMesh.send({ image: videoElement });
                 },
                 width: 1280,
                 height: 720
             });
-            cameraUtils.start();
+
+            cameraUtils.start()
+                .then(() => {
+                    loadingElement.style.display = 'none'; // लोडिंग हटा दें जब कैमरा चल जाए
+                })
+                .catch(err => {
+                    loadingElement.innerText = "कैमरा चालू करने में एरर आया: " + err.message;
+                });
         }
 
-        function toggleRecording() {
-            const recordBtn = document.getElementById('record-btn');
-            if (!isRecording) {
-                recordedChunks = [];
-                const canvasStream = renderer.domElement.captureStream(30);
-                const combinedStream = new MediaStream([
-                    ...canvasStream.getVideoTracks(),
-                    ...(mediaStream ? mediaStream.getAudioTracks() : [])
-                ]);
+        // 4. जब चेहरा डिटेक्ट होगा, तब 3D मॉडल की पोजीशन को चेहरे के हिसाब से सेट करेंगे
+        function onFaceResults(results) {
+            if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+                const landmarks = results.multiFaceLandmarks[0];
+                
+                // नाक की टिप का पॉइंट (Index 1) फेस ट्रैक करने के लिए मुख्य सेंटर होता है
+                const nose = landmarks[1];
 
-                let options = { mimeType: 'video/webm;codecs=vp9' };
-                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-                    options = { mimeType: 'video/webm' };
+                // MediaPipe के कोऑर्डिनेट्स को Three.js के 3D स्पेस में बदलना
+                // (X और Y को स्क्रीन के हिसाब से सेट करना)
+                const x = (nose.x - 0.5) * -3.5; 
+                const y = (nose.y - 0.5) * -3.5;
+                const z = -nose.z * 3; // गहराई (Depth)
+
+                if (faceMeshModel) {
+                    faceMeshModel.visible = true; // चेहरा दिखते ही मॉडल ऑन
+                    faceMeshModel.position.set(x, y, z);
+                    
+                    // हल्का सा रोटेशन देना ताकि जीवंत लगे
+                    faceMeshModel.rotation.y += 0.02;
                 }
-
-                try {
-                    mediaRecorder = new MediaRecorder(combinedStream, options);
-                } catch (e) {
-                    mediaRecorder = new MediaRecorder(canvasStream);
-                }
-
-                mediaRecorder.ondataavailable = (event) => {
-                    if (event.data.size > 0) recordedChunks.push(event.data);
-                };
-
-                mediaRecorder.onstop = () => {
-                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'snapchat-filter-recording.webm';
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    document.getElementById('status').innerText = "Video Saved!";
-                };
-
-                mediaRecorder.start();
-                isRecording = true;
-                recordBtn.innerText = "⏹️ Stop Recording";
-                document.getElementById('status').innerText = "Recording...";
             } else {
-                mediaRecorder.stop();
-                isRecording = false;
-                recordBtn.innerText = "🔴 Record Video";
-                document.getElementById('status').innerText = "Saved!";
-            }
-        }
-
-        function animate() {
-            requestAnimationFrame(animate);
-            
-            if (currentModel) {
-                currentPosition.x += (targetPosition.x - currentPosition.x) * 0.4;
-                currentPosition.y += (targetPosition.y - currentPosition.y) * 0.4;
-                currentPosition.z += (targetPosition.z - currentPosition.z) * 0.4;
-
-                currentRotation.x += (targetRotation.x - currentRotation.x) * 0.4;
-                currentRotation.y += (targetRotation.y - currentRotation.y) * 0.4;
-                currentRotation.z += (targetRotation.z - currentRotation.z) * 0.4;
-
-                currentModel.position.set(
-                    currentPosition.x + userPosX, 
-                    currentPosition.y + userPosY, 
-                    currentPosition.z + userPosZ
-                );
-                
-                currentModel.rotation.set(
-                    currentRotation.x + userRotX, 
-                    currentRotation.y + userRotY, 
-                    currentRotation.z + userRotZ, 
-                    'YXZ'
-                );
-                
-                const finalScale = baseScaleMultiplier * userScale;
-                currentModel.scale.set(finalScale, finalScale, finalScale);
+                // अगर चेहरा फ्रेम में न दिखे तो मॉडल छिपा दें
+                if (faceMeshModel) {
+                    faceMeshModel.visible = false;
+                }
             }
 
+            // थ्री डी सीन को रेंडर करना
             renderer.render(scene, camera);
         }
 
-        init();
+        // ऐप शुरू करें
+        initThreeJS();
+        initFaceMesh();
     </script>
 </body>
 </html>
