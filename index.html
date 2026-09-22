@@ -58,13 +58,13 @@
             outline: none;
         }
         .btn.recording {
-            background: rgba(255, 0, 0, 0.8);
+            background: rgba(255, 0, 0, 0.9);
             border-color: #ff0000;
-            animation: pulse 1.5s infinite;
+            animation: pulse 1s infinite;
         }
         @keyframes pulse {
             0% { opacity: 1; }
-            50% { opacity: 0.5; }
+            50% { opacity: 0.4; }
             100% { opacity: 1; }
         }
         .control-panel {
@@ -98,14 +98,12 @@
         }
     </style>
 
-    <!-- Three.js and Loaders CDN -->
     <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
     <script src="https://unpkg.com/three@0.160.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://unpkg.com/three@0.160.0/examples/js/loaders/OBJLoader.js"></script>
     <script src="https://unpkg.com/three@0.160.0/examples/js/loaders/FBXLoader.js"></script>
     <script src="https://unpkg.com/three@0.160.0/examples/js/libs/fflate.min.js"></script>
 
-    <!-- MediaPipe Face Mesh CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
 </head>
@@ -122,19 +120,19 @@
     <div class="control-panel">
         <div class="slider-group">
             <label>Mask Scale (Size)</label>
-            <input type="range" id="scale-slider" min="0.2" max="5" step="0.05" value="1.2">
+            <input type="range" id="scale-slider" min="0.1" max="5" step="0.05" value="1.0">
         </div>
         <div class="slider-group">
             <label>Offset X</label>
-            <input type="range" id="pos-x-slider" min="-1" max="1" step="0.01" value="0">
+            <input type="range" id="pos-x-slider" min="-2" max="2" step="0.01" value="0">
         </div>
         <div class="slider-group">
             <label>Offset Y</label>
-            <input type="range" id="pos-y-slider" min="-1" max="1" step="0.01" value="0">
+            <input type="range" id="pos-y-slider" min="-2" max="2" step="0.01" value="0">
         </div>
         <div class="slider-group">
             <label>Offset Z (Depth)</label>
-            <input type="range" id="pos-z-slider" min="-2" max="2" step="0.01" value="0">
+            <input type="range" id="pos-z-slider" min="-3" max="3" step="0.01" value="0">
         </div>
     </div>
 
@@ -143,28 +141,44 @@
     <script>
         const videoElement = document.getElementById('webcam-video');
         let currentModel = null;
-        let manualScale = 1.2;
+        let manualScale = 1.0;
         let manualOffsetX = 0;
         let manualOffsetY = 0;
         let manualOffsetZ = 0;
+
+        // Initialize Camera Stream manually for absolute reliability
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+                    audio: false
+                });
+                videoElement.srcObject = stream;
+                await videoElement.play();
+            } catch (err) {
+                console.error("Camera access error:", err);
+                alert("Please allow camera access permissions.");
+            }
+        }
+        startCamera();
 
         // Three.js Scene Setup
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
 
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 20.0);
-        camera.position.set(0, 0, 2.5);
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 50.0);
+        camera.position.set(0, 0, 3.0);
 
         const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
-        const light = new THREE.DirectionalLight(0xffffff, 1.5);
-        light.position.set(0, 1, 2).normalize();
+        const light = new THREE.DirectionalLight(0xffffff, 2.0);
+        light.position.set(0, 2, 3).normalize();
         scene.add(light);
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
         scene.add(ambientLight);
 
         window.addEventListener('resize', () => {
@@ -173,7 +187,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // Robust File Loading using ArrayBuffer to prevent parsing issues
+        // Safe File Loading Handler
         const importBtn = document.getElementById('import-btn');
         const fileInput = document.getElementById('file-input');
 
@@ -197,45 +211,47 @@
             if (fileName.endsWith('.glb') || fileName.endsWith('.gltf') || fileName.endsWith('.vrm')) {
                 reader.readAsArrayBuffer(file);
                 reader.onload = function (e) {
-                    const contents = e.target.result;
                     const loader = new THREE.GLTFLoader();
-                    loader.parse(contents, '', (gltf) => {
+                    loader.parse(e.target.result, '', (gltf) => {
                         currentModel = gltf.scene;
                         scene.add(currentModel);
-                        alert("Model loaded successfully: " + file.name);
+                        alert("Model loaded successfully!");
                     }, (err) => {
-                        console.error("GLTF Parse Error:", err);
-                        alert("Failed to parse GLB/VRM file.");
+                        console.error("GLTF Error:", err);
+                        alert("Error loading GLB file.");
                     });
                 };
             } 
             else if (fileName.endsWith('.obj')) {
                 reader.readAsText(file);
                 reader.onload = function (e) {
-                    const text = e.target.result;
                     const loader = new THREE.OBJLoader();
-                    currentModel = loader.parse(text);
-                    scene.add(currentModel);
-                    alert("Model loaded successfully: " + file.name);
+                    try {
+                        currentModel = loader.parse(e.target.result);
+                        scene.add(currentModel);
+                        alert("Model loaded successfully!");
+                    } catch (err) {
+                        console.error("OBJ Error:", err);
+                        alert("Error loading OBJ file.");
+                    }
                 };
             } 
             else if (fileName.endsWith('.fbx')) {
                 reader.readAsArrayBuffer(file);
                 reader.onload = function (e) {
-                    const contents = e.target.result;
                     const loader = new THREE.FBXLoader();
                     try {
-                        currentModel = loader.parse(contents, '');
-                        currentModel.scale.set(0.01, 0.01, 0.01); // FBX scale adjustment
+                        currentModel = loader.parse(e.target.result, '');
+                        currentModel.scale.set(0.01, 0.01, 0.01);
                         scene.add(currentModel);
-                        alert("Model loaded successfully: " + file.name);
+                        alert("Model loaded successfully!");
                     } catch (err) {
-                        console.error("FBX Parse Error:", err);
-                        alert("Failed to parse FBX file.");
+                        console.error("FBX Error:", err);
+                        alert("Error loading FBX file.");
                     }
                 };
             } else {
-                alert("Unsupported format!");
+                alert("Unsupported format! Use .glb, .obj, .fbx or .vrm");
             }
         });
 
@@ -245,7 +261,7 @@
         document.getElementById('pos-y-slider').addEventListener('input', (e) => { manualOffsetY = parseFloat(e.target.value); });
         document.getElementById('pos-z-slider').addEventListener('input', (e) => { manualOffsetZ = parseFloat(e.target.value); });
 
-        // MediaPipe Face Mesh Tracking
+        // MediaPipe Face Mesh Head Tracking
         const faceMesh = new FaceMesh({
             locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
         });
@@ -253,8 +269,8 @@
         faceMesh.setOptions({
             maxNumFaces: 1,
             refineLandmarks: true,
-            minDetectionConfidence: 0.6,
-            minTrackingConfidence: 0.6
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
         });
 
         faceMesh.onResults((results) => {
@@ -264,13 +280,13 @@
                 const leftCheek = landmarks[234];
                 const rightCheek = landmarks[454];
 
-                const targetX = (nose.x - 0.5) * -3.0 + manualOffsetX;
-                const targetY = (nose.y - 0.5) * -3.0 + manualOffsetY;
-                const targetZ = -nose.z * 1.5 + manualOffsetZ;
+                const targetX = (nose.x - 0.5) * -3.5 + manualOffsetX;
+                const targetY = (nose.y - 0.5) * -3.5 + manualOffsetY;
+                const targetZ = -nose.z * 2.0 + manualOffsetZ;
 
-                currentModel.position.x += (targetX - currentModel.position.x) * 0.3;
-                currentModel.position.y += (targetY - currentModel.position.y) * 0.3;
-                currentModel.position.z += (targetZ - currentModel.position.z) * 0.3;
+                currentModel.position.x += (targetX - currentModel.position.x) * 0.4;
+                currentModel.position.y += (targetY - currentModel.position.y) * 0.4;
+                currentModel.position.z += (targetZ - currentModel.position.z) * 0.4;
 
                 currentModel.scale.set(manualScale, manualScale, manualScale);
 
@@ -288,19 +304,18 @@
             }
         });
 
-        const cameraUtils = new Camera(videoElement, {
-            onFrame: async () => {
+        // Send video frames to MediaPipe
+        async function sendToFaceMesh() {
+            if (videoElement.readyState >= 2) {
                 await faceMesh.send({ image: videoElement });
-            },
-            width: 1280,
-            height: 720
+            }
+            requestAnimationFrame(sendToFaceMesh);
+        }
+        videoElement.addEventListener('loadeddata', () => {
+            sendToFaceMesh();
         });
 
-        cameraUtils.start().catch(err => {
-            console.error("Camera start error:", err);
-        });
-
-        // Video Recording Logic implementation
+        // Video Recording Functionality
         let mediaRecorder;
         let recordedChunks = [];
         const recordBtn = document.getElementById('record-btn');
@@ -315,36 +330,31 @@
 
         function startRecording() {
             recordedChunks = [];
-            // Combine webcam video stream and three.js canvas stream
             const canvasStream = renderer.domElement.captureStream(30);
-            const videoStream = videoElement.captureStream ? videoElement.captureStream(30) : null;
             
-            // If captureStream is supported on video, we can merge or just record canvas over video background
-            const stream = canvasStream; 
-
             try {
-                mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
+                mediaRecorder = new MediaRecorder(canvasStream, { mimeType: 'video/webm;codecs=vp9' });
             } catch (e) {
                 try {
-                    mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/mp4' });
+                    mediaRecorder = new MediaRecorder(canvasStream, { mimeType: 'video/webm' });
                 } catch (err) {
-                    mediaRecorder = new MediaRecorder(stream);
+                    mediaRecorder = new MediaRecorder(canvasStream);
                 }
             }
 
-            mediaRecorder.ondataavailable = function(event) {
+            mediaRecorder.ondataavailable = (event) => {
                 if (event.data.size > 0) {
                     recordedChunks.push(event.data);
                 }
             };
 
-            mediaRecorder.onstop = function() {
+            mediaRecorder.onstop = () => {
                 const blob = new Blob(recordedChunks, { type: 'video/webm' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.style.display = 'none';
                 a.href = url;
-                a.download = 'ar-face-video.webm';
+                a.download = 'ar-mask-recording.webm';
                 document.body.appendChild(a);
                 a.click();
                 setTimeout(() => {
@@ -354,7 +364,7 @@
             };
 
             mediaRecorder.start();
-            recordBtn.textContent = "Stop Rec";
+            recordBtn.textContent = "Stop";
             recordBtn.classList.add("recording");
         }
 
@@ -364,7 +374,7 @@
             recordBtn.classList.remove("recording");
         }
 
-        // Render Loop
+        // Main Render Loop
         function animate() {
             requestAnimationFrame(animate);
             renderer.render(scene, camera);
