@@ -93,11 +93,15 @@
             cursor: pointer;
         }
     </style>
+
+    <!-- Import Three.js, GLTFLoader, and VRM Libraries via CDN -->
+    <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.160.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://unpkg.com/@pixiv/three-vrm@2.0.6/lib/three-vrm.js"></script>
 </head>
 <body>
 
     <video id="webcam-video" autoplay playsinline muted></video>
-
     <div id="canvas-container"></div>
 
     <div class="top-bar">
@@ -136,6 +140,7 @@
     <input type="file" id="file-input" accept=".vrm" style="display: none;">
 
     <script>
+        // Camera Initialization
         const videoElement = document.getElementById('webcam-video');
         let useFrontCamera = true;
         let currentStream = null;
@@ -145,7 +150,6 @@
                 if (currentStream) {
                     currentStream.getTracks().forEach(track => track.stop());
                 }
-
                 const constraints = {
                     video: {
                         facingMode: useFrontCamera ? 'user' : 'environment',
@@ -154,7 +158,6 @@
                     },
                     audio: false
                 };
-
                 currentStream = await navigator.mediaDevices.getUserMedia(constraints);
                 videoElement.srcObject = currentStream;
                 await videoElement.play();
@@ -172,6 +175,36 @@
             initCamera();
         });
 
+        // Three.js Scene Setup for VRM Model Rendering
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 20.0);
+        camera.position.set(0, 1.4, 1.5);
+
+        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+
+        // Lighting
+        const light = new THREE.DirectionalLight(0xffffff, Math.PI);
+        light.position.set(1, 1, 1).normalize();
+        scene.add(light);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+        scene.add(ambientLight);
+
+        let currentVRM = null;
+
+        // Handle Window Resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Import and Load VRM Model
         const importBtn = document.getElementById('import-btn');
         const fileInput = document.getElementById('file-input');
 
@@ -182,12 +215,84 @@
 
         fileInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
-            if (file) {
-                const fileURL = URL.createObjectURL(file);
-                console.log("VRM File Loaded URL:", fileURL);
-                alert("Model successfully loaded: " + file.name);
-            }
+            if (!file) return;
+
+            const fileURL = URL.createObjectURL(file);
+            const loader = new THREE.GLTFLoader();
+
+            loader.load(
+                fileURL,
+                (gltf) => {
+                    THREE.VRM.from(gltf).then((vrm) => {
+                        if (currentVRM) {
+                            scene.remove(currentVRM.scene);
+                            currentVRM.dispose();
+                        }
+
+                        currentVRM = vrm;
+                        scene.add(vrm.scene);
+
+                        // Rotate model if needed (VRM standard faces -Z, rotate to +Z facing camera)
+                        vrm.scene.rotation.y = Math.PI;
+
+                        console.log("VRM Model Loaded Successfully");
+                        alert("Model loaded successfully: " + file.name);
+                    }).catch((err) => {
+                        console.error("VRM parsing error:", err);
+                        alert("Failed to parse VRM model format.");
+                    });
+                },
+                (progress) => {
+                    console.log('Loading progress: ' + (progress.loaded / progress.total * 100) + '%');
+                },
+                (error) => {
+                    console.error("GLTF load error:", error);
+                    alert("Failed to load 3D model file.");
+                }
+            );
         });
+
+        // Slider Adjustment Logic for the Loaded Model
+        const scaleSlider = document.getElementById('scale-slider');
+        const posXSlider = document.getElementById('pos-x-slider');
+        const posYSlider = document.getElementById('pos-y-slider');
+        const posZSlider = document.getElementById('pos-z-slider');
+        const rotXSlider = document.getElementById('rot-x-slider');
+        const rotYSlider = document.getElementById('rot-y-slider');
+
+        function updateModelTransform() {
+            if (!currentVRM) return;
+            const s = parseFloat(scaleSlider.value);
+            currentVRM.scene.scale.set(s, s, s);
+
+            currentVRM.scene.position.set(
+                parseFloat(posXSlider.value),
+                parseFloat(posYSlider.value) + 1.2, // Offset to match head level
+                parseFloat(posZSlider.value)
+            );
+
+            currentVRM.scene.rotation.x = parseFloat(rotXSlider.value);
+            currentVRM.scene.rotation.y = Math.PI + parseFloat(rotYSlider.value);
+        }
+
+        [scaleSlider, posXSlider, posYSlider, posZSlider, rotXSlider, rotYSlider].forEach(slider => {
+            slider.addEventListener('input', updateModelTransform);
+        });
+
+        // Render Loop
+        const clock = new THREE.Clock();
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+
+            if (currentVRM) {
+                currentVRM.update(delta);
+            }
+
+            renderer.render(scene, camera);
+        }
+        animate();
     </script>
 </body>
 </html>
+
