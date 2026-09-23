@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Natural Camera</title>
+<title>Camera Flip Test</title>
 
 <style>
 html,body{
@@ -12,6 +12,7 @@ html,body{
     height:100%;
     overflow:hidden;
     background:#000;
+    font-family:Arial,sans-serif;
 }
 
 #video{
@@ -20,23 +21,10 @@ html,body{
 
 #canvas{
     position:fixed;
-    inset:0;
+    left:0;
+    top:0;
     width:100%;
     height:100%;
-    display:block;
-}
-
-#open{
-    position:fixed;
-    left:50%;
-    bottom:30px;
-    transform:translateX(-50%);
-    z-index:10;
-    padding:16px 28px;
-    font-size:20px;
-    font-weight:bold;
-    border:0;
-    border-radius:12px;
 }
 
 #status{
@@ -45,11 +33,30 @@ html,body{
     top:20px;
     transform:translateX(-50%);
     z-index:10;
+
     padding:10px 16px;
+    background:rgba(0,0,0,.8);
     color:white;
-    background:rgba(0,0,0,.75);
     border-radius:10px;
-    font-family:Arial;
+}
+
+.controls{
+    position:fixed;
+    left:50%;
+    bottom:25px;
+    transform:translateX(-50%);
+    z-index:20;
+
+    display:flex;
+    gap:10px;
+}
+
+button{
+    padding:14px 18px;
+    font-size:16px;
+    font-weight:bold;
+    border:0;
+    border-radius:10px;
 }
 </style>
 </head>
@@ -57,10 +64,20 @@ html,body{
 <body>
 
 <video id="video" autoplay playsinline muted></video>
+
 <canvas id="canvas"></canvas>
 
 <div id="status">CAMERA READY</div>
+
+<div class="controls">
+
 <button id="open">OPEN CAMERA</button>
+
+<button id="flip" style="display:none;">
+FLIP: OFF
+</button>
+
+</div>
 
 <script>
 
@@ -68,45 +85,65 @@ const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-const button = document.getElementById("open");
+const openButton = document.getElementById("open");
+const flipButton = document.getElementById("flip");
 const status = document.getElementById("status");
 
-let stream = null;
+let flipped = false;
 
-button.onclick = async function(){
+
+openButton.onclick = async function(){
 
     try{
 
-        status.textContent = "OPENING CAMERA...";
+        status.innerText = "OPENING CAMERA...";
 
-        stream = await navigator.mediaDevices.getUserMedia({
-            video:{
-                facingMode:{
-                    ideal:"user"
-                }
-            },
-            audio:false
-        });
+        const stream =
+            await navigator.mediaDevices.getUserMedia({
+
+                video:{
+                    facingMode:"user"
+                },
+
+                audio:false
+
+            });
 
         video.srcObject = stream;
 
         await video.play();
 
-        button.style.display = "none";
-        status.textContent = "CAMERA ON";
+        openButton.style.display = "none";
+        flipButton.style.display = "block";
+
+        status.innerText = "CAMERA ON";
 
         draw();
 
-    }catch(error){
+    }
 
-        status.textContent = "CAMERA ERROR";
+    catch(error){
+
+        status.innerText = "CAMERA ERROR";
 
         alert(
             error.name +
             "\n\n" +
             error.message
         );
+
     }
+
+};
+
+
+flipButton.onclick = function(){
+
+    flipped = !flipped;
+
+    flipButton.innerText =
+        flipped ? "FLIP: ON" : "FLIP: OFF";
+
 };
 
 
@@ -117,38 +154,43 @@ function draw(){
         const vw = video.videoWidth;
         const vh = video.videoHeight;
 
-        const sw = window.innerWidth;
-        const sh = window.innerHeight;
+        const cw = window.innerWidth;
+        const ch = window.innerHeight;
 
-        if(canvas.width !== sw || canvas.height !== sh){
+        if(canvas.width !== cw ||
+           canvas.height !== ch){
 
-            canvas.width = sw;
-            canvas.height = sh;
+            canvas.width = cw;
+            canvas.height = ch;
+
         }
 
         const scale = Math.max(
-            sw / vw,
-            sh / vh
+            cw / vw,
+            ch / vh
         );
 
-        const dw = vw * scale;
-        const dh = vh * scale;
+        const w = vw * scale;
+        const h = vh * scale;
 
-        const dx = (sw - dw) / 2;
-        const dy = (sh - dh) / 2;
+        const x = (cw - w) / 2;
+        const y = (ch - h) / 2;
 
-        ctx.clearRect(0,0,sw,sh);
-
-        /*
-        ====================================
-        FRONT CAMERA NATURAL VIEW
-        ====================================
-        */
+        ctx.clearRect(
+            0,
+            0,
+            cw,
+            ch
+        );
 
         ctx.save();
 
-        ctx.translate(sw,0);
-        ctx.scale(-1,1);
+        if(flipped){
+
+            ctx.translate(cw,0);
+            ctx.scale(-1,1);
+
+        }
 
         ctx.drawImage(
             video,
@@ -156,25 +198,19 @@ function draw(){
             0,
             vw,
             vh,
-            -dx,
-            dy,
-            dw,
-            dh
+            flipped ? -x : x,
+            y,
+            w,
+            h
         );
 
         ctx.restore();
+
     }
 
     requestAnimationFrame(draw);
+
 }
-
-
-window.addEventListener("resize",function(){
-
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-});
 
 </script>
 
