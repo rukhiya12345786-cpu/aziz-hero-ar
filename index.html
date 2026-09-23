@@ -3,10 +3,21 @@
 
 <head>
 
+<meta charset="UTF-8">
+
 <meta name="viewport"
 content="width=device-width,initial-scale=1">
 
-<title>Face Model Test</title>
+<title>Camera + Face Mesh Test</title>
+
+
+<!-- MediaPipe Face Mesh -->
+
+<script
+src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"
+crossorigin="anonymous">
+</script>
+
 
 <style>
 
@@ -20,15 +31,26 @@ html,body{
 }
 
 #camera{
+    display:none;
+}
+
+#screen{
+    position:fixed;
+    left:0;
+    top:0;
+
     width:100%;
     height:100%;
-    object-fit:cover;
+
+    z-index:1;
 }
 
 #status{
     position:fixed;
-    top:20px;
+
     left:50%;
+    top:20px;
+
     transform:translateX(-50%);
 
     z-index:10;
@@ -36,14 +58,16 @@ html,body{
     width:90%;
     max-width:500px;
 
-    padding:14px;
-
-    border-radius:12px;
+    padding:12px 16px;
 
     background:rgba(0,0,0,.8);
+
     color:white;
 
-    font-family:Arial;
+    border-radius:10px;
+
+    font-family:Arial,sans-serif;
+
     font-size:16px;
 
     text-align:center;
@@ -51,19 +75,27 @@ html,body{
 
 #open{
     position:fixed;
-    bottom:30px;
+
     left:50%;
+    bottom:30px;
+
     transform:translateX(-50%);
 
     z-index:10;
 
     padding:16px 28px;
 
+    font-size:20px;
+
+    font-weight:bold;
+
     border:0;
+
     border-radius:10px;
 
-    font-size:20px;
-    font-weight:bold;
+    background:white;
+
+    color:black;
 }
 
 </style>
@@ -82,6 +114,9 @@ muted>
 </video>
 
 
+<canvas id="screen"></canvas>
+
+
 <div id="status">
 READY
 </div>
@@ -93,37 +128,170 @@ OPEN CAMERA
 
 
 
-<script type="module">
+<script>
 
-
-/* =========================================
-   IMPORTANT:
-   NO vision_bundle.mjs
-   NO jsDelivr MediaPipe
-========================================= */
-
-const status =
-document.getElementById("status");
 
 const video =
 document.getElementById("camera");
 
+const canvas =
+document.getElementById("screen");
+
+const ctx =
+canvas.getContext("2d");
+
 const button =
 document.getElementById("open");
 
-
-let FaceLandmarker;
-let FilesetResolver;
-
-let faceLandmarker = null;
-
-let lastVideoTime = -1;
+const status =
+document.getElementById("status");
 
 
 
-/* =========================================
-   CAMERA
-========================================= */
+let faceMesh = null;
+
+let stream = null;
+
+
+
+/* ================================
+   RESIZE
+================================ */
+
+function resize(){
+
+    canvas.width =
+    window.innerWidth;
+
+    canvas.height =
+    window.innerHeight;
+
+}
+
+resize();
+
+
+window.addEventListener(
+    "resize",
+    resize
+);
+
+
+
+/* ================================
+   DRAW CAMERA
+================================ */
+
+function drawCamera(){
+
+    requestAnimationFrame(
+        drawCamera
+    );
+
+
+    if(
+        video.readyState < 2
+    ){
+
+        return;
+
+    }
+
+
+    const sw =
+    canvas.width;
+
+    const sh =
+    canvas.height;
+
+
+    const vw =
+    video.videoWidth;
+
+    const vh =
+    video.videoHeight;
+
+
+    if(
+        !vw ||
+        !vh
+    ){
+
+        return;
+
+    }
+
+
+    const scale =
+    Math.max(
+        sw / vw,
+        sh / vh
+    );
+
+
+    const dw =
+    vw * scale;
+
+    const dh =
+    vh * scale;
+
+
+    const x =
+    (sw - dw) / 2;
+
+    const y =
+    (sh - dh) / 2;
+
+
+    ctx.clearRect(
+        0,
+        0,
+        sw,
+        sh
+    );
+
+
+    /*
+       SELFIE MIRROR
+    */
+
+    ctx.save();
+
+    ctx.translate(
+        sw,
+        0
+    );
+
+    ctx.scale(
+        -1,
+        1
+    );
+
+
+    ctx.drawImage(
+
+        video,
+
+        x,
+        y,
+
+        dw,
+        dh
+
+    );
+
+
+    ctx.restore();
+
+}
+
+drawCamera();
+
+
+
+/* ================================
+   OPEN CAMERA
+================================ */
 
 button.onclick =
 async function(){
@@ -134,7 +302,7 @@ async function(){
         "OPENING CAMERA...";
 
 
-        const stream =
+        stream =
         await navigator.mediaDevices
         .getUserMedia({
 
@@ -159,17 +327,17 @@ async function(){
 
 
         status.innerText =
-        "CAMERA OK — LOADING FACE LIBRARY...";
+        "CAMERA OK — LOADING FACE MESH...";
 
 
-        await loadMediaPipe();
+        startFaceMesh();
 
     }
 
     catch(error){
 
         showError(
-            "ERROR",
+            "CAMERA ERROR",
             error
         );
 
@@ -179,123 +347,64 @@ async function(){
 
 
 
-/* =========================================
-   LOAD MEDIAPIPE FROM SKYpack
-========================================= */
+/* ================================
+   MEDIAPIPE FACE MESH
+================================ */
 
-async function loadMediaPipe(){
+function startFaceMesh(){
 
     try{
 
-        status.innerText =
-        "LOADING FACE LIBRARY...";
-
-
-        const vision =
-        await import(
-
-            "https://cdn.skypack.dev/@mediapipe/tasks-vision@0.10.3"
-
-        );
-
-
-        FaceLandmarker =
-        vision.FaceLandmarker;
-
-
-        FilesetResolver =
-        vision.FilesetResolver;
-
-
         if(
-            !FaceLandmarker ||
-            !FilesetResolver
+            typeof FaceMesh ===
+            "undefined"
         ){
 
             throw new Error(
-                "FaceLandmarker or FilesetResolver not found."
+                "FaceMesh library did not load."
             );
 
         }
 
 
         status.innerText =
-        "LIBRARY OK — LOADING MODEL...";
+        "FACE MESH LOADING...";
 
 
-        await createFaceModel();
+        faceMesh =
+        new FaceMesh({
 
-    }
+            locateFile:
+            function(file){
 
-    catch(error){
-
-        showError(
-            "MEDIAPIPE LOAD ERROR",
-            error
-        );
-
-    }
-
-}
-
-
-
-/* =========================================
-   CREATE FACE MODEL
-========================================= */
-
-async function createFaceModel(){
-
-    try{
-
-        const vision =
-        await FilesetResolver
-        .forVisionTasks(
-
-            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
-
-        );
-
-
-        faceLandmarker =
-        await FaceLandmarker
-        .createFromOptions(
-
-            vision,
-
-            {
-
-                baseOptions:{
-
-                    modelAssetPath:
-
-                    "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-
-                    delegate:"CPU"
-
-                },
-
-
-                runningMode:"VIDEO",
-
-                numFaces:1,
-
-                minFaceDetectionConfidence:0.5,
-
-                minFacePresenceConfidence:0.5,
-
-                minTrackingConfidence:0.5
+                return
+                "https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/" +
+                file;
 
             }
 
+        });
+
+
+        faceMesh.setOptions({
+
+            maxNumFaces:1,
+
+            refineLandmarks:true,
+
+            minDetectionConfidence:0.5,
+
+            minTrackingConfidence:0.5
+
+        });
+
+
+        faceMesh.onResults(
+            onFaceResults
         );
 
 
-        status.innerText =
-        "FACE MODEL READY ✓";
-
-
-        detectFace();
+        sendFrames();
 
     }
 
@@ -312,88 +421,74 @@ async function createFaceModel(){
 
 
 
-/* =========================================
-   FACE DETECTION
-========================================= */
+/* ================================
+   SEND CAMERA FRAMES
+================================ */
 
-function detectFace(){
+async function sendFrames(){
+
+    if(
+        faceMesh &&
+        video.readyState >= 2
+    ){
+
+        try{
+
+            await faceMesh.send({
+
+                image:video
+
+            });
+
+        }
+
+        catch(error){
+
+            showError(
+                "FACE DETECTION ERROR",
+                error
+            );
+
+            return;
+
+        }
+
+    }
+
 
     requestAnimationFrame(
-        detectFace
+        sendFrames
     );
 
+}
+
+
+
+/* ================================
+   FACE RESULTS
+================================ */
+
+function onFaceResults(
+    results
+){
 
     if(
-        !faceLandmarker
+
+        results.multiFaceLandmarks &&
+
+        results.multiFaceLandmarks.length > 0
+
     ){
 
-        return;
+        status.innerText =
+        "FACE DETECTED ✓";
 
     }
 
+    else{
 
-    if(
-        video.readyState <
-        2
-    ){
-
-        return;
-
-    }
-
-
-    if(
-        video.currentTime ===
-        lastVideoTime
-    ){
-
-        return;
-
-    }
-
-
-    lastVideoTime =
-    video.currentTime;
-
-
-    try{
-
-        const result =
-        faceLandmarker
-        .detectForVideo(
-
-            video,
-
-            performance.now()
-
-        );
-
-
-        if(
-            result.faceLandmarks &&
-            result.faceLandmarks.length
-        ){
-
-            status.innerText =
-            "FACE DETECTED ✓";
-
-        }
-
-        else{
-
-            status.innerText =
-            "FACE MODEL ON — FACE NOT FOUND";
-
-        }
-
-    }
-
-    catch(error){
-
-        showError(
-            "DETECTION ERROR",
-            error
-        );
+        status.innerText =
+        "FACE MESH ON — FACE NOT FOUND";
 
     }
 
@@ -401,9 +496,9 @@ function detectFace(){
 
 
 
-/* =========================================
+/* ================================
    ERROR
-========================================= */
+================================ */
 
 function showError(
     title,
@@ -427,6 +522,7 @@ function showError(
 }
 
 </script>
+
 
 </body>
 
