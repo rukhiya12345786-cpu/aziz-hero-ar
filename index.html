@@ -1,9 +1,98 @@
-❌ @mediapipe/tasks-vision@0.10.22/+esm
-        ↓
-        बंद
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tracker Library Test</title>
 
-✅ vision_bundle.mjs
-        ↓
-Face Detector
-        ↓
-FACE DETECTED
+<style>
+body{
+  margin:0;
+  background:#111;
+  color:white;
+  font-family:Arial;
+  text-align:center;
+  padding-top:80px;
+}
+
+#status{
+  font-size:22px;
+  margin:30px;
+}
+
+button{
+  padding:15px 25px;
+  font-size:18px;
+  border:0;
+  border-radius:10px;
+}
+</style>
+</head>
+
+<body>
+
+<h2>STEP 2A</h2>
+
+<div id="status">
+Library not tested
+</div>
+
+<button onclick="testLibrary()">
+TEST LIBRARY
+</button>
+
+
+<!-- MediaPipe bundle -->
+<script
+src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.js">
+</script>
+
+
+<script>
+
+async function testLibrary(){
+
+  const status =
+    document.getElementById("status");
+
+  status.innerText =
+    "Checking...";
+
+  try{
+
+    if(typeof FaceDetector === "undefined"){
+
+      throw new Error(
+        "FaceDetector is not available"
+      );
+
+    }
+
+    status.innerText =
+      "🟢 LIBRARY LOADED";
+
+    alert(
+      "SUCCESS!\n\n" +
+      "FaceDetector library loaded."
+    );
+
+  }catch(error){
+
+    console.error(error);
+
+    status.innerText =
+      "🔴 LIBRARY FAILED";
+
+    alert(
+      "LIBRARY ERROR:\n\n" +
+      error.message
+    );
+
+  }
+
+}
+
+</script>
+
+</body>
+</html>
