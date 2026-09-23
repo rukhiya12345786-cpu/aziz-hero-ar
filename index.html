@@ -4,36 +4,58 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 
-<title>Step 2 - Tracker Test</title>
+<title>Face Detector - Step 2</title>
 
 <style>
 html,body{
   margin:0;
   width:100%;
   height:100%;
-  background:#111;
-  color:white;
+  overflow:hidden;
+  background:#000;
   font-family:Arial;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  text-align:center;
 }
 
-#box{
-  padding:25px;
+#video{
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  transform:scaleX(-1);
+}
+
+#overlay{
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+  pointer-events:none;
 }
 
 #status{
-  font-size:20px;
-  margin:20px 0;
-  color:#00ff88;
+  position:fixed;
+  top:15px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:10;
+  padding:10px 16px;
+  border-radius:10px;
+  background:rgba(0,0,0,.75);
+  color:white;
+  font-size:16px;
+  font-weight:bold;
 }
 
-button{
+#start{
+  position:fixed;
+  bottom:25px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:20;
   padding:15px 25px;
   border:0;
-  border-radius:10px;
+  border-radius:12px;
   font-size:17px;
   font-weight:bold;
 }
@@ -42,58 +64,78 @@ button{
 
 <body>
 
-<div id="box">
+<video id="video" autoplay playsinline muted></video>
 
-  <h2>STEP 2</h2>
+<canvas id="overlay"></canvas>
 
-  <div id="status">
-    Tracker not started
-  </div>
+<div id="status">READY</div>
 
-  <button id="test">
-    TEST TRACKER
-  </button>
-
-</div>
+<button id="start">START CAMERA</button>
 
 <script type="module">
+
+import {
+  FaceDetector,
+  FilesetResolver
+} from
+"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm";
+
+
+const video =
+  document.getElementById("video");
+
+const canvas =
+  document.getElementById("overlay");
+
+const ctx =
+  canvas.getContext("2d");
 
 const status =
   document.getElementById("status");
 
-const button =
-  document.getElementById("test");
+const start =
+  document.getElementById("start");
+
+let detector = null;
+let stream = null;
+let lastTime = -1;
 
 
-button.onclick = async () => {
+/* =========================
+   SIZE
+========================= */
 
-  status.textContent =
-    "Loading tracker...";
+function resize(){
 
-  button.disabled = true;
+  canvas.width =
+    window.innerWidth;
 
-  try {
+  canvas.height =
+    window.innerHeight;
 
-    /* Load MediaPipe */
+}
 
-    const module =
-      await import(
-        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm"
-      );
+resize();
+
+window.addEventListener(
+  "resize",
+  resize
+);
 
 
-    const FaceLandmarker =
-      module.FaceLandmarker;
+/* =========================
+   START
+========================= */
 
-    const FilesetResolver =
-      module.FilesetResolver;
+start.onclick = async function(){
 
+  try{
 
     status.textContent =
-      "Library loaded ✓";
+      "Loading tracker...";
 
 
-    /* Load WASM */
+    /* LOAD WASM */
 
     const vision =
       await FilesetResolver.forVisionTasks(
@@ -104,13 +146,13 @@ button.onclick = async () => {
 
 
     status.textContent =
-      "WASM loaded ✓";
+      "Loading face detector...";
 
 
-    /* Load Face Model */
+    /* CREATE DETECTOR */
 
-    const tracker =
-      await FaceLandmarker.createFromOptions(
+    detector =
+      await FaceDetector.createFromOptions(
 
         vision,
 
@@ -120,32 +162,52 @@ button.onclick = async () => {
 
             modelAssetPath:
 
-            "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task"
+            "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite"
 
           },
 
           runningMode:"VIDEO",
 
-          numFaces:1,
-
-          outputFacialTransformationMatrixes:true
+          minDetectionConfidence:0.5
 
         }
 
       );
 
 
-    if(tracker){
+    /* CAMERA */
 
-      status.textContent =
-        "🟢 TRACKER READY";
+    stream =
+      await navigator.mediaDevices.getUserMedia({
 
-      alert(
-        "SUCCESS!\n\n" +
-        "Face Tracker + Model loaded successfully."
-      );
+        video:{
+          facingMode:"user",
+          width:{ideal:1280},
+          height:{ideal:720}
+        },
 
-    }
+        audio:false
+
+      });
+
+
+    video.srcObject =
+      stream;
+
+    await video.play();
+
+
+    status.textContent =
+      "Camera ON — searching face...";
+
+
+    start.style.display =
+      "none";
+
+
+    requestAnimationFrame(
+      detect
+    );
 
   }
 
@@ -153,22 +215,154 @@ button.onclick = async () => {
 
     console.error(error);
 
-    status.style.color =
-      "#ff4444";
-
     status.textContent =
-      "🔴 TRACKER FAILED";
+      "ERROR";
 
     alert(
-      "TRACKER ERROR:\n\n" +
+      "ERROR:\n\n" +
       error.message
     );
-
-    button.disabled = false;
 
   }
 
 };
+
+
+/* =========================
+   FACE DETECTION
+========================= */
+
+function detect(){
+
+  requestAnimationFrame(
+    detect
+  );
+
+
+  if(
+    !detector ||
+    video.readyState < 2 ||
+    !video.videoWidth ||
+    !video.videoHeight
+  ){
+
+    return;
+
+  }
+
+
+  if(
+    video.currentTime ===
+    lastTime
+  ){
+
+    return;
+
+  }
+
+  lastTime =
+    video.currentTime;
+
+
+  try{
+
+    const result =
+      detector.detectForVideo(
+
+        video,
+
+        performance.now()
+
+      );
+
+
+    ctx.clearRect(
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+
+
+    if(
+      result.detections &&
+      result.detections.length > 0
+    ){
+
+      status.textContent =
+        "🟢 FACE DETECTED";
+
+
+      const box =
+        result.detections[0].boundingBox;
+
+
+      const scaleX =
+        canvas.width /
+        video.videoWidth;
+
+      const scaleY =
+        canvas.height /
+        video.videoHeight;
+
+
+      /*
+        क्योंकि camera mirror है,
+        box को horizontal mirror करेंगे.
+      */
+
+      const x =
+        canvas.width -
+        (box.originX + box.width) *
+        scaleX;
+
+      const y =
+        box.originY *
+        scaleY;
+
+      const w =
+        box.width *
+        scaleX;
+
+      const h =
+        box.height *
+        scaleY;
+
+
+      ctx.strokeStyle =
+        "#00ff66";
+
+      ctx.lineWidth =
+        5;
+
+      ctx.strokeRect(
+        x,
+        y,
+        w,
+        h
+      );
+
+    }
+
+    else{
+
+      status.textContent =
+        "🔴 FACE NOT DETECTED";
+
+    }
+
+  }
+
+  catch(error){
+
+    console.error(
+      "Detection error:",
+      error
+    );
+
+  }
+
+}
 
 </script>
 
