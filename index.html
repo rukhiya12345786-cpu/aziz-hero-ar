@@ -2,416 +2,145 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-
-<title>3D Face App - Step 1</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Face 3D App - Step 1</title>
 
 <style>
-*{
-  box-sizing:border-box;
-}
-
 html,body{
   margin:0;
   width:100%;
   height:100%;
-  background:#000;
   overflow:hidden;
-  font-family:Arial,sans-serif;
+  background:#000;
+  font-family:Arial;
 }
 
-#screen{
-  position:fixed;
-  inset:0;
+video{
   width:100%;
   height:100%;
   object-fit:cover;
-  background:#000;
 }
 
-#video{
-  display:none;
-}
-
-#controls{
+#buttons{
   position:fixed;
+  bottom:20px;
   left:0;
   right:0;
-  bottom:20px;
   display:flex;
   justify-content:center;
   gap:10px;
-  flex-wrap:wrap;
-  padding:10px;
   z-index:10;
 }
 
 button{
+  padding:14px 18px;
   border:0;
   border-radius:12px;
-  padding:13px 17px;
   font-size:15px;
   font-weight:bold;
-  background:white;
-  color:#111;
-}
-
-button:active{
-  transform:scale(.95);
-}
-
-#status{
-  position:fixed;
-  top:15px;
-  left:50%;
-  transform:translateX(-50%);
-  z-index:20;
-  background:rgba(0,0,0,.65);
-  color:white;
-  padding:9px 14px;
-  border-radius:10px;
-  font-size:14px;
 }
 </style>
 </head>
 
 <body>
 
-<video id="video" autoplay playsinline muted></video>
+<video id="camera" autoplay playsinline muted></video>
 
-<canvas id="screen"></canvas>
-
-<div id="status">
-  Camera OFF
-</div>
-
-<div id="controls">
-
-  <button id="startBtn">
-    📷 START
-  </button>
-
-  <button id="switchBtn">
-    🔄 FRONT/BACK
-  </button>
-
-  <button id="flipBtn">
-    ↔️ FLIP
-  </button>
-
-  <button id="recordBtn">
-    🔴 RECORD
-  </button>
-
-  <button id="stopBtn">
-    ⏹ STOP
-  </button>
-
+<div id="buttons">
+  <button onclick="startCamera()">📷 START</button>
+  <button onclick="switchCamera()">🔄 FRONT/BACK</button>
+  <button onclick="flipCamera()">↔️ FLIP</button>
 </div>
 
 <script>
 
-const video = document.getElementById("video");
-const canvas = document.getElementById("screen");
-const ctx = canvas.getContext("2d");
+const video = document.getElementById("camera");
 
-const statusText = document.getElementById("status");
-
-let stream = null;
-let facingMode = "user";
+let facing = "user";
 let mirrored = true;
 
-let recorder = null;
-let recordedChunks = [];
 
-
-/* -------------------------
-   CANVAS SIZE
-------------------------- */
-
-function resize(){
-
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-
-}
-
-window.addEventListener("resize",resize);
-
-resize();
-
-
-/* -------------------------
-   CAMERA
-------------------------- */
+/* START CAMERA */
 
 async function startCamera(){
 
   try{
 
-    if(stream){
+    if(window.currentStream){
 
-      stream.getTracks().forEach(track=>{
-        track.stop();
-      });
+      window.currentStream
+        .getTracks()
+        .forEach(track => track.stop());
 
     }
 
-    stream = await navigator.mediaDevices.getUserMedia({
+    const stream =
+      await navigator.mediaDevices.getUserMedia({
 
-      video:{
-        facingMode:facingMode,
-        width:{
-          ideal:1280
+        video:{
+          facingMode:facing,
+          width:{ideal:1280},
+          height:{ideal:720}
         },
-        height:{
-          ideal:720
-        }
-      },
 
-      audio:true
+        audio:false
 
-    });
+      });
+
+    window.currentStream = stream;
 
     video.srcObject = stream;
 
-    await video.play();
-
-    statusText.textContent =
-      facingMode === "user"
-      ? "Front Camera ON"
-      : "Back Camera ON";
+    video.style.transform =
+      mirrored ? "scaleX(-1)" : "scaleX(1)";
 
   }
 
   catch(error){
 
+    alert(
+      "Camera Error:\n" +
+      error.name +
+      "\n" +
+      error.message
+    );
+
     console.error(error);
 
-    statusText.textContent =
-      "Camera Error: " + error.message;
-
   }
 
 }
 
 
-/* -------------------------
-   DRAW CAMERA
-------------------------- */
+/* FRONT / BACK */
 
-function drawCamera(){
+function switchCamera(){
 
-  if(video.readyState >= 2){
-
-    const cw = canvas.width;
-    const ch = canvas.height;
-
-    const vw = video.videoWidth;
-    const vh = video.videoHeight;
-
-    if(vw && vh){
-
-      const scale = Math.max(
-        cw / vw,
-        ch / vh
-      );
-
-      const drawW = vw * scale;
-      const drawH = vh * scale;
-
-      const x = (cw - drawW) / 2;
-      const y = (ch - drawH) / 2;
-
-      ctx.save();
-
-      if(mirrored){
-
-        ctx.translate(cw,0);
-        ctx.scale(-1,1);
-
-        ctx.drawImage(
-          video,
-          0,
-          0,
-          vw,
-          vh,
-          -x-drawW,
-          y,
-          drawW,
-          drawH
-        );
-
-      }else{
-
-        ctx.drawImage(
-          video,
-          0,
-          0,
-          vw,
-          vh,
-          x,
-          y,
-          drawW,
-          drawH
-        );
-
-      }
-
-      ctx.restore();
-
-    }
-
-  }
-
-  requestAnimationFrame(drawCamera);
-
-}
-
-drawCamera();
-
-
-/* -------------------------
-   START BUTTON
-------------------------- */
-
-document.getElementById("startBtn")
-.addEventListener("click",()=>{
-
-  startCamera();
-
-});
-
-
-/* -------------------------
-   FRONT / BACK
-------------------------- */
-
-document.getElementById("switchBtn")
-.addEventListener("click",()=>{
-
-  facingMode =
-    facingMode === "user"
+  facing =
+    facing === "user"
     ? "environment"
     : "user";
 
   mirrored =
-    facingMode === "user";
+    facing === "user";
 
   startCamera();
 
-});
+}
 
 
-/* -------------------------
-   FLIP
-------------------------- */
+/* FLIP */
 
-document.getElementById("flipBtn")
-.addEventListener("click",()=>{
+function flipCamera(){
 
   mirrored = !mirrored;
 
-});
+  video.style.transform =
+    mirrored
+    ? "scaleX(-1)"
+    : "scaleX(1)";
 
-
-/* -------------------------
-   RECORD
-------------------------- */
-
-document.getElementById("recordBtn")
-.addEventListener("click",()=>{
-
-  if(!canvas.captureStream){
-
-    statusText.textContent =
-      "Recording not supported";
-
-    return;
-
-  }
-
-  recordedChunks = [];
-
-  const recordStream =
-    canvas.captureStream(30);
-
-  recorder =
-    new MediaRecorder(
-      recordStream,
-      {
-        mimeType:"video/webm"
-      }
-    );
-
-  recorder.ondataavailable =
-    event => {
-
-      if(event.data.size > 0){
-
-        recordedChunks.push(
-          event.data
-        );
-
-      }
-
-    };
-
-  recorder.onstop = ()=>{
-
-    const blob =
-      new Blob(
-        recordedChunks,
-        {
-          type:"video/webm"
-        }
-      );
-
-    const url =
-      URL.createObjectURL(blob);
-
-    const a =
-      document.createElement("a");
-
-    a.href = url;
-
-    a.download =
-      "face-camera-recording.webm";
-
-    a.click();
-
-    URL.revokeObjectURL(url);
-
-    statusText.textContent =
-      "Recording Saved";
-
-  };
-
-  recorder.start();
-
-  statusText.textContent =
-    "🔴 Recording...";
-
-});
-
-
-/* -------------------------
-   STOP RECORDING
-------------------------- */
-
-document.getElementById("stopBtn")
-.addEventListener("click",()=>{
-
-  if(
-    recorder &&
-    recorder.state !== "inactive"
-  ){
-
-    recorder.stop();
-
-  }
-
-});
+}
 
 </script>
 
