@@ -6,7 +6,7 @@
 <meta name="viewport"
 content="width=device-width,initial-scale=1">
 
-<title>Face Tracking Test</title>
+<title>Camera Face Test</title>
 
 <style>
 
@@ -23,12 +23,9 @@ html,body{
     position:fixed;
     left:0;
     top:0;
-
     width:100%;
     height:100%;
-
     object-fit:cover;
-
     z-index:1;
 }
 
@@ -36,43 +33,35 @@ html,body{
     position:fixed;
     left:0;
     top:0;
-
     width:100%;
     height:100%;
-
     z-index:2;
-
     pointer-events:none;
 }
 
 #status{
     position:fixed;
-
     left:50%;
     top:20px;
-
     transform:translateX(-50%);
-
     z-index:20;
 
-    background:rgba(0,0,0,.8);
+    max-width:90%;
 
+    background:rgba(0,0,0,.8);
     color:white;
 
-    padding:10px 16px;
-
+    padding:10px 14px;
     border-radius:10px;
 
-    font-family:Arial;
-
-    font-size:16px;
+    font-family:Arial,sans-serif;
+    font-size:15px;
 
     text-align:center;
 }
 
 #open{
     position:fixed;
-
     left:50%;
     bottom:30px;
 
@@ -83,15 +72,12 @@ html,body{
     padding:16px 28px;
 
     font-size:20px;
-
     font-weight:bold;
 
     border:0;
-
     border-radius:10px;
 
     background:white;
-
     color:black;
 }
 
@@ -115,7 +101,7 @@ muted>
 
 
 <div id="status">
-CAMERA + FACE TEST
+CAMERA READY
 </div>
 
 
@@ -124,12 +110,13 @@ OPEN CAMERA
 </button>
 
 
+
 <script type="module">
 
 
-/* =================================
+/* =====================================
    THREE.JS
-================================= */
+===================================== */
 
 import * as THREE from
 "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
@@ -149,9 +136,9 @@ document.getElementById("status");
 
 
 
-/* =================================
+/* =====================================
    THREE SCENE
-================================= */
+===================================== */
 
 const scene =
 new THREE.Scene();
@@ -166,7 +153,6 @@ new THREE.PerspectiveCamera(
     window.innerHeight,
 
     0.1,
-
     100
 
 );
@@ -207,9 +193,9 @@ renderer.setPixelRatio(
 
 
 
-/* =================================
+/* =====================================
    LIGHT
-================================= */
+===================================== */
 
 const light =
 new THREE.DirectionalLight(
@@ -219,39 +205,33 @@ new THREE.DirectionalLight(
 
 );
 
+
 light.position.set(
+
     2,
     3,
     5
+
 );
+
 
 scene.add(light);
 
 
-const ambient =
-new THREE.AmbientLight(
-    0xffffff,
-    2
+scene.add(
+
+    new THREE.AmbientLight(
+        0xffffff,
+        2
+    )
+
 );
 
-scene.add(ambient);
 
 
-
-/* =================================
-   HEAD ANCHOR
-================================= */
-
-const headAnchor =
-new THREE.Group();
-
-scene.add(headAnchor);
-
-
-
-/* =================================
+/* =====================================
    SMALL CUBE
-================================= */
+===================================== */
 
 const geometry =
 new THREE.BoxGeometry(
@@ -276,11 +256,6 @@ new THREE.Mesh(
 );
 
 
-/*
-   Cube is attached to
-   headAnchor.
-*/
-
 cube.position.set(
 
     0,
@@ -290,32 +265,20 @@ cube.position.set(
 );
 
 
-headAnchor.add(cube);
+scene.add(cube);
 
 
 
-/* =================================
-   TEMPORARY ROTATION
-================================= */
+/* =====================================
+   RENDER
+===================================== */
 
-let faceFound = false;
+function animate(){
 
+    requestAnimationFrame(
+        animate
+    );
 
-function render(){
-
-    requestAnimationFrame(render);
-
-    /*
-    Cube will NOT independently
-    rotate once face is found.
-    */
-
-    if(!faceFound){
-
-        cube.rotation.x += 0.01;
-        cube.rotation.y += 0.015;
-
-    }
 
     renderer.render(
 
@@ -327,13 +290,13 @@ function render(){
 }
 
 
-render();
+animate();
 
 
 
-/* =================================
-   OPEN CAMERA
-================================= */
+/* =====================================
+   CAMERA
+===================================== */
 
 button.onclick =
 async function(){
@@ -349,16 +312,7 @@ async function(){
         .getUserMedia({
 
             video:{
-                facingMode:"user",
-
-                width:{
-                    ideal:1280
-                },
-
-                height:{
-                    ideal:720
-                }
-
+                facingMode:"user"
             },
 
             audio:false
@@ -378,31 +332,25 @@ async function(){
 
 
         status.innerText =
-        "CAMERA ON — LOADING FACE TRACKING...";
+        "CAMERA OK — LOADING FACE...";
 
 
         /*
         IMPORTANT:
-        MediaPipe loads AFTER
-        camera is already working.
+
+        Camera is already working
+        before MediaPipe starts.
         */
 
-
-        await startFaceTracking();
+        startFaceTracking();
 
     }
 
     catch(error){
 
-        status.innerText =
-        "CAMERA ERROR";
-
-        alert(
-
-            error.name +
-            "\n\n" +
-            error.message
-
+        showError(
+            "CAMERA ERROR",
+            error
         );
 
     }
@@ -411,32 +359,83 @@ async function(){
 
 
 
-/* =================================
-   MEDIAPIPE
-================================= */
+/* =====================================
+   ERROR DISPLAY
+===================================== */
+
+function showError(
+    title,
+    error
+){
+
+    console.error(
+        title,
+        error
+    );
+
+
+    let message =
+    "";
+
+
+    if(error){
+
+        message =
+        error.message ||
+        String(error);
+
+    }
+
+
+    status.innerText =
+    title +
+    ": " +
+    message;
+
+}
+
+
+
+/* =====================================
+   FACE TRACKING
+===================================== */
 
 async function startFaceTracking(){
 
     try{
 
+        status.innerText =
+        "LOADING MEDIAPIPE...";
+
+
+        /*
+        LOAD MEDIAPIPE AFTER CAMERA
+        */
+
         const vision =
         await import(
 
-        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.mjs"
+            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.mjs"
 
         );
 
 
-        const {
-            FaceLandmarker,
-            FilesetResolver
-        } = vision;
-
-
-
         status.innerText =
-        "LOADING FACE MODEL...";
+        "MEDIAPIPE LOADED";
 
+
+        const FilesetResolver =
+        vision.FilesetResolver;
+
+
+        const FaceLandmarker =
+        vision.FaceLandmarker;
+
+
+
+        /* =================================
+           WASM
+        ================================= */
 
         const fileset =
         await FilesetResolver.forVisionTasks(
@@ -446,6 +445,14 @@ async function startFaceTracking(){
         );
 
 
+        status.innerText =
+        "LOADING FACE MODEL...";
+
+
+
+        /* =================================
+           FACE LANDMARKER
+        ================================= */
 
         const faceLandmarker =
         await FaceLandmarker.createFromOptions(
@@ -460,53 +467,65 @@ async function startFaceTracking(){
 
                     "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
 
-                    delegate:"GPU"
+                    /*
+                    CPU FIRST.
+
+                    GPU is disabled for this test.
+                    */
+
+                    delegate:"CPU"
 
                 },
+
 
                 runningMode:"VIDEO",
 
                 numFaces:1,
 
-                minFaceDetectionConfidence:0.5,
 
-                minFacePresenceConfidence:0.5,
+                minFaceDetectionConfidence:
+                0.5,
 
-                minTrackingConfidence:0.5,
+
+                minFacePresenceConfidence:
+                0.5,
+
+
+                minTrackingConfidence:
+                0.5,
+
 
                 outputFaceBlendshapes:false,
 
-                outputFacialTransformationMatrixes:true
+
+                /*
+                Keep this ON because later
+                we need real 3D head rotation.
+                */
+
+                outputFacialTransformationMatrixes:
+                true
 
             }
 
         );
 
 
-
         status.innerText =
-        "FACE TRACKING ON";
+        "FACE MODEL READY ✓";
 
 
-        trackFace(faceLandmarker);
+        startDetection(
+            faceLandmarker
+        );
 
     }
 
     catch(error){
 
-        console.error(error);
-
-
-        status.innerText =
-        "FACE TRACKING ERROR";
-
-
-        alert(
-
-            "FACE TRACKING ERROR\n\n" +
-
-            error.message
-
+        showError(
+            "FACE MODEL ERROR",
+            error
         );
 
     }
@@ -515,190 +534,97 @@ async function startFaceTracking(){
 
 
 
-/* =================================
-   FACE TRACKING
-================================= */
+/* =====================================
+   DETECTION
+===================================== */
 
-let lastTime = -1;
+let lastVideoTime = -1;
 
 
-function trackFace(faceLandmarker){
+function startDetection(
+    faceLandmarker
+){
 
     requestAnimationFrame(
 
-        () => trackFace(faceLandmarker)
+        function(){
+
+            startDetection(
+                faceLandmarker
+            );
+
+        }
 
     );
 
 
     if(
+
         video.readyState <
         video.HAVE_CURRENT_DATA
+
     ){
 
         return;
 
     }
-
-
-    const now =
-    performance.now();
-
-
-    if(now === lastTime){
-
-        return;
-
-    }
-
-
-    lastTime = now;
-
-
-
-    const result =
-    faceLandmarker.detectForVideo(
-
-        video,
-        now
-
-    );
-
 
 
     if(
 
-        result.faceLandmarks &&
-        result.faceLandmarks.length > 0
+        video.currentTime ===
+        lastVideoTime
 
     ){
 
-        faceFound = true;
+        return;
+
+    }
 
 
-        status.innerText =
-        "FACE DETECTED ✓";
+    lastVideoTime =
+    video.currentTime;
 
 
-        const landmarks =
-        result.faceLandmarks[0];
+    try{
 
+        const result =
+        faceLandmarker.detectForVideo(
 
+            video,
 
-        /*
-        Nose landmark.
-        */
+            performance.now()
 
-        const nose =
-        landmarks[1];
+        );
 
-
-
-        /*
-        Convert MediaPipe
-        normalized coordinates
-        into Three.js screen area.
-        */
-
-        const x =
-        (nose.x - 0.5) * 3.4;
-
-
-        const y =
-        -(nose.y - 0.5) * 2.6;
-
-
-
-        /*
-        Move head anchor.
-        */
-
-        headAnchor.position.x =
-        x;
-
-        headAnchor.position.y =
-        y;
-
-
-        /*
-        Small depth offset.
-        */
-
-        headAnchor.position.z =
-        0;
-
-
-
-        /*
-        FACE ROTATION
-        */
 
         if(
 
-            result.facialTransformationMatrixes &&
-
-            result.facialTransformationMatrixes.length > 0
+            result.faceLandmarks &&
+            result.faceLandmarks.length > 0
 
         ){
 
-            const matrixData =
-            result.facialTransformationMatrixes[0].data;
+            status.innerText =
+            "FACE DETECTED ✓";
 
+        }
 
-            const matrix =
-            new THREE.Matrix4();
+        else{
 
-
-            matrix.fromArray(
-                matrixData
-            );
-
-
-            const position =
-            new THREE.Vector3();
-
-
-            const quaternion =
-            new THREE.Quaternion();
-
-
-            const scale =
-            new THREE.Vector3();
-
-
-            matrix.decompose(
-
-                position,
-                quaternion,
-                scale
-
-            );
-
-
-            /*
-            Apply facial rotation
-            to the head anchor.
-            */
-
-            headAnchor.quaternion.slerp(
-
-                quaternion,
-
-                0.35
-
-            );
+            status.innerText =
+            "FACE TRACKING ON — FACE NOT FOUND";
 
         }
 
     }
 
-    else{
+    catch(error){
 
-        faceFound = false;
-
-
-        status.innerText =
-        "FACE NOT DETECTED";
+        showError(
+            "DETECTION ERROR",
+            error
+        );
 
     }
 
@@ -706,9 +632,9 @@ function trackFace(faceLandmarker){
 
 
 
-/* =================================
+/* =====================================
    RESIZE
-================================= */
+===================================== */
 
 window.addEventListener(
 
