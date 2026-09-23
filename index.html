@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Camera Flip Test</title>
+<title>Camera Diagnostic</title>
 
 <style>
 html,body{
@@ -16,47 +16,75 @@ html,body{
 }
 
 #video{
-    display:none;
-}
-
-#canvas{
     position:fixed;
-    left:0;
-    top:0;
+    inset:0;
     width:100%;
     height:100%;
+    object-fit:cover;
+    z-index:1;
 }
 
-#status{
+#left{
+    position:fixed;
+    left:15px;
+    top:50%;
+    transform:translateY(-50%);
+    z-index:5;
+
+    background:red;
+    color:white;
+    padding:18px;
+    border-radius:12px;
+    font-size:22px;
+    font-weight:bold;
+}
+
+#right{
+    position:fixed;
+    right:15px;
+    top:50%;
+    transform:translateY(-50%);
+    z-index:5;
+
+    background:blue;
+    color:white;
+    padding:18px;
+    border-radius:12px;
+    font-size:22px;
+    font-weight:bold;
+}
+
+#info{
     position:fixed;
     left:50%;
-    top:20px;
+    top:15px;
     transform:translateX(-50%);
     z-index:10;
 
-    padding:10px 16px;
+    width:85%;
+    padding:12px;
+
     background:rgba(0,0,0,.8);
     color:white;
-    border-radius:10px;
+
+    border-radius:12px;
+    text-align:center;
+    font-size:14px;
 }
 
-.controls{
+#open{
     position:fixed;
     left:50%;
     bottom:25px;
     transform:translateX(-50%);
     z-index:20;
 
-    display:flex;
-    gap:10px;
-}
-
-button{
-    padding:14px 18px;
-    font-size:16px;
-    font-weight:bold;
+    padding:16px 28px;
     border:0;
-    border-radius:10px;
+    border-radius:12px;
+
+    font-size:19px;
+    font-weight:bold;
 }
 </style>
 </head>
@@ -65,152 +93,227 @@ button{
 
 <video id="video" autoplay playsinline muted></video>
 
-<canvas id="canvas"></canvas>
+<div id="left">LEFT</div>
+<div id="right">RIGHT</div>
 
-<div id="status">CAMERA READY</div>
-
-<div class="controls">
+<div id="info">CAMERA READY</div>
 
 <button id="open">OPEN CAMERA</button>
-
-<button id="flip" style="display:none;">
-FLIP: OFF
-</button>
-
-</div>
 
 <script>
 
 const video = document.getElementById("video");
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
+const open = document.getElementById("open");<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Camera Diagnostic</title>
 
-const openButton = document.getElementById("open");
-const flipButton = document.getElementById("flip");
-const status = document.getElementById("status");
+<style>
+html,body{
+    margin:0;
+    padding:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#000;
+    font-family:Arial,sans-serif;
+}
 
-let flipped = false;
+#video{
+    position:fixed;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    z-index:1;
+}
 
+#left{
+    position:fixed;
+    left:15px;
+    top:50%;
+    transform:translateY(-50%);
+    z-index:5;
 
-openButton.onclick = async function(){
+    background:red;
+    color:white;
+    padding:18px;
+    border-radius:12px;
+    font-size:22px;
+    font-weight:bold;
+}
+
+#right{
+    position:fixed;
+    right:15px;
+    top:50%;
+    transform:translateY(-50%);
+    z-index:5;
+
+    background:blue;
+    color:white;
+    padding:18px;
+    border-radius:12px;
+    font-size:22px;
+    font-weight:bold;
+}
+
+#info{
+    position:fixed;
+    left:50%;
+    top:15px;
+    transform:translateX(-50%);
+    z-index:10;
+
+    width:85%;
+    padding:12px;
+
+    background:rgba(0,0,0,.8);
+    color:white;
+
+    border-radius:12px;
+    text-align:center;
+    font-size:14px;
+}
+
+#open{
+    position:fixed;
+    left:50%;
+    bottom:25px;
+    transform:translateX(-50%);
+    z-index:20;
+
+    padding:16px 28px;
+    border:0;
+    border-radius:12px;
+
+    font-size:19px;
+    font-weight:bold;
+}
+</style>
+</head>
+
+<body>
+
+<video id="video" autoplay playsinline muted></video>
+
+<div id="left">LEFT</div>
+<div id="right">RIGHT</div>
+
+<div id="info">CAMERA READY</div>
+
+<button id="open">OPEN CAMERA</button>
+
+<script>
+
+const video = document.getElementById("video");
+const open = document.getElementById("open");
+const info = document.getElementById("info");
+
+open.onclick = async function(){
 
     try{
 
-        status.innerText = "OPENING CAMERA...";
-
         const stream =
             await navigator.mediaDevices.getUserMedia({
-
                 video:{
-                    facingMode:"user"
+                    facingMode:{
+                        exact:"user"
+                    }
                 },
-
                 audio:false
-
             });
 
         video.srcObject = stream;
 
         await video.play();
 
-        openButton.style.display = "none";
-        flipButton.style.display = "block";
+        const track = stream.getVideoTracks()[0];
 
-        status.innerText = "CAMERA ON";
+        const settings = track.getSettings();
 
-        draw();
+        info.innerHTML =
+            "CAMERA: " +
+            (settings.facingMode || "unknown") +
+            "<br>" +
+            "SIZE: " +
+            (settings.width || "?") +
+            " × " +
+            (settings.height || "?") +
+            "<br>" +
+            "RIGHT/LEFT TEST: देखो हाथ किस तरफ जाता है";
 
-    }
+        open.style.display = "none";
 
-    catch(error){
+        console.log("CAMERA SETTINGS:", settings);
 
-        status.innerText = "CAMERA ERROR";
+    }catch(error){
 
-        alert(
+        info.innerHTML =
+            "CAMERA ERROR<br>" +
             error.name +
-            "\n\n" +
-            error.message
-        );
+            "<br>" +
+            error.message;
 
     }
 
 };
 
+</script>
 
-flipButton.onclick = function(){
+</body>
+</html>
+const info = document.getElementById("info");
 
-    flipped = !flipped;
+open.onclick = async function(){
 
-    flipButton.innerText =
-        flipped ? "FLIP: ON" : "FLIP: OFF";
+    try{
 
-};
+        const stream =
+            await navigator.mediaDevices.getUserMedia({
+                video:{
+                    facingMode:{
+                        exact:"user"
+                    }
+                },
+                audio:false
+            });
 
+        video.srcObject = stream;
 
-function draw(){
+        await video.play();
 
-    if(video.readyState >= 2){
+        const track = stream.getVideoTracks()[0];
 
-        const vw = video.videoWidth;
-        const vh = video.videoHeight;
+        const settings = track.getSettings();
 
-        const cw = window.innerWidth;
-        const ch = window.innerHeight;
+        info.innerHTML =
+            "CAMERA: " +
+            (settings.facingMode || "unknown") +
+            "<br>" +
+            "SIZE: " +
+            (settings.width || "?") +
+            " × " +
+            (settings.height || "?") +
+            "<br>" +
+            "RIGHT/LEFT TEST: देखो हाथ किस तरफ जाता है";
 
-        if(canvas.width !== cw ||
-           canvas.height !== ch){
+        open.style.display = "none";
 
-            canvas.width = cw;
-            canvas.height = ch;
+        console.log("CAMERA SETTINGS:", settings);
 
-        }
+    }catch(error){
 
-        const scale = Math.max(
-            cw / vw,
-            ch / vh
-        );
-
-        const w = vw * scale;
-        const h = vh * scale;
-
-        const x = (cw - w) / 2;
-        const y = (ch - h) / 2;
-
-        ctx.clearRect(
-            0,
-            0,
-            cw,
-            ch
-        );
-
-        ctx.save();
-
-        if(flipped){
-
-            ctx.translate(cw,0);
-            ctx.scale(-1,1);
-
-        }
-
-        ctx.drawImage(
-            video,
-            0,
-            0,
-            vw,
-            vh,
-            flipped ? -x : x,
-            y,
-            w,
-            h
-        );
-
-        ctx.restore();
+        info.innerHTML =
+            "CAMERA ERROR<br>" +
+            error.name +
+            "<br>" +
+            error.message;
 
     }
 
-    requestAnimationFrame(draw);
-
-}
+};
 
 </script>
 
