@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Camera Natural Left Right</title>
+<title>Camera Left Right Test</title>
 
 <style>
 html,body{
@@ -10,8 +10,9 @@ html,body{
     padding:0;
     width:100%;
     height:100%;
-    background:#000;
     overflow:hidden;
+    background:#000;
+    font-family:Arial,sans-serif;
 }
 
 #camera{
@@ -24,7 +25,36 @@ html,body{
     top:0;
     width:100%;
     height:100%;
-    background:#000;
+}
+
+#left{
+    position:fixed;
+    left:20px;
+    top:50%;
+    transform:translateY(-50%);
+    z-index:5;
+
+    padding:20px 25px;
+    background:red;
+    color:white;
+    font-size:25px;
+    font-weight:bold;
+    border-radius:15px;
+}
+
+#right{
+    position:fixed;
+    right:20px;
+    top:50%;
+    transform:translateY(-50%);
+    z-index:5;
+
+    padding:20px 25px;
+    background:blue;
+    color:white;
+    font-size:25px;
+    font-weight:bold;
+    border-radius:15px;
 }
 
 #open{
@@ -34,15 +64,11 @@ html,body{
     transform:translateX(-50%);
     z-index:10;
 
-    padding:16px 28px;
+    padding:16px 30px;
     font-size:20px;
     font-weight:bold;
-
     border:0;
     border-radius:10px;
-
-    background:white;
-    color:black;
 }
 
 #status{
@@ -50,16 +76,12 @@ html,body{
     left:50%;
     top:20px;
     transform:translateX(-50%);
-
     z-index:10;
 
     padding:10px 15px;
-    background:rgba(0,0,0,.75);
+    background:rgba(0,0,0,.8);
     color:white;
-
     border-radius:10px;
-    font-family:Arial;
-    font-size:16px;
 }
 </style>
 </head>
@@ -69,6 +91,9 @@ html,body{
 <video id="camera" autoplay playsinline muted></video>
 
 <canvas id="screen"></canvas>
+
+<div id="left">LEFT</div>
+<div id="right">RIGHT</div>
 
 <div id="status">CAMERA READY</div>
 
@@ -83,15 +108,13 @@ const ctx = canvas.getContext("2d");
 const button = document.getElementById("open");
 const status = document.getElementById("status");
 
-let stream = null;
-
 button.onclick = async function(){
 
     try{
 
-        status.innerText = "OPENING CAMERA...";
+        status.innerText = "OPENING...";
 
-        stream = await navigator.mediaDevices.getUserMedia({
+        const stream = await navigator.mediaDevices.getUserMedia({
             video:{
                 facingMode:"user"
             },
@@ -104,16 +127,15 @@ button.onclick = async function(){
 
         button.style.display = "none";
 
-        status.innerText = "CAMERA ON ✓";
+        status.innerText = "CAMERA ON";
 
-        drawCamera();
+        draw();
 
     }catch(error){
 
         status.innerText = "CAMERA ERROR";
 
         alert(
-            "CAMERA ERROR\n\n" +
             error.name +
             "\n\n" +
             error.message
@@ -124,7 +146,7 @@ button.onclick = async function(){
 };
 
 
-function drawCamera(){
+function draw(){
 
     if(video.readyState >= 2){
 
@@ -137,26 +159,24 @@ function drawCamera(){
         canvas.width = cw;
         canvas.height = ch;
 
-        /*
-        =====================================
-        NATURAL CAMERA VIEW
-        NO MIRROR
-        NO FLIP
-        =====================================
-        */
-
         const scale = Math.max(
             cw / vw,
             ch / vh
         );
 
-        const drawW = vw * scale;
-        const drawH = vh * scale;
+        const w = vw * scale;
+        const h = vh * scale;
 
-        const x = (cw - drawW) / 2;
-        const y = (ch - drawH) / 2;
+        const x = (cw - w) / 2;
+        const y = (ch - h) / 2;
 
         ctx.clearRect(0,0,cw,ch);
+
+        /*
+         * IMPORTANT:
+         * बिल्कुल NO MIRROR
+         * बिल्कुल NO FLIP
+         */
 
         ctx.drawImage(
             video,
@@ -166,25 +186,13 @@ function drawCamera(){
             vh,
             x,
             y,
-            drawW,
-            drawH
+            w,
+            h
         );
     }
 
-    requestAnimationFrame(drawCamera);
+    requestAnimationFrame(draw);
 }
-
-
-window.addEventListener("resize",function(){
-
-    if(video.readyState >= 2){
-
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-
-    }
-
-});
 
 </script>
 
