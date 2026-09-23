@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Camera Right Left Fix</title>
+<title>Camera Natural Left Right</title>
 
 <style>
 html,body{
@@ -15,17 +15,16 @@ html,body{
 }
 
 #camera{
+    display:none;
+}
+
+#screen{
     position:fixed;
     left:0;
     top:0;
     width:100%;
     height:100%;
-    object-fit:cover;
-
-    /* RIGHT-LEFT FIX */
-    transform:none;
-
-    z-index:1;
+    background:#000;
 }
 
 #open{
@@ -55,12 +54,10 @@ html,body{
     z-index:10;
 
     padding:10px 15px;
-
     background:rgba(0,0,0,.75);
     color:white;
 
     border-radius:10px;
-
     font-family:Arial;
     font-size:16px;
 }
@@ -71,6 +68,8 @@ html,body{
 
 <video id="camera" autoplay playsinline muted></video>
 
+<canvas id="screen"></canvas>
+
 <div id="status">CAMERA READY</div>
 
 <button id="open">OPEN CAMERA</button>
@@ -78,8 +77,13 @@ html,body{
 <script>
 
 const video = document.getElementById("camera");
+const canvas = document.getElementById("screen");
+const ctx = canvas.getContext("2d");
+
 const button = document.getElementById("open");
 const status = document.getElementById("status");
+
+let stream = null;
 
 button.onclick = async function(){
 
@@ -87,14 +91,11 @@ button.onclick = async function(){
 
         status.innerText = "OPENING CAMERA...";
 
-        const stream = await navigator.mediaDevices.getUserMedia({
-
+        stream = await navigator.mediaDevices.getUserMedia({
             video:{
                 facingMode:"user"
             },
-
             audio:false
-
         });
 
         video.srcObject = stream;
@@ -104,6 +105,8 @@ button.onclick = async function(){
         button.style.display = "none";
 
         status.innerText = "CAMERA ON ✓";
+
+        drawCamera();
 
     }catch(error){
 
@@ -119,6 +122,69 @@ button.onclick = async function(){
     }
 
 };
+
+
+function drawCamera(){
+
+    if(video.readyState >= 2){
+
+        const vw = video.videoWidth;
+        const vh = video.videoHeight;
+
+        const cw = window.innerWidth;
+        const ch = window.innerHeight;
+
+        canvas.width = cw;
+        canvas.height = ch;
+
+        /*
+        =====================================
+        NATURAL CAMERA VIEW
+        NO MIRROR
+        NO FLIP
+        =====================================
+        */
+
+        const scale = Math.max(
+            cw / vw,
+            ch / vh
+        );
+
+        const drawW = vw * scale;
+        const drawH = vh * scale;
+
+        const x = (cw - drawW) / 2;
+        const y = (ch - drawH) / 2;
+
+        ctx.clearRect(0,0,cw,ch);
+
+        ctx.drawImage(
+            video,
+            0,
+            0,
+            vw,
+            vh,
+            x,
+            y,
+            drawW,
+            drawH
+        );
+    }
+
+    requestAnimationFrame(drawCamera);
+}
+
+
+window.addEventListener("resize",function(){
+
+    if(video.readyState >= 2){
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+    }
+
+});
 
 </script>
 
