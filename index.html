@@ -4,7 +4,7 @@
 
 <meta name="viewport" content="width=device-width,initial-scale=1">
 
-<title>Face Rotation Test</title>
+<title>Camera + Real Face Tracking</title>
 
 <style>
 
@@ -49,11 +49,9 @@ html,body{
     left:50%;
     bottom:30px;
     transform:translateX(-50%);
-
     z-index:10;
 
     padding:16px 28px;
-
     font-size:20px;
     font-weight:bold;
 
@@ -69,7 +67,6 @@ html,body{
     left:50%;
     top:20px;
     transform:translateX(-50%);
-
     z-index:10;
 
     padding:10px 16px;
@@ -86,6 +83,17 @@ html,body{
 }
 
 </style>
+
+<!--
+====================================================
+FIXED MEDIAPIPE FACE MESH
+====================================================
+-->
+
+<script
+src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh.js"
+crossorigin="anonymous">
+</script>
 
 </head>
 
@@ -111,18 +119,15 @@ html,body{
 </button>
 
 
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
-
-
 <script type="module">
 
 import * as THREE from
 "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
 
 
-/* =================================================
+/* ==================================================
    ELEMENTS
-================================================= */
+================================================== */
 
 const video =
     document.getElementById("camera");
@@ -143,9 +148,9 @@ const info =
     document.getElementById("info");
 
 
-/* =================================================
-   THREE
-================================================= */
+/* ==================================================
+   THREE.JS
+================================================== */
 
 const scene =
     new THREE.Scene();
@@ -159,7 +164,6 @@ const camera3D =
         0.1,
         100
     );
-
 
 camera3D.position.z = 5;
 
@@ -190,9 +194,17 @@ renderer.setPixelRatio(
 );
 
 
-/* =================================================
+/* ==================================================
    LIGHT
-================================================= */
+================================================== */
+
+scene.add(
+    new THREE.AmbientLight(
+        0xffffff,
+        2
+    )
+);
+
 
 const light =
     new THREE.DirectionalLight(
@@ -209,23 +221,15 @@ light.position.set(
 scene.add(light);
 
 
-scene.add(
-    new THREE.AmbientLight(
-        0xffffff,
-        2
-    )
-);
-
-
-/* =================================================
-   CUBE
-================================================= */
+/* ==================================================
+   SMALL CUBE
+================================================== */
 
 const geometry =
     new THREE.BoxGeometry(
-        0.8,
-        0.8,
-        0.8
+        0.45,
+        0.45,
+        0.45
     );
 
 
@@ -239,13 +243,12 @@ const cube =
         material
     );
 
-
 scene.add(cube);
 
 
-/* =================================================
-   TARGET VALUES
-================================================= */
+/* ==================================================
+   FACE TARGET VALUES
+================================================== */
 
 let targetX = 0;
 let targetY = 0;
@@ -254,237 +257,215 @@ let targetRotX = 0;
 let targetRotY = 0;
 let targetRotZ = 0;
 
-
-/* =================================================
-   MEDIAPIPE
-================================================= */
-
-let faceMesh = null;
+let faceFound = false;
 
 
-function startFaceTracking(){
+/* ==================================================
+   MEDIAPIPE FACE MESH
+================================================== */
 
-    faceMesh =
-        new FaceMesh({
+const faceMesh =
+    new window.FaceMesh({
 
-            locateFile:function(file){
+        locateFile:function(file){
 
-                return
-                "https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/" +
-                file;
+            return
+            "https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/" +
+            file;
 
-            }
-
-        });
-
-
-    faceMesh.setOptions({
-
-        maxNumFaces:1,
-
-        refineLandmarks:true,
-
-        minDetectionConfidence:0.5,
-
-        minTrackingConfidence:0.5
+        }
 
     });
 
 
-    faceMesh.onResults(
-        onFaceResults
-    );
+faceMesh.setOptions({
 
-}
+    maxNumFaces:1,
+
+    refineLandmarks:true,
+
+    minDetectionConfidence:0.5,
+
+    minTrackingConfidence:0.5
+
+});
 
 
-/* =================================================
-   FACE RESULT
-================================================= */
+/* ==================================================
+   FACE RESULTS
+================================================== */
 
-function onFaceResults(results){
+faceMesh.onResults(function(results){
 
     if(
         !results.multiFaceLandmarks ||
         results.multiFaceLandmarks.length === 0
     ){
 
+        faceFound = false;
+
         info.innerText =
             "FACE NOT FOUND";
 
         return;
-
     }
 
 
-    const p =
+    faceFound = true;
+
+
+    const landmarks =
         results.multiFaceLandmarks[0];
 
 
+    /* ==============================================
+       NOSE POSITION
+    ============================================== */
+
+    const nose =
+        landmarks[1];
+
+
     /*
-    ==============================================
-    FACE POSITION
-    ==============================================
+    Camera display is mirrored.
+
+    Therefore X is reversed.
     */
 
-    const nose = p[1];
-
-    const visibleX =
+    const x =
         1 - nose.x;
 
-    const visibleY =
+    const y =
         nose.y;
 
 
-    targetX =
-        (visibleX - 0.5) * 4;
+    /*
+    Position.
+    Smaller movement than before.
+    */
 
+    targetX =
+        (x - 0.5) * 2.8;
 
     targetY =
-        -(visibleY - 0.5) * 3;
+        -(y - 0.5) * 2.2;
 
 
-    /*
-    ==============================================
-    HEAD ROTATION
-    ==============================================
-
-    Left eye outer
-    Right eye outer
-    Nose
-    Chin
-
-    These points give us approximate
-    head orientation.
-    ==============================================
-    */
+    /* ==============================================
+       EYE LINE
+    ============================================== */
 
     const leftEye =
-        p[33];
+        landmarks[33];
 
     const rightEye =
-        p[263];
+        landmarks[263];
 
-    const nosePoint =
-        p[1];
-
-    const chin =
-        p[152];
-
-
-    /*
-    ----------------------------------------------
-    ROLL
-    ----------------------------------------------
-    */
-
-    const eyeDX =
-        rightEye.x - leftEye.x;
-
-    const eyeDY =
-        rightEye.y - leftEye.y;
-
-
-    let roll =
-        Math.atan2(
-            eyeDY,
-            eyeDX
-        );
-
-
-    /*
-    ----------------------------------------------
-    YAW
-    ----------------------------------------------
-
-    Difference between nose position and
-    eye-center gives approximate left/right
-    head rotation.
-    ----------------------------------------------
-    */
 
     const eyeCenterX =
         (leftEye.x + rightEye.x) / 2;
-
-
-    const faceWidth =
-        Math.abs(
-            rightEye.x - leftEye.x
-        );
-
-
-    let yaw =
-        (nosePoint.x - eyeCenterX) /
-        faceWidth;
-
-
-    /*
-    ----------------------------------------------
-    PITCH
-    ----------------------------------------------
-    */
 
     const eyeCenterY =
         (leftEye.y + rightEye.y) / 2;
 
 
-    const faceHeight =
-        Math.abs(
-            chin.y - eyeCenterY
+    const eyeWidth =
+        Math.max(
+            Math.abs(
+                rightEye.x - leftEye.x
+            ),
+            0.001
         );
 
 
-    let pitch =
-        (nosePoint.y - eyeCenterY) /
-        faceHeight;
+    /* ==============================================
+       HEAD YAW
+    ============================================== */
 
+    let yaw =
+        (nose.x - eyeCenterX) /
+        eyeWidth;
 
-    /*
-    LIMITS
-    */
 
     yaw =
         THREE.MathUtils.clamp(
             yaw,
-            -0.8,
-            0.8
+            -0.7,
+            0.7
         );
+
+
+    /* ==============================================
+       HEAD ROLL
+    ============================================== */
+
+    const dx =
+        rightEye.x - leftEye.x;
+
+    const dy =
+        rightEye.y - leftEye.y;
+
+
+    let roll =
+        Math.atan2(
+            dy,
+            dx
+        );
+
+
+    /* ==============================================
+       HEAD PITCH
+    ============================================== */
+
+    const chin =
+        landmarks[152];
+
+
+    const faceHeight =
+        Math.max(
+            Math.abs(
+                chin.y - eyeCenterY
+            ),
+            0.001
+        );
+
+
+    let pitch =
+        (nose.y - eyeCenterY) /
+        faceHeight;
 
 
     pitch =
         THREE.MathUtils.clamp(
             pitch,
-            -0.8,
-            0.8
+            -0.7,
+            0.7
         );
 
 
-    /*
-    CAMERA DISPLAY IS MIRRORED,
-    SO YAW DIRECTION IS REVERSED.
-    */
+    /* ==============================================
+       ROTATION
+    ============================================== */
 
     targetRotY =
-        -yaw * 1.6;
-
+        -yaw * 2.0;
 
     targetRotX =
         pitch * 1.2;
 
-
     targetRotZ =
-        -roll * 1.2;
+        -roll * 1.5;
 
 
     info.innerText =
         "FACE TRACKING ✓";
 
-}
+});
 
 
-/* =================================================
-   CAMERA
-================================================= */
+/* ==================================================
+   OPEN CAMERA
+================================================== */
 
 button.onclick =
 async function(){
@@ -500,7 +481,16 @@ async function(){
             .getUserMedia({
 
                 video:{
-                    facingMode:"user"
+                    facingMode:"user",
+
+                    width:{
+                        ideal:1280
+                    },
+
+                    height:{
+                        ideal:720
+                    }
+
                 },
 
                 audio:false
@@ -519,11 +509,11 @@ async function(){
             "none";
 
 
-        startFaceTracking();
+        info.innerText =
+            "LOADING FACE TRACKER...";
 
 
         drawCamera();
-
 
         processFace();
 
@@ -534,8 +524,8 @@ async function(){
         info.innerText =
             "CAMERA ERROR";
 
-
         alert(
+            "CAMERA ERROR\n\n" +
             error.name +
             "\n\n" +
             error.message
@@ -546,10 +536,9 @@ async function(){
 };
 
 
-/* =================================================
-   CAMERA DISPLAY
-   SAME WORKING CAMERA CODE
-================================================= */
+/* ==================================================
+   WORKING CAMERA DISPLAY
+================================================== */
 
 function drawCamera(){
 
@@ -616,7 +605,9 @@ function drawCamera(){
 
 
         /*
-        WORKING RIGHT / LEFT FIX
+        =============================================
+        THIS IS THE CAMERA VERSION THAT WAS WORKING
+        =============================================
         */
 
         cameraCtx.save();
@@ -659,16 +650,23 @@ function drawCamera(){
 }
 
 
-/* =================================================
-   FACE PROCESSING
-================================================= */
+/* ==================================================
+   FACE PROCESS LOOP
+================================================== */
+
+let lastTime = -1;
+
 
 async function processFace(){
 
     if(
-        faceMesh &&
-        video.readyState >= 2
+        video.readyState >= 2 &&
+        video.currentTime !== lastTime
     ){
+
+        lastTime =
+            video.currentTime;
+
 
         try{
 
@@ -679,10 +677,13 @@ async function processFace(){
         }
         catch(error){
 
-            console.log(
-                "FACE ERROR:",
+            console.error(
+                "FACE MESH ERROR:",
                 error
             );
+
+            info.innerText =
+                "FACE TRACKER ERROR";
 
         }
 
@@ -696,9 +697,9 @@ async function processFace(){
 }
 
 
-/* =================================================
-   3D ANIMATION
-================================================= */
+/* ==================================================
+   THREE ANIMATION
+================================================== */
 
 function animate(){
 
@@ -708,31 +709,50 @@ function animate(){
 
 
     /*
-    POSITION
+    =============================================
+    FACE POSITION
+    =============================================
     */
 
     cube.position.x +=
-        (targetX - cube.position.x) * 0.18;
+        (
+            targetX -
+            cube.position.x
+        ) * 0.20;
 
 
     cube.position.y +=
-        (targetY - cube.position.y) * 0.18;
+        (
+            targetY -
+            cube.position.y
+        ) * 0.20;
 
 
     /*
-    ROTATION
+    =============================================
+    FACE ROTATION
+    =============================================
     */
 
     cube.rotation.x +=
-        (targetRotX - cube.rotation.x) * 0.18;
+        (
+            targetRotX -
+            cube.rotation.x
+        ) * 0.20;
 
 
     cube.rotation.y +=
-        (targetRotY - cube.rotation.y) * 0.18;
+        (
+            targetRotY -
+            cube.rotation.y
+        ) * 0.20;
 
 
     cube.rotation.z +=
-        (targetRotZ - cube.rotation.z) * 0.18;
+        (
+            targetRotZ -
+            cube.rotation.z
+        ) * 0.20;
 
 
     renderer.render(
@@ -746,9 +766,9 @@ function animate(){
 animate();
 
 
-/* =================================================
+/* ==================================================
    RESIZE
-================================================= */
+================================================== */
 
 window.addEventListener(
     "resize",
