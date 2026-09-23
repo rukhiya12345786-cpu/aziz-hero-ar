@@ -4,7 +4,7 @@
 
 <meta name="viewport" content="width=device-width,initial-scale=1">
 
-<title>Camera and 3D Test - Right Left Fixed</title>
+<title>Camera + 3D Face Tracking</title>
 
 <style>
 
@@ -91,7 +91,6 @@ html,body{
 
 <body>
 
-<!-- REAL CAMERA -->
 <video
     id="camera"
     autoplay
@@ -99,19 +98,26 @@ html,body{
     muted>
 </video>
 
-<!-- CAMERA DISPLAY -->
 <canvas id="cameraCanvas"></canvas>
 
-<!-- THREE.JS -->
 <canvas id="three"></canvas>
 
 <div id="info">
-    3D TEST
+    CAMERA READY
 </div>
 
 <button id="open">
     OPEN CAMERA
 </button>
+
+
+<!--
+================================================
+MEDIAPIPE FACE MESH
+================================================
+-->
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
 
 
 <script type="module">
@@ -120,9 +126,9 @@ import * as THREE from
 "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
 
 
-/* =========================
+/* =================================================
    ELEMENTS
-========================= */
+================================================= */
 
 const video =
     document.getElementById("camera");
@@ -143,9 +149,9 @@ const info =
     document.getElementById("info");
 
 
-/* =========================
+/* =================================================
    THREE.JS
-========================= */
+================================================= */
 
 const scene =
     new THREE.Scene();
@@ -161,7 +167,7 @@ const camera3D =
     );
 
 
-camera3D.position.z = 4;
+camera3D.position.z = 5;
 
 
 const renderer =
@@ -190,9 +196,9 @@ renderer.setPixelRatio(
 );
 
 
-/* =========================
+/* =================================================
    LIGHT
-========================= */
+================================================= */
 
 const light =
     new THREE.DirectionalLight(
@@ -218,15 +224,15 @@ const ambient =
 scene.add(ambient);
 
 
-/* =========================
+/* =================================================
    3D CUBE
-========================= */
+================================================= */
 
 const geometry =
     new THREE.BoxGeometry(
-        1.4,
-        1.4,
-        1.4
+        0.8,
+        0.8,
+        0.8
     );
 
 
@@ -251,9 +257,133 @@ cube.position.set(
 scene.add(cube);
 
 
-/* =========================
+/* =================================================
+   FACE TRACKER
+================================================= */
+
+let faceMesh = null;
+
+let trackingStarted = false;
+
+
+/*
+   Last known face position
+*/
+
+let targetX = 0;
+let targetY = 0;
+
+
+/* =================================================
+   START FACE MESH
+================================================= */
+
+function startFaceTracking(){
+
+    faceMesh =
+        new FaceMesh({
+
+            locateFile:function(file){
+
+                return
+                `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
+
+            }
+
+        });
+
+
+    faceMesh.setOptions({
+
+        maxNumFaces:1,
+
+        refineLandmarks:true,
+
+        minDetectionConfidence:0.5,
+
+        minTrackingConfidence:0.5
+
+    });
+
+
+    faceMesh.onResults(
+        onFaceResults
+    );
+
+}
+
+
+/* =================================================
+   FACE RESULTS
+================================================= */
+
+function onFaceResults(results){
+
+    if(
+        !results.multiFaceLandmarks ||
+        results.multiFaceLandmarks.length === 0
+    ){
+
+        info.innerText =
+            "CAMERA ON • FACE NOT FOUND";
+
+        return;
+
+    }
+
+
+    const landmarks =
+        results.multiFaceLandmarks[0];
+
+
+    /*
+    Nose landmark.
+    */
+
+    const nose =
+        landmarks[1];
+
+
+    /*
+    IMPORTANT:
+
+    Camera display is horizontally flipped
+    exactly like our working camera code.
+
+    Therefore the tracking X coordinate
+    is flipped too.
+    */
+
+    const visibleX =
+        1 - nose.x;
+
+
+    const visibleY =
+        nose.y;
+
+
+    /*
+    Convert 0...1
+    into -1...+1
+    */
+
+    targetX =
+        (visibleX - 0.5) * 4.0;
+
+
+    targetY =
+        -(visibleY - 0.5) * 3.0;
+
+
+    info.innerText =
+        "FACE TRACKING ✓";
+
+}
+
+
+/* =================================================
    CAMERA
-========================= */
+================================================= */
 
 button.onclick =
 async function(){
@@ -289,13 +419,36 @@ async function(){
 
 
         info.innerText =
-            "CAMERA + 3D ON";
+            "STARTING FACE TRACKING...";
 
+
+        /*
+        Start MediaPipe
+        */
+
+        startFaceTracking();
+
+
+        trackingStarted =
+            true;
+
+
+        /*
+        Start camera display
+        */
 
         drawCamera();
 
 
-    }catch(error){
+        /*
+        Start face processing
+        */
+
+        processFace();
+
+
+    }
+    catch(error){
 
         info.innerText =
             "CAMERA ERROR";
@@ -313,9 +466,10 @@ async function(){
 };
 
 
-/* =========================
-   CAMERA DRAW
-========================= */
+/* =================================================
+   CAMERA DISPLAY
+   KEEPING THE WORKING VERSION
+================================================= */
 
 function drawCamera(){
 
@@ -352,10 +506,6 @@ function drawCamera(){
         }
 
 
-        /*
-        OBJECT-FIT: COVER
-        */
-
         const scale =
             Math.max(
                 cw / vw,
@@ -366,12 +516,14 @@ function drawCamera(){
         const drawW =
             vw * scale;
 
+
         const drawH =
             vh * scale;
 
 
         const x =
             (cw - drawW) / 2;
+
 
         const y =
             (ch - drawH) / 2;
@@ -386,15 +538,9 @@ function drawCamera(){
 
 
         /*
-        ==================================
-        IMPORTANT RIGHT / LEFT FIX
-        ==================================
-
-        Flip is applied correctly around
-        the complete canvas.
-
-        Destination remains x,y.
-        ==================================
+        =========================================
+        THIS IS THE WORKING CAMERA ORIENTATION
+        =========================================
         */
 
         cameraCtx.save();
@@ -439,9 +585,47 @@ function drawCamera(){
 }
 
 
-/* =========================
+/* =================================================
+   PROCESS FACE
+================================================= */
+
+async function processFace(){
+
+    if(
+        trackingStarted &&
+        faceMesh &&
+        video.readyState >= 2
+    ){
+
+        try{
+
+            await faceMesh.send({
+                image:video
+            });
+
+        }
+        catch(error){
+
+            console.log(
+                "FACE TRACKING ERROR:",
+                error
+            );
+
+        }
+
+    }
+
+
+    requestAnimationFrame(
+        processFace
+    );
+
+}
+
+
+/* =================================================
    3D ANIMATION
-========================= */
+================================================= */
 
 function animate(){
 
@@ -450,12 +634,16 @@ function animate(){
     );
 
 
-    cube.rotation.x +=
-        0.01;
+    /*
+    Smooth movement
+    */
+
+    cube.position.x +=
+        (targetX - cube.position.x) * 0.15;
 
 
-    cube.rotation.y +=
-        0.015;
+    cube.position.y +=
+        (targetY - cube.position.y) * 0.15;
 
 
     renderer.render(
@@ -469,9 +657,9 @@ function animate(){
 animate();
 
 
-/* =========================
+/* =================================================
    RESIZE
-========================= */
+================================================= */
 
 window.addEventListener(
     "resize",
@@ -493,6 +681,7 @@ window.addEventListener(
 
         cameraCanvas.width =
             window.innerWidth;
+
 
         cameraCanvas.height =
             window.innerHeight;
