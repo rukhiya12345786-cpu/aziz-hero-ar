@@ -4,62 +4,141 @@
 
 <meta name="viewport" content="width=device-width,initial-scale=1">
 
-<title>3D Cube Test</title>
+<title>Camera and 3D Test</title>
 
 <style>
 
 html,body{
     margin:0;
+    padding:0;
     width:100%;
     height:100%;
+    background:#000;
     overflow:hidden;
-    background:black;
+}
+
+#camera{
+    position:fixed;
+    left:0;
+    top:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    z-index:1;
 }
 
 #three{
+    position:fixed;
+    left:0;
+    top:0;
     width:100%;
     height:100%;
-    display:block;
+    z-index:2;
+    pointer-events:none;
 }
 
-#status{
+#open{
     position:fixed;
-    top:20px;
     left:50%;
+    bottom:30px;
     transform:translateX(-50%);
-    color:white;
-    font-family:Arial;
-    font-size:20px;
     z-index:10;
+
+    padding:16px 28px;
+
+    font-size:20px;
+    font-weight:bold;
+
+    border:0;
+    border-radius:10px;
+
+    background:white;
+    color:black;
+}
+
+#info{
+    position:fixed;
+    left:50%;
+    top:20px;
+    transform:translateX(-50%);
+
+    z-index:10;
+
+    padding:10px 16px;
+
+    background:rgba(0,0,0,0.7);
+    color:white;
+
+    border-radius:10px;
+
+    font-family:Arial,sans-serif;
+    font-size:16px;
+
+    text-align:center;
 }
 
 </style>
 
 </head>
 
+
 <body>
 
-<div id="status">
-LOADING 3D...
-</div>
+
+<video
+    id="camera"
+    autoplay
+    playsinline
+    muted>
+</video>
+
 
 <canvas id="three"></canvas>
 
+
+<div id="info">
+3D TEST
+</div>
+
+
+<button id="open">
+OPEN CAMERA
+</button>
+
+
 <script type="module">
+
 
 import * as THREE from
 "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
 
 
+const video =
+document.getElementById("camera");
+
 const canvas =
 document.getElementById("three");
 
+const button =
+document.getElementById("open");
+
+const info =
+document.getElementById("info");
+
+
+/* =========================
+   THREE SCENE
+========================= */
 
 const scene =
 new THREE.Scene();
 
 
-const camera =
+/* =========================
+   3D CAMERA
+========================= */
+
+const camera3D =
 new THREE.PerspectiveCamera(
     45,
     window.innerWidth /
@@ -68,14 +147,22 @@ new THREE.PerspectiveCamera(
     100
 );
 
+camera3D.position.z = 4;
 
-camera.position.z = 4;
 
+/* =========================
+   RENDERER
+========================= */
 
 const renderer =
 new THREE.WebGLRenderer({
+
     canvas:canvas,
+
+    alpha:true,
+
     antialias:true
+
 });
 
 
@@ -85,11 +172,51 @@ renderer.setSize(
 );
 
 
+renderer.setPixelRatio(
+    Math.min(
+        window.devicePixelRatio,
+        2
+    )
+);
+
+
+/* =========================
+   LIGHT
+========================= */
+
+const light =
+new THREE.DirectionalLight(
+    0xffffff,
+    3
+);
+
+light.position.set(
+    2,
+    3,
+    5
+);
+
+scene.add(light);
+
+
+const ambient =
+new THREE.AmbientLight(
+    0xffffff,
+    2
+);
+
+scene.add(ambient);
+
+
+/* =========================
+   3D CUBE
+========================= */
+
 const geometry =
 new THREE.BoxGeometry(
-    1.5,
-    1.5,
-    1.5
+    1.4,
+    1.4,
+    1.4
 );
 
 
@@ -104,8 +231,21 @@ new THREE.Mesh(
 );
 
 
+/* Put cube in front of 3D camera */
+
+cube.position.set(
+    0,
+    0,
+    0
+);
+
+
 scene.add(cube);
 
+
+/* =========================
+   ANIMATION
+========================= */
 
 function animate(){
 
@@ -113,13 +253,18 @@ function animate(){
         animate
     );
 
-    cube.rotation.x += 0.01;
 
-    cube.rotation.y += 0.015;
+    cube.rotation.x +=
+    0.01;
+
+
+    cube.rotation.y +=
+    0.015;
+
 
     renderer.render(
         scene,
-        camera
+        camera3D
     );
 
 }
@@ -128,13 +273,90 @@ function animate(){
 animate();
 
 
-document.getElementById(
-    "status"
-).innerText =
-"3D CUBE OK";
+/* =========================
+   OPEN CAMERA
+========================= */
+
+button.onclick =
+async function(){
+
+    try{
+
+        const stream =
+        await navigator.mediaDevices
+        .getUserMedia({
+
+            video:{
+                facingMode:"user"
+            },
+
+            audio:false
+
+        });
+
+
+        video.srcObject =
+        stream;
+
+
+        await video.play();
+
+
+        button.style.display =
+        "none";
+
+
+        info.innerText =
+        "CAMERA + 3D ON";
+
+
+    }
+
+    catch(error){
+
+        info.innerText =
+        "CAMERA ERROR";
+
+
+        alert(
+            "CAMERA ERROR\n\n" +
+            error.name +
+            "\n\n" +
+            error.message
+        );
+
+    }
+
+};
+
+
+/* =========================
+   RESIZE
+========================= */
+
+window.addEventListener(
+    "resize",
+    function(){
+
+        camera3D.aspect =
+        window.innerWidth /
+        window.innerHeight;
+
+
+        camera3D.updateProjectionMatrix();
+
+
+        renderer.setSize(
+            window.innerWidth,
+            window.innerHeight
+        );
+
+    }
+);
 
 
 </script>
+
 
 </body>
 </html>
