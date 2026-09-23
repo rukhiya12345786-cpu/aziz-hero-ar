@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html>
+
 <head>
 
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport"
+content="width=device-width,initial-scale=1">
 
-<title>Camera and 3D Test</title>
+<title>Camera and 3D Test - Mirror Fixed</title>
 
 <style>
 
@@ -24,9 +26,15 @@ html,body{
     width:100%;
     height:100%;
     object-fit:cover;
-    z-index:1;
 
-    transform:scaleX(1);
+    /*
+    IMPORTANT:
+    Front camera currently appears mirrored.
+    scaleX(-1) flips it back.
+    */
+    transform:scaleX(-1);
+
+    z-index:1;
 }
 
 #three{
@@ -35,45 +43,71 @@ html,body{
     top:0;
     width:100%;
     height:100%;
+
     z-index:2;
+
     pointer-events:none;
 }
 
-#open{
-    position:fixed;
-    left:50%;
-    bottom:30px;
-    transform:translateX(-50%);
-    z-index:10;
-    padding:16px 28px;
-    font-size:20px;
-    font-weight:bold;
-    border:0;
-    border-radius:10px;
-    background:white;
-    color:black;
-}
-
 #info{
+
     position:fixed;
+
     left:50%;
     top:20px;
+
     transform:translateX(-50%);
+
     z-index:10;
+
     padding:10px 16px;
-    background:rgba(0,0,0,0.7);
+
+    background:rgba(0,0,0,0.75);
+
     color:white;
+
     border-radius:10px;
+
     font-family:Arial,sans-serif;
+
     font-size:16px;
+
     text-align:center;
+}
+
+#open{
+
+    position:fixed;
+
+    left:50%;
+    bottom:30px;
+
+    transform:translateX(-50%);
+
+    z-index:10;
+
+    padding:16px 28px;
+
+    font-size:20px;
+
+    font-weight:bold;
+
+    border:0;
+
+    border-radius:10px;
+
+    background:white;
+
+    color:black;
 }
 
 </style>
 
 </head>
 
+
 <body>
+
 
 <video
     id="camera"
@@ -82,17 +116,22 @@ html,body{
     muted>
 </video>
 
+
 <canvas id="three"></canvas>
 
+
 <div id="info">
-3D TEST
+CAMERA + 3D TEST
 </div>
+
 
 <button id="open">
 OPEN CAMERA
 </button>
 
+
 <script type="module">
+
 
 import * as THREE from
 "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
@@ -101,35 +140,47 @@ import * as THREE from
 const video =
 document.getElementById("camera");
 
+
 const canvas =
 document.getElementById("three");
 
+
 const button =
 document.getElementById("open");
+
 
 const info =
 document.getElementById("info");
 
 
-video.style.transform =
-"scaleX(1)";
+
+/* =========================
+   THREE.JS
+========================= */
 
 
 const scene =
 new THREE.Scene();
 
 
+
 const camera3D =
 new THREE.PerspectiveCamera(
+
     45,
+
     window.innerWidth /
     window.innerHeight,
+
     0.1,
+
     100
+
 );
 
 
 camera3D.position.z = 4;
+
 
 
 const renderer =
@@ -145,51 +196,78 @@ new THREE.WebGLRenderer({
 
 
 renderer.setSize(
+
     window.innerWidth,
+
     window.innerHeight
+
 );
 
 
 renderer.setPixelRatio(
+
     Math.min(
+
         window.devicePixelRatio,
+
         2
+
     )
+
 );
+
+
+
+/* LIGHT */
 
 
 const light =
 new THREE.DirectionalLight(
+
     0xffffff,
+
     3
+
 );
 
 
 light.position.set(
+
     2,
     3,
     5
+
 );
 
 
 scene.add(light);
 
 
+
 const ambient =
 new THREE.AmbientLight(
+
     0xffffff,
+
     2
+
 );
 
 
 scene.add(ambient);
 
 
+
+/* CUBE */
+
+
 const geometry =
 new THREE.BoxGeometry(
+
     1.4,
     1.4,
     1.4
+
 );
 
 
@@ -199,12 +277,30 @@ new THREE.MeshNormalMaterial();
 
 const cube =
 new THREE.Mesh(
+
     geometry,
+
     material
+
+);
+
+
+cube.position.set(
+
+    0,
+    0,
+    0
+
 );
 
 
 scene.add(cube);
+
+
+
+/* =========================
+   ANIMATION
+========================= */
 
 
 function animate(){
@@ -223,8 +319,11 @@ function animate(){
 
 
     renderer.render(
+
         scene,
+
         camera3D
+
     );
 
 }
@@ -233,10 +332,20 @@ function animate(){
 animate();
 
 
+
+/* =========================
+   OPEN CAMERA
+========================= */
+
+
 button.onclick =
 async function(){
 
     try{
+
+        info.innerText =
+        "OPENING CAMERA...";
+
 
         const stream =
         await navigator.mediaDevices
@@ -258,8 +367,13 @@ async function(){
         await video.play();
 
 
+        /*
+        THIS IS THE IMPORTANT FIX.
+        */
+
+
         video.style.transform =
-        "scaleX(1)";
+        "scaleX(-1)";
 
 
         button.style.display =
@@ -279,10 +393,15 @@ async function(){
 
 
         alert(
+
             "CAMERA ERROR\n\n" +
+
             error.name +
+
             "\n\n" +
+
             error.message
+
         );
 
     }
@@ -290,11 +409,20 @@ async function(){
 };
 
 
+
+/* =========================
+   RESIZE
+========================= */
+
+
 window.addEventListener(
+
     "resize",
+
     function(){
 
         camera3D.aspect =
+
         window.innerWidth /
         window.innerHeight;
 
@@ -303,14 +431,21 @@ window.addEventListener(
 
 
         renderer.setSize(
+
             window.innerWidth,
+
             window.innerHeight
+
         );
 
     }
+
 );
+
 
 </script>
 
+
 </body>
+
 </html>
