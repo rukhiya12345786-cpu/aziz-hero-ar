@@ -6,7 +6,7 @@
 <meta name="viewport"
 content="width=device-width,initial-scale=1">
 
-<title>Camera Face Test</title>
+<title>Camera Face Tracking</title>
 
 <style>
 
@@ -23,38 +23,37 @@ html,body{
     position:fixed;
     left:0;
     top:0;
-    width:100%;
-    height:100%;
-    object-fit:cover;
-    z-index:1;
-}
 
-#three{
-    position:fixed;
-    left:0;
-    top:0;
     width:100%;
     height:100%;
-    z-index:2;
-    pointer-events:none;
+
+    object-fit:cover;
+
+    z-index:1;
 }
 
 #status{
     position:fixed;
+
     left:50%;
     top:20px;
+
     transform:translateX(-50%);
+
     z-index:20;
 
     max-width:90%;
 
     background:rgba(0,0,0,.8);
+
     color:white;
 
-    padding:10px 14px;
+    padding:12px 16px;
+
     border-radius:10px;
 
     font-family:Arial,sans-serif;
+
     font-size:15px;
 
     text-align:center;
@@ -62,6 +61,7 @@ html,body{
 
 #open{
     position:fixed;
+
     left:50%;
     bottom:30px;
 
@@ -72,16 +72,31 @@ html,body{
     padding:16px 28px;
 
     font-size:20px;
+
     font-weight:bold;
 
     border:0;
+
     border-radius:10px;
 
     background:white;
+
     color:black;
 }
 
 </style>
+
+
+<!--
+    IMPORTANT:
+    MediaPipe is loaded as a normal script.
+    No dynamic import().
+-->
+
+<script
+src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.js"
+crossorigin="anonymous">
+</script>
 
 </head>
 
@@ -97,11 +112,8 @@ muted>
 </video>
 
 
-<canvas id="three"></canvas>
-
-
 <div id="status">
-CAMERA READY
+CAMERA TEST
 </div>
 
 
@@ -111,186 +123,27 @@ OPEN CAMERA
 
 
 
-<script type="module">
-
-
-/* =====================================
-   THREE.JS
-===================================== */
-
-import * as THREE from
-"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
+<script>
 
 
 const video =
 document.getElementById("camera");
 
-const canvas =
-document.getElementById("three");
 
 const button =
 document.getElementById("open");
+
 
 const status =
 document.getElementById("status");
 
 
+let faceLandmarker =
+null;
 
-/* =====================================
-   THREE SCENE
-===================================== */
 
-const scene =
-new THREE.Scene();
-
-
-const camera3D =
-new THREE.PerspectiveCamera(
-
-    45,
-
-    window.innerWidth /
-    window.innerHeight,
-
-    0.1,
-    100
-
-);
-
-
-camera3D.position.z = 4;
-
-
-
-const renderer =
-new THREE.WebGLRenderer({
-
-    canvas:canvas,
-
-    alpha:true,
-
-    antialias:true
-
-});
-
-
-renderer.setSize(
-
-    window.innerWidth,
-    window.innerHeight
-
-);
-
-
-renderer.setPixelRatio(
-
-    Math.min(
-        window.devicePixelRatio,
-        2
-    )
-
-);
-
-
-
-/* =====================================
-   LIGHT
-===================================== */
-
-const light =
-new THREE.DirectionalLight(
-
-    0xffffff,
-    3
-
-);
-
-
-light.position.set(
-
-    2,
-    3,
-    5
-
-);
-
-
-scene.add(light);
-
-
-scene.add(
-
-    new THREE.AmbientLight(
-        0xffffff,
-        2
-    )
-
-);
-
-
-
-/* =====================================
-   SMALL CUBE
-===================================== */
-
-const geometry =
-new THREE.BoxGeometry(
-
-    0.55,
-    0.55,
-    0.55
-
-);
-
-
-const material =
-new THREE.MeshNormalMaterial();
-
-
-const cube =
-new THREE.Mesh(
-
-    geometry,
-    material
-
-);
-
-
-cube.position.set(
-
-    0,
-    0,
-    0
-
-);
-
-
-scene.add(cube);
-
-
-
-/* =====================================
-   RENDER
-===================================== */
-
-function animate(){
-
-    requestAnimationFrame(
-        animate
-    );
-
-
-    renderer.render(
-
-        scene,
-        camera3D
-
-    );
-
-}
-
-
-animate();
+let lastVideoTime =
+-1;
 
 
 
@@ -332,17 +185,10 @@ async function(){
 
 
         status.innerText =
-        "CAMERA OK — LOADING FACE...";
+        "CAMERA OK — STARTING FACE...";
 
 
-        /*
-        IMPORTANT:
-
-        Camera is already working
-        before MediaPipe starts.
-        */
-
-        startFaceTracking();
+        await createFaceTracker();
 
     }
 
@@ -360,84 +206,54 @@ async function(){
 
 
 /* =====================================
-   ERROR DISPLAY
+   FACE TRACKER
 ===================================== */
 
-function showError(
-    title,
-    error
-){
-
-    console.error(
-        title,
-        error
-    );
-
-
-    let message =
-    "";
-
-
-    if(error){
-
-        message =
-        error.message ||
-        String(error);
-
-    }
-
-
-    status.innerText =
-    title +
-    ": " +
-    message;
-
-}
-
-
-
-/* =====================================
-   FACE TRACKING
-===================================== */
-
-async function startFaceTracking(){
+async function createFaceTracker(){
 
     try{
 
         status.innerText =
-        "LOADING MEDIAPIPE...";
+        "CHECKING MEDIAPIPE...";
 
 
         /*
-        LOAD MEDIAPIPE AFTER CAMERA
+        Check whether the script loaded.
         */
 
-        const vision =
-        await import(
+        if(
+            typeof FaceLandmarker ===
+            "undefined"
+        ){
 
-            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.mjs"
+            throw new Error(
 
-        );
+                "MediaPipe FaceLandmarker was not loaded."
+
+            );
+
+        }
+
+
+        if(
+            typeof FilesetResolver ===
+            "undefined"
+        ){
+
+            throw new Error(
+
+                "MediaPipe FilesetResolver was not loaded."
+
+            );
+
+        }
 
 
         status.innerText =
-        "MEDIAPIPE LOADED";
+        "LOADING MEDIAPIPE WASM...";
 
 
-        const FilesetResolver =
-        vision.FilesetResolver;
-
-
-        const FaceLandmarker =
-        vision.FaceLandmarker;
-
-
-
-        /* =================================
-           WASM
-        ================================= */
-
-        const fileset =
+        const vision =
         await FilesetResolver.forVisionTasks(
 
             "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
@@ -449,15 +265,10 @@ async function startFaceTracking(){
         "LOADING FACE MODEL...";
 
 
-
-        /* =================================
-           FACE LANDMARKER
-        ================================= */
-
-        const faceLandmarker =
+        faceLandmarker =
         await FaceLandmarker.createFromOptions(
 
-            fileset,
+            vision,
 
             {
 
@@ -468,43 +279,26 @@ async function startFaceTracking(){
                     "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
 
                     /*
-                    CPU FIRST.
-
-                    GPU is disabled for this test.
+                    CPU for first test.
                     */
 
                     delegate:"CPU"
 
                 },
 
-
                 runningMode:"VIDEO",
 
                 numFaces:1,
 
+                minFaceDetectionConfidence:0.5,
 
-                minFaceDetectionConfidence:
-                0.5,
+                minFacePresenceConfidence:0.5,
 
-
-                minFacePresenceConfidence:
-                0.5,
-
-
-                minTrackingConfidence:
-                0.5,
-
+                minTrackingConfidence:0.5,
 
                 outputFaceBlendshapes:false,
 
-
-                /*
-                Keep this ON because later
-                we need real 3D head rotation.
-                */
-
-                outputFacialTransformationMatrixes:
-                true
+                outputFacialTransformationMatrixes:true
 
             }
 
@@ -512,12 +306,10 @@ async function startFaceTracking(){
 
 
         status.innerText =
-        "FACE MODEL READY ✓";
+        "FACE TRACKING READY";
 
 
-        startDetection(
-            faceLandmarker
-        );
+        detectFace();
 
     }
 
@@ -535,34 +327,18 @@ async function startFaceTracking(){
 
 
 /* =====================================
-   DETECTION
+   FACE DETECTION
 ===================================== */
 
-let lastVideoTime = -1;
-
-
-function startDetection(
-    faceLandmarker
-){
+function detectFace(){
 
     requestAnimationFrame(
-
-        function(){
-
-            startDetection(
-                faceLandmarker
-            );
-
-        }
-
+        detectFace
     );
 
 
     if(
-
-        video.readyState <
-        video.HAVE_CURRENT_DATA
-
+        !faceLandmarker
     ){
 
         return;
@@ -571,10 +347,18 @@ function startDetection(
 
 
     if(
+        video.readyState <
+        video.HAVE_CURRENT_DATA
+    ){
 
+        return;
+
+    }
+
+
+    if(
         video.currentTime ===
         lastVideoTime
-
     ){
 
         return;
@@ -601,6 +385,7 @@ function startDetection(
         if(
 
             result.faceLandmarks &&
+
             result.faceLandmarks.length > 0
 
         ){
@@ -633,34 +418,35 @@ function startDetection(
 
 
 /* =====================================
-   RESIZE
+   ERROR
 ===================================== */
 
-window.addEventListener(
+function showError(
+    title,
+    error
+){
 
-    "resize",
-
-    function(){
-
-        camera3D.aspect =
-
-        window.innerWidth /
-        window.innerHeight;
-
-
-        camera3D.updateProjectionMatrix();
+    console.error(
+        title,
+        error
+    );
 
 
-        renderer.setSize(
+    const message =
+    error &&
+    error.message
+    ?
+    error.message
+    :
+    String(error);
 
-            window.innerWidth,
-            window.innerHeight
 
-        );
+    status.innerText =
+    title +
+    ": " +
+    message;
 
-    }
-
-);
+}
 
 
 </script>
