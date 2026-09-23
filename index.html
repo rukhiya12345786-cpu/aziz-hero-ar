@@ -1,23 +1,11 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-
-<meta charset="UTF-8">
 
 <meta name="viewport"
 content="width=device-width,initial-scale=1">
 
-<title>Aziz Hero AR - Face Test</title>
-
-
-<!-- MediaPipe Face Mesh -->
-
-<script
-src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"
-crossorigin="anonymous">
-</script>
-
+<title>Camera Test</title>
 
 <style>
 
@@ -26,52 +14,21 @@ html,body{
     padding:0;
     width:100%;
     height:100%;
-    overflow:hidden;
     background:#000;
+    overflow:hidden;
 }
 
 #camera{
-    display:none;
-}
-
-#screen{
     position:fixed;
-
     left:0;
     top:0;
 
     width:100%;
     height:100%;
 
+    object-fit:cover;
+
     z-index:1;
-}
-
-#status{
-    position:fixed;
-
-    left:50%;
-    top:20px;
-
-    transform:translateX(-50%);
-
-    z-index:20;
-
-    width:90%;
-    max-width:500px;
-
-    padding:12px 16px;
-
-    background:rgba(0,0,0,.75);
-
-    color:white;
-
-    border-radius:10px;
-
-    font-family:Arial,sans-serif;
-
-    font-size:16px;
-
-    text-align:center;
 }
 
 #open{
@@ -82,32 +39,49 @@ html,body{
 
     transform:translateX(-50%);
 
-    z-index:20;
+    z-index:10;
 
     padding:16px 28px;
 
     font-size:20px;
-
     font-weight:bold;
 
     border:0;
-
     border-radius:10px;
 
     background:white;
-
     color:black;
+}
+
+#status{
+    position:fixed;
+
+    left:50%;
+    top:20px;
+
+    transform:translateX(-50%);
+
+    z-index:10;
+
+    padding:10px 15px;
+
+    background:rgba(0,0,0,.75);
+
+    color:white;
+
+    border-radius:10px;
+
+    font-family:Arial;
+
+    font-size:16px;
 }
 
 </style>
 
 </head>
 
-
 <body>
 
-
-<!-- REAL CAMERA -->
 
 <video
 id="camera"
@@ -117,13 +91,8 @@ muted>
 </video>
 
 
-<!-- VISIBLE CAMERA -->
-
-<canvas id="screen"></canvas>
-
-
 <div id="status">
-READY
+CAMERA READY
 </div>
 
 
@@ -135,170 +104,15 @@ OPEN CAMERA
 
 <script>
 
-
 const video =
 document.getElementById("camera");
-
-
-const canvas =
-document.getElementById("screen");
-
-
-const ctx =
-canvas.getContext("2d");
-
 
 const button =
 document.getElementById("open");
 
-
 const status =
 document.getElementById("status");
 
-
-let faceMesh = null;
-
-let stream = null;
-
-let sending = false;
-
-
-
-/* =================================
-   CANVAS SIZE
-================================= */
-
-function resize(){
-
-    canvas.width =
-    window.innerWidth;
-
-    canvas.height =
-    window.innerHeight;
-
-}
-
-resize();
-
-
-window.addEventListener(
-    "resize",
-    resize
-);
-
-
-
-/* =================================
-   CAMERA DISPLAY
-================================= */
-
-function drawCamera(){
-
-    requestAnimationFrame(
-        drawCamera
-    );
-
-
-    if(
-        video.readyState < 2
-    ){
-
-        return;
-
-    }
-
-
-    const sw =
-    canvas.width;
-
-
-    const sh =
-    canvas.height;
-
-
-    const vw =
-    video.videoWidth;
-
-
-    const vh =
-    video.videoHeight;
-
-
-    if(
-        !vw ||
-        !vh
-    ){
-
-        return;
-
-    }
-
-
-    /*
-       OBJECT-COVER
-    */
-
-    const scale =
-    Math.max(
-        sw / vw,
-        sh / vh
-    );
-
-
-    const dw =
-    vw * scale;
-
-
-    const dh =
-    vh * scale;
-
-
-    const x =
-    (sw - dw) / 2;
-
-
-    const y =
-    (sh - dh) / 2;
-
-
-    ctx.clearRect(
-        0,
-        0,
-        sw,
-        sh
-    );
-
-
-    /*
-       IMPORTANT:
-
-       NO MIRROR HERE.
-
-       Camera stays natural.
-    */
-
-    ctx.drawImage(
-
-        video,
-
-        x,
-        y,
-
-        dw,
-        dh
-
-    );
-
-}
-
-
-drawCamera();
-
-
-
-/* =================================
-   OPEN CAMERA
-================================= */
 
 button.onclick =
 async function(){
@@ -309,7 +123,7 @@ async function(){
         "OPENING CAMERA...";
 
 
-        stream =
+        const stream =
         await navigator.mediaDevices
         .getUserMedia({
 
@@ -334,241 +148,32 @@ async function(){
 
 
         status.innerText =
-        "CAMERA OK";
-
-
-        startFaceMesh();
+        "CAMERA ON ✓";
 
     }
 
     catch(error){
 
-        showError(
-            "CAMERA ERROR",
-            error
+        status.innerText =
+        "CAMERA ERROR";
+
+        alert(
+
+            "CAMERA ERROR\n\n" +
+
+            error.name +
+
+            "\n\n" +
+
+            error.message
+
         );
 
     }
 
 };
 
-
-
-/* =================================
-   FACE MESH
-================================= */
-
-function startFaceMesh(){
-
-    try{
-
-        if(
-            typeof FaceMesh ===
-            "undefined"
-        ){
-
-            throw new Error(
-                "FaceMesh library did not load."
-            );
-
-        }
-
-
-        status.innerText =
-        "FACE MESH LOADING...";
-
-
-        faceMesh =
-        new FaceMesh({
-
-            locateFile:
-            function(file){
-
-                return (
-
-                    "https://cdn.jsdelivr.net/npm/" +
-
-                    "@mediapipe/face_mesh/" +
-
-                    file
-
-                );
-
-            }
-
-        });
-
-
-        faceMesh.setOptions({
-
-            maxNumFaces:1,
-
-            refineLandmarks:true,
-
-            minDetectionConfidence:0.5,
-
-            minTrackingConfidence:0.5
-
-        });
-
-
-        faceMesh.onResults(
-            onFaceResults
-        );
-
-
-        status.innerText =
-        "FACE MESH READY";
-
-
-        sendFrame();
-
-    }
-
-    catch(error){
-
-        showError(
-            "FACE MODEL ERROR",
-            error
-        );
-
-    }
-
-}
-
-
-
-/* =================================
-   SEND FRAME
-================================= */
-
-async function sendFrame(){
-
-    if(
-        sending
-    ){
-
-        requestAnimationFrame(
-            sendFrame
-        );
-
-        return;
-
-    }
-
-
-    if(
-        faceMesh &&
-        video.readyState >= 2
-    ){
-
-        sending = true;
-
-
-        try{
-
-            await faceMesh.send({
-
-                image:video
-
-            });
-
-        }
-
-        catch(error){
-
-            showError(
-                "FACE DETECTION ERROR",
-                error
-            );
-
-            sending = false;
-
-            return;
-
-        }
-
-
-        sending = false;
-
-    }
-
-
-    requestAnimationFrame(
-        sendFrame
-    );
-
-}
-
-
-
-/* =================================
-   FACE RESULT
-================================= */
-
-function onFaceResults(
-    results
-){
-
-    if(
-
-        results.multiFaceLandmarks &&
-
-        results.multiFaceLandmarks.length > 0
-
-    ){
-
-        status.innerText =
-        "FACE DETECTED ✓";
-
-    }
-
-    else{
-
-        status.innerText =
-        "FACE MESH ON — FACE NOT FOUND";
-
-    }
-
-}
-
-
-
-/* =================================
-   ERROR
-================================= */
-
-function showError(
-    title,
-    error
-){
-
-    console.error(
-        title,
-        error
-    );
-
-
-    status.innerText =
-
-        title +
-
-        "\n\n" +
-
-        (
-            error &&
-            error.message
-            ?
-            error.message
-            :
-            String(error)
-        );
-
-}
-
-
 </script>
 
 </body>
-
 </html>
