@@ -1,11 +1,139 @@
 <!DOCTYPE html>
 <html>
-<body style="background:red;color:white;text-align:center;font-size:30px">
+<head>
 
-<h1>HTML OK</h1>
+<meta name="viewport" content="width=device-width,initial-scale=1">
 
-<script>
-document.body.innerHTML += "<p>JAVASCRIPT OK</p>";
+<title>3D Cube Test</title>
+
+<style>
+
+html,body{
+    margin:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:black;
+}
+
+#three{
+    width:100%;
+    height:100%;
+    display:block;
+}
+
+#status{
+    position:fixed;
+    top:20px;
+    left:50%;
+    transform:translateX(-50%);
+    color:white;
+    font-family:Arial;
+    font-size:20px;
+    z-index:10;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div id="status">
+LOADING 3D...
+</div>
+
+<canvas id="three"></canvas>
+
+<script type="module">
+
+import * as THREE from
+"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
+
+
+const canvas =
+document.getElementById("three");
+
+
+const scene =
+new THREE.Scene();
+
+
+const camera =
+new THREE.PerspectiveCamera(
+    45,
+    window.innerWidth /
+    window.innerHeight,
+    0.1,
+    100
+);
+
+
+camera.position.z = 4;
+
+
+const renderer =
+new THREE.WebGLRenderer({
+    canvas:canvas,
+    antialias:true
+});
+
+
+renderer.setSize(
+    window.innerWidth,
+    window.innerHeight
+);
+
+
+const geometry =
+new THREE.BoxGeometry(
+    1.5,
+    1.5,
+    1.5
+);
+
+
+const material =
+new THREE.MeshNormalMaterial();
+
+
+const cube =
+new THREE.Mesh(
+    geometry,
+    material
+);
+
+
+scene.add(cube);
+
+
+function animate(){
+
+    requestAnimationFrame(
+        animate
+    );
+
+    cube.rotation.x += 0.01;
+
+    cube.rotation.y += 0.015;
+
+    renderer.render(
+        scene,
+        camera
+    );
+
+}
+
+
+animate();
+
+
+document.getElementById(
+    "status"
+).innerText =
+"3D CUBE OK";
+
+
 </script>
 
 </body>
