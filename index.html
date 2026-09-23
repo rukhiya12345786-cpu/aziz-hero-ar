@@ -2,10 +2,15 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Face 3D App - Step 1</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+<title>3D Face Tracking - Step 2</title>
 
 <style>
+*{
+  box-sizing:border-box;
+}
+
 html,body{
   margin:0;
   width:100%;
@@ -15,10 +20,34 @@ html,body{
   font-family:Arial;
 }
 
-video{
+#camera{
+  position:fixed;
+  inset:0;
   width:100%;
   height:100%;
   object-fit:cover;
+  transform:scaleX(-1);
+}
+
+#three{
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+  pointer-events:none;
+}
+
+#status{
+  position:fixed;
+  top:15px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:20;
+  background:rgba(0,0,0,.75);
+  color:white;
+  padding:10px 15px;
+  border-radius:10px;
+  font-size:14px;
 }
 
 #buttons{
@@ -26,59 +55,349 @@ video{
   bottom:20px;
   left:0;
   right:0;
+  z-index:20;
   display:flex;
   justify-content:center;
   gap:10px;
-  z-index:10;
 }
 
 button{
   padding:14px 18px;
   border:0;
   border-radius:12px;
-  font-size:15px;
   font-weight:bold;
+  font-size:15px;
 }
 </style>
 </head>
 
 <body>
 
-<video id="camera" autoplay playsinline muted></video>
+<video id="camera"
+       autoplay
+       playsinline
+       muted>
+</video>
 
-<div id="buttons">
-  <button onclick="startCamera()">📷 START</button>
-  <button onclick="switchCamera()">🔄 FRONT/BACK</button>
-  <button onclick="flipCamera()">↔️ FLIP</button>
+<canvas id="three"></canvas>
+
+<div id="status">
+  Loading...
 </div>
 
-<script>
+<div id="buttons">
 
-const video = document.getElementById("camera");
+  <button id="start">
+    📷 START
+  </button>
 
-let facing = "user";
-let mirrored = true;
+</div>
 
 
-/* START CAMERA */
+<script type="module">
+
+/* =========================
+   THREE.JS
+========================= */
+
+import * as THREE from
+"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
+
+
+/* =========================
+   MEDIAPIPE
+========================= */
+
+import {
+  FaceLandmarker,
+  FilesetResolver
+} from
+"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm";
+
+
+/* =========================
+   ELEMENTS
+========================= */
+
+const video =
+  document.getElementById("camera");
+
+const canvas =
+  document.getElementById("three");
+
+const status =
+  document.getElementById("status");
+
+const startButton =
+  document.getElementById("start");
+
+
+/* =========================
+   THREE
+========================= */
+
+const renderer =
+  new THREE.WebGLRenderer({
+    canvas:canvas,
+    alpha:true,
+    antialias:true
+  });
+
+renderer.setPixelRatio(
+  Math.min(window.devicePixelRatio,2)
+);
+
+renderer.setSize(
+  window.innerWidth,
+  window.innerHeight
+);
+
+
+const scene =
+  new THREE.Scene();
+
+
+const camera3D =
+  new THREE.PerspectiveCamera(
+    45,
+    window.innerWidth /
+    window.innerHeight,
+    0.01,
+    100
+  );
+
+camera3D.position.z = 5;
+
+
+/* =========================
+   LIGHT
+========================= */
+
+const light =
+  new THREE.DirectionalLight(
+    0xffffff,
+    3
+  );
+
+light.position.set(
+  0,
+  2,
+  4
+);
+
+scene.add(light);
+
+
+const ambient =
+  new THREE.AmbientLight(
+    0xffffff,
+    1
+  );
+
+scene.add(ambient);
+
+
+/* =========================
+   TEST 3D HEAD
+========================= */
+
+const head =
+  new THREE.Group();
+
+scene.add(head);
+
+
+/* Head */
+
+const headGeometry =
+  new THREE.SphereGeometry(
+    1,
+    32,
+    32
+  );
+
+const headMaterial =
+  new THREE.MeshStandardMaterial({
+    color:0x00aaff,
+    roughness:.7,
+    metalness:.1,
+    transparent:true,
+    opacity:.75
+  });
+
+const headMesh =
+  new THREE.Mesh(
+    headGeometry,
+    headMaterial
+  );
+
+head.add(headMesh);
+
+
+/* Nose */
+
+const noseGeometry =
+  new THREE.ConeGeometry(
+    .15,
+    .45,
+    16
+  );
+
+const noseMaterial =
+  new THREE.MeshStandardMaterial({
+    color:0xffccaa
+  });
+
+const nose =
+  new THREE.Mesh(
+    noseGeometry,
+    noseMaterial
+  );
+
+nose.rotation.x =
+  Math.PI / 2;
+
+nose.position.set(
+  0,
+  0,
+  1
+);
+
+head.add(nose);
+
+
+/* Eyes */
+
+function createEye(x){
+
+  const geometry =
+    new THREE.SphereGeometry(
+      .12,
+      16,
+      16
+    );
+
+  const material =
+    new THREE.MeshStandardMaterial({
+      color:0xffffff
+    });
+
+  const eye =
+    new THREE.Mesh(
+      geometry,
+      material
+    );
+
+  eye.position.set(
+    x,
+    .3,
+    .92
+  );
+
+  head.add(eye);
+
+}
+
+createEye(-.35);
+createEye(.35);
+
+
+/* =========================
+   TRACKER
+========================= */
+
+let faceLandmarker = null;
+
+let lastVideoTime = -1;
+
+
+/* =========================
+   CREATE TRACKER
+========================= */
+
+async function createTracker(){
+
+  status.textContent =
+    "Loading face tracker...";
+
+  try{
+
+    const vision =
+      await FilesetResolver.forVisionTasks(
+
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
+
+      );
+
+
+    faceLandmarker =
+      await FaceLandmarker.createFromOptions(
+
+        vision,
+
+        {
+
+          baseOptions:{
+
+            modelAssetPath:
+
+            "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task"
+
+          },
+
+          runningMode:"VIDEO",
+
+          numFaces:1,
+
+          minFaceDetectionConfidence:.5,
+
+          minFacePresenceConfidence:.5,
+
+          minTrackingConfidence:.5,
+
+          outputFacialTransformationMatrixes:true
+
+        }
+
+      );
+
+
+    status.textContent =
+      "Tracker Ready";
+
+  }
+
+  catch(error){
+
+    console.error(error);
+
+    status.textContent =
+      "TRACKER ERROR";
+
+    alert(
+      "Face Tracker Load Error\n\n" +
+      error.message
+    );
+
+  }
+
+}
+
+
+/* =========================
+   CAMERA
+========================= */
 
 async function startCamera(){
 
   try{
 
-    if(window.currentStream){
-
-      window.currentStream
-        .getTracks()
-        .forEach(track => track.stop());
-
-    }
-
     const stream =
-      await navigator.mediaDevices.getUserMedia({
+      await navigator.mediaDevices
+      .getUserMedia({
 
         video:{
-          facingMode:facing,
+          facingMode:"user",
           width:{ideal:1280},
           height:{ideal:720}
         },
@@ -87,60 +406,209 @@ async function startCamera(){
 
       });
 
-    window.currentStream = stream;
+    video.srcObject =
+      stream;
 
-    video.srcObject = stream;
+    await video.play();
 
-    video.style.transform =
-      mirrored ? "scaleX(-1)" : "scaleX(1)";
+    status.textContent =
+      "Camera + Tracker Starting...";
 
   }
 
   catch(error){
 
     alert(
-      "Camera Error:\n" +
-      error.name +
-      "\n" +
+      "Camera Error\n\n" +
       error.message
     );
-
-    console.error(error);
 
   }
 
 }
 
 
-/* FRONT / BACK */
+/* =========================
+   FACE UPDATE
+========================= */
 
-function switchCamera(){
+function updateFace(){
 
-  facing =
-    facing === "user"
-    ? "environment"
-    : "user";
+  if(
+    !faceLandmarker ||
+    video.readyState < 2
+  ){
 
-  mirrored =
-    facing === "user";
+    return;
 
-  startCamera();
+  }
+
+
+  if(
+    video.currentTime ===
+    lastVideoTime
+  ){
+
+    return;
+
+  }
+
+
+  lastVideoTime =
+    video.currentTime;
+
+
+  const result =
+    faceLandmarker.detectForVideo(
+
+      video,
+
+      performance.now()
+
+    );
+
+
+  if(
+    result.facialTransformationMatrixes &&
+    result.facialTransformationMatrixes.length
+  ){
+
+    const matrixData =
+      result.facialTransformationMatrixes[0]
+      .data;
+
+
+    const matrix =
+      new THREE.Matrix4();
+
+    matrix.fromArray(
+      matrixData
+    );
+
+
+    const position =
+      new THREE.Vector3();
+
+    const quaternion =
+      new THREE.Quaternion();
+
+    const scale =
+      new THREE.Vector3();
+
+
+    matrix.decompose(
+      position,
+      quaternion,
+      scale
+    );
+
+
+    /*
+      MediaPipe face coordinates
+      ko Three.js space me
+      adjust kar rahe hain.
+    */
+
+    head.position.x =
+      -position.x * 3;
+
+    head.position.y =
+      -position.y * 3;
+
+    head.position.z =
+      1.5;
+
+
+    head.quaternion.copy(
+      quaternion
+    );
+
+
+    head.scale.set(
+      1.5,
+      1.5,
+      1.5
+    );
+
+
+    status.textContent =
+      "🟢 FACE TRACKING";
+
+  }
+
+  else{
+
+    status.textContent =
+      "Face not detected";
+
+  }
 
 }
 
 
-/* FLIP */
+/* =========================
+   ANIMATION
+========================= */
 
-function flipCamera(){
+function animate(){
 
-  mirrored = !mirrored;
+  requestAnimationFrame(
+    animate
+  );
 
-  video.style.transform =
-    mirrored
-    ? "scaleX(-1)"
-    : "scaleX(1)";
+
+  updateFace();
+
+
+  renderer.render(
+    scene,
+    camera3D
+  );
 
 }
+
+animate();
+
+
+/* =========================
+   START
+========================= */
+
+startButton.onclick =
+  async function(){
+
+    await startCamera();
+
+    if(!faceLandmarker){
+
+      await createTracker();
+
+    }
+
+  };
+
+
+/* =========================
+   RESIZE
+========================= */
+
+window.addEventListener(
+  "resize",
+  ()=>{
+
+    camera3D.aspect =
+      window.innerWidth /
+      window.innerHeight;
+
+    camera3D.updateProjectionMatrix();
+
+    renderer.setSize(
+      window.innerWidth,
+      window.innerHeight
+    );
+
+  }
+);
 
 </script>
 
