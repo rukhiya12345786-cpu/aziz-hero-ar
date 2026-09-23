@@ -25,6 +25,8 @@ html,body{
     height:100%;
     object-fit:cover;
     z-index:1;
+
+    transform:scaleX(1);
 }
 
 #three{
@@ -95,6 +97,7 @@ OPEN CAMERA
 import * as THREE from
 "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
 
+
 const video =
 document.getElementById("camera");
 
@@ -107,8 +110,14 @@ document.getElementById("open");
 const info =
 document.getElementById("info");
 
+
+video.style.transform =
+"scaleX(1)";
+
+
 const scene =
 new THREE.Scene();
+
 
 const camera3D =
 new THREE.PerspectiveCamera(
@@ -119,7 +128,9 @@ new THREE.PerspectiveCamera(
     100
 );
 
+
 camera3D.position.z = 4;
+
 
 const renderer =
 new THREE.WebGLRenderer({
@@ -132,10 +143,12 @@ new THREE.WebGLRenderer({
 
 });
 
+
 renderer.setSize(
     window.innerWidth,
     window.innerHeight
 );
+
 
 renderer.setPixelRatio(
     Math.min(
@@ -144,11 +157,13 @@ renderer.setPixelRatio(
     )
 );
 
+
 const light =
 new THREE.DirectionalLight(
     0xffffff,
     3
 );
+
 
 light.position.set(
     2,
@@ -156,7 +171,9 @@ light.position.set(
     5
 );
 
+
 scene.add(light);
+
 
 const ambient =
 new THREE.AmbientLight(
@@ -164,7 +181,9 @@ new THREE.AmbientLight(
     2
 );
 
+
 scene.add(ambient);
+
 
 const geometry =
 new THREE.BoxGeometry(
@@ -173,8 +192,10 @@ new THREE.BoxGeometry(
     1.4
 );
 
+
 const material =
 new THREE.MeshNormalMaterial();
+
 
 const cube =
 new THREE.Mesh(
@@ -182,13 +203,9 @@ new THREE.Mesh(
     material
 );
 
-cube.position.set(
-    0,
-    0,
-    0
-);
 
 scene.add(cube);
+
 
 function animate(){
 
@@ -196,11 +213,14 @@ function animate(){
         animate
     );
 
+
     cube.rotation.x +=
     0.01;
 
+
     cube.rotation.y +=
     0.015;
+
 
     renderer.render(
         scene,
@@ -209,7 +229,9 @@ function animate(){
 
 }
 
+
 animate();
+
 
 button.onclick =
 async function(){
@@ -228,16 +250,25 @@ async function(){
 
         });
 
+
         video.srcObject =
         stream;
 
+
         await video.play();
+
+
+        video.style.transform =
+        "scaleX(1)";
+
 
         button.style.display =
         "none";
 
+
         info.innerText =
         "CAMERA + 3D ON";
+
 
     }
 
@@ -245,6 +276,7 @@ async function(){
 
         info.innerText =
         "CAMERA ERROR";
+
 
         alert(
             "CAMERA ERROR\n\n" +
@@ -257,6 +289,7 @@ async function(){
 
 };
 
+
 window.addEventListener(
     "resize",
     function(){
@@ -265,7 +298,9 @@ window.addEventListener(
         window.innerWidth /
         window.innerHeight;
 
+
         camera3D.updateProjectionMatrix();
+
 
         renderer.setSize(
             window.innerWidth,
