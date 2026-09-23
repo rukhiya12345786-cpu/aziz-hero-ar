@@ -4,7 +4,7 @@
 
 <meta name="viewport" content="width=device-width,initial-scale=1">
 
-<title>Camera + 3D Face Tracking</title>
+<title>Face Rotation Test</title>
 
 <style>
 
@@ -74,7 +74,7 @@ html,body{
 
     padding:10px 16px;
 
-    background:rgba(0,0,0,.7);
+    background:rgba(0,0,0,.75);
     color:white;
 
     border-radius:10px;
@@ -111,12 +111,6 @@ html,body{
 </button>
 
 
-<!--
-================================================
-MEDIAPIPE FACE MESH
-================================================
--->
-
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
 
 
@@ -150,7 +144,7 @@ const info =
 
 
 /* =================================================
-   THREE.JS
+   THREE
 ================================================= */
 
 const scene =
@@ -215,17 +209,16 @@ light.position.set(
 scene.add(light);
 
 
-const ambient =
+scene.add(
     new THREE.AmbientLight(
         0xffffff,
         2
-    );
-
-scene.add(ambient);
+    )
+);
 
 
 /* =================================================
-   3D CUBE
+   CUBE
 ================================================= */
 
 const geometry =
@@ -247,36 +240,27 @@ const cube =
     );
 
 
-cube.position.set(
-    0,
-    0,
-    0
-);
-
-
 scene.add(cube);
 
 
 /* =================================================
-   FACE TRACKER
+   TARGET VALUES
 ================================================= */
-
-let faceMesh = null;
-
-let trackingStarted = false;
-
-
-/*
-   Last known face position
-*/
 
 let targetX = 0;
 let targetY = 0;
 
+let targetRotX = 0;
+let targetRotY = 0;
+let targetRotZ = 0;
+
 
 /* =================================================
-   START FACE MESH
+   MEDIAPIPE
 ================================================= */
+
+let faceMesh = null;
+
 
 function startFaceTracking(){
 
@@ -286,7 +270,8 @@ function startFaceTracking(){
             locateFile:function(file){
 
                 return
-                `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
+                "https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/" +
+                file;
 
             }
 
@@ -314,7 +299,7 @@ function startFaceTracking(){
 
 
 /* =================================================
-   FACE RESULTS
+   FACE RESULT
 ================================================= */
 
 function onFaceResults(results){
@@ -325,54 +310,170 @@ function onFaceResults(results){
     ){
 
         info.innerText =
-            "CAMERA ON • FACE NOT FOUND";
+            "FACE NOT FOUND";
 
         return;
 
     }
 
 
-    const landmarks =
+    const p =
         results.multiFaceLandmarks[0];
 
 
     /*
-    Nose landmark.
+    ==============================================
+    FACE POSITION
+    ==============================================
     */
 
-    const nose =
-        landmarks[1];
-
-
-    /*
-    IMPORTANT:
-
-    Camera display is horizontally flipped
-    exactly like our working camera code.
-
-    Therefore the tracking X coordinate
-    is flipped too.
-    */
+    const nose = p[1];
 
     const visibleX =
         1 - nose.x;
-
 
     const visibleY =
         nose.y;
 
 
-    /*
-    Convert 0...1
-    into -1...+1
-    */
-
     targetX =
-        (visibleX - 0.5) * 4.0;
+        (visibleX - 0.5) * 4;
 
 
     targetY =
-        -(visibleY - 0.5) * 3.0;
+        -(visibleY - 0.5) * 3;
+
+
+    /*
+    ==============================================
+    HEAD ROTATION
+    ==============================================
+
+    Left eye outer
+    Right eye outer
+    Nose
+    Chin
+
+    These points give us approximate
+    head orientation.
+    ==============================================
+    */
+
+    const leftEye =
+        p[33];
+
+    const rightEye =
+        p[263];
+
+    const nosePoint =
+        p[1];
+
+    const chin =
+        p[152];
+
+
+    /*
+    ----------------------------------------------
+    ROLL
+    ----------------------------------------------
+    */
+
+    const eyeDX =
+        rightEye.x - leftEye.x;
+
+    const eyeDY =
+        rightEye.y - leftEye.y;
+
+
+    let roll =
+        Math.atan2(
+            eyeDY,
+            eyeDX
+        );
+
+
+    /*
+    ----------------------------------------------
+    YAW
+    ----------------------------------------------
+
+    Difference between nose position and
+    eye-center gives approximate left/right
+    head rotation.
+    ----------------------------------------------
+    */
+
+    const eyeCenterX =
+        (leftEye.x + rightEye.x) / 2;
+
+
+    const faceWidth =
+        Math.abs(
+            rightEye.x - leftEye.x
+        );
+
+
+    let yaw =
+        (nosePoint.x - eyeCenterX) /
+        faceWidth;
+
+
+    /*
+    ----------------------------------------------
+    PITCH
+    ----------------------------------------------
+    */
+
+    const eyeCenterY =
+        (leftEye.y + rightEye.y) / 2;
+
+
+    const faceHeight =
+        Math.abs(
+            chin.y - eyeCenterY
+        );
+
+
+    let pitch =
+        (nosePoint.y - eyeCenterY) /
+        faceHeight;
+
+
+    /*
+    LIMITS
+    */
+
+    yaw =
+        THREE.MathUtils.clamp(
+            yaw,
+            -0.8,
+            0.8
+        );
+
+
+    pitch =
+        THREE.MathUtils.clamp(
+            pitch,
+            -0.8,
+            0.8
+        );
+
+
+    /*
+    CAMERA DISPLAY IS MIRRORED,
+    SO YAW DIRECTION IS REVERSED.
+    */
+
+    targetRotY =
+        -yaw * 1.6;
+
+
+    targetRotX =
+        pitch * 1.2;
+
+
+    targetRotZ =
+        -roll * 1.2;
 
 
     info.innerText =
@@ -418,31 +519,11 @@ async function(){
             "none";
 
 
-        info.innerText =
-            "STARTING FACE TRACKING...";
-
-
-        /*
-        Start MediaPipe
-        */
-
         startFaceTracking();
 
 
-        trackingStarted =
-            true;
-
-
-        /*
-        Start camera display
-        */
-
         drawCamera();
 
-
-        /*
-        Start face processing
-        */
 
         processFace();
 
@@ -455,7 +536,6 @@ async function(){
 
 
         alert(
-            "CAMERA ERROR\n\n" +
             error.name +
             "\n\n" +
             error.message
@@ -468,7 +548,7 @@ async function(){
 
 /* =================================================
    CAMERA DISPLAY
-   KEEPING THE WORKING VERSION
+   SAME WORKING CAMERA CODE
 ================================================= */
 
 function drawCamera(){
@@ -516,14 +596,12 @@ function drawCamera(){
         const drawW =
             vw * scale;
 
-
         const drawH =
             vh * scale;
 
 
         const x =
             (cw - drawW) / 2;
-
 
         const y =
             (ch - drawH) / 2;
@@ -538,19 +616,15 @@ function drawCamera(){
 
 
         /*
-        =========================================
-        THIS IS THE WORKING CAMERA ORIENTATION
-        =========================================
+        WORKING RIGHT / LEFT FIX
         */
 
         cameraCtx.save();
-
 
         cameraCtx.translate(
             cw,
             0
         );
-
 
         cameraCtx.scale(
             -1,
@@ -586,13 +660,12 @@ function drawCamera(){
 
 
 /* =================================================
-   PROCESS FACE
+   FACE PROCESSING
 ================================================= */
 
 async function processFace(){
 
     if(
-        trackingStarted &&
         faceMesh &&
         video.readyState >= 2
     ){
@@ -607,7 +680,7 @@ async function processFace(){
         catch(error){
 
             console.log(
-                "FACE TRACKING ERROR:",
+                "FACE ERROR:",
                 error
             );
 
@@ -635,15 +708,31 @@ function animate(){
 
 
     /*
-    Smooth movement
+    POSITION
     */
 
     cube.position.x +=
-        (targetX - cube.position.x) * 0.15;
+        (targetX - cube.position.x) * 0.18;
 
 
     cube.position.y +=
-        (targetY - cube.position.y) * 0.15;
+        (targetY - cube.position.y) * 0.18;
+
+
+    /*
+    ROTATION
+    */
+
+    cube.rotation.x +=
+        (targetRotX - cube.rotation.x) * 0.18;
+
+
+    cube.rotation.y +=
+        (targetRotY - cube.rotation.y) * 0.18;
+
+
+    cube.rotation.z +=
+        (targetRotZ - cube.rotation.z) * 0.18;
 
 
     renderer.render(
@@ -681,7 +770,6 @@ window.addEventListener(
 
         cameraCanvas.width =
             window.innerWidth;
-
 
         cameraCanvas.height =
             window.innerHeight;
