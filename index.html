@@ -1,319 +1,504 @@
 <!DOCTYPE html>
 <html>
 <head>
+
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Camera Diagnostic</title>
+
+<title>Camera and 3D Test - Right Left Fixed</title>
 
 <style>
+
+*{
+    box-sizing:border-box;
+}
+
 html,body{
     margin:0;
     padding:0;
     width:100%;
     height:100%;
-    overflow:hidden;
     background:#000;
-    font-family:Arial,sans-serif;
+    overflow:hidden;
 }
 
-#video{
+#camera{
+    display:none;
+}
+
+#cameraCanvas{
     position:fixed;
-    inset:0;
+    left:0;
+    top:0;
     width:100%;
     height:100%;
-    object-fit:cover;
     z-index:1;
 }
 
-#left{
+#three{
     position:fixed;
-    left:15px;
-    top:50%;
-    transform:translateY(-50%);
-    z-index:5;
-
-    background:red;
-    color:white;
-    padding:18px;
-    border-radius:12px;
-    font-size:22px;
-    font-weight:bold;
-}
-
-#right{
-    position:fixed;
-    right:15px;
-    top:50%;
-    transform:translateY(-50%);
-    z-index:5;
-
-    background:blue;
-    color:white;
-    padding:18px;
-    border-radius:12px;
-    font-size:22px;
-    font-weight:bold;
-}
-
-#info{
-    position:fixed;
-    left:50%;
-    top:15px;
-    transform:translateX(-50%);
-    z-index:10;
-
-    width:85%;
-    padding:12px;
-
-    background:rgba(0,0,0,.8);
-    color:white;
-
-    border-radius:12px;
-    text-align:center;
-    font-size:14px;
+    left:0;
+    top:0;
+    width:100%;
+    height:100%;
+    z-index:2;
+    pointer-events:none;
 }
 
 #open{
     position:fixed;
     left:50%;
-    bottom:25px;
+    bottom:30px;
     transform:translateX(-50%);
-    z-index:20;
+
+    z-index:10;
 
     padding:16px 28px;
+
+    font-size:20px;
+    font-weight:bold;
+
     border:0;
-    border-radius:12px;
+    border-radius:10px;
 
-    font-size:19px;
-    font-weight:bold;
-}
-</style>
-</head>
-
-<body>
-
-<video id="video" autoplay playsinline muted></video>
-
-<div id="left">LEFT</div>
-<div id="right">RIGHT</div>
-
-<div id="info">CAMERA READY</div>
-
-<button id="open">OPEN CAMERA</button>
-
-<script>
-
-const video = document.getElementById("video");
-const open = document.getElementById("open");<!DOCTYPE html>
-<html>
-<head>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Camera Diagnostic</title>
-
-<style>
-html,body{
-    margin:0;
-    padding:0;
-    width:100%;
-    height:100%;
-    overflow:hidden;
-    background:#000;
-    font-family:Arial,sans-serif;
-}
-
-#video{
-    position:fixed;
-    inset:0;
-    width:100%;
-    height:100%;
-    object-fit:cover;
-    z-index:1;
-}
-
-#left{
-    position:fixed;
-    left:15px;
-    top:50%;
-    transform:translateY(-50%);
-    z-index:5;
-
-    background:red;
-    color:white;
-    padding:18px;
-    border-radius:12px;
-    font-size:22px;
-    font-weight:bold;
-}
-
-#right{
-    position:fixed;
-    right:15px;
-    top:50%;
-    transform:translateY(-50%);
-    z-index:5;
-
-    background:blue;
-    color:white;
-    padding:18px;
-    border-radius:12px;
-    font-size:22px;
-    font-weight:bold;
+    background:white;
+    color:black;
 }
 
 #info{
     position:fixed;
     left:50%;
-    top:15px;
+    top:20px;
     transform:translateX(-50%);
+
     z-index:10;
 
-    width:85%;
-    padding:12px;
+    padding:10px 16px;
 
-    background:rgba(0,0,0,.8);
+    background:rgba(0,0,0,.7);
     color:white;
 
-    border-radius:12px;
+    border-radius:10px;
+
+    font-family:Arial,sans-serif;
+    font-size:16px;
+
     text-align:center;
-    font-size:14px;
 }
 
-#open{
-    position:fixed;
-    left:50%;
-    bottom:25px;
-    transform:translateX(-50%);
-    z-index:20;
-
-    padding:16px 28px;
-    border:0;
-    border-radius:12px;
-
-    font-size:19px;
-    font-weight:bold;
-}
 </style>
+
 </head>
 
 <body>
 
-<video id="video" autoplay playsinline muted></video>
+<!-- REAL CAMERA -->
+<video
+    id="camera"
+    autoplay
+    playsinline
+    muted>
+</video>
 
-<div id="left">LEFT</div>
-<div id="right">RIGHT</div>
+<!-- CAMERA DISPLAY -->
+<canvas id="cameraCanvas"></canvas>
 
-<div id="info">CAMERA READY</div>
+<!-- THREE.JS -->
+<canvas id="three"></canvas>
 
-<button id="open">OPEN CAMERA</button>
+<div id="info">
+    3D TEST
+</div>
 
-<script>
+<button id="open">
+    OPEN CAMERA
+</button>
 
-const video = document.getElementById("video");
-const open = document.getElementById("open");
-const info = document.getElementById("info");
 
-open.onclick = async function(){
+<script type="module">
+
+import * as THREE from
+"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
+
+
+/* =========================
+   ELEMENTS
+========================= */
+
+const video =
+    document.getElementById("camera");
+
+const cameraCanvas =
+    document.getElementById("cameraCanvas");
+
+const cameraCtx =
+    cameraCanvas.getContext("2d");
+
+const threeCanvas =
+    document.getElementById("three");
+
+const button =
+    document.getElementById("open");
+
+const info =
+    document.getElementById("info");
+
+
+/* =========================
+   THREE.JS
+========================= */
+
+const scene =
+    new THREE.Scene();
+
+
+const camera3D =
+    new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth /
+        window.innerHeight,
+        0.1,
+        100
+    );
+
+
+camera3D.position.z = 4;
+
+
+const renderer =
+    new THREE.WebGLRenderer({
+
+        canvas:threeCanvas,
+
+        alpha:true,
+
+        antialias:true
+
+    });
+
+
+renderer.setSize(
+    window.innerWidth,
+    window.innerHeight
+);
+
+
+renderer.setPixelRatio(
+    Math.min(
+        window.devicePixelRatio,
+        2
+    )
+);
+
+
+/* =========================
+   LIGHT
+========================= */
+
+const light =
+    new THREE.DirectionalLight(
+        0xffffff,
+        3
+    );
+
+light.position.set(
+    2,
+    3,
+    5
+);
+
+scene.add(light);
+
+
+const ambient =
+    new THREE.AmbientLight(
+        0xffffff,
+        2
+    );
+
+scene.add(ambient);
+
+
+/* =========================
+   3D CUBE
+========================= */
+
+const geometry =
+    new THREE.BoxGeometry(
+        1.4,
+        1.4,
+        1.4
+    );
+
+
+const material =
+    new THREE.MeshNormalMaterial();
+
+
+const cube =
+    new THREE.Mesh(
+        geometry,
+        material
+    );
+
+
+cube.position.set(
+    0,
+    0,
+    0
+);
+
+
+scene.add(cube);
+
+
+/* =========================
+   CAMERA
+========================= */
+
+button.onclick =
+async function(){
 
     try{
 
+        info.innerText =
+            "OPENING CAMERA...";
+
+
         const stream =
-            await navigator.mediaDevices.getUserMedia({
+            await navigator.mediaDevices
+            .getUserMedia({
+
                 video:{
-                    facingMode:{
-                        exact:"user"
-                    }
+                    facingMode:"user"
                 },
+
                 audio:false
+
             });
 
-        video.srcObject = stream;
+
+        video.srcObject =
+            stream;
+
 
         await video.play();
 
-        const track = stream.getVideoTracks()[0];
 
-        const settings = track.getSettings();
+        button.style.display =
+            "none";
 
-        info.innerHTML =
-            "CAMERA: " +
-            (settings.facingMode || "unknown") +
-            "<br>" +
-            "SIZE: " +
-            (settings.width || "?") +
-            " × " +
-            (settings.height || "?") +
-            "<br>" +
-            "RIGHT/LEFT TEST: देखो हाथ किस तरफ जाता है";
 
-        open.style.display = "none";
+        info.innerText =
+            "CAMERA + 3D ON";
 
-        console.log("CAMERA SETTINGS:", settings);
+
+        drawCamera();
+
 
     }catch(error){
 
-        info.innerHTML =
-            "CAMERA ERROR<br>" +
+        info.innerText =
+            "CAMERA ERROR";
+
+
+        alert(
+            "CAMERA ERROR\n\n" +
             error.name +
-            "<br>" +
-            error.message;
+            "\n\n" +
+            error.message
+        );
 
     }
 
 };
 
-</script>
 
-</body>
-</html>
-const info = document.getElementById("info");
+/* =========================
+   CAMERA DRAW
+========================= */
 
-open.onclick = async function(){
+function drawCamera(){
 
-    try{
+    if(
+        video.readyState >= 2 &&
+        video.videoWidth > 0
+    ){
 
-        const stream =
-            await navigator.mediaDevices.getUserMedia({
-                video:{
-                    facingMode:{
-                        exact:"user"
-                    }
-                },
-                audio:false
-            });
+        const vw =
+            video.videoWidth;
 
-        video.srcObject = stream;
+        const vh =
+            video.videoHeight;
 
-        await video.play();
 
-        const track = stream.getVideoTracks()[0];
+        const cw =
+            window.innerWidth;
 
-        const settings = track.getSettings();
+        const ch =
+            window.innerHeight;
 
-        info.innerHTML =
-            "CAMERA: " +
-            (settings.facingMode || "unknown") +
-            "<br>" +
-            "SIZE: " +
-            (settings.width || "?") +
-            " × " +
-            (settings.height || "?") +
-            "<br>" +
-            "RIGHT/LEFT TEST: देखो हाथ किस तरफ जाता है";
 
-        open.style.display = "none";
+        if(
+            cameraCanvas.width !== cw ||
+            cameraCanvas.height !== ch
+        ){
 
-        console.log("CAMERA SETTINGS:", settings);
+            cameraCanvas.width =
+                cw;
 
-    }catch(error){
+            cameraCanvas.height =
+                ch;
 
-        info.innerHTML =
-            "CAMERA ERROR<br>" +
-            error.name +
-            "<br>" +
-            error.message;
+        }
+
+
+        /*
+        OBJECT-FIT: COVER
+        */
+
+        const scale =
+            Math.max(
+                cw / vw,
+                ch / vh
+            );
+
+
+        const drawW =
+            vw * scale;
+
+        const drawH =
+            vh * scale;
+
+
+        const x =
+            (cw - drawW) / 2;
+
+        const y =
+            (ch - drawH) / 2;
+
+
+        cameraCtx.clearRect(
+            0,
+            0,
+            cw,
+            ch
+        );
+
+
+        /*
+        ==================================
+        IMPORTANT RIGHT / LEFT FIX
+        ==================================
+
+        Flip is applied correctly around
+        the complete canvas.
+
+        Destination remains x,y.
+        ==================================
+        */
+
+        cameraCtx.save();
+
+
+        cameraCtx.translate(
+            cw,
+            0
+        );
+
+
+        cameraCtx.scale(
+            -1,
+            1
+        );
+
+
+        cameraCtx.drawImage(
+            video,
+
+            0,
+            0,
+            vw,
+            vh,
+
+            x,
+            y,
+            drawW,
+            drawH
+        );
+
+
+        cameraCtx.restore();
 
     }
 
-};
+
+    requestAnimationFrame(
+        drawCamera
+    );
+
+}
+
+
+/* =========================
+   3D ANIMATION
+========================= */
+
+function animate(){
+
+    requestAnimationFrame(
+        animate
+    );
+
+
+    cube.rotation.x +=
+        0.01;
+
+
+    cube.rotation.y +=
+        0.015;
+
+
+    renderer.render(
+        scene,
+        camera3D
+    );
+
+}
+
+
+animate();
+
+
+/* =========================
+   RESIZE
+========================= */
+
+window.addEventListener(
+    "resize",
+    function(){
+
+        camera3D.aspect =
+            window.innerWidth /
+            window.innerHeight;
+
+
+        camera3D.updateProjectionMatrix();
+
+
+        renderer.setSize(
+            window.innerWidth,
+            window.innerHeight
+        );
+
+
+        cameraCanvas.width =
+            window.innerWidth;
+
+        cameraCanvas.height =
+            window.innerHeight;
+
+    }
+);
 
 </script>
 
