@@ -43,15 +43,11 @@ html,body{
     bottom:30px;
     transform:translateX(-50%);
     z-index:10;
-
     padding:16px 28px;
-
     font-size:20px;
     font-weight:bold;
-
     border:0;
     border-radius:10px;
-
     background:white;
     color:black;
 }
@@ -61,19 +57,13 @@ html,body{
     left:50%;
     top:20px;
     transform:translateX(-50%);
-
     z-index:10;
-
     padding:10px 16px;
-
     background:rgba(0,0,0,0.7);
     color:white;
-
     border-radius:10px;
-
     font-family:Arial,sans-serif;
     font-size:16px;
-
     text-align:center;
 }
 
@@ -81,9 +71,7 @@ html,body{
 
 </head>
 
-
 <body>
-
 
 <video
     id="camera"
@@ -92,26 +80,20 @@ html,body{
     muted>
 </video>
 
-
 <canvas id="three"></canvas>
-
 
 <div id="info">
 3D TEST
 </div>
 
-
 <button id="open">
 OPEN CAMERA
 </button>
 
-
 <script type="module">
-
 
 import * as THREE from
 "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
-
 
 const video =
 document.getElementById("camera");
@@ -125,18 +107,8 @@ document.getElementById("open");
 const info =
 document.getElementById("info");
 
-
-/* =========================
-   THREE SCENE
-========================= */
-
 const scene =
 new THREE.Scene();
-
-
-/* =========================
-   3D CAMERA
-========================= */
 
 const camera3D =
 new THREE.PerspectiveCamera(
@@ -149,11 +121,6 @@ new THREE.PerspectiveCamera(
 
 camera3D.position.z = 4;
 
-
-/* =========================
-   RENDERER
-========================= */
-
 const renderer =
 new THREE.WebGLRenderer({
 
@@ -165,12 +132,10 @@ new THREE.WebGLRenderer({
 
 });
 
-
 renderer.setSize(
     window.innerWidth,
     window.innerHeight
 );
-
 
 renderer.setPixelRatio(
     Math.min(
@@ -178,11 +143,6 @@ renderer.setPixelRatio(
         2
     )
 );
-
-
-/* =========================
-   LIGHT
-========================= */
 
 const light =
 new THREE.DirectionalLight(
@@ -198,7 +158,6 @@ light.position.set(
 
 scene.add(light);
 
-
 const ambient =
 new THREE.AmbientLight(
     0xffffff,
@@ -207,11 +166,6 @@ new THREE.AmbientLight(
 
 scene.add(ambient);
 
-
-/* =========================
-   3D CUBE
-========================= */
-
 const geometry =
 new THREE.BoxGeometry(
     1.4,
@@ -219,10 +173,8 @@ new THREE.BoxGeometry(
     1.4
 );
 
-
 const material =
 new THREE.MeshNormalMaterial();
-
 
 const cube =
 new THREE.Mesh(
@@ -230,22 +182,13 @@ new THREE.Mesh(
     material
 );
 
-
-/* Put cube in front of 3D camera */
-
 cube.position.set(
     0,
     0,
     0
 );
 
-
 scene.add(cube);
-
-
-/* =========================
-   ANIMATION
-========================= */
 
 function animate(){
 
@@ -253,14 +196,11 @@ function animate(){
         animate
     );
 
-
     cube.rotation.x +=
     0.01;
 
-
     cube.rotation.y +=
     0.015;
-
 
     renderer.render(
         scene,
@@ -269,13 +209,7 @@ function animate(){
 
 }
 
-
 animate();
-
-
-/* =========================
-   OPEN CAMERA
-========================= */
 
 button.onclick =
 async function(){
@@ -294,21 +228,16 @@ async function(){
 
         });
 
-
         video.srcObject =
         stream;
 
-
         await video.play();
-
 
         button.style.display =
         "none";
 
-
         info.innerText =
         "CAMERA + 3D ON";
-
 
     }
 
@@ -316,7 +245,6 @@ async function(){
 
         info.innerText =
         "CAMERA ERROR";
-
 
         alert(
             "CAMERA ERROR\n\n" +
@@ -329,11 +257,6 @@ async function(){
 
 };
 
-
-/* =========================
-   RESIZE
-========================= */
-
 window.addEventListener(
     "resize",
     function(){
@@ -342,9 +265,7 @@ window.addEventListener(
         window.innerWidth /
         window.innerHeight;
 
-
         camera3D.updateProjectionMatrix();
-
 
         renderer.setSize(
             window.innerWidth,
@@ -354,9 +275,7 @@ window.addEventListener(
     }
 );
 
-
 </script>
-
 
 </body>
 </html>
