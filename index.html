@@ -1,421 +1,86 @@
 <!DOCTYPE html>
 <html>
-
 <head>
 
 <meta name="viewport"
 content="width=device-width,initial-scale=1">
 
-<title>Face Model Test</title>
+<title>Module Test</title>
 
 <style>
 
 html,body{
     margin:0;
-    padding:0;
     width:100%;
     height:100%;
-    overflow:hidden;
     background:#000;
-}
-
-#camera{
-    position:fixed;
-    left:0;
-    top:0;
-
-    width:100%;
-    height:100%;
-
-    object-fit:cover;
-
-    z-index:1;
+    overflow:hidden;
 }
 
 #status{
     position:fixed;
-
     left:50%;
-    top:20px;
-
-    transform:translateX(-50%);
-
-    z-index:10;
-
-    width:90%;
-    max-width:500px;
-
-    padding:12px;
-
-    background:rgba(0,0,0,.8);
-
-    color:white;
-
-    border-radius:10px;
-
-    font-family:Arial;
-
-    font-size:15px;
-
-    text-align:center;
-}
-
-#open{
-    position:fixed;
-
-    left:50%;
-    bottom:30px;
-
-    transform:translateX(-50%);
-
-    z-index:10;
-
-    padding:16px 28px;
-
-    font-size:20px;
-
-    font-weight:bold;
-
-    border:0;
-
-    border-radius:10px;
+    top:50%;
+    transform:translate(-50%,-50%);
 
     background:white;
-
     color:black;
+
+    padding:25px;
+
+    border-radius:15px;
+
+    font-family:Arial;
+    font-size:20px;
+
+    text-align:center;
 }
 
 </style>
 
 </head>
 
-
 <body>
 
-
-<video
-id="camera"
-autoplay
-playsinline
-muted>
-</video>
-
-
 <div id="status">
-CAMERA TEST
+LOADING MODULE...
 </div>
 
 
-<button id="open">
-OPEN CAMERA
-</button>
-
-
-
 <script type="module">
-
-
-/* =====================================
-   MEDIAPIPE 0.10.18
-===================================== */
-
-import {
-
-    FaceLandmarker,
-    FilesetResolver
-
-}
-
-from
-
-"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/vision_bundle.mjs";
-
-
-
-const video =
-document.getElementById("camera");
-
-const button =
-document.getElementById("open");
 
 const status =
 document.getElementById("status");
 
 
-let faceLandmarker =
-null;
+try{
 
-let lastVideoTime =
--1;
+    const THREE =
+    await import(
+        "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
+    );
 
 
-
-/* =====================================
-   OPEN CAMERA
-===================================== */
-
-button.onclick =
-async function(){
-
-    try{
+    if(THREE){
 
         status.innerText =
-        "OPENING CAMERA...";
-
-
-        const stream =
-        await navigator.mediaDevices
-        .getUserMedia({
-
-            video:{
-                facingMode:"user"
-            },
-
-            audio:false
-
-        });
-
-
-        video.srcObject =
-        stream;
-
-
-        await video.play();
-
-
-        button.style.display =
-        "none";
-
-
-        status.innerText =
-        "CAMERA OK — LOADING FACE MODEL...";
-
-
-        await loadFaceModel();
-
-    }
-
-    catch(error){
-
-        showError(
-            "CAMERA ERROR",
-            error
-        );
-
-    }
-
-};
-
-
-
-/* =====================================
-   LOAD FACE MODEL
-===================================== */
-
-async function loadFaceModel(){
-
-    try{
-
-        status.innerText =
-        "LOADING MEDIAPIPE 0.10.18...";
-
-
-        const vision =
-        await FilesetResolver
-        .forVisionTasks(
-
-            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm"
-
-        );
-
-
-        status.innerText =
-        "LOADING FACE LANDMARKER...";
-
-
-        faceLandmarker =
-        await FaceLandmarker
-        .createFromOptions(
-
-            vision,
-
-            {
-
-                baseOptions:{
-
-                    modelAssetPath:
-
-                    "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-
-                    delegate:"CPU"
-
-                },
-
-                runningMode:"VIDEO",
-
-                numFaces:1,
-
-                minFaceDetectionConfidence:0.5,
-
-                minFacePresenceConfidence:0.5,
-
-                minTrackingConfidence:0.5,
-
-                outputFaceBlendshapes:false,
-
-                outputFacialTransformationMatrixes:true
-
-            }
-
-        );
-
-
-        status.innerText =
-        "FACE MODEL READY ✓";
-
-
-        detectFace();
-
-    }
-
-    catch(error){
-
-        showError(
-            "FACE MODEL ERROR",
-            error
-        );
+        "MODULE TEST OK ✓\n\nTHREE.JS LOADED";
 
     }
 
 }
 
-
-
-/* =====================================
-   DETECT FACE
-===================================== */
-
-function detectFace(){
-
-    requestAnimationFrame(
-        detectFace
-    );
-
-
-    if(
-        !faceLandmarker
-    ){
-
-        return;
-
-    }
-
-
-    if(
-        video.readyState <
-        video.HAVE_CURRENT_DATA
-    ){
-
-        return;
-
-    }
-
-
-    if(
-        video.currentTime ===
-        lastVideoTime
-    ){
-
-        return;
-
-    }
-
-
-    lastVideoTime =
-    video.currentTime;
-
-
-    try{
-
-        const result =
-        faceLandmarker
-        .detectForVideo(
-
-            video,
-
-            performance.now()
-
-        );
-
-
-        if(
-
-            result.faceLandmarks &&
-
-            result.faceLandmarks.length > 0
-
-        ){
-
-            status.innerText =
-            "FACE DETECTED ✓";
-
-        }
-
-        else{
-
-            status.innerText =
-            "MODEL READY — FACE NOT FOUND";
-
-        }
-
-    }
-
-    catch(error){
-
-        showError(
-            "DETECTION ERROR",
-            error
-        );
-
-    }
-
-}
-
-
-
-/* =====================================
-   ERROR
-===================================== */
-
-function showError(
-    title,
-    error
-){
-
-    console.error(
-        title,
-        error
-    );
-
-
-    const message =
-    error &&
-    error.message
-    ?
-    error.message
-    :
-    String(error);
-
+catch(error){
 
     status.innerText =
-    title +
-    "\n\n" +
-    message;
+    "MODULE TEST ERROR\n\n" +
+    error.message;
+
+    console.error(error);
 
 }
 
 </script>
 
 </body>
-
 </html>
