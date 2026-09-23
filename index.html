@@ -1,14 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
-
-<meta name="viewport"
-content="width=device-width,initial-scale=1">
-
-<title>Camera Test</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Camera Right Left Fix</title>
 
 <style>
-
 html,body{
     margin:0;
     padding:0;
@@ -22,27 +18,24 @@ html,body{
     position:fixed;
     left:0;
     top:0;
-
     width:100%;
     height:100%;
-
     object-fit:cover;
+
+    /* RIGHT-LEFT FIX */
+    transform:none;
 
     z-index:1;
 }
 
 #open{
     position:fixed;
-
     left:50%;
     bottom:30px;
-
     transform:translateX(-50%);
-
     z-index:10;
 
     padding:16px 28px;
-
     font-size:20px;
     font-weight:bold;
 
@@ -55,10 +48,8 @@ html,body{
 
 #status{
     position:fixed;
-
     left:50%;
     top:20px;
-
     transform:translateX(-50%);
 
     z-index:10;
@@ -66,66 +57,37 @@ html,body{
     padding:10px 15px;
 
     background:rgba(0,0,0,.75);
-
     color:white;
 
     border-radius:10px;
 
     font-family:Arial;
-
     font-size:16px;
 }
-
 </style>
-
 </head>
 
 <body>
 
+<video id="camera" autoplay playsinline muted></video>
 
-<video
-id="camera"
-autoplay
-playsinline
-muted>
-</video>
+<div id="status">CAMERA READY</div>
 
-
-<div id="status">
-CAMERA READY
-</div>
-
-
-<button id="open">
-OPEN CAMERA
-</button>
-
-
+<button id="open">OPEN CAMERA</button>
 
 <script>
 
-const video =
-document.getElementById("camera");
+const video = document.getElementById("camera");
+const button = document.getElementById("open");
+const status = document.getElementById("status");
 
-const button =
-document.getElementById("open");
-
-const status =
-document.getElementById("status");
-
-
-button.onclick =
-async function(){
+button.onclick = async function(){
 
     try{
 
-        status.innerText =
-        "OPENING CAMERA...";
+        status.innerText = "OPENING CAMERA...";
 
-
-        const stream =
-        await navigator.mediaDevices
-        .getUserMedia({
+        const stream = await navigator.mediaDevices.getUserMedia({
 
             video:{
                 facingMode:"user"
@@ -135,38 +97,23 @@ async function(){
 
         });
 
-
-        video.srcObject =
-        stream;
-
+        video.srcObject = stream;
 
         await video.play();
 
+        button.style.display = "none";
 
-        button.style.display =
-        "none";
+        status.innerText = "CAMERA ON ✓";
 
+    }catch(error){
 
-        status.innerText =
-        "CAMERA ON ✓";
-
-    }
-
-    catch(error){
-
-        status.innerText =
-        "CAMERA ERROR";
+        status.innerText = "CAMERA ERROR";
 
         alert(
-
             "CAMERA ERROR\n\n" +
-
             error.name +
-
             "\n\n" +
-
             error.message
-
         );
 
     }
