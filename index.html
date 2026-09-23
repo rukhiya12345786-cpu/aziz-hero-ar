@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Camera Left Right Test</title>
+<title>Natural Camera</title>
 
 <style>
 html,body{
@@ -12,49 +12,18 @@ html,body{
     height:100%;
     overflow:hidden;
     background:#000;
-    font-family:Arial,sans-serif;
 }
 
-#camera{
+#video{
     display:none;
 }
 
-#screen{
+#canvas{
     position:fixed;
-    left:0;
-    top:0;
+    inset:0;
     width:100%;
     height:100%;
-}
-
-#left{
-    position:fixed;
-    left:20px;
-    top:50%;
-    transform:translateY(-50%);
-    z-index:5;
-
-    padding:20px 25px;
-    background:red;
-    color:white;
-    font-size:25px;
-    font-weight:bold;
-    border-radius:15px;
-}
-
-#right{
-    position:fixed;
-    right:20px;
-    top:50%;
-    transform:translateY(-50%);
-    z-index:5;
-
-    padding:20px 25px;
-    background:blue;
-    color:white;
-    font-size:25px;
-    font-weight:bold;
-    border-radius:15px;
+    display:block;
 }
 
 #open{
@@ -63,12 +32,11 @@ html,body{
     bottom:30px;
     transform:translateX(-50%);
     z-index:10;
-
-    padding:16px 30px;
+    padding:16px 28px;
     font-size:20px;
     font-weight:bold;
     border:0;
-    border-radius:10px;
+    border-radius:12px;
 }
 
 #status{
@@ -77,46 +45,45 @@ html,body{
     top:20px;
     transform:translateX(-50%);
     z-index:10;
-
-    padding:10px 15px;
-    background:rgba(0,0,0,.8);
+    padding:10px 16px;
     color:white;
+    background:rgba(0,0,0,.75);
     border-radius:10px;
+    font-family:Arial;
 }
 </style>
 </head>
 
 <body>
 
-<video id="camera" autoplay playsinline muted></video>
-
-<canvas id="screen"></canvas>
-
-<div id="left">LEFT</div>
-<div id="right">RIGHT</div>
+<video id="video" autoplay playsinline muted></video>
+<canvas id="canvas"></canvas>
 
 <div id="status">CAMERA READY</div>
-
 <button id="open">OPEN CAMERA</button>
 
 <script>
 
-const video = document.getElementById("camera");
-const canvas = document.getElementById("screen");
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
 const button = document.getElementById("open");
 const status = document.getElementById("status");
 
+let stream = null;
+
 button.onclick = async function(){
 
     try{
 
-        status.innerText = "OPENING...";
+        status.textContent = "OPENING CAMERA...";
 
-        const stream = await navigator.mediaDevices.getUserMedia({
+        stream = await navigator.mediaDevices.getUserMedia({
             video:{
-                facingMode:"user"
+                facingMode:{
+                    ideal:"user"
+                }
             },
             audio:false
         });
@@ -126,23 +93,20 @@ button.onclick = async function(){
         await video.play();
 
         button.style.display = "none";
-
-        status.innerText = "CAMERA ON";
+        status.textContent = "CAMERA ON";
 
         draw();
 
     }catch(error){
 
-        status.innerText = "CAMERA ERROR";
+        status.textContent = "CAMERA ERROR";
 
         alert(
             error.name +
             "\n\n" +
             error.message
         );
-
     }
-
 };
 
 
@@ -153,30 +117,38 @@ function draw(){
         const vw = video.videoWidth;
         const vh = video.videoHeight;
 
-        const cw = window.innerWidth;
-        const ch = window.innerHeight;
+        const sw = window.innerWidth;
+        const sh = window.innerHeight;
 
-        canvas.width = cw;
-        canvas.height = ch;
+        if(canvas.width !== sw || canvas.height !== sh){
+
+            canvas.width = sw;
+            canvas.height = sh;
+        }
 
         const scale = Math.max(
-            cw / vw,
-            ch / vh
+            sw / vw,
+            sh / vh
         );
 
-        const w = vw * scale;
-        const h = vh * scale;
+        const dw = vw * scale;
+        const dh = vh * scale;
 
-        const x = (cw - w) / 2;
-        const y = (ch - h) / 2;
+        const dx = (sw - dw) / 2;
+        const dy = (sh - dh) / 2;
 
-        ctx.clearRect(0,0,cw,ch);
+        ctx.clearRect(0,0,sw,sh);
 
         /*
-         * IMPORTANT:
-         * बिल्कुल NO MIRROR
-         * बिल्कुल NO FLIP
-         */
+        ====================================
+        FRONT CAMERA NATURAL VIEW
+        ====================================
+        */
+
+        ctx.save();
+
+        ctx.translate(sw,0);
+        ctx.scale(-1,1);
 
         ctx.drawImage(
             video,
@@ -184,15 +156,25 @@ function draw(){
             0,
             vw,
             vh,
-            x,
-            y,
-            w,
-            h
+            -dx,
+            dy,
+            dw,
+            dh
         );
+
+        ctx.restore();
     }
 
     requestAnimationFrame(draw);
 }
+
+
+window.addEventListener("resize",function(){
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+});
 
 </script>
 
