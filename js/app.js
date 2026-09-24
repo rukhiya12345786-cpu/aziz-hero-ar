@@ -78,3 +78,4 @@ async function startFaceTracking() {
 }
 
 startFaceTracking();
+alert("FACE TRACKING FUNCTION STARTED");
