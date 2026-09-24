@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Aziz Hero AR</title>
+<title>Aziz AR Test</title>
 
 <style>
 html,body{
@@ -27,28 +27,31 @@ html,body{
   height:100%;
 }
 
+#status{
+  position:fixed;
+  top:15px;
+  left:15px;
+  right:15px;
+  z-index:10;
+  padding:12px;
+  background:#000c;
+  color:white;
+  border-radius:10px;
+  font-family:Arial;
+  font-size:15px;
+}
+
 #switch{
   position:fixed;
   bottom:25px;
   left:50%;
   transform:translateX(-50%);
-  z-index:10;
-  padding:15px 22px;
+  z-index:20;
+  padding:14px 20px;
   border:0;
   border-radius:12px;
   font-size:16px;
   font-weight:bold;
-}
-
-#status{
-  position:fixed;
-  top:15px;
-  left:15px;
-  z-index:10;
-  padding:10px;
-  color:white;
-  background:#000b;
-  border-radius:10px;
 }
 </style>
 </head>
@@ -56,9 +59,10 @@ html,body{
 <body>
 
 <video id="camera" autoplay playsinline muted></video>
+
 <canvas id="canvas"></canvas>
 
-<div id="status">Loading...</div>
+<div id="status">Starting camera...</div>
 
 <button id="switch">🔄 Front / Back</button>
 
@@ -67,8 +71,7 @@ html,body{
 import {
   FaceDetector,
   FilesetResolver
-}
-from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22";
+} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22";
 
 
 const video = document.getElementById("camera");
@@ -77,14 +80,62 @@ const ctx = canvas.getContext("2d");
 const status = document.getElementById("status");
 const switchButton = document.getElementById("switch");
 
-let detector = null;
 let stream = null;
+let detector = null;
 let facingMode = "user";
 
+
+/* =========================
+   CAMERA FIRST
+========================= */
+
+async function startCamera(){
+
+  try{
+
+    if(stream){
+      stream.getTracks().forEach(track => track.stop());
+    }
+
+    status.textContent = "📷 Starting camera...";
+
+    stream = await navigator.mediaDevices.getUserMedia({
+      video:{
+        facingMode:facingMode
+      },
+      audio:false
+    });
+
+    video.srcObject = stream;
+
+    await video.play();
+
+    resizeCanvas();
+
+    status.textContent =
+      "📷 CAMERA WORKING — Loading Face Detector...";
+
+  }catch(error){
+
+    console.error(error);
+
+    status.textContent =
+      "❌ CAMERA ERROR: " + error.message;
+
+  }
+}
+
+
+/* =========================
+   FACE DETECTOR
+========================= */
 
 async function loadDetector(){
 
   try{
+
+    status.textContent =
+      "📷 Camera OK — Loading Face Detector...";
 
     const vision =
       await FilesetResolver.forVisionTasks(
@@ -97,137 +148,136 @@ async function loadDetector(){
         {
           baseOptions:{
             modelAssetPath:
-            "https://storage.googleapis.com/mediapipe-models/face_detector/face_detector/float16/1/face_detector.tflite"
+              "https://storage.googleapis.com/mediapipe-models/face_detector/face_detector/float16/1/face_detector.tflite"
           },
 
           runningMode:"VIDEO",
+
           minDetectionConfidence:0.5
         }
       );
 
-    status.textContent="Face Detector Ready";
-
-    startCamera();
-
-  }catch(error){
-
-    console.error(error);
-    status.textContent="Detector Error";
-
-  }
-}
-
-
-async function startCamera(){
-
-  try{
-
-    if(stream){
-      stream.getTracks().forEach(track=>track.stop());
-    }
-
-    stream =
-      await navigator.mediaDevices.getUserMedia({
-
-        video:{
-          facingMode:facingMode
-        },
-
-        audio:false
-
-      });
-
-    video.srcObject=stream;
-
-    await video.play();
-
-    resizeCanvas();
+    status.textContent =
+      "✅ CAMERA + FACE DETECTOR READY";
 
     detectFace();
 
   }catch(error){
 
     console.error(error);
-    status.textContent="Camera Error";
+
+    status.textContent =
+      "⚠️ CAMERA WORKS — FACE DETECTOR ERROR: "
+      + error.message;
 
   }
 }
 
 
-function resizeCanvas(){
-
-  canvas.width=video.videoWidth || innerWidth;
-  canvas.height=video.videoHeight || innerHeight;
-
-}
-
+/* =========================
+   FACE DETECTION
+========================= */
 
 function detectFace(){
 
-  if(!detector || video.readyState < 2){
-
-    requestAnimationFrame(detectFace);
+  if(!detector){
     return;
-
   }
 
-  const result =
-    detector.detectForVideo(
-      video,
-      performance.now()
+  if(video.readyState < 2){
+
+    requestAnimationFrame(detectFace);
+
+    return;
+  }
+
+  try{
+
+    const result =
+      detector.detectForVideo(
+        video,
+        performance.now()
+      );
+
+    ctx.clearRect(
+      0,
+      0,
+      canvas.width,
+      canvas.height
     );
 
-  ctx.clearRect(
-    0,
-    0,
-    canvas.width,
-    canvas.height
-  );
+    if(
+      result.detections &&
+      result.detections.length > 0
+    ){
 
+      const box =
+        result.detections[0].boundingBox;
 
-  if(
-    result.detections &&
-    result.detections.length
-  ){
+      const sx =
+        canvas.width / video.videoWidth;
 
-    status.textContent="🙂 FACE DETECTED";
+      const sy =
+        canvas.height / video.videoHeight;
 
-    const box =
-      result.detections[0].boundingBox;
+      ctx.strokeStyle = "#00ff88";
+      ctx.lineWidth = 4;
 
-    const sx =
-      canvas.width/video.videoWidth;
+      ctx.strokeRect(
+        box.originX * sx,
+        box.originY * sy,
+        box.width * sx,
+        box.height * sy
+      );
 
-    const sy =
-      canvas.height/video.videoHeight;
+      status.textContent =
+        "🙂 FACE DETECTED";
 
-    ctx.strokeStyle="#00ff88";
-    ctx.lineWidth=4;
+    }else{
 
-    ctx.strokeRect(
-      box.originX*sx,
-      box.originY*sy,
-      box.width*sx,
-      box.height*sy
-    );
+      status.textContent =
+        "📷 CAMERA OK — FACE NOT FOUND";
 
-  }else{
+    }
 
-    status.textContent="Face not found";
+  }catch(error){
+
+    console.error(error);
+
+    status.textContent =
+      "⚠️ DETECTION ERROR: " + error.message;
 
   }
 
   requestAnimationFrame(detectFace);
+}
+
+
+/* =========================
+   RESIZE
+========================= */
+
+function resizeCanvas(){
+
+  canvas.width =
+    video.videoWidth || window.innerWidth;
+
+  canvas.height =
+    video.videoHeight || window.innerHeight;
 
 }
 
+
+/* =========================
+   FRONT / BACK
+========================= */
 
 switchButton.addEventListener(
   "click",
   async()=>{
 
     facingMode =
-      facingMode==="user"
+      facingMode === "user"
       ? "environment"
       : "user";
 
@@ -247,6 +297,12 @@ window.addEventListener(
   resizeCanvas
 );
 
+
+/* =========================
+   START
+========================= */
+
+startCamera();
 
 loadDetector();
 
