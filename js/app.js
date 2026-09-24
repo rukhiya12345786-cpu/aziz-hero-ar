@@ -29,3 +29,29 @@ const faceLandmarker =
 
 console.log("FACE LANDMARKER READY ✓");
 status.textContent = "Face Tracking Ready ✓";
+let lastVideoTime = -1;
+
+function detectFace() {
+
+    if (video.readyState >= 2 && video.currentTime !== lastVideoTime) {
+
+        lastVideoTime = video.currentTime;
+
+        const results = faceLandmarker.detectForVideo(
+            video,
+            performance.now()
+        );
+
+        if (results.faceLandmarks.length > 0) {
+            status.textContent = "FACE DETECTED ✓";
+        } else {
+            status.textContent = "FACE NOT DETECTED";
+        }
+    }
+
+    requestAnimationFrame(detectFace);
+}
+
+video.addEventListener("loadeddata", () => {
+    detectFace();
+});
