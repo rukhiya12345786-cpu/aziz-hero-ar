@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>NEW CUBE TEST</title>
+<title>Aziz Hero AR</title>
 
 <style>
 html,body{
@@ -14,41 +14,41 @@ html,body{
   background:#000;
 }
 
-video{
+#camera{
   width:100%;
   height:100%;
   object-fit:cover;
 }
 
-.cube{
+#canvas{
   position:fixed;
-  top:50%;
+  inset:0;
+  width:100%;
+  height:100%;
+}
+
+#switch{
+  position:fixed;
+  bottom:25px;
   left:50%;
-  width:80px;
-  height:80px;
-  transform-style:preserve-3d;
-  animation:spin 3s linear infinite;
+  transform:translateX(-50%);
+  z-index:10;
+  padding:15px 22px;
+  border:0;
+  border-radius:12px;
+  font-size:16px;
+  font-weight:bold;
 }
 
-.face{
-  position:absolute;
-  width:80px;
-  height:80px;
-  background:#00ff88;
-  border:2px solid white;
-  opacity:.75;
-}
-
-.front{transform:translateZ(40px)}
-.back{transform:rotateY(180deg) translateZ(40px)}
-.right{transform:rotateY(90deg) translateZ(40px)}
-.left{transform:rotateY(-90deg) translateZ(40px)}
-.top{transform:rotateX(90deg) translateZ(40px)}
-.bottom{transform:rotateX(-90deg) translateZ(40px)}
-
-@keyframes spin{
-  from{transform:translate(-50%,-50%) rotateX(0) rotateY(0)}
-  to{transform:translate(-50%,-50%) rotateX(360deg) rotateY(360deg)}
+#status{
+  position:fixed;
+  top:15px;
+  left:15px;
+  z-index:10;
+  padding:10px;
+  color:white;
+  background:#000b;
+  border-radius:10px;
 }
 </style>
 </head>
@@ -56,27 +56,200 @@ video{
 <body>
 
 <video id="camera" autoplay playsinline muted></video>
+<canvas id="canvas"></canvas>
 
-<div class="cube">
-  <div class="face front"></div>
-  <div class="face back"></div>
-  <div class="face right"></div>
-  <div class="face left"></div>
-  <div class="face top"></div>
-  <div class="face bottom"></div>
-</div>
+<div id="status">Loading...</div>
 
-<script>
-navigator.mediaDevices.getUserMedia({
-  video:true,
-  audio:false
-})
-.then(stream=>{
-  document.getElementById("camera").srcObject=stream;
-})
-.catch(error=>{
-  alert("Camera Error: "+error.message);
-});
+<button id="switch">🔄 Front / Back</button>
+
+<script type="module">
+
+import {
+  FaceDetector,
+  FilesetResolver
+}
+from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22";
+
+
+const video = document.getElementById("camera");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const status = document.getElementById("status");
+const switchButton = document.getElementById("switch");
+
+let detector = null;
+let stream = null;
+let facingMode = "user";
+
+
+async function loadDetector(){
+
+  try{
+
+    const vision =
+      await FilesetResolver.forVisionTasks(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
+      );
+
+    detector =
+      await FaceDetector.createFromOptions(
+        vision,
+        {
+          baseOptions:{
+            modelAssetPath:
+            "https://storage.googleapis.com/mediapipe-models/face_detector/face_detector/float16/1/face_detector.tflite"
+          },
+
+          runningMode:"VIDEO",
+          minDetectionConfidence:0.5
+        }
+      );
+
+    status.textContent="Face Detector Ready";
+
+    startCamera();
+
+  }catch(error){
+
+    console.error(error);
+    status.textContent="Detector Error";
+
+  }
+}
+
+
+async function startCamera(){
+
+  try{
+
+    if(stream){
+      stream.getTracks().forEach(track=>track.stop());
+    }
+
+    stream =
+      await navigator.mediaDevices.getUserMedia({
+
+        video:{
+          facingMode:facingMode
+        },
+
+        audio:false
+
+      });
+
+    video.srcObject=stream;
+
+    await video.play();
+
+    resizeCanvas();
+
+    detectFace();
+
+  }catch(error){
+
+    console.error(error);
+    status.textContent="Camera Error";
+
+  }
+}
+
+
+function resizeCanvas(){
+
+  canvas.width=video.videoWidth || innerWidth;
+  canvas.height=video.videoHeight || innerHeight;
+
+}
+
+
+function detectFace(){
+
+  if(!detector || video.readyState < 2){
+
+    requestAnimationFrame(detectFace);
+    return;
+
+  }
+
+  const result =
+    detector.detectForVideo(
+      video,
+      performance.now()
+    );
+
+  ctx.clearRect(
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+
+  if(
+    result.detections &&
+    result.detections.length
+  ){
+
+    status.textContent="🙂 FACE DETECTED";
+
+    const box =
+      result.detections[0].boundingBox;
+
+    const sx =
+      canvas.width/video.videoWidth;
+
+    const sy =
+      canvas.height/video.videoHeight;
+
+    ctx.strokeStyle="#00ff88";
+    ctx.lineWidth=4;
+
+    ctx.strokeRect(
+      box.originX*sx,
+      box.originY*sy,
+      box.width*sx,
+      box.height*sy
+    );
+
+  }else{
+
+    status.textContent="Face not found";
+
+  }
+
+  requestAnimationFrame(detectFace);
+
+}
+
+
+switchButton.addEventListener(
+  "click",
+  async()=>{
+
+    facingMode =
+      facingMode==="user"
+      ? "environment"
+      : "user";
+
+    await startCamera();
+
+  }
+);
+
+
+video.addEventListener(
+  "loadedmetadata",
+  resizeCanvas
+);
+
+window.addEventListener(
+  "resize",
+  resizeCanvas
+);
+
+
+loadDetector();
+
 </script>
 
 </body>
