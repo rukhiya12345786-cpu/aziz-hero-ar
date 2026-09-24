@@ -2,14 +2,16 @@ import {
     FaceLandmarker,
     FilesetResolver
 } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.mjs";
-alert("APP JS IS LOADING");
+
+alert("APP JS RUNNING");
+
 const video = document.getElementById("camera");
 const status = document.getElementById("status");
 
-status.textContent = "Loading Face Tracking...";
-
 async function startFaceTracking() {
     try {
+        status.textContent = "Loading Face Tracking...";
+
         const filesetResolver =
             await FilesetResolver.forVisionTasks(
                 "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
@@ -17,19 +19,23 @@ async function startFaceTracking() {
 
         status.textContent = "Loading Face Model...";
 
+        const modelPath = new URL(
+            "../models/face_landmarker.task",
+            import.meta.url
+        ).href;
+
         const faceLandmarker =
             await FaceLandmarker.createFromOptions(
                 filesetResolver,
                 {
                     baseOptions: {
-                        modelAssetPath:
-                            new URL(
-                                "../models/face_landmarker.task",
-                                import.meta.url
-                            ).href
+                        modelAssetPath: modelPath
                     },
                     runningMode: "VIDEO",
-                    numFaces: 1
+                    numFaces: 1,
+                    minFaceDetectionConfidence: 0.3,
+                    minFacePresenceConfidence: 0.3,
+                    minTrackingConfidence: 0.3
                 }
             );
 
@@ -37,16 +43,25 @@ async function startFaceTracking() {
 
         function detectFace() {
             if (video.readyState >= 2) {
-                const results =
-                    faceLandmarker.detectForVideo(
-                        video,
-                        performance.now()
-                    );
+                try {
+                    const results =
+                        faceLandmarker.detectForVideo(
+                            video,
+                            performance.now()
+                        );
 
-                if (results.faceLandmarks.length > 0) {
-                    status.textContent = "FACE DETECTED ✓";
-                } else {
-                    status.textContent = "FACE NOT DETECTED";
+                    if (
+                        results.faceLandmarks &&
+                        results.faceLandmarks.length > 0
+                    ) {
+                        status.textContent = "FACE DETECTED ✓";
+                    } else {
+                        status.textContent = "FACE NOT DETECTED";
+                    }
+                } catch (error) {
+                    console.error(error);
+                    status.textContent =
+                        "DETECTION ERROR: " + error.message;
                 }
             }
 
@@ -56,8 +71,9 @@ async function startFaceTracking() {
         detectFace();
 
     } catch (error) {
-        console.error(error);
-        status.textContent = "ERROR: " + error.message;
+        console.error("FACE TRACKING ERROR:", error);
+        status.textContent =
+            "ERROR: " + error.message;
     }
 }
 
