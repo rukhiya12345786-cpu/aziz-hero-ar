@@ -2,57 +2,128 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport"
+      content="width=device-width,initial-scale=1.0">
 
-<title>Aziz Hero AR</title>
+<title>Aziz Hero Face</title>
 
 <style>
+*{
+  box-sizing:border-box;
+}
+
 html,body{
   margin:0;
   width:100%;
   height:100%;
   overflow:hidden;
-  background:#000;
-  font-family:Arial;
+  background:#050505;
+  font-family:Arial,sans-serif;
+  color:white;
+}
+
+#app{
+  position:relative;
+  width:100%;
+  height:100%;
 }
 
 #camera{
   position:absolute;
+  inset:0;
   width:100%;
   height:100%;
   object-fit:cover;
+  background:#111;
 }
 
-#canvas{
+#three{
   position:absolute;
-  left:0;
-  top:0;
+  inset:0;
   width:100%;
   height:100%;
+  pointer-events:none;
 }
 
-#status{
-  position:fixed;
+#top{
+  position:absolute;
   top:15px;
   left:15px;
+  right:15px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
   z-index:10;
-  padding:10px 15px;
-  border-radius:10px;
-  background:rgba(0,0,0,.7);
-  color:white;
+}
+
+#title{
+  background:rgba(0,0,0,.65);
+  padding:10px 14px;
+  border-radius:12px;
   font-weight:bold;
 }
 
-button{
-  position:fixed;
-  bottom:20px;
-  left:50%;
-  transform:translateX(-50%);
-  z-index:20;
-  padding:15px 25px;
-  border:0;
+#status{
+  background:rgba(0,0,0,.65);
+  padding:10px 14px;
   border-radius:12px;
-  font-size:16px;
+  font-size:13px;
+}
+
+#controls{
+  position:absolute;
+  left:12px;
+  right:12px;
+  bottom:12px;
+  z-index:20;
+  background:rgba(0,0,0,.78);
+  border-radius:18px;
+  padding:14px;
+  backdrop-filter:blur(10px);
+}
+
+.buttons{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+
+button,
+label{
+  border:0;
+  border-radius:10px;
+  padding:11px 13px;
+  background:#222;
+  color:white;
+  font-weight:bold;
+  font-size:13px;
+}
+
+button:active,
+label:active{
+  transform:scale(.97);
+}
+
+input[type=file]{
+  display:none;
+}
+
+.slider{
+  display:grid;
+  grid-template-columns:90px 1fr 45px;
+  gap:8px;
+  align-items:center;
+  margin-top:10px;
+  font-size:13px;
+}
+
+input[type=range]{
+  width:100%;
+}
+
+#recording{
+  color:#ff4b4b;
+  display:none;
   font-weight:bold;
 }
 </style>
@@ -60,129 +131,205 @@ button{
 
 <body>
 
-<video
-  id="camera"
-  autoplay
-  playsinline
-  muted>
-</video>
+<div id="app">
 
-<canvas id="canvas"></canvas>
+  <video id="camera"
+         autoplay
+         playsinline
+         muted></video>
 
-<div id="status">
-  Face Detector Loading...
+  <canvas id="three"></canvas>
+
+  <div id="top">
+
+    <div id="title">
+      🦸 Aziz Hero Face
+    </div>
+
+    <div id="status">
+      Camera OFF
+    </div>
+
+  </div>
+
+  <div id="controls">
+
+    <div class="buttons">
+
+      <button id="start">
+        📷 Camera
+      </button>
+
+      <button id="switch">
+        🔄 Front / Back
+      </button>
+
+      <button id="flip">
+        ↔️ Flip
+      </button>
+
+      <button id="record">
+        🔴 Record
+      </button>
+
+      <label>
+        📦 Import 3D
+        <input
+          id="modelFile"
+          type="file"
+          accept=".glb,.gltf,.obj,.fbx">
+      </label>
+
+    </div>
+
+    <div id="recording">
+      ● RECORDING
+    </div>
+
+    <div class="slider">
+
+      <span>Rotate X</span>
+
+      <input
+        id="rotX"
+        type="range"
+        min="-180"
+        max="180"
+        value="0">
+
+      <span id="rotXVal">0°</span>
+
+    </div>
+
+    <div class="slider">
+
+      <span>Rotate Y</span>
+
+      <input
+        id="rotY"
+        type="range"
+        min="-180"
+        max="180"
+        value="0">
+
+      <span id="rotYVal">0°</span>
+
+    </div>
+
+    <div class="slider">
+
+      <span>Rotate Z</span>
+
+      <input
+        id="rotZ"
+        type="range"
+        min="-180"
+        max="180"
+        value="0">
+
+      <span id="rotZVal">0°</span>
+
+    </div>
+
+    <div class="slider">
+
+      <span>Distance</span>
+
+      <input
+        id="distance"
+        type="range"
+        min="1"
+        max="10"
+        step=".1"
+        value="3">
+
+      <span id="distanceVal">3</span>
+
+    </div>
+
+  </div>
+
 </div>
 
-<button id="start">
-  📷 START CAMERA
-</button>
+
+<script type="importmap">
+{
+  "imports": {
+    "three":
+      "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+
+    "three/addons/":
+      "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+  }
+}
+</script>
 
 
 <script type="module">
 
-import {
-  FaceDetector,
-  FilesetResolver
-}
-from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22";
+import * as THREE from "three";
 
+import { GLTFLoader }
+from "three/addons/loaders/GLTFLoader.js";
 
-const video =
-  document.getElementById("camera");
+import { OBJLoader }
+from "three/addons/loaders/OBJLoader.js";
 
-const canvas =
-  document.getElementById("canvas");
-
-const ctx =
-  canvas.getContext("2d");
-
-const status =
-  document.getElementById("status");
-
-const start =
-  document.getElementById("start");
-
-
-let detector = null;
-let stream = null;
-
-
-/* =========================
-   LOAD MEDIAPIPE
-========================= */
-
-async function loadFaceDetector(){
-
-  try{
-
-    const vision =
-      await FilesetResolver.forVisionTasks(
-        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
-      );
-
-    detector =
-      await FaceDetector.createFromOptions(
-        vision,
-        {
-          baseOptions:{
-            modelAssetPath:
-              "https://storage.googleapis.com/mediapipe-models/face_detector/face_detector/float16/1/face_detector.tflite"
-          },
-
-          runningMode:"VIDEO",
-
-          minDetectionConfidence:0.5
-        }
-      );
-
-    status.textContent =
-      "Face Detector Ready";
-
-  }catch(error){
-
-    console.error(error);
-
-    status.textContent =
-      "Face Detector Error";
-
-  }
-
-}
+import { FBXLoader }
+from "three/addons/loaders/FBXLoader.js";
 
 
 /* =========================
    CAMERA
 ========================= */
 
+const video =
+  document.getElementById("camera");
+
+const status =
+  document.getElementById("status");
+
+let stream = null;
+
+let facingMode = "user";
+
+let mirrored = true;
+
+
 async function startCamera(){
 
   try{
+
+    if(stream){
+
+      stream.getTracks()
+        .forEach(track => track.stop());
+
+    }
 
     stream =
       await navigator.mediaDevices
       .getUserMedia({
 
         video:{
-          facingMode:"user",
+          facingMode:facingMode,
           width:{ideal:1280},
           height:{ideal:720}
         },
 
-        audio:false
+        audio:true
 
       });
 
-    video.srcObject =
-      stream;
+    video.srcObject = stream;
 
-    await video.play();
+    video.style.transform =
+      mirrored
+      ? "scaleX(-1)"
+      : "scaleX(1)";
 
     status.textContent =
-      "Camera ON - Detecting Face";
-
-    resizeCanvas();
-
-    detectFace();
+      "Camera ON";
 
   }catch(error){
 
@@ -191,174 +338,564 @@ async function startCamera(){
     status.textContent =
       "Camera Error";
 
-  }
-
-}
-
-
-/* =========================
-   FACE DETECTION
-========================= */
-
-function detectFace(){
-
-  if(
-    !detector ||
-    video.readyState < 2
-  ){
-
-    requestAnimationFrame(
-      detectFace
+    alert(
+      "Camera permission दें और फिर दोबारा दबाएँ."
     );
 
-    return;
   }
 
-
-  const now =
-    performance.now();
-
-
-  const result =
-    detector.detectForVideo(
-      video,
-      now
-    );
-
-
-  drawFace(result);
-
-
-  requestAnimationFrame(
-    detectFace
-  );
-
 }
 
 
-/* =========================
-   DRAW FACE BOX
-========================= */
-
-function drawFace(result){
-
-  ctx.clearRect(
-    0,
-    0,
-    canvas.width,
-    canvas.height
-  );
-
-
-  if(
-    !result ||
-    !result.detections ||
-    result.detections.length === 0
-  ){
-
-    status.textContent =
-      "Camera ON - Face not found";
-
-    return;
-
-  }
-
-
-  status.textContent =
-    "🙂 FACE DETECTED";
-
-
-  const face =
-    result.detections[0];
-
-
-  const box =
-    face.boundingBox;
-
-
-  const scaleX =
-    canvas.width /
-    video.videoWidth;
-
-
-  const scaleY =
-    canvas.height /
-    video.videoHeight;
-
-
-  const x =
-    box.originX *
-    scaleX;
-
-  const y =
-    box.originY *
-    scaleY;
-
-  const w =
-    box.width *
-    scaleX;
-
-  const h =
-    box.height *
-    scaleY;
-
-
-  ctx.strokeStyle =
-    "#00ff88";
-
-  ctx.lineWidth =
-    4;
-
-  ctx.strokeRect(
-    x,
-    y,
-    w,
-    h
-  );
-
-}
-
-
-/* =========================
-   CANVAS SIZE
-========================= */
-
-function resizeCanvas(){
-
-  canvas.width =
-    video.videoWidth ||
-    window.innerWidth;
-
-  canvas.height =
-    video.videoHeight ||
-    window.innerHeight;
-
-}
-
-
-video.addEventListener(
-  "loadedmetadata",
-  resizeCanvas
-);
-
-
-window.addEventListener(
-  "resize",
-  resizeCanvas
-);
-
-
-start.addEventListener(
+document
+.getElementById("start")
+.addEventListener(
   "click",
   startCamera
 );
 
 
 /* =========================
-   START
+   SWITCH CAMERA
 ========================= */
 
-loadFaceDetector();
+document
+.getElementById("switch")
+.addEventListener(
+  "click",
+  async () => {
+
+    facingMode =
+      facingMode === "user"
+      ? "environment"
+      : "user";
+
+    mirrored =
+      facingMode === "user";
+
+    await startCamera();
+
+  }
+);
+
+
+/* =========================
+   FLIP
+========================= */
+
+document
+.getElementById("flip")
+.addEventListener(
+  "click",
+  () => {
+
+    mirrored = !mirrored;
+
+    video.style.transform =
+      mirrored
+      ? "scaleX(-1)"
+      : "scaleX(1)";
+
+  }
+);
+
+
+/* =========================
+   THREE.JS
+========================= */
+
+const canvas =
+  document.getElementById("three");
+
+const renderer =
+  new THREE.WebGLRenderer({
+
+    canvas:canvas,
+
+    alpha:true,
+
+    antialias:true
+
+  });
+
+renderer.setPixelRatio(
+  Math.min(window.devicePixelRatio,2)
+);
+
+renderer.setSize(
+  window.innerWidth,
+  window.innerHeight
+);
+
+
+const scene =
+  new THREE.Scene();
+
+
+const camera =
+  new THREE.PerspectiveCamera(
+    45,
+    window.innerWidth /
+    window.innerHeight,
+    0.01,
+    1000
+  );
+
+camera.position.set(
+  0,
+  0,
+  3
+);
+
+
+/* LIGHT */
+
+const ambient =
+  new THREE.AmbientLight(
+    0xffffff,
+    2
+);
+
+scene.add(ambient);
+
+
+const light =
+  new THREE.DirectionalLight(
+    0xffffff,
+    3
+);
+
+light.position.set(
+  2,
+  3,
+  5
+);
+
+scene.add(light);
+
+
+/* MODEL */
+
+let currentModel = null;
+
+
+/* =========================
+   IMPORT 3D MODEL
+========================= */
+
+document
+.getElementById("modelFile")
+.addEventListener(
+  "change",
+  async event => {
+
+    const file =
+      event.target.files[0];
+
+    if(!file) return;
+
+
+    const extension =
+      file.name
+      .split(".")
+      .pop()
+      .toLowerCase();
+
+
+    const url =
+      URL.createObjectURL(file);
+
+
+    try{
+
+      let model = null;
+
+
+      /* GLB / GLTF */
+
+      if(
+        extension === "glb" ||
+        extension === "gltf"
+      ){
+
+        const loader =
+          new GLTFLoader();
+
+        const result =
+          await loader.loadAsync(url);
+
+        model =
+          result.scene;
+
+      }
+
+
+      /* OBJ */
+
+      else if(
+        extension === "obj"
+      ){
+
+        const loader =
+          new OBJLoader();
+
+        model =
+          await loader.loadAsync(url);
+
+      }
+
+
+      /* FBX */
+
+      else if(
+        extension === "fbx"
+      ){
+
+        const loader =
+          new FBXLoader();
+
+        model =
+          await loader.loadAsync(url);
+
+      }
+
+
+      else{
+
+        alert(
+          "यह 3D format supported नहीं है."
+        );
+
+        return;
+
+      }
+
+
+      /* OLD MODEL REMOVE */
+
+      if(currentModel){
+
+        scene.remove(
+          currentModel
+        );
+
+      }
+
+
+      currentModel =
+        model;
+
+
+      currentModel.position.set(
+        0,
+        0,
+        0
+      );
+
+
+      currentModel.scale.set(
+        1,
+        1,
+        1
+      );
+
+
+      scene.add(
+        currentModel
+      );
+
+
+      status.textContent =
+        "3D Model Loaded";
+
+
+    }catch(error){
+
+      console.error(error);
+
+      alert(
+        "3D model load नहीं हुआ."
+      );
+
+    }
+
+  }
+);
+
+
+/* =========================
+   SLIDERS
+========================= */
+
+const rotX =
+  document.getElementById("rotX");
+
+const rotY =
+  document.getElementById("rotY");
+
+const rotZ =
+  document.getElementById("rotZ");
+
+const distance =
+  document.getElementById("distance");
+
+
+function updateModel(){
+
+  if(!currentModel)
+    return;
+
+
+  currentModel.rotation.x =
+    THREE.MathUtils.degToRad(
+      Number(rotX.value)
+    );
+
+
+  currentModel.rotation.y =
+    THREE.MathUtils.degToRad(
+      Number(rotY.value)
+    );
+
+
+  currentModel.rotation.z =
+    THREE.MathUtils.degToRad(
+      Number(rotZ.value)
+    );
+
+
+  camera.position.z =
+    Number(distance.value);
+
+
+  document.getElementById(
+    "rotXVal"
+  ).textContent =
+    rotX.value + "°";
+
+
+  document.getElementById(
+    "rotYVal"
+  ).textContent =
+    rotY.value + "°";
+
+
+  document.getElementById(
+    "rotZVal"
+  ).textContent =
+    rotZ.value + "°";
+
+
+  document.getElementById(
+    "distanceVal"
+  ).textContent =
+    distance.value;
+
+}
+
+
+[
+  rotX,
+  rotY,
+  rotZ,
+  distance
+].forEach(
+  slider => {
+
+    slider.addEventListener(
+      "input",
+      updateModel
+    );
+
+  }
+);
+
+
+/* =========================
+   RECORDING
+========================= */
+
+let recorder = null;
+
+let recordedChunks = [];
+
+
+document
+.getElementById("record")
+.addEventListener(
+  "click",
+  async () => {
+
+    if(!stream){
+
+      alert(
+        "पहले Camera ON करें."
+      );
+
+      return;
+
+    }
+
+
+    if(
+      recorder &&
+      recorder.state === "recording"
+    ){
+
+      recorder.stop();
+
+      return;
+
+    }
+
+
+    recordedChunks = [];
+
+
+    const videoStream =
+      video.srcObject;
+
+
+    try{
+
+      recorder =
+        new MediaRecorder(
+          videoStream
+        );
+
+
+      recorder.ondataavailable =
+        event => {
+
+          if(event.data.size > 0){
+
+            recordedChunks.push(
+              event.data
+            );
+
+          }
+
+        };
+
+
+      recorder.onstop =
+        () => {
+
+          const blob =
+            new Blob(
+              recordedChunks,
+              {
+                type:"video/webm"
+              }
+            );
+
+
+          const url =
+            URL.createObjectURL(
+              blob
+            );
+
+
+          const a =
+            document.createElement(
+              "a"
+            );
+
+          a.href = url;
+
+          a.download =
+            "aziz-hero-recording.webm";
+
+          a.click();
+
+          URL.revokeObjectURL(url);
+
+
+          document.getElementById(
+            "recording"
+          ).style.display =
+            "none";
+
+
+          document.getElementById(
+            "record"
+          ).textContent =
+            "🔴 Record";
+
+        };
+
+
+      recorder.start();
+
+
+      document.getElementById(
+        "recording"
+      ).style.display =
+        "block";
+
+
+      document.getElementById(
+        "record"
+      ).textContent =
+        "⏹ Stop";
+
+
+    }catch(error){
+
+      console.error(error);
+
+      alert(
+        "Recording शुरू नहीं हो पाई."
+      );
+
+    }
+
+  }
+);
+
+
+/* =========================
+   RESIZE
+========================= */
+
+window.addEventListener(
+  "resize",
+  () => {
+
+    camera.aspect =
+      window.innerWidth /
+      window.innerHeight;
+
+    camera.updateProjectionMatrix();
+
+
+    renderer.setSize(
+      window.innerWidth,
+      window.innerHeight
+    );
+
+  }
+);
+
+
+/* =========================
+   LOOP
+========================= */
+
+function animate(){
+
+  requestAnimationFrame(
+    animate
+  );
+
+  renderer.render(
+    scene,
+    camera
+  );
+
+}
+
+animate();
 
 </script>
 
