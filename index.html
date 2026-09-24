@@ -1,9 +1,994 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>AZIZ NEW TEST 999</title>
+
+<meta charset="UTF-8">
+
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0"
+>
+
+<title>Aziz Hero AR</title>
+
+<style>
+
+html,body{
+  margin:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  background:#000;
+  font-family:Arial,sans-serif;
+}
+
+#video{
+  position:fixed;
+  inset:0;
+
+  width:100%;
+  height:100%;
+
+  object-fit:cover;
+
+  z-index:1;
+}
+
+#threeCanvas{
+  position:fixed;
+  inset:0;
+
+  width:100%;
+  height:100%;
+
+  z-index:2;
+
+  pointer-events:none;
+}
+
+#status{
+  position:fixed;
+
+  top:15px;
+  left:15px;
+
+  z-index:20;
+
+  padding:10px 14px;
+
+  border-radius:10px;
+
+  background:rgba(0,0,0,.75);
+
+  color:white;
+
+  font-size:14px;
+
+  font-weight:bold;
+}
+
+#controls{
+
+  position:fixed;
+
+  left:0;
+  bottom:20px;
+
+  width:100%;
+
+  z-index:30;
+
+  display:flex;
+
+  justify-content:center;
+
+  align-items:center;
+
+  gap:8px;
+
+  flex-wrap:wrap;
+
+  padding:10px;
+
+  box-sizing:border-box;
+}
+
+button,
+label{
+
+  background:white;
+
+  color:black;
+
+  border:0;
+
+  border-radius:10px;
+
+  padding:12px 15px;
+
+  font-size:14px;
+
+  font-weight:bold;
+
+  cursor:pointer;
+}
+
+input[type=file]{
+  display:none;
+}
+
+</style>
+
 </head>
-<body style="background:red;color:white;text-align:center;">
-  <h1>🔥 NEW CODE 999 IS RUNNING 🔥</h1>
+
+<body>
+
+
+<video
+  id="video"
+  autoplay
+  playsinline
+  muted>
+</video>
+
+
+<canvas id="threeCanvas"></canvas>
+
+
+<div id="status">
+  READY
+</div>
+
+
+<div id="controls">
+
+  <button id="startButton">
+    📷 START CAMERA
+  </button>
+
+  <button id="switchButton">
+    🔄 FRONT / BACK
+  </button>
+
+  <label for="modelInput">
+    📦 IMPORT 3D
+  </label>
+
+  <input
+    id="modelInput"
+    type="file"
+    accept=".glb,.gltf,.bin,.png,.jpg,.jpeg,.webp"
+    multiple
+  >
+
+</div>
+
+
+<script type="module">
+
+
+/* =================================
+   THREE.JS
+================================= */
+
+import * as THREE from
+"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
+
+
+import { GLTFLoader } from
+"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js";
+
+
+/* =================================
+   HTML ELEMENTS
+================================= */
+
+const video =
+document.getElementById("video");
+
+const canvas =
+document.getElementById("threeCanvas");
+
+const status =
+document.getElementById("status");
+
+const startButton =
+document.getElementById("startButton");
+
+const switchButton =
+document.getElementById("switchButton");
+
+const modelInput =
+document.getElementById("modelInput");
+
+
+/* =================================
+   CAMERA VARIABLES
+================================= */
+
+let stream = null;
+
+let facingMode = "user";
+
+
+/* =================================
+   THREE SCENE
+================================= */
+
+const scene =
+new THREE.Scene();
+
+
+const camera =
+new THREE.PerspectiveCamera(
+  45,
+  window.innerWidth /
+  window.innerHeight,
+  0.01,
+  1000
+);
+
+
+/*
+   Model will appear
+   in front of camera
+*/
+
+camera.position.set(
+  0,
+  0,
+  5
+);
+
+
+const renderer =
+new THREE.WebGLRenderer({
+
+  canvas:canvas,
+
+  alpha:true,
+
+  antialias:true,
+
+  powerPreference:"high-performance"
+
+});
+
+
+renderer.setPixelRatio(
+  Math.min(
+    window.devicePixelRatio || 1,
+    2
+  )
+);
+
+
+renderer.setSize(
+  window.innerWidth,
+  window.innerHeight
+);
+
+
+/* =================================
+   LIGHTS
+================================= */
+
+const ambientLight =
+new THREE.AmbientLight(
+  0xffffff,
+  2
+);
+
+scene.add(
+  ambientLight
+);
+
+
+const directionalLight =
+new THREE.DirectionalLight(
+  0xffffff,
+  3
+);
+
+directionalLight.position.set(
+  2,
+  4,
+  5
+);
+
+scene.add(
+  directionalLight
+);
+
+
+/* =================================
+   MODEL
+================================= */
+
+let model = null;
+
+
+/* =================================
+   CAMERA
+================================= */
+
+async function startCamera(){
+
+  try{
+
+    status.textContent =
+      "Starting camera...";
+
+
+    if(stream){
+
+      stream
+        .getTracks()
+        .forEach(
+          track =>
+            track.stop()
+        );
+
+    }
+
+
+    stream =
+      await navigator
+        .mediaDevices
+        .getUserMedia({
+
+          video:{
+            facingMode:facingMode,
+
+            width:{
+              ideal:1280
+            },
+
+            height:{
+              ideal:720
+            }
+          },
+
+          audio:false
+
+        });
+
+
+    video.srcObject =
+      stream;
+
+
+    await video.play();
+
+
+    status.textContent =
+      facingMode === "user"
+      ? "📷 FRONT CAMERA"
+      : "📷 BACK CAMERA";
+
+
+  }catch(error){
+
+    console.error(error);
+
+
+    status.textContent =
+      "❌ CAMERA ERROR";
+
+
+    alert(
+      "Camera Error:\n" +
+      error.message
+    );
+
+  }
+
+}
+
+
+startButton.addEventListener(
+  "click",
+  startCamera
+);
+
+
+/* =================================
+   FRONT / BACK
+================================= */
+
+switchButton.addEventListener(
+  "click",
+  async function(){
+
+    facingMode =
+      facingMode === "user"
+      ? "environment"
+      : "user";
+
+
+    await startCamera();
+
+  }
+);
+
+
+/* =================================
+   REMOVE OLD MODEL
+================================= */
+
+function removeOldModel(){
+
+  if(!model){
+
+    return;
+
+  }
+
+
+  scene.remove(
+    model
+  );
+
+
+  model.traverse(
+    function(object){
+
+      if(object.isMesh){
+
+        if(object.geometry){
+
+          object.geometry.dispose();
+
+        }
+
+
+        if(object.material){
+
+          if(
+            Array.isArray(
+              object.material
+            )
+          ){
+
+            object.material
+              .forEach(
+                material =>
+                  material.dispose()
+              );
+
+          }else{
+
+            object.material.dispose();
+
+          }
+
+        }
+
+      }
+
+    }
+  );
+
+
+  model = null;
+
+}
+
+
+/* =================================
+   FIT MODEL TO CAMERA
+================================= */
+
+function fitModel(
+  object
+){
+
+  const box =
+    new THREE.Box3()
+      .setFromObject(
+        object
+      );
+
+
+  const size =
+    box.getSize(
+      new THREE.Vector3()
+    );
+
+
+  const center =
+    box.getCenter(
+      new THREE.Vector3()
+    );
+
+
+  /*
+     Move model center
+     to world origin
+  */
+
+  object.position.x -=
+    center.x;
+
+  object.position.y -=
+    center.y;
+
+  object.position.z -=
+    center.z;
+
+
+  /*
+     Find largest dimension
+  */
+
+  const largest =
+    Math.max(
+      size.x,
+      size.y,
+      size.z
+    );
+
+
+  if(
+    largest > 0
+  ){
+
+    /*
+       Automatic size
+
+       This prevents
+       huge / invisible models
+    */
+
+    const targetSize = 2.2;
+
+
+    const scale =
+      targetSize /
+      largest;
+
+
+    object.scale.setScalar(
+      scale
+    );
+
+  }
+
+
+  /*
+     Put model
+     in front of camera
+  */
+
+  object.position.z =
+    0;
+
+
+  object.position.y =
+    0;
+
+
+  object.position.x =
+    0;
+
+}
+
+
+/* =================================
+   LOAD GLB
+================================= */
+
+function loadGLB(
+  file
+){
+
+  return new Promise(
+    function(resolve,reject){
+
+      const loader =
+        new GLTFLoader();
+
+
+      const url =
+        URL.createObjectURL(
+          file
+        );
+
+
+      loader.load(
+
+        url,
+
+        function(gltf){
+
+          URL.revokeObjectURL(
+            url
+          );
+
+
+          resolve(
+            gltf.scene
+          );
+
+        },
+
+        undefined,
+
+        function(error){
+
+          URL.revokeObjectURL(
+            url
+          );
+
+
+          reject(
+            error
+          );
+
+        }
+
+      );
+
+    }
+  );
+
+}
+
+
+/* =================================
+   LOAD GLTF + BIN + TEXTURES
+================================= */
+
+async function loadGLTF(
+  files,
+  mainFile
+){
+
+  /*
+     Create map of all
+     selected local files
+  */
+
+  const fileMap =
+    new Map();
+
+
+  files.forEach(
+    function(file){
+
+      fileMap.set(
+        file.name,
+        file
+      );
+
+  });
+
+
+  const manager =
+    new THREE.LoadingManager();
+
+
+  const objectURLs = [];
+
+
+  /*
+     When GLTF asks for
+     .bin / texture file,
+     give it the local file
+  */
+
+  manager.setURLModifier(
+    function(url){
+
+      const cleanName =
+        decodeURIComponent(
+          url
+            .split("/")
+            .pop()
+        );
+
+
+      const localFile =
+        fileMap.get(
+          cleanName
+        );
+
+
+      if(localFile){
+
+        const objectURL =
+          URL.createObjectURL(
+            localFile
+          );
+
+
+        objectURLs.push(
+          objectURL
+        );
+
+
+        return objectURL;
+
+      }
+
+
+      return url;
+
+    }
+  );
+
+
+  const loader =
+    new GLTFLoader(
+      manager
+    );
+
+
+  const arrayBuffer =
+    await mainFile.arrayBuffer();
+
+
+  return new Promise(
+    function(resolve,reject){
+
+      loader.parse(
+
+        arrayBuffer,
+
+        "",
+
+        function(gltf){
+
+          objectURLs.forEach(
+            url =>
+              URL.revokeObjectURL(
+                url
+              )
+          );
+
+
+          resolve(
+            gltf.scene
+          );
+
+        },
+
+        function(error){
+
+          objectURLs.forEach(
+            url =>
+              URL.revokeObjectURL(
+                url
+              )
+          );
+
+
+          reject(
+            error
+          );
+
+        }
+
+      );
+
+    }
+  );
+
+}
+
+
+/* =================================
+   IMPORT MODEL
+================================= */
+
+modelInput.addEventListener(
+  "change",
+  async function(){
+
+    const files =
+      Array.from(
+        modelInput.files
+      );
+
+
+    if(
+      files.length === 0
+    ){
+
+      return;
+
+    }
+
+
+    const mainFile =
+      files.find(
+        file =>
+          file.name
+            .toLowerCase()
+            .endsWith(".glb")
+      )
+      ||
+      files.find(
+        file =>
+          file.name
+            .toLowerCase()
+            .endsWith(".gltf")
+      );
+
+
+    if(!mainFile){
+
+      status.textContent =
+        "❌ SELECT GLB OR GLTF";
+
+
+      alert(
+        "Please select a .glb or .gltf file."
+      );
+
+
+      return;
+
+    }
+
+
+    try{
+
+      status.textContent =
+        "⏳ LOADING 3D MODEL...";
+
+
+      removeOldModel();
+
+
+      let loadedModel;
+
+
+      if(
+        mainFile.name
+          .toLowerCase()
+          .endsWith(".glb")
+      ){
+
+        loadedModel =
+          await loadGLB(
+            mainFile
+          );
+
+      }else{
+
+        /*
+           For .gltf:
+           select the .gltf file
+           together with its .bin
+           and texture files.
+        */
+
+        loadedModel =
+          await loadGLTF(
+            files,
+            mainFile
+          );
+
+      }
+
+
+      model =
+        loadedModel;
+
+
+      fitModel(
+        model
+      );
+
+
+      scene.add(
+        model
+      );
+
+
+      status.textContent =
+        "✅ 3D MODEL LOADED";
+
+
+      console.log(
+        "MODEL LOADED",
+        model
+      );
+
+
+    }catch(error){
+
+      console.error(
+        "MODEL ERROR:",
+        error
+      );
+
+
+      status.textContent =
+        "❌ 3D MODEL ERROR";
+
+
+      alert(
+        "3D Model Load Error.\n\n" +
+        "For GLTF, select the .gltf file + .bin + texture files together."
+      );
+
+    }
+
+  }
+);
+
+
+/* =================================
+   ANIMATION
+================================= */
+
+function animate(){
+
+  requestAnimationFrame(
+    animate
+  );
+
+
+  /*
+     Slow automatic rotation
+     only after model loads
+  */
+
+  if(model){
+
+    model.rotation.y +=
+      0.005;
+
+  }
+
+
+  renderer.render(
+    scene,
+    camera
+  );
+
+}
+
+
+animate();
+
+
+/* =================================
+   RESIZE
+================================= */
+
+window.addEventListener(
+  "resize",
+  function(){
+
+    camera.aspect =
+      window.innerWidth /
+      window.innerHeight;
+
+
+    camera.updateProjectionMatrix();
+
+
+    renderer.setSize(
+      window.innerWidth,
+      window.innerHeight
+    );
+
+  }
+);
+
+
+/* =================================
+   INITIAL STATUS
+================================= */
+
+status.textContent =
+  "READY — START CAMERA";
+
+
+</script>
+
 </body>
-</html>
+  </html>
