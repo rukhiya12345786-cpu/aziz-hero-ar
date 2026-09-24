@@ -35,7 +35,7 @@ html,body{
   position:fixed;
   top:15px;
   left:15px;
-  z-index:10;
+  z-index:20;
   padding:10px 15px;
   border-radius:10px;
   background:rgba(0,0,0,.7);
@@ -43,12 +43,44 @@ html,body{
   font-weight:bold;
 }
 
+#controls{
+  position:fixed;
+  left:10px;
+  right:10px;
+  bottom:80px;
+  z-index:30;
+  padding:12px;
+  border-radius:15px;
+  background:rgba(0,0,0,.75);
+  color:white;
+}
+
+.control{
+  margin:6px 0;
+}
+
+.control label{
+  display:block;
+  font-size:13px;
+  margin-bottom:3px;
+}
+
+input[type="range"]{
+  width:100%;
+}
+
+#modelInput{
+  width:100%;
+  margin-bottom:8px;
+  color:white;
+}
+
 button{
   position:fixed;
   bottom:20px;
   left:50%;
   transform:translateX(-50%);
-  z-index:20;
+  z-index:40;
   padding:15px 25px;
   border:0;
   border-radius:12px;
@@ -70,11 +102,114 @@ button{
 <canvas id="canvas"></canvas>
 
 <div id="status">
-  Face Detector Loading...
+Face Detector Loading...
+</div>
+
+<div id="controls">
+
+  <input
+    type="file"
+    id="modelInput"
+    accept=".glb,.gltf">
+
+  <div class="control">
+    <label>
+      Size: <span id="sizeValue">1.00</span>
+    </label>
+    <input
+      id="size"
+      type="range"
+      min="0.05"
+      max="3"
+      step="0.05"
+      value="1">
+  </div>
+
+  <div class="control">
+    <label>
+      X Position: <span id="xValue">0</span>
+    </label>
+    <input
+      id="posX"
+      type="range"
+      min="-5"
+      max="5"
+      step="0.01"
+      value="0">
+  </div>
+
+  <div class="control">
+    <label>
+      Y Position: <span id="yValue">0</span>
+    </label>
+    <input
+      id="posY"
+      type="range"
+      min="-5"
+      max="5"
+      step="0.01"
+      value="0">
+  </div>
+
+  <div class="control">
+    <label>
+      Z Position: <span id="zValue">0</span>
+    </label>
+    <input
+      id="posZ"
+      type="range"
+      min="-5"
+      max="5"
+      step="0.01"
+      value="0">
+  </div>
+
+  <div class="control">
+    <label>
+      🔄 Y Rotation 360°:
+      <span id="rotYValue">0°</span>
+    </label>
+    <input
+      id="rotY"
+      type="range"
+      min="0"
+      max="360"
+      step="1"
+      value="0">
+  </div>
+
+  <div class="control">
+    <label>
+      X Rotation:
+      <span id="rotXValue">0°</span>
+    </label>
+    <input
+      id="rotX"
+      type="range"
+      min="0"
+      max="360"
+      step="1"
+      value="0">
+  </div>
+
+  <div class="control">
+    <label>
+      Z Rotation:
+      <span id="rotZValue">0°</span>
+    </label>
+    <input
+      id="rotZ"
+      type="range"
+      min="0"
+      max="360"
+      step="1"
+      value="0">
+  </div>
+
 </div>
 
 <button id="start">
-  📷 START CAMERA
+📷 START CAMERA
 </button>
 
 
@@ -86,25 +221,326 @@ import {
 }
 from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22";
 
+import * as THREE
+from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
+
+import { GLTFLoader }
+from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js";
+
 
 const video =
-  document.getElementById("camera");
+document.getElementById("camera");
 
 const canvas =
-  document.getElementById("canvas");
+document.getElementById("canvas");
 
 const ctx =
-  canvas.getContext("2d");
+canvas.getContext("2d");
 
 const status =
-  document.getElementById("status");
+document.getElementById("status");
 
 const start =
-  document.getElementById("start");
+document.getElementById("start");
+
+const modelInput =
+document.getElementById("modelInput");
 
 
 let detector = null;
 let stream = null;
+
+
+/* =========================
+   THREE.JS
+========================= */
+
+const scene =
+new THREE.Scene();
+
+const camera3D =
+new THREE.PerspectiveCamera(
+45,
+window.innerWidth / window.innerHeight,
+0.01,
+100
+);
+
+camera3D.position.z = 5;
+
+
+const renderer =
+new THREE.WebGLRenderer({
+alpha:true,
+antialias:true
+});
+
+renderer.setSize(
+window.innerWidth,
+window.innerHeight
+);
+
+renderer.setPixelRatio(
+Math.min(window.devicePixelRatio,2)
+);
+
+renderer.domElement.style.position =
+"absolute";
+
+renderer.domElement.style.left =
+"0";
+
+renderer.domElement.style.top =
+"0";
+
+renderer.domElement.style.width =
+"100%";
+
+renderer.domElement.style.height =
+"100%";
+
+renderer.domElement.style.zIndex =
+"5";
+
+renderer.domElement.style.pointerEvents =
+"none";
+
+document.body.appendChild(
+renderer.domElement
+);
+
+
+/* LIGHT */
+
+const light =
+new THREE.HemisphereLight(
+0xffffff,
+0x444444,
+2
+);
+
+scene.add(light);
+
+
+const loader =
+new GLTFLoader();
+
+
+let model = null;
+
+
+/* =========================
+   MODEL IMPORT
+========================= */
+
+modelInput.addEventListener(
+"change",
+function(){
+
+  const file =
+  this.files[0];
+
+  if(!file){
+    return;
+  }
+
+  const url =
+  URL.createObjectURL(file);
+
+  status.textContent =
+  "Loading 3D Model...";
+
+  loader.load(
+    url,
+
+    function(gltf){
+
+      if(model){
+        scene.remove(model);
+      }
+
+      model =
+      gltf.scene;
+
+      model.scale.set(
+        1,
+        1,
+        1
+      );
+
+      model.position.set(
+        0,
+        0,
+        0
+      );
+
+      scene.add(model);
+
+      status.textContent =
+      "3D Model Loaded";
+
+      URL.revokeObjectURL(url);
+
+    },
+
+    undefined,
+
+    function(error){
+
+      console.error(error);
+
+      status.textContent =
+      "3D Model Error";
+
+    }
+  );
+
+});
+
+
+/* =========================
+   SLIDERS
+========================= */
+
+const size =
+document.getElementById("size");
+
+const posX =
+document.getElementById("posX");
+
+const posY =
+document.getElementById("posY");
+
+const posZ =
+document.getElementById("posZ");
+
+const rotX =
+document.getElementById("rotX");
+
+const rotY =
+document.getElementById("rotY");
+
+const rotZ =
+document.getElementById("rotZ");
+
+
+function updateModel(){
+
+  if(!model){
+    return;
+  }
+
+  const s =
+  parseFloat(size.value);
+
+  model.scale.set(
+    s,
+    s,
+    s
+  );
+
+  model.position.x =
+  parseFloat(posX.value);
+
+  model.position.y =
+  parseFloat(posY.value);
+
+  model.position.z =
+  parseFloat(posZ.value);
+
+  model.rotation.x =
+  THREE.MathUtils.degToRad(
+    parseFloat(rotX.value)
+  );
+
+  model.rotation.y =
+  THREE.MathUtils.degToRad(
+    parseFloat(rotY.value)
+  );
+
+  model.rotation.z =
+  THREE.MathUtils.degToRad(
+    parseFloat(rotZ.value)
+  );
+
+
+  document.getElementById(
+    "sizeValue"
+  ).textContent =
+  s.toFixed(2);
+
+  document.getElementById(
+    "xValue"
+  ).textContent =
+  posX.value;
+
+  document.getElementById(
+    "yValue"
+  ).textContent =
+  posY.value;
+
+  document.getElementById(
+    "zValue"
+  ).textContent =
+  posZ.value;
+
+  document.getElementById(
+    "rotXValue"
+  ).textContent =
+  rotX.value + "°";
+
+  document.getElementById(
+    "rotYValue"
+  ).textContent =
+  rotY.value + "°";
+
+  document.getElementById(
+    "rotZValue"
+  ).textContent =
+  rotZ.value + "°";
+
+}
+
+
+[
+size,
+posX,
+posY,
+posZ,
+rotX,
+rotY,
+rotZ
+].forEach(
+function(slider){
+
+  slider.addEventListener(
+    "input",
+    updateModel
+  );
+
+});
+
+
+/* =========================
+   RENDER
+========================= */
+
+function render(){
+
+  updateModel();
+
+  renderer.render(
+    scene,
+    camera3D
+  );
+
+  requestAnimationFrame(
+    render
+  );
+
+}
+
+render();
 
 
 /* =========================
@@ -116,34 +552,36 @@ async function loadFaceDetector(){
   try{
 
     const vision =
-      await FilesetResolver.forVisionTasks(
-        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
-      );
+    await FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
+    );
 
     detector =
-      await FaceDetector.createFromOptions(
-        vision,
-        {
-          baseOptions:{
-            modelAssetPath:
-              "https://storage.googleapis.com/mediapipe-models/face_detector/face_detector/float16/1/face_detector.tflite"
-          },
+    await FaceDetector.createFromOptions(
+      vision,
+      {
+        baseOptions:{
+          modelAssetPath:
+          "https://storage.googleapis.com/mediapipe-models/face_detector/face_detector/float16/1/face_detector.tflite"
+        },
 
-          runningMode:"VIDEO",
+        runningMode:"VIDEO",
 
-          minDetectionConfidence:0.5
-        }
-      );
+        minDetectionConfidence:0.5
+      }
+    );
 
     status.textContent =
-      "Face Detector Ready";
+    "Face Detector Ready";
 
-  }catch(error){
+  }
+
+  catch(error){
 
     console.error(error);
 
     status.textContent =
-      "Face Detector Error";
+    "Face Detector Error";
 
   }
 
@@ -159,37 +597,39 @@ async function startCamera(){
   try{
 
     stream =
-      await navigator.mediaDevices
-      .getUserMedia({
+    await navigator.mediaDevices
+    .getUserMedia({
 
-        video:{
-          facingMode:"user",
-          width:{ideal:1280},
-          height:{ideal:720}
-        },
+      video:{
+        facingMode:"user",
+        width:{ideal:1280},
+        height:{ideal:720}
+      },
 
-        audio:false
+      audio:false
 
-      });
+    });
 
     video.srcObject =
-      stream;
+    stream;
 
     await video.play();
 
     status.textContent =
-      "Camera ON - Detecting Face";
+    "Camera ON - Detecting Face";
 
     resizeCanvas();
 
     detectFace();
 
-  }catch(error){
+  }
+
+  catch(error){
 
     console.error(error);
 
     status.textContent =
-      "Camera Error";
+    "Camera Error";
 
   }
 
@@ -212,22 +652,20 @@ function detectFace(){
     );
 
     return;
+
   }
 
 
   const now =
-    performance.now();
-
+  performance.now();
 
   const result =
-    detector.detectForVideo(
-      video,
-      now
-    );
-
+  detector.detectForVideo(
+    video,
+    now
+  );
 
   drawFace(result);
-
 
   requestAnimationFrame(
     detectFace
@@ -257,7 +695,7 @@ function drawFace(result){
   ){
 
     status.textContent =
-      "Camera ON - Face not found";
+    "Camera ON - Face not found";
 
     return;
 
@@ -265,49 +703,47 @@ function drawFace(result){
 
 
   status.textContent =
-    "🙂 FACE DETECTED";
+  "🙂 FACE DETECTED";
 
 
   const face =
-    result.detections[0];
-
+  result.detections[0];
 
   const box =
-    face.boundingBox;
+  face.boundingBox;
 
 
   const scaleX =
-    canvas.width /
-    video.videoWidth;
-
+  canvas.width /
+  video.videoWidth;
 
   const scaleY =
-    canvas.height /
-    video.videoHeight;
+  canvas.height /
+  video.videoHeight;
 
 
   const x =
-    box.originX *
-    scaleX;
+  box.originX *
+  scaleX;
 
   const y =
-    box.originY *
-    scaleY;
+  box.originY *
+  scaleY;
 
   const w =
-    box.width *
-    scaleX;
+  box.width *
+  scaleX;
 
   const h =
-    box.height *
-    scaleY;
+  box.height *
+  scaleY;
 
 
   ctx.strokeStyle =
-    "#00ff88";
+  "#00ff88";
 
   ctx.lineWidth =
-    4;
+  4;
 
   ctx.strokeRect(
     x,
@@ -320,37 +756,51 @@ function drawFace(result){
 
 
 /* =========================
-   CANVAS SIZE
+   CANVAS
 ========================= */
 
 function resizeCanvas(){
 
   canvas.width =
-    video.videoWidth ||
-    window.innerWidth;
+  video.videoWidth ||
+  window.innerWidth;
 
   canvas.height =
-    video.videoHeight ||
-    window.innerHeight;
+  video.videoHeight ||
+  window.innerHeight;
 
 }
 
 
 video.addEventListener(
-  "loadedmetadata",
-  resizeCanvas
+"loadedmetadata",
+resizeCanvas
 );
 
 
 window.addEventListener(
-  "resize",
-  resizeCanvas
-);
+"resize",
+function(){
+
+  resizeCanvas();
+
+  camera3D.aspect =
+  window.innerWidth /
+  window.innerHeight;
+
+  camera3D.updateProjectionMatrix();
+
+  renderer.setSize(
+    window.innerWidth,
+    window.innerHeight
+  );
+
+});
 
 
 start.addEventListener(
-  "click",
-  startCamera
+"click",
+startCamera
 );
 
 
