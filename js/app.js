@@ -3,13 +3,10 @@ import {
     FilesetResolver
 } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22";
 
-console.log("AZIZ AR - Face Tracking Starting");
+alert("APP.JS WORKING");
 
 const video = document.getElementById("camera");
 const status = document.getElementById("status");
-
-console.log("Video:", video ? "FOUND" : "NOT FOUND");
-console.log("Status:", status ? "FOUND" : "NOT FOUND");
 
 async function startFaceTracking() {
 
@@ -35,20 +32,11 @@ async function startFaceTracking() {
                 }
             );
 
-        console.log("FACE LANDMARKER READY ✓");
-
         status.textContent = "Face Tracking Ready ✓";
-
-        let lastVideoTime = -1;
 
         function detectFace() {
 
-            if (
-                video.readyState >= 2 &&
-                video.currentTime !== lastVideoTime
-            ) {
-
-                lastVideoTime = video.currentTime;
+            if (video.readyState >= 2) {
 
                 const results =
                     faceLandmarker.detectForVideo(
@@ -57,41 +45,20 @@ async function startFaceTracking() {
                     );
 
                 if (results.faceLandmarks.length > 0) {
-
-                    status.textContent =
-                        "FACE DETECTED ✓";
-
-                    console.log("FACE DETECTED");
-
+                    status.textContent = "FACE DETECTED ✓";
                 } else {
-
-                    status.textContent =
-                        "FACE NOT DETECTED";
+                    status.textContent = "FACE NOT DETECTED";
                 }
             }
 
             requestAnimationFrame(detectFace);
         }
 
-        if (video.readyState >= 2) {
-
-            detectFace();
-
-        } else {
-
-            video.addEventListener(
-                "loadeddata",
-                detectFace,
-                { once: true }
-            );
-        }
+        detectFace();
 
     } catch (error) {
 
-        console.error(
-            "Face Tracking Error:",
-            error
-        );
+        console.error(error);
 
         status.textContent =
             "Face Tracking Error";
