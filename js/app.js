@@ -1,28 +1,7 @@
-console.log("AZIZ AR - Camera Test");
+console.log("AZIZ AR - Face Tracking JS Connected");
 
 const video = document.getElementById("camera");
+const status = document.getElementById("status");
 
-async function startCamera() {
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-                facingMode: "user"
-            },
-            audio: false
-        });
-
-        video.srcObject = stream;
-
-        document.getElementById("status").textContent =
-            "Camera Working ✓";
-
-        console.log("Camera started");
-    } catch (error) {
-        document.getElementById("status").textContent =
-            "Camera Error: " + error.message;
-
-        console.error(error);
-    }
-}
-
-startCamera();
+console.log("Video element:", video ? "FOUND" : "NOT FOUND");
+console.log("Status element:", status ? "FOUND" : "NOT FOUND");
