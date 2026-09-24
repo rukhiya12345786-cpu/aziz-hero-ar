@@ -3,32 +3,97 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Simple Camera</title>
+  <title>Camera Test</title>
+
   <style>
     html, body {
       margin: 0;
       width: 100%;
       height: 100%;
       background: #000;
+      overflow: hidden;
     }
+
     video {
       width: 100%;
       height: 100%;
       object-fit: cover;
     }
+
+    #switch {
+      position: fixed;
+      bottom: 25px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      padding: 15px 22px;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: bold;
+    }
   </style>
 </head>
+
 <body>
-  <video id="camera" autoplay playsinline></video>
+
+  <video id="camera" autoplay playsinline muted></video>
+
+  <button id="switch">🔄 Front / Back</button>
+
   <script>
-    const video = document.getElementById('camera');
-    navigator.mediaDevices.getUserMedia({
-      video: true
-    }).then(stream => {
-      video.srcObject = stream;
-    }).catch(err => {
-      console.error("Camera access error: ", err);
+
+    const video = document.getElementById("camera");
+
+    let stream = null;
+    let facingMode = "user";
+
+    async function startCamera() {
+
+      try {
+
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+        }
+
+        stream = await navigator.mediaDevices.getUserMedia({
+
+          video: {
+            facingMode: facingMode
+          },
+
+          audio: false
+
+        });
+
+        video.srcObject = stream;
+
+        await video.play();
+
+      } catch (error) {
+
+        console.error(error);
+        alert("Camera Error: " + error.message);
+
+      }
+
+    }
+
+
+    document.getElementById("switch").addEventListener("click", async () => {
+
+      facingMode = facingMode === "user"
+        ? "environment"
+        : "user";
+
+      await startCamera();
+
     });
+
+
+    startCamera();
+
   </script>
+
 </body>
 </html>
