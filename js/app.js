@@ -2,7 +2,7 @@ import {
     FaceLandmarker,
     FilesetResolver
 } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.mjs";
-
+alert("APP JS RUNNING");
 const video = document.getElementById("camera");
 const status = document.getElementById("status");
 
