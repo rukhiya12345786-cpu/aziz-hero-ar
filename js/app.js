@@ -1,7 +1,12 @@
-console.log("AZIZ AR - Face Tracking JS Connected");
+import {
+    FaceLandmarker,
+    FilesetResolver
+} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22";
+
+console.log("MediaPipe Face Landmarker loaded");
 
 const video = document.getElementById("camera");
 const status = document.getElementById("status");
 
-console.log("Video element:", video ? "FOUND" : "NOT FOUND");
-console.log("Status element:", status ? "FOUND" : "NOT FOUND");
+console.log("Video:", video ? "FOUND" : "NOT FOUND");
+console.log("Status:", status ? "FOUND" : "NOT FOUND");
