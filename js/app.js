@@ -2,61 +2,73 @@ import {
     FaceLandmarker,
     FilesetResolver
 } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.mjs";
-alert("FACE SCRIPT LOADED");
+
 const video = document.getElementById("camera");
 const status = document.getElementById("status");
 
 let faceLandmarker = null;
 let lastVideoTime = -1;
+let trackingStarted = false;
 
-function setStatus(message) {
+function statusMessage(message) {
+    console.log("[AZIZ AR]", message);
+
     if (status) {
         status.textContent = message;
     }
-    console.log(message);
 }
 
-async function startFaceTracking() {
+async function loadFaceTracker() {
     try {
-        setStatus("FACE: Loading MediaPipe...");
+        statusMessage("FACE: Loading MediaPipe...");
 
-        const vision = await FilesetResolver.forVisionTasks(
-            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
-        );
+        const vision =
+            await FilesetResolver.forVisionTasks(
+                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
+            );
 
-        setStatus("FACE: Loading model...");
+        statusMessage("FACE: Loading model...");
 
-        const modelPath = new URL(
-            "../models/face_landmarker.task",
-            import.meta.url
-        ).href;
+        const modelPath =
+            new URL(
+                "../models/face_landmarker.task",
+                import.meta.url
+            ).href;
 
-        console.log("MODEL:", modelPath);
+        console.log("[AZIZ AR] Model:", modelPath);
 
-        faceLandmarker = await FaceLandmarker.createFromOptions(
-            vision,
-            {
-                baseOptions: {
-                    modelAssetPath: modelPath
-                },
+        faceLandmarker =
+            await FaceLandmarker.createFromOptions(
+                vision,
+                {
+                    baseOptions: {
+                        modelAssetPath: modelPath
+                    },
 
-                runningMode: "VIDEO",
-                numFaces: 1,
+                    runningMode: "VIDEO",
 
-                minFaceDetectionConfidence: 0.3,
-                minFacePresenceConfidence: 0.3,
-                minTrackingConfidence: 0.3
-            }
-        );
+                    numFaces: 1,
 
-        setStatus("FACE TRACKING READY");
+                    minFaceDetectionConfidence: 0.3,
 
-        waitForVideo();
+                    minFacePresenceConfidence: 0.3,
+
+                    minTrackingConfidence: 0.3
+                }
+            );
+
+        statusMessage("FACE TRACKING READY");
+
+        waitForCamera();
 
     } catch (error) {
-        console.error("FACE TRACKING ERROR:", error);
 
-        setStatus(
+        console.error(
+            "[AZIZ AR] Face tracker error:",
+            error
+        );
+
+        statusMessage(
             "FACE ERROR: " +
             (error && error.message
                 ? error.message
@@ -65,64 +77,115 @@ async function startFaceTracking() {
     }
 }
 
-function waitForVideo() {
+function waitForCamera() {
 
     if (!video) {
-        setStatus("VIDEO ERROR");
+
+        statusMessage(
+            "ERROR: Camera element not found"
+        );
+
         return;
     }
 
     if (video.readyState >= 2) {
-        requestAnimationFrame(detectFace);
+
+        if (!trackingStarted) {
+
+            trackingStarted = true;
+
+            requestAnimationFrame(
+                detectFace
+            );
+        }
+
         return;
     }
 
-    setStatus("FACE: Waiting for camera...");
+    statusMessage(
+        "FACE: Waiting for camera..."
+    );
 
-    setTimeout(waitForVideo, 300);
+    setTimeout(
+        waitForCamera,
+        300
+    );
 }
 
 function detectFace() {
 
-    if (!faceLandmarker || !video) {
-        requestAnimationFrame(detectFace);
+    if (!faceLandmarker) {
+
+        requestAnimationFrame(
+            detectFace
+        );
+
+        return;
+    }
+
+    if (!video) {
+
+        requestAnimationFrame(
+            detectFace
+        );
+
         return;
     }
 
     if (video.readyState < 2) {
-        requestAnimationFrame(detectFace);
+
+        requestAnimationFrame(
+            detectFace
+        );
+
         return;
     }
 
     if (video.currentTime === lastVideoTime) {
-        requestAnimationFrame(detectFace);
+
+        requestAnimationFrame(
+            detectFace
+        );
+
         return;
     }
 
-    lastVideoTime = video.currentTime;
+    lastVideoTime =
+        video.currentTime;
 
     try {
 
-        const results = faceLandmarker.detectForVideo(
-            video,
-            performance.now()
-        );
+        const results =
+            faceLandmarker.detectForVideo(
+                video,
+                performance.now()
+            );
 
         if (
             results &&
             results.faceLandmarks &&
             results.faceLandmarks.length > 0
         ) {
-            setStatus("FACE DETECTED");
+
+            statusMessage(
+                "FACE DETECTED ✓"
+            );
+
         } else {
-            setStatus("FACE NOT DETECTED");
+
+            statusMessage(
+                "FACE NOT DETECTED"
+            );
         }
 
     } catch (error) {
 
-        console.error("DETECTION ERROR:", error);
+        console.error(
+            "[AZIZ AR] Detection error:",
+            error
+        );
 
-        setStatus(
+        statusMessage(
             "DETECTION ERROR: " +
             (error && error.message
                 ? error.message
@@ -130,7 +193,9 @@ function detectFace() {
         );
     }
 
-    requestAnimationFrame(detectFace);
+    requestAnimationFrame(
+        detectFace
+    );
 }
 
-startFaceTracking();
+loadFaceTracker();
