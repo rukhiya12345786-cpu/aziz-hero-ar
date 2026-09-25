@@ -1,511 +1,287 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
 <meta charset="UTF-8">
-
-<meta name="viewport"
-content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
 <title>Aziz Hero AR</title>
 
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
-  }
-}
-</script>
-
 <style>
-
 *{
-  box-sizing:border-box;
-  -webkit-tap-highlight-color:transparent;
+    box-sizing:border-box;
+    -webkit-tap-highlight-color:transparent;
 }
 
 html,body{
-  width:100%;
-  height:100%;
-  margin:0;
-  padding:0;
-  overflow:hidden;
-  background:#000;
-  font-family:Arial,sans-serif;
+    margin:0;
+    padding:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#000;
+    font-family:Arial,sans-serif;
+}
+
+#app{
+    position:relative;
+    width:100%;
+    height:100%;
+    background:#000;
+    overflow:hidden;
 }
 
 #camera{
-  position:fixed;
-  inset:0;
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  background:#000;
-  z-index:1;
-}
-
-#camera.camera-mirrored{
-  transform:scaleX(-1);
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    background:#000;
+    z-index:1;
 }
 
 #threeCanvas{
-  position:fixed;
-  inset:0;
-  width:100%;
-  height:100%;
-  z-index:2;
-  pointer-events:none;
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    z-index:2;
+    pointer-events:none;
 }
-
-/* STATUS */
 
 #status{
-  position:fixed;
-  left:10px;
-  bottom:72px;
-  z-index:50;
-  padding:6px 10px;
-  border-radius:15px;
-  background:rgba(0,0,0,.55);
-  color:#fff;
-  font-size:11px;
+    position:absolute;
+    top:10px;
+    left:50%;
+    transform:translateX(-50%);
+    z-index:20;
+    color:#fff;
+    background:rgba(0,0,0,.55);
+    padding:6px 12px;
+    border-radius:20px;
+    font-size:12px;
+    white-space:nowrap;
 }
-
-
-/* RIGHT SIDE TOOL BAR */
 
 #sideControls{
-  position:fixed;
-  right:8px;
-  top:50%;
-  transform:translateY(-50%);
-  z-index:100;
-
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:8px;
-
-  max-height:92vh;
-  overflow-y:auto;
-
-  padding:5px;
-
-  scrollbar-width:none;
+    position:absolute;
+    right:10px;
+    top:50%;
+    transform:translateY(-50%);
+    z-index:30;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
 }
 
-#sideControls::-webkit-scrollbar{
-  display:none;
+.ctrl{
+    width:46px;
+    height:46px;
+    border:0;
+    border-radius:50%;
+    background:rgba(20,20,20,.72);
+    color:#fff;
+    font-size:20px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    box-shadow:0 2px 8px rgba(0,0,0,.35);
 }
 
-
-/* SMALL ROUND BUTTONS */
-
-.tool{
-  width:44px;
-  height:44px;
-
-  border:0;
-  border-radius:50%;
-
-  background:rgba(0,0,0,.68);
-
-  color:#fff;
-
-  display:flex;
-  align-items:center;
-  justify-content:center;
-
-  font-size:18px;
-
-  box-shadow:0 2px 8px rgba(0,0,0,.4);
-
-  touch-action:manipulation;
+.ctrl:active{
+    transform:scale(.92);
 }
-
-.tool:active{
-  transform:scale(.88);
-}
-
-.tool.primary{
-  background:rgba(255,255,255,.94);
-  color:#111;
-}
-
-.tool.recording{
-  background:#e53935;
-}
-
-
-/* BOTTOM MINI OPTIONS */
-
-#bottomOptions{
-  position:fixed;
-  left:50%;
-  bottom:10px;
-  transform:translateX(-50%);
-
-  z-index:100;
-
-  display:flex;
-  gap:7px;
-
-  padding:6px 9px;
-
-  background:rgba(0,0,0,.55);
-  border-radius:22px;
-}
-
-.mini{
-  width:36px;
-  height:36px;
-
-  border:0;
-  border-radius:50%;
-
-  background:rgba(255,255,255,.15);
-  color:#fff;
-
-  font-size:15px;
-}
-
-
-/* 3D PANEL */
 
 #modelPanel{
-  position:fixed;
-
-  right:60px;
-  top:50%;
-
-  transform:translateY(-50%);
-
-  z-index:150;
-
-  width:min(235px,68vw);
-  max-height:78vh;
-
-  overflow-y:auto;
-
-  padding:12px;
-
-  border-radius:16px;
-
-  background:rgba(12,12,15,.95);
-
-  color:#fff;
-
-  display:none;
+    position:absolute;
+    right:64px;
+    top:50%;
+    transform:translateY(-50%);
+    width:220px;
+    max-width:calc(100vw - 85px);
+    padding:12px;
+    border-radius:16px;
+    background:rgba(15,15,15,.92);
+    color:#fff;
+    z-index:29;
+    display:none;
 }
 
 #modelPanel.show{
-  display:block;
+    display:block;
 }
 
-.panelTitle{
-  font-size:14px;
-  font-weight:bold;
-  margin-bottom:10px;
+.sliderRow{
+    margin-bottom:8px;
 }
 
-.control{
-  margin-bottom:9px;
+.sliderRow label{
+    display:flex;
+    justify-content:space-between;
+    font-size:11px;
+    margin-bottom:3px;
 }
 
-.control label{
-  display:flex;
-  justify-content:space-between;
-  font-size:11px;
-  margin-bottom:3px;
+.sliderRow input{
+    width:100%;
 }
 
-.control input[type=range]{
-  width:100%;
+#bottomControls{
+    position:absolute;
+    bottom:14px;
+    left:50%;
+    transform:translateX(-50%);
+    z-index:30;
+    display:flex;
+    gap:8px;
 }
 
-.hiddenInput{
-  display:none;
+.smallCtrl{
+    width:42px;
+    height:42px;
+    border:0;
+    border-radius:50%;
+    background:rgba(20,20,20,.72);
+    color:#fff;
+    font-size:18px;
 }
 
-
-/* MOBILE */
-
-@media(max-width:420px){
-
-  #sideControls{
-    right:5px;
-  }
-
-  .tool{
-    width:40px;
-    height:40px;
-    font-size:17px;
-  }
-
-  #modelPanel{
-    right:52px;
-    width:220px;
-  }
-
-  #bottomOptions{
-    bottom:7px;
-  }
-
-  .mini{
-    width:34px;
-    height:34px;
-  }
+.hidden{
+    display:none !important;
 }
 
+#fileInput{
+    display:none;
+}
 </style>
 
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
+    }
+}
+</script>
 </head>
 
 <body>
 
-<video
-id="camera"
-autoplay
-muted
-playsinline>
-</video>
+<div id="app">
 
-<canvas id="threeCanvas"></canvas>
+    <video
+        id="camera"
+        autoplay
+        muted
+        playsinline
+    ></video>
 
-<div id="status">Ready</div>
+    <canvas id="threeCanvas"></canvas>
+
+    <div id="status">Ready</div>
+
+    <div id="sideControls">
+
+        <button class="ctrl" id="cameraButton" type="button">📷</button>
+
+        <button class="ctrl" id="switchCameraButton" type="button">🔄</button>
+
+        <button class="ctrl" id="photoButton" type="button">📸</button>
+
+        <button class="ctrl" id="recordButton" type="button">🎥</button>
+
+        <button class="ctrl" id="audioButton" type="button">🎙️</button>
+
+        <button class="ctrl" id="import3DButton" type="button">📂</button>
+
+        <button class="ctrl" id="modelButton" type="button">🧊</button>
+
+        <button class="ctrl" id="export3DButton" type="button">💾</button>
+
+        <button class="ctrl" id="resetButton" type="button">↩️</button>
+
+    </div>    <div id="bottomControls">
+
+        <button class="smallCtrl" id="zoomOutButton" type="button">−</button>
+
+        <button class="smallCtrl" id="zoomInButton" type="button">+</button>
+
+        <button class="smallCtrl" id="hideControlsButton" type="button">☰</button>
+
+    </div>
 
 
-<!-- RIGHT SIDE ALL MAIN BUTTONS -->
+    <div id="modelPanel">
 
-<div id="sideControls">
+        <div class="sliderRow">
+            <label>
+                <span>Position X</span>
+                <span id="posXValue">0</span>
+            </label>
+            <input id="posX" type="range" min="-5" max="5" step="0.01" value="0">
+        </div>
 
-  <!-- CAMERA START -->
-  <button
-  id="cameraButton"
-  class="tool primary"
-  title="Start Camera">▶</button>
+        <div class="sliderRow">
+            <label>
+                <span>Position Y</span>
+                <span id="posYValue">0</span>
+            </label>
+            <input id="posY" type="range" min="-5" max="5" step="0.01" value="0">
+        </div>
 
-  <!-- FRONT / BACK CAMERA -->
-  <button
-  id="switchCameraButton"
-  class="tool"
-  title="Flip Camera">↔</button>
+        <div class="sliderRow">
+            <label>
+                <span>Position Z</span>
+                <span id="posZValue">0</span>
+            </label>
+            <input id="posZ" type="range" min="-10" max="5" step="0.01" value="0">
+        </div>
 
-  <!-- PHOTO -->
-  <button
-  id="photoButton"
-  class="tool"
-  title="Photo">📷</button>
+        <div class="sliderRow">
+            <label>
+                <span>Rotate X</span>
+                <span id="rotXValue">0°</span>
+            </label>
+            <input id="rotX" type="range" min="0" max="360" step="1" value="0">
+        </div>
 
-  <!-- VIDEO RECORD -->
-  <button
-  id="recordButton"
-  class="tool"
-  title="Video Record">⏺</button>
+        <div class="sliderRow">
+            <label>
+                <span>Rotate Y</span>
+                <span id="rotYValue">0°</span>
+            </label>
+            <input id="rotY" type="range" min="0" max="360" step="1" value="0">
+        </div>
 
-  <!-- AUDIO -->
-  <button
-  id="audioButton"
-  class="tool"
-  title="Audio Record">🎙</button>
+        <div class="sliderRow">
+            <label>
+                <span>Rotate Z</span>
+                <span id="rotZValue">0°</span>
+            </label>
+            <input id="rotZ" type="range" min="0" max="360" step="1" value="0">
+        </div>
 
-  <!-- IMPORT 3D -->
-  <button
-  id="import3DButton"
-  class="tool"
-  title="Import 3D">📥</button>
+        <div class="sliderRow">
+            <label>
+                <span>Scale</span>
+                <span id="scaleValue">1.00</span>
+            </label>
+            <input id="scale" type="range" min="0.05" max="5" step="0.01" value="1">
+        </div>
 
-  <!-- 3D CONTROLS -->
-  <button
-  id="modelButton"
-  class="tool"
-  title="3D Controls">3D</button>
+    </div>
 
-  <!-- EXPORT 3D -->
-  <button
-  id="export3DButton"
-  class="tool"
-  title="Export 3D">📤</button>
 
-  <!-- RESET -->
-  <button
-  id="resetButton"
-  class="tool"
-  title="Reset">↺</button>
+    <input
+        id="fileInput"
+        type="file"
+        accept=".glb,.gltf,.obj,.fbx,.stl"
+    >
 
 </div>
 
 
-<!-- BOTTOM SMALL OPTIONS -->
-
-<div id="bottomOptions">
-
-  <button
-  id="zoomOutButton"
-  class="mini"
-  title="Zoom Out">−</button>
-
-  <button
-  id="zoomInButton"
-  class="mini"
-  title="Zoom In">+</button>
-
-  <button
-  id="hideControlsButton"
-  class="mini"
-  title="Hide Controls">◉</button>
-
-</div>
-
-
-<!-- 3D CONTROL PANEL -->
-
-<div id="modelPanel">
-
-  <div class="panelTitle">
-    3D MODEL
-  </div>
-
-  <div class="control">
-
-    <label>
-      <span>Position X</span>
-      <span id="posXValue">0</span>
-    </label>
-
-    <input
-    id="posX"
-    type="range"
-    min="-3"
-    max="3"
-    step="0.01"
-    value="0">
-
-  </div>
-
-  <div class="control">
-
-    <label>
-      <span>Position Y</span>
-      <span id="posYValue">0</span>
-    </label>
-
-    <input
-    id="posY"
-    type="range"
-    min="-3"
-    max="3"
-    step="0.01"
-    value="0">
-
-  </div>
-
-  <div class="control">
-
-    <label>
-      <span>Position Z</span>
-      <span id="posZValue">0</span>
-    </label>
-
-    <input
-    id="posZ"
-    type="range"
-    min="-3"
-    max="3"
-    step="0.01"
-    value="0">
-
-  </div>  <div class="control">
-
-    <label>
-      <span>Rotate X</span>
-      <span id="rotXValue">0°</span>
-    </label>
-
-    <input
-    id="rotX"
-    type="range"
-    min="0"
-    max="360"
-    step="1"
-    value="0">
-
-  </div>
-
-
-  <div class="control">
-
-    <label>
-      <span>Rotate Y</span>
-      <span id="rotYValue">0°</span>
-    </label>
-
-    <input
-    id="rotY"
-    type="range"
-    min="0"
-    max="360"
-    step="1"
-    value="0">
-
-  </div>
-
-
-  <div class="control">
-
-    <label>
-      <span>Rotate Z</span>
-      <span id="rotZValue">0°</span>
-    </label>
-
-    <input
-    id="rotZ"
-    type="range"
-    min="0"
-    max="360"
-    step="1"
-    value="0">
-
-  </div>
-
-
-  <div class="control">
-
-    <label>
-      <span>Scale</span>
-      <span id="scaleValue">1.00</span>
-    </label>
-
-    <input
-    id="scale"
-    type="range"
-    min="0.1"
-    max="4"
-    step="0.01"
-    value="1">
-
-  </div>
-
-</div>
-
-
-<!-- 3D FILE IMPORT -->
-
-<input
-id="import3DInput"
-class="hiddenInput"
-type="file"
-accept=".glb,.gltf,.obj,.fbx,.stl">
-
-
-<!-- MAIN JAVASCRIPT -->
-
-<script
-type="module"
-src="./js/app.js?v=5">
-</script>
-
+<script type="module" src="./js/app.js?v=6"></script>
 
 </body>
 </html>
