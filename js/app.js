@@ -1,2230 +1,3167 @@
-/* =====================================================
-   AZIZ FACE AR — APP.JS
-   PART 1 / 5
-===================================================== */
+// ======================================================
+// AZIZ HERO AR
+// app.js — PART 1 / 5
+// Camera + Three.js + Basic 3D Model
+// ======================================================
 
-import * as THREE from
-"https://esm.sh/three@0.180.0";
-
-import { GLTFLoader } from
-"https://esm.sh/three@0.180.0/examples/jsm/loaders/GLTFLoader.js";
-
-import { OBJLoader } from
-"https://esm.sh/three@0.180.0/examples/jsm/loaders/OBJLoader.js";
-
-import { FBXLoader } from
-"https://esm.sh/three@0.180.0/examples/jsm/loaders/FBXLoader.js";
-
-import { STLLoader } from
-"https://esm.sh/three@0.180.0/examples/jsm/loaders/STLLoader.js";
-
-import { GLTFExporter } from
-"https://esm.sh/three@0.180.0/examples/jsm/exporters/GLTFExporter.js";
-
-import { OBJExporter } from
-"https://esm.sh/three@0.180.0/examples/jsm/exporters/OBJExporter.js";
-
-import { STLExporter } from
-"https://esm.sh/three@0.180.0/examples/jsm/exporters/STLExporter.js";
+import * as THREE from "three";
 
 import {
-    FaceLandmarker,
-    FilesetResolver
-} from
-"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22";
+  GLTFLoader
+} from "three/addons/loaders/GLTFLoader.js";
 
 
-/* ---------- ELEMENTS ---------- */
+// ======================================================
+// BASIC ELEMENTS
+// ======================================================
 
-const video =
-    document.getElementById("camera");
-
-const canvas =
-    document.getElementById("threeCanvas");
-
-const status =
-    document.getElementById("status");
+const video = document.getElementById("camera");
+const canvas = document.getElementById("threeCanvas");
+const statusBox = document.getElementById("status");
 
 const cameraButton =
-    document.getElementById("cameraButton");
+  document.getElementById("cameraButton");
 
 const switchCameraButton =
-    document.getElementById("switchCameraButton");
+  document.getElementById("switchCameraButton");
+
+const photoButton =
+  document.getElementById("photoButton");
+
+const recordButton =
+  document.getElementById("recordButton");
+
+const audioButton =
+  document.getElementById("audioButton");
+
+const import3DButton =
+  document.getElementById("import3DButton");
+
+const modelButton =
+  document.getElementById("modelButton");
+
+const export3DButton =
+  document.getElementById("export3DButton");
+
+const resetButton =
+  document.getElementById("resetButton");
+
+const import3DInput =
+  document.getElementById("import3DInput");
+
+const modelPanel =
+  document.getElementById("modelPanel");
 
 
-/* ---------- STATUS ---------- */
+// ======================================================
+// STATUS
+// ======================================================
 
-function setStatus(text) {
+function setStatus(message) {
 
-    console.log("[AZIZ AR]", text);
+  if (statusBox) {
+    statusBox.textContent = message;
+  }
 
-    if (status) {
-        status.textContent = text;
-    }
 }
 
 
-/* ---------- CAMERA ---------- */
+// ======================================================
+// CAMERA VARIABLES
+// ======================================================
 
-let cameraStream = null;
+let mediaStream = null;
 
 let cameraFacing = "user";
 
 
-async function startCamera() {
-
-    try {
-
-        setStatus("Starting Camera...");
-
-
-        if (cameraStream) {
-
-            cameraStream
-                .getTracks()
-                .forEach(
-                    track => track.stop()
-                );
-        }
-
-
-        cameraStream =
-            await navigator.mediaDevices
-                .getUserMedia({
-
-                    video: {
-                        facingMode: {
-                            ideal: cameraFacing
-                        },
-                        width: {
-                            ideal: 1280
-                        },
-                        height: {
-                            ideal: 720
-                        }
-                    },
-
-                    audio: true
-                });
-
-
-        video.srcObject =
-            cameraStream;
-
-
-        await video.play();
-
-
-        updateMirror();
-
-
-        setStatus(
-            cameraFacing === "user"
-                ? "Front Camera ON"
-                : "Back Camera ON"
-        );
-
-
-        startFaceTracking();
-
-
-    } catch (error) {
-
-        console.error(error);
-
-        setStatus(
-            "Camera Error"
-        );
-    }
-}
-
-
-function updateMirror() {
-
-    if (!video) return;
-
-
-    video.classList.toggle(
-        "camera-mirrored",
-        cameraFacing === "user"
-    );
-}
-
-
-if (cameraButton) {
-
-    cameraButton.onclick =
-        startCamera;
-}
-
-
-/* ---------- CAMERA SWITCH ---------- */
-
-if (switchCameraButton) {
-
-    switchCameraButton.onclick =
-        async function () {
-
-            cameraFacing =
-                cameraFacing === "user"
-                    ? "environment"
-                    : "user";
-
-
-            switchCameraButton.textContent =
-                cameraFacing === "user"
-                    ? "Back Camera"
-                    : "Front Camera";
-
-
-            await startCamera();
-        };
-}
-
-
-/* ---------- THREE.JS ---------- */
-
-const renderer =
-    new THREE.WebGLRenderer({
-
-        canvas,
-
-        alpha: true,
-
-        antialias: true,
-
-        preserveDrawingBuffer: true
-    });
-
-
-renderer.setPixelRatio(
-    Math.min(
-        devicePixelRatio || 1,
-        2
-    )
-);
-
-
-renderer.setSize(
-    innerWidth,
-    innerHeight
-);
-
-
-renderer.outputColorSpace =
-    THREE.SRGBColorSpace;
-
-
-const scene =
-    new THREE.Scene();
-
-
-const threeCamera =
-    new THREE.PerspectiveCamera(
-        45,
-        innerWidth / innerHeight,
-        0.01,
-        100
-    );
-
-
-threeCamera.position.z = 5;
-
-
-/* ---------- LIGHT ---------- */
-
-scene.add(
-    new THREE.AmbientLight(
-        0xffffff,
-        2
-    )
-);
-
-
-const light =
-    new THREE.DirectionalLight(
-        0xffffff,
-        2
-    );
-
-
-light.position.set(
-    2,
-    3,
-    5
-);
-
-
-scene.add(light);
-
-
-/* ---------- MODEL ROOT ---------- */
-
-const modelRoot =
-    new THREE.Group();
-
-scene.add(
-    modelRoot
-);
-
+// ======================================================
+// THREE.JS VARIABLES
+// ======================================================
+
+let renderer;
+let scene;
+let arCamera;
 
 let currentModel = null;
 
 
-/* ---------- DEFAULT CUBE ---------- */
+// ======================================================
+// INITIALIZE THREE.JS
+// ======================================================
 
-const cube =
+function initThree() {
+
+  renderer = new THREE.WebGLRenderer({
+
+    canvas: canvas,
+
+    alpha: true,
+
+    antialias: true,
+
+    preserveDrawingBuffer: true
+
+  });
+
+
+  renderer.setPixelRatio(
+    Math.min(window.devicePixelRatio || 1, 2)
+  );
+
+
+  renderer.setSize(
+    window.innerWidth,
+    window.innerHeight
+  );
+
+
+  renderer.outputColorSpace =
+    THREE.SRGBColorSpace;
+
+
+  scene = new THREE.Scene();
+
+
+  arCamera = new THREE.PerspectiveCamera(
+
+    45,
+
+    window.innerWidth /
+    window.innerHeight,
+
+    0.01,
+
+    100
+
+  );
+
+
+  arCamera.position.set(
+    0,
+    0,
+    5
+  );
+
+
+  // LIGHT 1
+
+  const ambientLight =
+    new THREE.AmbientLight(
+      0xffffff,
+      1.5
+    );
+
+  scene.add(ambientLight);
+
+
+  // LIGHT 2
+
+  const directionalLight =
+    new THREE.DirectionalLight(
+      0xffffff,
+      2
+    );
+
+  directionalLight.position.set(
+    2,
+    3,
+    5
+  );
+
+  scene.add(directionalLight);
+
+
+  // DEFAULT 3D CUBE
+
+  createDefaultModel();
+
+
+  // START RENDER LOOP
+
+  animate();
+
+}
+
+
+// ======================================================
+// DEFAULT 3D MODEL
+// ======================================================
+
+function createDefaultModel() {
+
+  if (currentModel) {
+
+    scene.remove(currentModel);
+
+    currentModel = null;
+
+  }
+
+
+  const geometry =
+    new THREE.BoxGeometry(
+      1,
+      1,
+      1
+    );
+
+
+  const material =
+    new THREE.MeshStandardMaterial({
+
+      color: 0x2196f3,
+
+      roughness: 0.55,
+
+      metalness: 0.15
+
+    });
+
+
+  const cube =
     new THREE.Mesh(
-
-        new THREE.BoxGeometry(
-            1,
-            1,
-            1
-        ),
-
-        new THREE.MeshStandardMaterial({
-            color: 0x00aaff,
-            roughness: 0.45,
-            metalness: 0.15
-        })
+      geometry,
+      material
     );
 
 
-modelRoot.add(cube);
+  cube.position.set(
+    0,
+    0,
+    0
+  );
 
-currentModel = cube;
+
+  cube.rotation.set(
+    0,
+    0,
+    0
+  );
 
 
-/* ---------- RENDER ---------- */
+  cube.scale.set(
+    1,
+    1,
+    1
+  );
 
-function render() {
 
-    requestAnimationFrame(
-        render
-    );
+  currentModel = cube;
 
-    renderer.render(
-        scene,
-        threeCamera
-    );
+  scene.add(currentModel);
+
 }
 
 
-render();
+// ======================================================
+// RENDER LOOP
+// ======================================================
+
+function animate() {
+
+  requestAnimationFrame(animate);
 
 
-/* ---------- RESIZE ---------- */
+  if (currentModel) {
 
-addEventListener(
-    "resize",
-    function () {
+    currentModel.rotation.y += 0.008;
 
-        threeCamera.aspect =
-            innerWidth /
-            innerHeight;
-
-        threeCamera.updateProjectionMatrix();
-
-        renderer.setSize(
-            innerWidth,
-            innerHeight
-        );
-    }
-);
+  }
 
 
-/* ---------- FACE TRACKING ---------- */
+  renderer.render(
+    scene,
+    arCamera
+  );
 
-let faceLandmarker = null;
-
-let trackingStarted = false;
-
-let lastVideoTime = -1;
-
-
-async function createFaceTracker() {
-
-    if (faceLandmarker) {
-        return faceLandmarker;
-    }
-
-
-    try {
-
-        setStatus(
-            "Loading Face Tracking..."
-        );
-
-
-        const vision =
-            await FilesetResolver
-                .forVisionTasks(
-
-                    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
-                );
-
-
-        faceLandmarker =
-            await FaceLandmarker
-                .createFromOptions(
-                    vision,
-                    {
-
-                        baseOptions: {
-
-                            modelAssetPath:
-                                "./models/face_landmarker.task",
-
-                            delegate:
-                                "GPU"
-                        },
-
-                        runningMode:
-                            "VIDEO",
-
-                        numFaces: 1,
-
-                        minFaceDetectionConfidence:
-                            0.5,
-
-                        minFacePresenceConfidence:
-                            0.5,
-
-                        minTrackingConfidence:
-                            0.5
-                    }
-                );
-
-
-        setStatus(
-            "Face Tracking Ready"
-        );
-
-
-        return faceLandmarker;
-
-
-    } catch (error) {
-
-        console.error(
-            "Face tracker:",
-            error
-        );
-
-
-        setStatus(
-            "Face Tracking Error"
-        );
-
-
-        return null;
-    }
 }
 
 
-/* ---------- TRACK LOOP ---------- */
+// ======================================================
+// CAMERA START
+// ======================================================
 
-async function startFaceTracking() {
+async function startCamera() {
 
-    if (trackingStarted) {
-        return;
+  try {
+
+    setStatus("Camera starting...");
+
+
+    // STOP OLD CAMERA
+
+    if (mediaStream) {
+
+      mediaStream
+        .getTracks()
+        .forEach(track => track.stop());
+
     }
 
 
-    trackingStarted = true;
+    // REQUEST CAMERA + MICROPHONE
 
+    mediaStream =
+      await navigator.mediaDevices.getUserMedia({
 
-    const tracker =
-        await createFaceTracker();
+        video: {
 
+          facingMode: {
+            ideal: cameraFacing
+          },
 
-    if (!tracker) {
+          width: {
+            ideal: 1280
+          },
 
-        trackingStarted = false;
+          height: {
+            ideal: 720
+          }
 
-        return;
-    }
+        },
 
+        audio: true
 
-    function loop() {
+      });
 
-        if (
-            video.readyState >= 2 &&
-            video.currentTime !== lastVideoTime
-        ) {
 
-            lastVideoTime =
-                video.currentTime;
+    video.srcObject =
+      mediaStream;
 
 
-            try {
+    await video.play();
 
-                const result =
-                    tracker.detectForVideo(
-                        video,
-                        performance.now()
-                    );
 
-
-                if (
-                    result.faceLandmarks &&
-                    result.faceLandmarks.length
-                ) {
-
-                    setStatus(
-                        "FACE DETECTED"
-                    );
-
-                    updateFace(
-                        result
-                    );
-
-                } else {
-
-                    setStatus(
-                        "FACE NOT DETECTED"
-                    );
-                }
-
-
-            } catch (error) {
-
-                console.error(
-                    "Tracking:",
-                    error
-                );
-            }
-        }
-
-
-        requestAnimationFrame(
-            loop
-        );
-    }
-
-
-    loop();
-}
-
-
-/* ---------- FACE POSITION ---------- */
-
-function updateFace(result) {
-
-    if (!currentModel) {
-        return;
-    }
-
-
-    const face =
-        result.faceLandmarks[0];
-
-
-    if (!face) {
-        return;
-    }
-
-
-    const nose =
-        face[1];
-
-
-    if (!nose) {
-        return;
-    }
-
-
-    const x =
-        (nose.x - 0.5) * -2;
-
-
-    const y =
-        (0.5 - nose.y) * 2;
-
-
-    currentModel.position.x +=
-        (
-            x -
-            currentModel.position.x
-        ) * 0.15;
-
-
-    currentModel.position.y +=
-        (
-            y -
-            currentModel.position.y
-        ) * 0.15;
-}
-
-
-/* =====================================================
-   PART 1 / 5 END
-===================================================== *//* =====================================================
-   AZIZ FACE AR — APP.JS
-   PART 2 / 5
-========================================================= */
-
-
-/* ---------- 3D CONTROLS ---------- */
-
-const posX =
-    document.getElementById("posX");
-
-const posY =
-    document.getElementById("posY");
-
-const posZ =
-    document.getElementById("posZ");
-
-const rotX =
-    document.getElementById("rotX");
-
-const rotY =
-    document.getElementById("rotY");
-
-const rotZ =
-    document.getElementById("rotZ");
-
-const scaleInput =
-    document.getElementById("scale");
-
-
-function updateModelControls() {
-
-    if (!currentModel) {
-        return;
-    }
-
-
-    if (posX) {
-        currentModel.position.x =
-            Number(posX.value);
-    }
-
-
-    if (posY) {
-        currentModel.position.y =
-            Number(posY.value);
-    }
-
-
-    if (posZ) {
-        currentModel.position.z =
-            Number(posZ.value);
-    }
-
-
-    if (rotX) {
-        currentModel.rotation.x =
-            THREE.MathUtils.degToRad(
-                Number(rotX.value)
-            );
-    }
-
-
-    if (rotY) {
-        currentModel.rotation.y =
-            THREE.MathUtils.degToRad(
-                Number(rotY.value)
-            );
-    }
-
-
-    if (rotZ) {
-        currentModel.rotation.z =
-            THREE.MathUtils.degToRad(
-                Number(rotZ.value)
-            );
-    }
-
-
-    if (scaleInput) {
-        const value =
-            Number(scaleInput.value);
-
-        if (value > 0) {
-            currentModel.scale.setScalar(
-                value
-            );
-        }
-    }
-}
-
-
-/* ---------- SLIDER EVENTS ---------- */
-
-[
-    posX,
-    posY,
-    posZ,
-    rotX,
-    rotY,
-    rotZ,
-    scaleInput
-].forEach(function (input) {
-
-    if (input) {
-
-        input.addEventListener(
-            "input",
-            updateModelControls
-        );
-    }
-});
-
-
-/* ---------- RESET MODEL CONTROLS ---------- */
-
-function resetModelControls() {
-
-    if (posX) posX.value = 0;
-    if (posY) posY.value = 0;
-    if (posZ) posZ.value = 0;
-
-    if (rotX) rotX.value = 0;
-    if (rotY) rotY.value = 0;
-    if (rotZ) rotZ.value = 0;
-
-    if (scaleInput) {
-        scaleInput.value = 1;
-    }
-
-
-    updateModelControls();
-}
-
-
-/* ---------- IMPORT 3D ---------- */
-
-const import3DInput =
-    document.getElementById(
-        "import3DInput"
-    );
-
-
-if (import3DInput) {
-
-    import3DInput.addEventListener(
-        "change",
-        async function () {
-
-            const file =
-                import3DInput.files[0];
-
-
-            if (!file) {
-                return;
-            }
-
-
-            setStatus(
-                "Loading 3D Model..."
-            );
-
-
-            try {
-
-                const name =
-                    file.name.toLowerCase();
-
-
-                let object =
-                    null;
-
-
-                /* ----- GLB / GLTF ----- */
-
-                if (
-                    name.endsWith(".glb") ||
-                    name.endsWith(".gltf")
-                ) {
-
-                    const loader =
-                        new GLTFLoader();
-
-
-                    const buffer =
-                        await readFileAsArrayBuffer(
-                            file
-                        );
-
-
-                    const result =
-                        await new Promise(
-                            function (
-                                resolve,
-                                reject
-                            ) {
-
-                                loader.parse(
-                                    buffer,
-                                    "",
-                                    resolve,
-                                    reject
-                                );
-                            }
-                        );
-
-
-                    object =
-                        result.scene;
-                }
-
-
-                /* ----- OBJ ----- */
-
-                else if (
-                    name.endsWith(".obj")
-                ) {
-
-                    const loader =
-                        new OBJLoader();
-
-
-                    const text =
-                        await readFileAsText(
-                            file
-                        );
-
-
-                    object =
-                        loader.parse(
-                            text
-                        );
-                }
-
-
-                /* ----- FBX ----- */
-
-                else if (
-                    name.endsWith(".fbx")
-                ) {
-
-                    const loader =
-                        new FBXLoader();
-
-
-                    const buffer =
-                        await readFileAsArrayBuffer(
-                            file
-                        );
-
-
-                    object =
-                        loader.parse(
-                            buffer,
-                            ""
-                        );
-                }
-
-
-                /* ----- STL ----- */
-
-                else if (
-                    name.endsWith(".stl")
-                ) {
-
-                    const loader =
-                        new STLLoader();
-
-
-                    const buffer =
-                        await readFileAsArrayBuffer(
-                            file
-                        );
-
-
-                    const geometry =
-                        loader.parse(
-                            buffer
-                        );
-
-
-                    const material =
-                        new THREE.MeshStandardMaterial({
-                            color: 0xcccccc,
-                            roughness: 0.5,
-                            metalness: 0.1
-                        });
-
-
-                    object =
-                        new THREE.Mesh(
-                            geometry,
-                            material
-                        );
-                }
-
-
-                else {
-
-                    throw new Error(
-                        "Unsupported 3D format"
-                    );
-                }
-
-
-                if (!object) {
-
-                    throw new Error(
-                        "3D model could not be loaded"
-                    );
-                }
-
-
-                /* ----- REMOVE OLD MODEL ----- */
-
-                removeCurrentModel();
-
-
-                /* ----- ADD NEW MODEL ----- */
-
-                currentModel =
-                    object;
-
-
-                modelRoot.add(
-                    currentModel
-                );
-
-
-                /* ----- CENTER & SCALE ----- */
-
-                centerModel(
-                    currentModel
-                );
-
-
-                /* ----- RESET UI ----- */
-
-                resetModelControls();
-
-
-                setStatus(
-                    "3D Model Loaded"
-                );
-
-
-            } catch (error) {
-
-                console.error(
-                    "3D Import Error:",
-                    error
-                );
-
-
-                setStatus(
-                    "3D Model Error"
-                );
-            }
-
-
-            import3DInput.value =
-                "";
-        }
-    );
-}
-
-
-/* ---------- DEFAULT MODEL POSITION ---------- */
-
-if (currentModel) {
-
-    currentModel.position.set(
-        0,
-        0,
-        0
-    );
-
-    currentModel.rotation.set(
-        0,
-        0,
-        0
-    );
-
-    currentModel.scale.setScalar(
-        1
-    );
-}
-
-
-/* ---------- MODEL BUTTON ---------- */
-
-const modelButton =
-    document.getElementById(
-        "modelButton"
-    );
-
-
-const controlsPanel =
-    document.getElementById(
-        "modelControls"
-    );
-
-
-if (
-    modelButton &&
-    controlsPanel
-) {
-
-    modelButton.addEventListener(
-        "click",
-        function () {
-
-            controlsPanel.classList.toggle(
-                "hidden"
-            );
-        }
-    );
-}
-
-
-/* =====================================================
-   PART 2 / 5 END
-========================================================= *//* =====================================================
-   AZIZ FACE AR — APP.JS
-   PART 3 / 5
-========================================================= */
-
-
-/* ---------- EXPORT BUTTONS ---------- */
-
-const export3DButton =
-    document.getElementById("export3DButton");
-
-
-function downloadBlob(blob, filename) {
-
-    const url =
-        URL.createObjectURL(blob);
-
-    const link =
-        document.createElement("a");
-
-    link.href = url;
-    link.download = filename;
-
-    document.body.appendChild(link);
-
-    link.click();
-
-    link.remove();
-
-    setTimeout(function () {
-        URL.revokeObjectURL(url);
-    }, 1000);
-}
-
-
-/* ---------- GLB / GLTF EXPORT ---------- */
-
-async function exportGLTF(binary) {
-
-    if (!currentModel) {
-
-        setStatus(
-            "No 3D Model"
-        );
-
-        return;
-    }
-
-
-    const exporter =
-        new GLTFExporter();
-
-
-    try {
-
-        const result =
-            await new Promise(
-                function (
-                    resolve,
-                    reject
-                ) {
-
-                    exporter.parse(
-                        currentModel,
-                        resolve,
-                        reject,
-                        {
-                            binary: binary,
-                            onlyVisible: true
-                        }
-                    );
-                }
-            );
-
-
-        if (binary) {
-
-            const blob =
-                new Blob(
-                    [result],
-                    {
-                        type:
-                            "model/gltf-binary"
-                    }
-                );
-
-            downloadBlob(
-                blob,
-                "aziz-model.glb"
-            );
-
-        } else {
-
-            const json =
-                JSON.stringify(
-                    result,
-                    null,
-                    2
-                );
-
-
-            const blob =
-                new Blob(
-                    [json],
-                    {
-                        type:
-                            "application/json"
-                    }
-                );
-
-
-            downloadBlob(
-                blob,
-                "aziz-model.gltf"
-            );
-        }
-
-
-        setStatus(
-            binary
-                ? "GLB Exported"
-                : "GLTF Exported"
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            "GLTF Export Error:",
-            error
-        );
-
-
-        setStatus(
-            "GLTF Export Error"
-        );
-    }
-}
-
-
-/* ---------- OBJ EXPORT ---------- */
-
-function exportOBJ() {
-
-    if (!currentModel) {
-
-        setStatus(
-            "No 3D Model"
-        );
-
-        return;
-    }
-
-
-    try {
-
-        const exporter =
-            new OBJExporter();
-
-
-        const result =
-            exporter.parse(
-                currentModel
-            );
-
-
-        const blob =
-            new Blob(
-                [result],
-                {
-                    type:
-                        "text/plain"
-                }
-            );
-
-
-        downloadBlob(
-            blob,
-            "aziz-model.obj"
-        );
-
-
-        setStatus(
-            "OBJ Exported"
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            "OBJ Export Error:",
-            error
-        );
-
-
-        setStatus(
-            "OBJ Export Error"
-        );
-    }
-}
-
-
-/* ---------- STL EXPORT ---------- */
-
-function exportSTL() {
-
-    if (!currentModel) {
-
-        setStatus(
-            "No 3D Model"
-        );
-
-        return;
-    }
-
-
-    try {
-
-        const exporter =
-            new STLExporter();
-
-
-        const result =
-            exporter.parse(
-                currentModel,
-                {
-                    binary: false
-                }
-            );
-
-
-        const blob =
-            new Blob(
-                [result],
-                {
-                    type:
-                        "model/stl"
-                }
-            );
-
-
-        downloadBlob(
-            blob,
-            "aziz-model.stl"
-        );
-
-
-        setStatus(
-            "STL Exported"
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            "STL Export Error:",
-            error
-        );
-
-
-        setStatus(
-            "STL Export Error"
-        );
-    }
-}
-
-
-/* ---------- EXPORT MENU ---------- */
-
-if (export3DButton) {
-
-    export3DButton.addEventListener(
-        "click",
-        async function () {
-
-            if (!currentModel) {
-
-                setStatus(
-                    "No 3D Model"
-                );
-
-                return;
-            }
-
-
-            const choice =
-                prompt(
-                    "Export format:\n\n" +
-                    "1 = GLB\n" +
-                    "2 = GLTF\n" +
-                    "3 = OBJ\n" +
-                    "4 = STL"
-                );
-
-
-            if (!choice) {
-                return;
-            }
-
-
-            if (choice === "1") {
-
-                await exportGLTF(
-                    true
-                );
-
-            } else if (choice === "2") {
-
-                await exportGLTF(
-                    false
-                );
-
-            } else if (choice === "3") {
-
-                exportOBJ();
-
-            } else if (choice === "4") {
-
-                exportSTL();
-
-            } else {
-
-                setStatus(
-                    "Invalid Export Format"
-                );
-            }
-        }
-    );
-}
-
-
-/* ---------- PHOTO CAPTURE ---------- */
-
-const photoButton =
-    document.getElementById(
-        "photoButton"
-    );
-
-
-function capturePhoto() {
-
-    if (!video) {
-        return;
-    }
-
-
-    const output =
-        document.createElement(
-            "canvas"
-        );
-
-
-    output.width =
-        video.videoWidth ||
-        innerWidth;
-
-
-    output.height =
-        video.videoHeight ||
-        innerHeight;
-
-
-    const ctx =
-        output.getContext(
-            "2d"
-        );
-
-
-    if (!ctx) {
-        return;
-    }
-
-
-    /* Camera */
-
-    ctx.save();
-
+    // FRONT CAMERA MIRROR
 
     if (cameraFacing === "user") {
 
-        ctx.translate(
-            output.width,
-            0
-        );
+      video.classList.add(
+        "camera-mirrored"
+      );
 
-        ctx.scale(
-            -1,
-            1
-        );
+    } else {
+
+      video.classList.remove(
+        "camera-mirrored"
+      );
+
     }
 
 
-    ctx.drawImage(
-        video,
-        0,
-        0,
-        output.width,
-        output.height
+    setStatus("Camera Ready");
+
+  }
+
+  catch (error) {
+
+    console.error(
+      "Camera Error:",
+      error
+    );
+
+    setStatus(
+      "Camera permission required"
+    );
+
+  }
+
+}
+
+
+// ======================================================
+// CAMERA BUTTON
+// ======================================================
+
+cameraButton?.addEventListener(
+  "click",
+  startCamera
+);
+
+
+// ======================================================
+// SWITCH FRONT / BACK CAMERA
+// ======================================================
+
+switchCameraButton?.addEventListener(
+  "click",
+  async () => {
+
+    cameraFacing =
+      cameraFacing === "user"
+        ? "environment"
+        : "user";
+
+
+    await startCamera();
+
+  }
+);
+
+
+// ======================================================
+// WINDOW RESIZE
+// ======================================================
+
+window.addEventListener(
+  "resize",
+  () => {
+
+    if (!renderer || !arCamera) {
+      return;
+    }
+
+
+    arCamera.aspect =
+      window.innerWidth /
+      window.innerHeight;
+
+
+    arCamera.updateProjectionMatrix();
+
+
+    renderer.setSize(
+      window.innerWidth,
+      window.innerHeight
+    );
+
+  }
+);
+
+
+// ======================================================
+// 3D PANEL OPEN / CLOSE
+// ======================================================
+
+modelButton?.addEventListener(
+  "click",
+  () => {
+
+    modelPanel?.classList.toggle(
+      "show"
+    );
+
+  }
+);
+
+
+// ======================================================
+// INITIALIZE
+// ======================================================
+
+initThree();
+
+setStatus(
+  "Ready — Tap ▶"
+);// ======================================================
+// AZIZ HERO AR
+// app.js — PART 2 / 5
+// 3D POSITION + ROTATION + SCALE CONTROLS
+// ======================================================
+
+
+// ======================================================
+// SLIDER ELEMENTS
+// ======================================================
+
+const posX =
+  document.getElementById("posX");
+
+const posY =
+  document.getElementById("posY");
+
+const posZ =
+  document.getElementById("posZ");
+
+const rotX =
+  document.getElementById("rotX");
+
+const rotY =
+  document.getElementById("rotY");
+
+const rotZ =
+  document.getElementById("rotZ");
+
+const scaleControl =
+  document.getElementById("scale");
+
+
+// ======================================================
+// VALUE LABELS
+// ======================================================
+
+const posXValue =
+  document.getElementById("posXValue");
+
+const posYValue =
+  document.getElementById("posYValue");
+
+const posZValue =
+  document.getElementById("posZValue");
+
+const rotXValue =
+  document.getElementById("rotXValue");
+
+const rotYValue =
+  document.getElementById("rotYValue");
+
+const rotZValue =
+  document.getElementById("rotZValue");
+
+const scaleValue =
+  document.getElementById("scaleValue");
+
+
+// ======================================================
+// DEGREES TO RADIANS
+// ======================================================
+
+function degreesToRadians(degrees) {
+
+  return (
+    Number(degrees) *
+    Math.PI /
+    180
+  );
+
+}
+
+
+// ======================================================
+// UPDATE MODEL POSITION
+// ======================================================
+
+function updateModelPosition() {
+
+  if (!currentModel) {
+    return;
+  }
+
+
+  const x =
+    Number(posX?.value || 0);
+
+  const y =
+    Number(posY?.value || 0);
+
+  const z =
+    Number(posZ?.value || 0);
+
+
+  currentModel.position.set(
+    x,
+    y,
+    z
+  );
+
+
+  if (posXValue) {
+    posXValue.textContent =
+      x.toFixed(2);
+  }
+
+
+  if (posYValue) {
+    posYValue.textContent =
+      y.toFixed(2);
+  }
+
+
+  if (posZValue) {
+    posZValue.textContent =
+      z.toFixed(2);
+  }
+
+}
+
+
+// ======================================================
+// UPDATE MODEL ROTATION
+// ======================================================
+
+function updateModelRotation() {
+
+  if (!currentModel) {
+    return;
+  }
+
+
+  const x =
+    Number(rotX?.value || 0);
+
+  const y =
+    Number(rotY?.value || 0);
+
+  const z =
+    Number(rotZ?.value || 0);
+
+
+  currentModel.rotation.set(
+
+    degreesToRadians(x),
+
+    degreesToRadians(y),
+
+    degreesToRadians(z)
+
+  );
+
+
+  if (rotXValue) {
+    rotXValue.textContent =
+      `${x}°`;
+  }
+
+
+  if (rotYValue) {
+    rotYValue.textContent =
+      `${y}°`;
+  }
+
+
+  if (rotZValue) {
+    rotZValue.textContent =
+      `${z}°`;
+  }
+
+}
+
+
+// ======================================================
+// UPDATE MODEL SCALE
+// ======================================================
+
+function updateModelScale() {
+
+  if (!currentModel) {
+    return;
+  }
+
+
+  const value =
+    Number(
+      scaleControl?.value || 1
     );
 
 
-    ctx.restore();
+  currentModel.scale.set(
+    value,
+    value,
+    value
+  );
 
 
-    /* 3D overlay */
+  if (scaleValue) {
 
-    const canvasWidth =
-        canvas.width;
+    scaleValue.textContent =
+      value.toFixed(2);
+
+  }
+
+}
 
 
-    const canvasHeight =
-        canvas.height;
+// ======================================================
+// POSITION SLIDERS
+// ======================================================
+
+posX?.addEventListener(
+  "input",
+  updateModelPosition
+);
 
 
-    if (
-        canvasWidth > 0 &&
-        canvasHeight > 0
-    ) {
+posY?.addEventListener(
+  "input",
+  updateModelPosition
+);
 
-        ctx.drawImage(
-            canvas,
-            0,
-            0,
-            output.width,
-            output.height
-        );
+
+posZ?.addEventListener(
+  "input",
+  updateModelPosition
+);
+
+
+// ======================================================
+// ROTATION SLIDERS
+// ======================================================
+
+rotX?.addEventListener(
+  "input",
+  updateModelRotation
+);
+
+
+rotY?.addEventListener(
+  "input",
+  updateModelRotation
+);
+
+
+rotZ?.addEventListener(
+  "input",
+  updateModelRotation
+);
+
+
+// ======================================================
+// SCALE SLIDER
+// ======================================================
+
+scaleControl?.addEventListener(
+  "input",
+  updateModelScale
+);
+
+
+// ======================================================
+// RESET 3D CONTROLS
+// ======================================================
+
+function reset3DControls() {
+
+  if (posX) {
+    posX.value = 0;
+  }
+
+  if (posY) {
+    posY.value = 0;
+  }
+
+  if (posZ) {
+    posZ.value = 0;
+  }
+
+
+  if (rotX) {
+    rotX.value = 0;
+  }
+
+  if (rotY) {
+    rotY.value = 0;
+  }
+
+  if (rotZ) {
+    rotZ.value = 0;
+  }
+
+
+  if (scaleControl) {
+    scaleControl.value = 1;
+  }
+
+
+  updateModelPosition();
+
+  updateModelRotation();
+
+  updateModelScale();
+
+}
+
+
+// ======================================================
+// RESET BUTTON
+// ======================================================
+
+resetButton?.addEventListener(
+  "click",
+  () => {
+
+    reset3DControls();
+
+    if (currentModel) {
+
+      currentModel.rotation.y = 0;
+
     }
 
 
-    output.toBlob(
-        function (blob) {
+    setStatus(
+      "3D Reset"
+    );
 
-            if (!blob) {
-                return;
+  }
+);
+
+
+// ======================================================
+// INITIALIZE SLIDER VALUES
+// ======================================================
+
+updateModelPosition();
+
+updateModelRotation();
+
+updateModelScale();
+
+
+// ======================================================
+// IMPORT 3D BUTTON
+// ======================================================
+
+import3DButton?.addEventListener(
+  "click",
+  () => {
+
+    import3DInput?.click();
+
+  }
+);
+
+
+// ======================================================
+// GLB / GLTF LOADER
+// ======================================================
+
+const gltfLoader =
+  new GLTFLoader();
+
+
+// ======================================================
+// IMPORT GLB / GLTF
+// ======================================================
+
+function loadGLTFModel(file) {
+
+  const reader =
+    new FileReader();
+
+
+  reader.onload =
+    event => {
+
+      try {
+
+        gltfLoader.parse(
+
+          event.target.result,
+
+          "",
+
+          gltf => {
+
+            if (currentModel) {
+
+              scene.remove(
+                currentModel
+              );
+
             }
 
 
-            downloadBlob(
-                blob,
-                "aziz-ar-photo.jpg"
+            currentModel =
+              gltf.scene;
+
+
+            currentModel.position.set(
+              0,
+              0,
+              0
             );
+
+
+            currentModel.rotation.set(
+              0,
+              0,
+              0
+            );
+
+
+            currentModel.scale.set(
+              1,
+              1,
+              1
+            );
+
+
+            scene.add(
+              currentModel
+            );
+
+
+            reset3DControls();
 
 
             setStatus(
-                "Photo Saved"
+              "3D Model Loaded"
             );
-        },
-        "image/jpeg",
-        0.95
-    );
+
+          },
+
+          error => {
+
+            console.error(
+              "GLTF Error:",
+              error
+            );
+
+            setStatus(
+              "3D Model Load Failed"
+            );
+
+          }
+
+        );
+
+      }
+
+      catch (error) {
+
+        console.error(
+          error
+        );
+
+        setStatus(
+          "Invalid 3D File"
+        );
+
+      }
+
+    };
+
+
+  reader.readAsArrayBuffer(
+    file
+  );
+
 }
 
 
-if (photoButton) {
+// ======================================================
+// FILE SELECT
+// ======================================================
 
-    photoButton.addEventListener(
-        "click",
-        capturePhoto
-    );
+import3DInput?.addEventListener(
+  "change",
+  event => {
+
+    const file =
+      event.target.files?.[0];
+
+
+    if (!file) {
+      return;
+    }
+
+
+    const name =
+      file.name.toLowerCase();
+
+
+    if (
+      name.endsWith(".glb") ||
+      name.endsWith(".gltf")
+    ) {
+
+      loadGLTFModel(file);
+
+    } else {
+
+      setStatus(
+        "Use GLB / GLTF for now"
+      );
+
+    }
+
+
+    // Allow selecting same file again
+
+    event.target.value = "";
+
+  }
+);// ======================================================
+// AZIZ HERO AR
+// app.js — PART 3 / 5
+// 3D IMPORT + PHOTO CAPTURE
+// ======================================================
+
+
+// ======================================================
+// ADDITIONAL THREE.JS LOADERS
+// ======================================================
+
+import {
+  OBJLoader
+} from "three/addons/loaders/OBJLoader.js";
+
+import {
+  STLLoader
+} from "three/addons/loaders/STLLoader.js";
+
+
+// ======================================================
+// LOADERS
+// ======================================================
+
+const objLoader =
+  new OBJLoader();
+
+const stlLoader =
+  new STLLoader();
+
+
+// ======================================================
+// REMOVE OLD MODEL
+// ======================================================
+
+function removeCurrentModel() {
+
+  if (!currentModel) {
+    return;
+  }
+
+
+  scene.remove(
+    currentModel
+  );
+
+
+  currentModel.traverse(
+    object => {
+
+      if (object.geometry) {
+        object.geometry.dispose();
+      }
+
+
+      if (object.material) {
+
+        if (Array.isArray(
+          object.material
+        )) {
+
+          object.material.forEach(
+            material => {
+
+              material.dispose();
+
+            }
+          );
+
+        } else {
+
+          object.material.dispose();
+
+        }
+
+      }
+
+    }
+  );
+
+
+  currentModel = null;
+
 }
 
 
-/* =====================================================
-   PART 3 / 5 END
-========================================================= *//* =====================================================
-   AZIZ FACE AR — APP.JS
-   PART 4 / 5
-========================================================= */
+// ======================================================
+// CENTER AND NORMALIZE MODEL
+// ======================================================
+
+function prepareModel(model) {
+
+  const box =
+    new THREE.Box3()
+      .setFromObject(model);
 
 
-/* ---------- VIDEO RECORDING ---------- */
-
-const recordButton =
-    document.getElementById(
-        "recordButton"
+  const center =
+    box.getCenter(
+      new THREE.Vector3()
     );
 
 
-let mediaRecorder = null;
+  const size =
+    box.getSize(
+      new THREE.Vector3()
+    );
 
-let recordedChunks = [];
+
+  model.position.sub(
+    center
+  );
+
+
+  const maxSize =
+    Math.max(
+      size.x,
+      size.y,
+      size.z
+    );
+
+
+  if (
+    maxSize > 0 &&
+    Number.isFinite(maxSize)
+  ) {
+
+    const targetSize = 2;
+
+    const scale =
+      targetSize /
+      maxSize;
+
+    model.scale.setScalar(
+      scale
+    );
+
+  }
+
+
+  model.position.set(
+    0,
+    0,
+    0
+  );
+
+
+  model.rotation.set(
+    0,
+    0,
+    0
+  );
+
+}
+
+
+// ======================================================
+// LOAD OBJ
+// ======================================================
+
+function loadOBJModel(file) {
+
+  const reader =
+    new FileReader();
+
+
+  reader.onload =
+    event => {
+
+      try {
+
+        const text =
+          event.target.result;
+
+
+        const object =
+          objLoader.parse(
+            text
+          );
+
+
+        removeCurrentModel();
+
+
+        currentModel =
+          object;
+
+
+        prepareModel(
+          currentModel
+        );
+
+
+        scene.add(
+          currentModel
+        );
+
+
+        reset3DControls();
+
+
+        setStatus(
+          "OBJ Model Loaded"
+        );
+
+      }
+
+      catch (error) {
+
+        console.error(
+          "OBJ Error:",
+          error
+        );
+
+        setStatus(
+          "OBJ Load Failed"
+        );
+
+      }
+
+    };
+
+
+  reader.readAsText(
+    file
+  );
+
+}
+
+
+// ======================================================
+// LOAD STL
+// ======================================================
+
+function loadSTLModel(file) {
+
+  const reader =
+    new FileReader();
+
+
+  reader.onload =
+    event => {
+
+      try {
+
+        const geometry =
+          stlLoader.parse(
+            event.target.result
+          );
+
+
+        geometry.computeVertexNormals();
+
+
+        const material =
+          new THREE.MeshStandardMaterial({
+
+            color: 0xcccccc,
+
+            roughness: 0.55,
+
+            metalness: 0.15
+
+          });
+
+
+        const mesh =
+          new THREE.Mesh(
+            geometry,
+            material
+          );
+
+
+        removeCurrentModel();
+
+
+        currentModel =
+          mesh;
+
+
+        prepareModel(
+          currentModel
+        );
+
+
+        scene.add(
+          currentModel
+        );
+
+
+        reset3DControls();
+
+
+        setStatus(
+          "STL Model Loaded"
+        );
+
+      }
+
+      catch (error) {
+
+        console.error(
+          "STL Error:",
+          error
+        );
+
+        setStatus(
+          "STL Load Failed"
+        );
+
+      }
+
+    };
+
+
+  reader.readAsArrayBuffer(
+    file
+  );
+
+}
+
+
+// ======================================================
+// REPLACE IMPORT HANDLER
+// ======================================================
+
+import3DInput?.addEventListener(
+  "change",
+  event => {
+
+    const file =
+      event.target.files?.[0];
+
+
+    if (!file) {
+      return;
+    }
+
+
+    const name =
+      file.name.toLowerCase();
+
+
+    if (
+      name.endsWith(".glb") ||
+      name.endsWith(".gltf")
+    ) {
+
+      loadGLTFModel(
+        file
+      );
+
+    }
+
+    else if (
+      name.endsWith(".obj")
+    ) {
+
+      loadOBJModel(
+        file
+      );
+
+    }
+
+    else if (
+      name.endsWith(".stl")
+    ) {
+
+      loadSTLModel(
+        file
+      );
+
+    }
+
+    else if (
+      name.endsWith(".fbx")
+    ) {
+
+      setStatus(
+        "FBX loader will be added next"
+      );
+
+    }
+
+    else {
+
+      setStatus(
+        "Unsupported 3D file"
+      );
+
+    }
+
+
+    event.target.value = "";
+
+  }
+);
+
+
+// ======================================================
+// PHOTO CAPTURE
+// ======================================================
+
+function takePhoto() {
+
+  if (
+    !video.videoWidth ||
+    !video.videoHeight
+  ) {
+
+    setStatus(
+      "Start camera first"
+    );
+
+    return;
+
+  }
+
+
+  const output =
+    document.createElement(
+      "canvas"
+    );
+
+
+  output.width =
+    video.videoWidth;
+
+  output.height =
+    video.videoHeight;
+
+
+  const ctx =
+    output.getContext(
+      "2d"
+    );
+
+
+  if (!ctx) {
+
+    setStatus(
+      "Photo failed"
+    );
+
+    return;
+
+  }
+
+
+  // CAMERA IMAGE
+
+  if (cameraFacing === "user") {
+
+    ctx.save();
+
+    ctx.translate(
+      output.width,
+      0
+    );
+
+    ctx.scale(
+      -1,
+      1
+    );
+
+    ctx.drawImage(
+      video,
+      0,
+      0,
+      output.width,
+      output.height
+    );
+
+    ctx.restore();
+
+  } else {
+
+    ctx.drawImage(
+      video,
+      0,
+      0,
+      output.width,
+      output.height
+    );
+
+  }
+
+
+  // 3D OVERLAY
+
+  if (canvas.width && canvas.height) {
+
+    ctx.drawImage(
+      canvas,
+      0,
+      0,
+      output.width,
+      output.height
+    );
+
+  }
+
+
+  output.toBlob(
+    blob => {
+
+      if (!blob) {
+
+        setStatus(
+          "Photo failed"
+        );
+
+        return;
+
+      }
+
+
+      const url =
+        URL.createObjectURL(
+          blob
+        );
+
+
+      const link =
+        document.createElement(
+          "a"
+        );
+
+
+      link.href = url;
+
+      link.download =
+        `aziz-ar-photo-${Date.now()}.png`;
+
+
+      document.body.appendChild(
+        link
+      );
+
+
+      link.click();
+
+
+      link.remove();
+
+
+      setTimeout(
+        () => URL.revokeObjectURL(url),
+        1000
+      );
+
+
+      setStatus(
+        "Photo Saved"
+      );
+
+    },
+
+    "image/png"
+
+  );
+
+}
+
+
+// ======================================================
+// PHOTO BUTTON
+// ======================================================
+
+photoButton?.addEventListener(
+  "click",
+  takePhoto
+);
+
+
+// ======================================================
+// BASIC FACE POSITION HELPER
+// ======================================================
+
+// This will be connected to MediaPipe
+// in Part 4.
+
+function moveModelToFace(
+  x,
+  y,
+  z = 0
+) {
+
+  if (!currentModel) {
+    return;
+  }
+
+
+  currentModel.position.x =
+    Number(x) || 0;
+
+
+  currentModel.position.y =
+    Number(y) || 0;
+
+
+  currentModel.position.z =
+    Number(z) || 0;
+
+}
+
+
+// ======================================================
+// PART 3 END
+// ======================================================// ======================================================
+// AZIZ HERO AR
+// app.js — PART 4 / 5
+// FACE TRACKING + VIDEO RECORDING
+// ======================================================
+
+
+// ======================================================
+// MEDIAPIPE
+// ======================================================
+
+import {
+  FaceLandmarker,
+  FilesetResolver
+} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm";
+
+
+// ======================================================
+// FACE TRACKING VARIABLES
+// ======================================================
+
+let faceLandmarker = null;
+
+let faceTrackingReady = false;
+
+let lastFaceX = 0;
+
+let lastFaceY = 0;
+
+
+// ======================================================
+// MEDIAPIPE INITIALIZE
+// ======================================================
+
+async function initFaceTracking() {
+
+  try {
+
+    setStatus(
+      "Loading face tracking..."
+    );
+
+
+    const vision =
+      await FilesetResolver.forVisionTasks(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
+      );
+
+
+    faceLandmarker =
+      await FaceLandmarker.createFromOptions(
+        vision,
+        {
+
+          baseOptions: {
+
+            modelAssetPath:
+              "./models/face_landmarker.task"
+
+          },
+
+          runningMode:
+            "VIDEO",
+
+          numFaces:
+            1,
+
+          minFaceDetectionConfidence:
+            0.5,
+
+          minFacePresenceConfidence:
+            0.5,
+
+          minTrackingConfidence:
+            0.5,
+
+          outputFaceBlendshapes:
+            false,
+
+          outputFacialTransformationMatrixes:
+            true
+
+        }
+      );
+
+
+    faceTrackingReady = true;
+
+
+    setStatus(
+      "Face Tracking Ready"
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      "Face Tracking Error:",
+      error
+    );
+
+
+    faceTrackingReady = false;
+
+
+    setStatus(
+      "Face Tracking Failed"
+    );
+
+  }
+
+}
+
+
+// ======================================================
+// FACE TRACKING
+// ======================================================
+
+function updateFaceTracking() {
+
+  if (
+    !faceTrackingReady ||
+    !faceLandmarker ||
+    video.readyState < 2
+  ) {
+
+    return;
+
+  }
+
+
+  try {
+
+    const now =
+      performance.now();
+
+
+    const result =
+      faceLandmarker.detectForVideo(
+        video,
+        now
+      );
+
+
+    if (
+      result.faceLandmarks &&
+      result.faceLandmarks.length > 0
+    ) {
+
+      const landmarks =
+        result.faceLandmarks[0];
+
+
+      // NOSE LANDMARK
+
+      const nose =
+        landmarks[1];
+
+
+      if (nose) {
+
+        const targetX =
+          (nose.x - 0.5) * 4;
+
+
+        const targetY =
+          -(nose.y - 0.5) * 3;
+
+
+        // SMOOTH MOVEMENT
+
+        lastFaceX +=
+          (targetX - lastFaceX) *
+          0.15;
+
+
+        lastFaceY +=
+          (targetY - lastFaceY) *
+          0.15;
+
+
+        if (currentModel) {
+
+          currentModel.position.x =
+            lastFaceX;
+
+
+          currentModel.position.y =
+            lastFaceY;
+
+        }
+
+      }
+
+    }
+
+  } catch (error) {
+
+    console.warn(
+      "Face tracking frame error:",
+      error
+    );
+
+  }
+
+}
+
+
+// ======================================================
+// ADD FACE TRACKING TO ANIMATION
+// ======================================================
+
+const originalAnimate =
+  animate;
+
+
+// Keep the existing render loop working.
+// Face tracking runs separately.
+
+function faceTrackingLoop() {
+
+  updateFaceTracking();
+
+  requestAnimationFrame(
+    faceTrackingLoop
+  );
+
+}
+
+faceTrackingLoop();
+
+
+// ======================================================
+// VIDEO RECORDING
+// ======================================================
+
+let videoRecorder = null;
+
+let recordedVideoChunks = [];
 
 let recordingCanvas = null;
 
 let recordingContext = null;
 
-let recordingAnimation = null;
-
 let recordingStream = null;
 
+let recordingAnimation = null;
 
-/* ---------- RECORDING CANVAS ---------- */
+
+// ======================================================
+// CREATE RECORDING CANVAS
+// ======================================================
 
 function createRecordingCanvas() {
 
-    if (recordingCanvas) {
-        return;
-    }
+  if (recordingCanvas) {
+    return;
+  }
 
 
-    recordingCanvas =
-        document.createElement(
-            "canvas"
-        );
-
-
-    recordingCanvas.width =
-        video.videoWidth ||
-        innerWidth;
-
-
-    recordingCanvas.height =
-        video.videoHeight ||
-        innerHeight;
-
-
-    recordingContext =
-        recordingCanvas.getContext(
-            "2d"
-        );
-}
-
-
-/* ---------- DRAW RECORDING FRAME ---------- */
-
-function drawRecordingFrame() {
-
-    if (
-        !recordingCanvas ||
-        !recordingContext
-    ) {
-        return;
-    }
-
-
-    const width =
-        recordingCanvas.width;
-
-
-    const height =
-        recordingCanvas.height;
-
-
-    recordingContext.clearRect(
-        0,
-        0,
-        width,
-        height
+  recordingCanvas =
+    document.createElement(
+      "canvas"
     );
 
 
-    /* CAMERA */
+  recordingCanvas.width =
+    1280;
 
-    recordingContext.save();
+  recordingCanvas.height =
+    720;
 
+
+  recordingContext =
+    recordingCanvas.getContext(
+      "2d"
+    );
+
+}
+
+
+// ======================================================
+// DRAW CAMERA + 3D
+// ======================================================
+
+function drawRecordingFrame() {
+
+  if (
+    !recordingContext ||
+    !recordingCanvas
+  ) {
+
+    return;
+
+  }
+
+
+  const ctx =
+    recordingContext;
+
+
+  const width =
+    recordingCanvas.width;
+
+  const height =
+    recordingCanvas.height;
+
+
+  ctx.clearRect(
+    0,
+    0,
+    width,
+    height
+  );
+
+
+  // CAMERA
+
+  if (video.readyState >= 2) {
 
     if (cameraFacing === "user") {
 
-        recordingContext.translate(
-            width,
-            0
-        );
+      ctx.save();
 
-        recordingContext.scale(
-            -1,
-            1
-        );
-    }
+      ctx.translate(
+        width,
+        0
+      );
 
+      ctx.scale(
+        -1,
+        1
+      );
 
-    recordingContext.drawImage(
+      ctx.drawImage(
         video,
         0,
         0,
         width,
         height
-    );
+      );
 
+      ctx.restore();
 
-    recordingContext.restore();
+    } else {
 
+      ctx.drawImage(
+        video,
+        0,
+        0,
+        width,
+        height
+      );
 
-    /* 3D MODEL */
-
-    if (
-        canvas &&
-        canvas.width > 0 &&
-        canvas.height > 0
-    ) {
-
-        recordingContext.drawImage(
-            canvas,
-            0,
-            0,
-            width,
-            height
-        );
     }
 
+  }
+
+
+  // 3D CANVAS
+
+  if (
+    canvas &&
+    canvas.width > 0 &&
+    canvas.height > 0
+  ) {
+
+    ctx.drawImage(
+      canvas,
+      0,
+      0,
+      width,
+      height
+    );
+
+  }
+
+
+  if (videoRecorder) {
 
     recordingAnimation =
-        requestAnimationFrame(
-            drawRecordingFrame
-        );
+      requestAnimationFrame(
+        drawRecordingFrame
+      );
+
+  }
+
 }
 
 
-/* ---------- START RECORDING ---------- */
+// ======================================================
+// START VIDEO RECORDING
+// ======================================================
 
-async function startRecording() {
+function startVideoRecording() {
 
-    try {
+  if (!mediaStream) {
 
-        if (!video.srcObject) {
+    setStatus(
+      "Start camera first"
+    );
 
-            setStatus(
-                "Start Camera First"
-            );
+    return;
 
-            return;
-        }
+  }
 
 
-        createRecordingCanvas();
+  if (
+    !window.MediaRecorder
+  ) {
 
+    setStatus(
+      "Video recording not supported"
+    );
 
-        recordingCanvas.width =
-            video.videoWidth ||
-            innerWidth;
+    return;
 
+  }
 
-        recordingCanvas.height =
-            video.videoHeight ||
-            innerHeight;
 
+  createRecordingCanvas();
 
-        const canvasStream =
-            recordingCanvas.captureStream(
-                30
-            );
 
+  const canvasStream =
+    recordingCanvas.captureStream(
+      30
+    );
 
-        const audioTracks =
-            cameraStream
-                ? cameraStream.getAudioTracks()
-                : [];
 
+  const audioTracks =
+    mediaStream.getAudioTracks();
 
-        recordingStream =
-            new MediaStream();
 
+  audioTracks.forEach(
+    track => {
 
-        canvasStream
-            .getVideoTracks()
-            .forEach(
-                function (track) {
+      canvasStream.addTrack(
+        track
+      );
 
-                    recordingStream.addTrack(
-                        track
-                    );
-                }
-            );
-
-
-        audioTracks.forEach(
-            function (track) {
-
-                recordingStream.addTrack(
-                    track
-                );
-            }
-        );
-
-
-        recordedChunks = [];
-
-
-        let mimeType =
-            "";
-
-
-        if (
-            MediaRecorder.isTypeSupported(
-                "video/webm;codecs=vp9,opus"
-            )
-        ) {
-
-            mimeType =
-                "video/webm;codecs=vp9,opus";
-
-        } else if (
-            MediaRecorder.isTypeSupported(
-                "video/webm;codecs=vp8,opus"
-            )
-        ) {
-
-            mimeType =
-                "video/webm;codecs=vp8,opus";
-
-        } else if (
-            MediaRecorder.isTypeSupported(
-                "video/webm"
-            )
-        ) {
-
-            mimeType =
-                "video/webm";
-        }
-
-
-        mediaRecorder =
-            mimeType
-                ? new MediaRecorder(
-                    recordingStream,
-                    {
-                        mimeType
-                    }
-                )
-                : new MediaRecorder(
-                    recordingStream
-                );
-
-
-        mediaRecorder.ondataavailable =
-            function (event) {
-
-                if (
-                    event.data &&
-                    event.data.size > 0
-                ) {
-
-                    recordedChunks.push(
-                        event.data
-                    );
-                }
-            };
-
-
-        mediaRecorder.onstop =
-            function () {
-
-                if (
-                    recordingAnimation
-                ) {
-
-                    cancelAnimationFrame(
-                        recordingAnimation
-                    );
-
-                    recordingAnimation =
-                        null;
-                }
-
-
-                const blob =
-                    new Blob(
-                        recordedChunks,
-                        {
-                            type:
-                                mediaRecorder.mimeType ||
-                                "video/webm"
-                        }
-                    );
-
-
-                downloadBlob(
-                    blob,
-                    "aziz-ar-video.webm"
-                );
-
-
-                setStatus(
-                    "Video Saved"
-                );
-
-
-                if (recordingStream) {
-
-                    recordingStream
-                        .getTracks()
-                        .forEach(
-                            function (track) {
-                                track.stop();
-                            }
-                        );
-                }
-
-
-                recordingStream =
-                    null;
-            };
-
-
-        mediaRecorder.start(
-            1000
-        );
-
-
-        drawRecordingFrame();
-
-
-        if (recordButton) {
-
-            recordButton.textContent =
-                "Stop Recording";
-        }
-
-
-        setStatus(
-            "RECORDING..."
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            "Recording Error:",
-            error
-        );
-
-
-        setStatus(
-            "Recording Error"
-        );
     }
+  );
+
+
+  recordingStream =
+    canvasStream;
+
+
+  recordedVideoChunks = [];
+
+
+  let mimeType =
+    "video/webm;codecs=vp9";
+
+
+  if (
+    !MediaRecorder.isTypeSupported(
+      mimeType
+    )
+  ) {
+
+    mimeType =
+      "video/webm";
+
+  }
+
+
+  try {
+
+    videoRecorder =
+      new MediaRecorder(
+        recordingStream,
+        {
+          mimeType
+        }
+      );
+
+  } catch (error) {
+
+    console.error(
+      error
+    );
+
+    setStatus(
+      "Recording unavailable"
+    );
+
+    return;
+
+  }
+
+
+  videoRecorder.ondataavailable =
+    event => {
+
+      if (
+        event.data &&
+        event.data.size > 0
+      ) {
+
+        recordedVideoChunks.push(
+          event.data
+        );
+
+      }
+
+    };
+
+
+  videoRecorder.onstop =
+    saveRecordedVideo;
+
+
+  videoRecorder.start(
+    250
+  );
+
+
+  recordButton?.classList.add(
+    "recording"
+  );
+
+
+  recordButton.textContent =
+    "⏹";
+
+
+  setStatus(
+    "Recording..."
+  );
+
+
+  drawRecordingFrame();
+
 }
 
 
-/* ---------- STOP RECORDING ---------- */
+// ======================================================
+// STOP VIDEO RECORDING
+// ======================================================
 
-function stopRecording() {
+function stopVideoRecording() {
+
+  if (!videoRecorder) {
+    return;
+  }
+
+
+  if (
+    videoRecorder.state !==
+    "inactive"
+  ) {
+
+    videoRecorder.stop();
+
+  }
+
+
+  if (recordingAnimation) {
+
+    cancelAnimationFrame(
+      recordingAnimation
+    );
+
+    recordingAnimation =
+      null;
+
+  }
+
+
+  recordButton?.classList.remove(
+    "recording"
+  );
+
+
+  recordButton.textContent =
+    "⏺";
+
+}
+
+
+// ======================================================
+// SAVE VIDEO
+// ======================================================
+
+function saveRecordedVideo() {
+
+  const blob =
+    new Blob(
+      recordedVideoChunks,
+      {
+        type:
+          videoRecorder?.mimeType ||
+          "video/webm"
+      }
+    );
+
+
+  if (!blob.size) {
+
+    setStatus(
+      "Video recording failed"
+    );
+
+    videoRecorder = null;
+
+    return;
+
+  }
+
+
+  const url =
+    URL.createObjectURL(
+      blob
+    );
+
+
+  const link =
+    document.createElement(
+      "a"
+    );
+
+
+  link.href =
+    url;
+
+
+  link.download =
+    `aziz-ar-video-${Date.now()}.webm`;
+
+
+  document.body.appendChild(
+    link
+  );
+
+
+  link.click();
+
+
+  link.remove();
+
+
+  setTimeout(
+    () => {
+
+      URL.revokeObjectURL(
+        url
+      );
+
+    },
+    2000
+  );
+
+
+  recordedVideoChunks = [];
+
+  videoRecorder = null;
+
+  recordingStream = null;
+
+
+  setStatus(
+    "Video Saved"
+  );
+
+}
+
+
+// ======================================================
+// RECORD BUTTON
+// ======================================================
+
+recordButton?.addEventListener(
+  "click",
+  () => {
 
     if (
-        mediaRecorder &&
-        mediaRecorder.state !==
-            "inactive"
+      videoRecorder &&
+      videoRecorder.state ===
+      "recording"
     ) {
 
-        mediaRecorder.stop();
+      stopVideoRecording();
 
+    } else {
 
-        if (recordButton) {
+      startVideoRecording();
 
-            recordButton.textContent =
-                "Record Video";
-        }
     }
-}
+
+  }
+);
 
 
-/* ---------- RECORD BUTTON ---------- */
+// ======================================================
+// START FACE TRACKING
+// ======================================================
 
-if (recordButton) {
-
-    recordButton.addEventListener(
-        "click",
-        function () {
-
-            if (
-                mediaRecorder &&
-                mediaRecorder.state ===
-                    "recording"
-            ) {
-
-                stopRecording();
-
-            } else {
-
-                startRecording();
-            }
-        }
-    );
-}
+initFaceTracking();
 
 
-/* ---------- AUDIO RECORDING ---------- */
+// ======================================================
+// PART 4 END
+// ======================================================// ======================================================
+// AZIZ HERO AR
+// app.js — PART 5 / 5
+// AUDIO + 3D EXPORT + EXTRA CONTROLS
+// ======================================================
 
-const audioButton =
-    document.getElementById(
-        "audioButton"
-    );
 
+// ======================================================
+// AUDIO RECORDING
+// ======================================================
 
 let audioRecorder = null;
 
 let audioChunks = [];
 
+let audioStream = null;
+
+
+// ======================================================
+// START AUDIO RECORDING
+// ======================================================
 
 async function startAudioRecording() {
 
-    try {
+  try {
 
-        const audioStream =
-            await navigator.mediaDevices
-                .getUserMedia({
-                    audio: true
-                });
+    if (!window.MediaRecorder) {
 
+      setStatus(
+        "Audio recording not supported"
+      );
 
-        audioChunks = [];
+      return;
 
-
-        audioRecorder =
-            new MediaRecorder(
-                audioStream
-            );
-
-
-        audioRecorder.ondataavailable =
-            function (event) {
-
-                if (
-                    event.data &&
-                    event.data.size > 0
-                ) {
-
-                    audioChunks.push(
-                        event.data
-                    );
-                }
-            };
-
-
-        audioRecorder.onstop =
-            function () {
-
-                const blob =
-                    new Blob(
-                        audioChunks,
-                        {
-                            type:
-                                audioRecorder.mimeType ||
-                                "audio/webm"
-                        }
-                    );
-
-
-                downloadBlob(
-                    blob,
-                    "aziz-audio.webm"
-                );
-
-
-                setStatus(
-                    "Audio Saved"
-                );
-
-
-                audioStream
-                    .getTracks()
-                    .forEach(
-                        function (track) {
-                            track.stop();
-                        }
-                    );
-            };
-
-
-        audioRecorder.start();
-
-
-        if (audioButton) {
-
-            audioButton.textContent =
-                "Stop Audio";
-        }
-
-
-        setStatus(
-            "AUDIO RECORDING..."
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            "Audio Error:",
-            error
-        );
-
-
-        setStatus(
-            "Microphone Error"
-        );
     }
-}
 
 
-/* ---------- STOP AUDIO ---------- */
-
-function stopAudioRecording() {
-
-    if (
-        audioRecorder &&
-        audioRecorder.state !==
-            "inactive"
-    ) {
-
-        audioRecorder.stop();
+    audioStream =
+      await navigator.mediaDevices.getUserMedia({
+        audio: true
+      });
 
 
-        if (audioButton) {
+    audioChunks = [];
 
-            audioButton.textContent =
-                "Record Audio";
+
+    audioRecorder =
+      new MediaRecorder(
+        audioStream
+      );
+
+
+    audioRecorder.ondataavailable =
+      event => {
+
+        if (
+          event.data &&
+          event.data.size > 0
+        ) {
+
+          audioChunks.push(
+            event.data
+          );
+
         }
-    }
-}
+
+      };
 
 
-/* ---------- AUDIO BUTTON ---------- */
-
-if (audioButton) {
-
-    audioButton.addEventListener(
-        "click",
-        function () {
-
-            if (
-                audioRecorder &&
-                audioRecorder.state ===
-                    "recording"
-            ) {
-
-                stopAudioRecording();
-
-            } else {
-
-                startAudioRecording();
-            }
-        }
-    );
-}
+    audioRecorder.onstop =
+      saveAudioRecording;
 
 
-/* =====================================================
-   PART 4 / 5 END
-========================================================= *//* =====================================================
-   AZIZ FACE AR — APP.JS
-   PART 5 / 5
-========================================================= */
+    audioRecorder.start();
 
 
-/* ---------- RESET BUTTON ---------- */
-
-const resetButton =
-    document.getElementById(
-        "resetButton"
+    audioButton?.classList.add(
+      "recording"
     );
 
 
-function resetAll() {
-
-    /* Stop video recording */
-
-    if (
-        mediaRecorder &&
-        mediaRecorder.state !==
-            "inactive"
-    ) {
-
-        mediaRecorder.stop();
-    }
-
-
-    /* Stop audio recording */
-
-    if (
-        audioRecorder &&
-        audioRecorder.state !==
-            "inactive"
-    ) {
-
-        audioRecorder.stop();
-    }
-
-
-    /* Reset camera */
-
-    cameraFacing =
-        "user";
-
-
-    if (switchCameraButton) {
-
-        switchCameraButton.textContent =
-            "Back Camera";
-    }
-
-
-    updateMirror();
-
-
-    /* Reset model */
-
-    if (currentModel) {
-
-        currentModel.position.set(
-            0,
-            0,
-            0
-        );
-
-        currentModel.rotation.set(
-            0,
-            0,
-            0
-        );
-
-        currentModel.scale.setScalar(
-            1
-        );
-    }
-
-
-    resetModelControls();
+    audioButton.textContent =
+      "⏹";
 
 
     setStatus(
-        "AR Reset"
+      "Audio Recording..."
     );
+
+  }
+
+  catch (error) {
+
+    console.error(
+      "Audio Error:",
+      error
+    );
+
+
+    setStatus(
+      "Microphone permission required"
+    );
+
+  }
+
 }
 
 
-/* ---------- RESET EVENT ---------- */
+// ======================================================
+// STOP AUDIO RECORDING
+// ======================================================
 
-if (resetButton) {
+function stopAudioRecording() {
 
-    resetButton.addEventListener(
-        "click",
-        resetAll
-    );
+  if (!audioRecorder) {
+    return;
+  }
+
+
+  if (
+    audioRecorder.state !==
+    "inactive"
+  ) {
+
+    audioRecorder.stop();
+
+  }
+
+
+  audioButton?.classList.remove(
+    "recording"
+  );
+
+
+  audioButton.textContent =
+    "🎙";
+
 }
 
 
-/* ---------- KEYBOARD SHORTCUTS ---------- */
+// ======================================================
+// SAVE AUDIO
+// ======================================================
 
-addEventListener(
-    "keydown",
-    function (event) {
+function saveAudioRecording() {
 
-        /*
-         * Do not interfere with
-         * text inputs.
-         */
-
-        const target =
-            event.target;
-
-
-        if (
-            target &&
-            (
-                target.tagName ===
-                    "INPUT" ||
-                target.tagName ===
-                    "TEXTAREA"
-            )
-        ) {
-
-            return;
-        }
+  const blob =
+    new Blob(
+      audioChunks,
+      {
+        type:
+          audioRecorder?.mimeType ||
+          "audio/webm"
+      }
+    );
 
 
-        /* R = Reset */
+  if (!blob.size) {
 
-        if (
-            event.key.toLowerCase()
-            === "r"
-        ) {
+    setStatus(
+      "Audio recording failed"
+    );
 
-            resetAll();
-        }
+    audioRecorder = null;
 
+    return;
 
-        /* P = Photo */
-
-        if (
-            event.key.toLowerCase()
-            === "p"
-        ) {
-
-            capturePhoto();
-        }
+  }
 
 
-        /* V = Video */
+  const url =
+    URL.createObjectURL(
+      blob
+    );
 
-        if (
-            event.key.toLowerCase()
-            === "v"
-        ) {
 
-            if (
-                mediaRecorder &&
-                mediaRecorder.state ===
-                    "recording"
-            ) {
+  const link =
+    document.createElement(
+      "a"
+    );
 
-                stopRecording();
 
-            } else {
+  link.href =
+    url;
 
-                startRecording();
-            }
-        }
+
+  link.download =
+    `aziz-ar-audio-${Date.now()}.webm`;
+
+
+  document.body.appendChild(
+    link
+  );
+
+
+  link.click();
+
+
+  link.remove();
+
+
+  setTimeout(
+    () => {
+      URL.revokeObjectURL(url);
+    },
+    2000
+  );
+
+
+  if (audioStream) {
+
+    audioStream
+      .getTracks()
+      .forEach(
+        track => track.stop()
+      );
+
+  }
+
+
+  audioStream = null;
+
+  audioRecorder = null;
+
+  audioChunks = [];
+
+
+  setStatus(
+    "Audio Saved"
+  );
+
+}
+
+
+// ======================================================
+// AUDIO BUTTON
+// ======================================================
+
+audioButton?.addEventListener(
+  "click",
+  () => {
+
+    if (
+      audioRecorder &&
+      audioRecorder.state ===
+      "recording"
+    ) {
+
+      stopAudioRecording();
+
+    } else {
+
+      startAudioRecording();
+
     }
+
+  }
 );
 
 
-/* ---------- INITIAL STATUS ---------- */
+// ======================================================
+// EXPORT HELPERS
+// ======================================================
+
+function downloadBlob(
+  blob,
+  filename
+) {
+
+  if (!blob) {
+
+    setStatus(
+      "Export failed"
+    );
+
+    return;
+
+  }
+
+
+  const url =
+    URL.createObjectURL(
+      blob
+    );
+
+
+  const link =
+    document.createElement(
+      "a"
+    );
+
+
+  link.href =
+    url;
+
+  link.download =
+    filename;
+
+
+  document.body.appendChild(
+    link
+  );
+
+
+  link.click();
+
+
+  link.remove();
+
+
+  setTimeout(
+    () => {
+      URL.revokeObjectURL(url);
+    },
+    2000
+  );
+
+}
+
+
+// ======================================================
+// EXPORT GLB
+// ======================================================
+
+async function exportGLB() {
+
+  if (!currentModel) {
+
+    setStatus(
+      "No 3D model"
+    );
+
+    return;
+
+  }
+
+
+  try {
+
+    const { GLTFExporter } =
+      await import(
+        "three/addons/exporters/GLTFExporter.js"
+      );
+
+
+    const exporter =
+      new GLTFExporter();
+
+
+    exporter.parse(
+
+      currentModel,
+
+      result => {
+
+        const json =
+          JSON.stringify(
+            result
+          );
+
+
+        const blob =
+          new Blob(
+            [json],
+            {
+              type:
+                "model/gltf+json"
+            }
+          );
+
+
+        downloadBlob(
+          blob,
+          `aziz-model-${Date.now()}.gltf`
+        );
+
+
+        setStatus(
+          "GLTF Exported"
+        );
+
+      },
+
+      error => {
+
+        console.error(
+          error
+        );
+
+        setStatus(
+          "GLTF Export Failed"
+        );
+
+      },
+
+      {
+        binary: false
+      }
+
+    );
+
+  }
+
+  catch (error) {
+
+    console.error(
+      error
+    );
+
+    setStatus(
+      "GLTF Export Failed"
+    );
+
+  }
+
+}
+
+
+// ======================================================
+// EXPORT GLTF / GLB
+// ======================================================
+
+async function exportGLTF(
+  binary = true
+) {
+
+  if (!currentModel) {
+
+    setStatus(
+      "No 3D model"
+    );
+
+    return;
+
+  }
+
+
+  try {
+
+    const { GLTFExporter } =
+      await import(
+        "three/addons/exporters/GLTFExporter.js"
+      );
+
+
+    const exporter =
+      new GLTFExporter();
+
+
+    exporter.parse(
+
+      currentModel,
+
+      result => {
+
+        if (binary) {
+
+          const blob =
+            new Blob(
+              [result],
+              {
+                type:
+                  "model/gltf-binary"
+              }
+            );
+
+
+          downloadBlob(
+            blob,
+            `aziz-model-${Date.now()}.glb`
+          );
+
+
+          setStatus(
+            "GLB Exported"
+          );
+
+        } else {
+
+          const json =
+            JSON.stringify(
+              result,
+              null,
+              2
+            );
+
+
+          const blob =
+            new Blob(
+              [json],
+              {
+                type:
+                  "model/gltf+json"
+              }
+            );
+
+
+          downloadBlob(
+            blob,
+            `aziz-model-${Date.now()}.gltf`
+          );
+
+
+          setStatus(
+            "GLTF Exported"
+          );
+
+        }
+
+      },
+
+      error => {
+
+        console.error(
+          error
+        );
+
+        setStatus(
+          "3D Export Failed"
+        );
+
+      },
+
+      {
+        binary
+      }
+
+    );
+
+  }
+
+  catch (error) {
+
+    console.error(
+      error
+    );
+
+    setStatus(
+      "Export Error"
+    );
+
+  }
+
+}
+
+
+// ======================================================
+// EXPORT OBJ
+// ======================================================
+
+async function exportOBJ() {
+
+  if (!currentModel) {
+
+    setStatus(
+      "No 3D model"
+    );
+
+    return;
+
+  }
+
+
+  try {
+
+    const { OBJExporter } =
+      await import(
+        "three/addons/exporters/OBJExporter.js"
+      );
+
+
+    const exporter =
+      new OBJExporter();
+
+
+    const result =
+      exporter.parse(
+        currentModel
+      );
+
+
+    const blob =
+      new Blob(
+        [result],
+        {
+          type:
+            "text/plain"
+        }
+      );
+
+
+    downloadBlob(
+      blob,
+      `aziz-model-${Date.now()}.obj`
+    );
+
+
+    setStatus(
+      "OBJ Exported"
+    );
+
+  }
+
+  catch (error) {
+
+    console.error(
+      error
+    );
+
+    setStatus(
+      "OBJ Export Failed"
+    );
+
+  }
+
+}
+
+
+// ======================================================
+// EXPORT STL
+// ======================================================
+
+async function exportSTL() {
+
+  if (!currentModel) {
+
+    setStatus(
+      "No 3D model"
+    );
+
+    return;
+
+  }
+
+
+  try {
+
+    const { STLExporter } =
+      await import(
+        "three/addons/exporters/STLExporter.js"
+      );
+
+
+    const exporter =
+      new STLExporter();
+
+
+    const result =
+      exporter.parse(
+        currentModel
+      );
+
+
+    const blob =
+      new Blob(
+        [result],
+        {
+          type:
+            "application/octet-stream"
+        }
+      );
+
+
+    downloadBlob(
+      blob,
+      `aziz-model-${Date.now()}.stl`
+    );
+
+
+    setStatus(
+      "STL Exported"
+    );
+
+  }
+
+  catch (error) {
+
+    console.error(
+      error
+    );
+
+    setStatus(
+      "STL Export Failed"
+    );
+
+  }
+
+}
+
+
+// ======================================================
+// EXPORT BUTTON
+// ======================================================
+
+export3DButton?.addEventListener(
+  "click",
+  async () => {
+
+    if (!currentModel) {
+
+      setStatus(
+        "No 3D model"
+      );
+
+      return;
+
+    }
+
+
+    // Simple export:
+    // GLB is the main recommended format.
+
+    await exportGLTF(true);
+
+  }
+);
+
+
+// ======================================================
+// ZOOM BUTTONS
+// ======================================================
+
+const zoomInButton =
+  document.getElementById(
+    "zoomInButton"
+  );
+
+const zoomOutButton =
+  document.getElementById(
+    "zoomOutButton"
+  );
+
+
+zoomInButton?.addEventListener(
+  "click",
+  () => {
+
+    if (!currentModel) {
+      return;
+    }
+
+
+    currentModel.scale.multiplyScalar(
+      1.15
+    );
+
+
+    const value =
+      currentModel.scale.x;
+
+
+    if (scaleControl) {
+
+      scaleControl.value =
+        Math.min(
+          4,
+          value
+        );
+
+    }
+
+
+    updateModelScale();
+
+  }
+);
+
+
+zoomOutButton?.addEventListener(
+  "click",
+  () => {
+
+    if (!currentModel) {
+      return;
+    }
+
+
+    currentModel.scale.multiplyScalar(
+      0.87
+    );
+
+
+    const value =
+      currentModel.scale.x;
+
+
+    if (scaleControl) {
+
+      scaleControl.value =
+        Math.max(
+          0.1,
+          value
+        );
+
+    }
+
+
+    updateModelScale();
+
+  }
+);
+
+
+// ======================================================
+// HIDE / SHOW CONTROLS
+// ======================================================
+
+const hideControlsButton =
+  document.getElementById(
+    "hideControlsButton"
+  );
+
+
+let controlsHidden = false;
+
+
+hideControlsButton?.addEventListener(
+  "click",
+  () => {
+
+    controlsHidden =
+      !controlsHidden;
+
+
+    if (sideControls) {
+
+      sideControls.style.display =
+        controlsHidden
+          ? "none"
+          : "flex";
+
+    }
+
+
+    if (modelPanel) {
+
+      modelPanel.classList.remove(
+        "show"
+      );
+
+    }
+
+  }
+);
+
+
+// ======================================================
+// PAGE VISIBILITY
+// ======================================================
+
+document.addEventListener(
+  "visibilitychange",
+  () => {
+
+    if (
+      document.hidden &&
+      videoRecorder &&
+      videoRecorder.state ===
+      "recording"
+    ) {
+
+      stopVideoRecording();
+
+    }
+
+  }
+);
+
+
+// ======================================================
+// FINAL READY
+// ======================================================
 
 setStatus(
-    "AZIZ AR READY"
+  "Aziz Hero AR Ready"
 );
 
 
-/* ---------- SAFETY CHECK ---------- */
-
-console.log(
-    "AZIZ FACE AR APP.JS LOADED"
-);
-
-console.log(
-    "Camera:",
-    !!video
-);
-
-console.log(
-    "Three Canvas:",
-    !!canvas
-);
-
-console.log(
-    "Model:",
-    !!currentModel
-);
-
-console.log(
-    "Face Tracking:",
-    "MediaPipe Ready"
-);
-
-
-/* =====================================================
-   PART 5 / 5 END
-========================================================= */
+// ======================================================
+// app.js COMPLETE
+// ======================================================
