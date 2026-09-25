@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Aziz Hero AR</title>
 
     <style>
@@ -10,7 +11,8 @@
             box-sizing: border-box;
         }
 
-        html, body {
+        html,
+        body {
             margin: 0;
             padding: 0;
             width: 100%;
@@ -35,9 +37,11 @@
             left: 50%;
             transform: translateX(-50%);
             z-index: 10;
-            background: rgba(0,0,0,0.7);
+
+            background: rgba(0, 0, 0, 0.7);
             padding: 10px 16px;
             border-radius: 10px;
+
             font-size: 16px;
             text-align: center;
             white-space: nowrap;
@@ -49,11 +53,14 @@
             left: 50%;
             transform: translateX(-50%);
             z-index: 10;
+
             padding: 14px 28px;
             border: none;
             border-radius: 12px;
+
             background: #fff;
             color: #000;
+
             font-size: 18px;
             font-weight: bold;
         }
@@ -62,43 +69,91 @@
 
 <body>
 
-    <video id="camera" autoplay muted playsinline></video>
+    <video
+        id="camera"
+        autoplay
+        muted
+        playsinline>
+    </video>
 
-    <div id="status">Camera Ready</div>
+    <div id="status">
+        Camera Ready
+    </div>
 
-    <button id="startButton">Start Camera</button>
+    <button id="startButton">
+        Start Camera
+    </button>
 
-    <script type="module" src="./js/app.js"></script>
 
+    <!-- FACE TRACKING APP -->
+    <script
+        type="module"
+        src="./js/app.js">
+    </script>
+
+
+    <!-- HTML TEST -->
     <script>
-        const video = document.getElementById("camera");
-        const status = document.getElementById("status");
-        const startButton = document.getElementById("startButton");
+        alert("INDEX HTML SEEN");
+    </script>
 
-        startButton.addEventListener("click", async () => {
-            try {
-                status.textContent = "Starting Camera...";
 
-                const stream =
-                    await navigator.mediaDevices.getUserMedia({
-                        video: {
-                            facingMode: "user"
-                        },
-                        audio: false
-                    });
+    <!-- CAMERA -->
+    <script>
+        const video =
+            document.getElementById("camera");
 
-                video.srcObject = stream;
+        const status =
+            document.getElementById("status");
 
-                await video.play();
+        const startButton =
+            document.getElementById("startButton");
 
-                status.textContent = "Camera Working";
-                startButton.style.display = "none";
 
-            } catch (error) {
-                status.textContent =
-                    "Camera Error: " + error.message;
+        startButton.addEventListener(
+            "click",
+            async () => {
+
+                try {
+
+                    status.textContent =
+                        "Starting Camera...";
+
+
+                    const stream =
+                        await navigator.mediaDevices.getUserMedia({
+                            video: {
+                                facingMode: "user"
+                            },
+                            audio: false
+                        });
+
+
+                    video.srcObject =
+                        stream;
+
+
+                    await video.play();
+
+
+                    status.textContent =
+                        "Camera Working";
+
+
+                    startButton.style.display =
+                        "none";
+
+
+                } catch (error) {
+
+                    status.textContent =
+                        "Camera Error: " +
+                        error.message;
+
+                }
+
             }
-        });
+        );
     </script>
 
 </body>
