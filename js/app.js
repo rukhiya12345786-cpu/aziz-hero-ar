@@ -4,8 +4,7 @@
 // Camera + Three.js + Basic 3D Model
 // ======================================================
 
-import * as THREE from "three";
-
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
 import {
   GLTFLoader
 } from "three/addons/loaders/GLTFLoader.js";
