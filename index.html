@@ -5,29 +5,24 @@
 
 <meta charset="UTF-8">
 
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, user-scalable=no"
->
+<meta name="viewport"
+      content="width=device-width,
+      initial-scale=1.0,
+      maximum-scale=1.0,
+      user-scalable=no">
 
-<meta
-    name="mobile-web-app-capable"
-    content="yes"
->
+<title>Aziz Hero AR</title>
 
-<meta
-    name="apple-mobile-web-app-capable"
-    content="yes"
->
-
-<title>Aziz Face AR</title>
-
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+  }
+}
+</script>
 
 <style>
-
-/* =========================
-   BASIC
-========================= */
 
 * {
     box-sizing: border-box;
@@ -36,33 +31,16 @@
 
 html,
 body {
-    margin: 0;
-    padding: 0;
-
     width: 100%;
     height: 100%;
-
+    margin: 0;
+    padding: 0;
     overflow: hidden;
-
     background: #000;
-    color: #fff;
-
-    font-family:
-        Arial,
-        Helvetica,
-        sans-serif;
+    font-family: Arial, sans-serif;
 }
 
-body {
-    touch-action: manipulation;
-}
-
-
-/* =========================
-   APP
-========================= */
-
-#app {
+#camera {
 
     position: fixed;
 
@@ -71,179 +49,150 @@ body {
     width: 100%;
     height: 100%;
 
-    overflow: hidden;
-
-    background: #000;
-}
-
-
-/* =========================
-   CAMERA
-========================= */
-
-#camera {
-
-    position: absolute;
-
-    inset: 0;
-
-    width: 100%;
-    height: 100%;
-
     object-fit: cover;
-
-    display: block;
 
     background: #000;
 
     z-index: 1;
 }
 
-
-/* =========================
-   THREE.JS CANVAS
-========================= */
+.camera-mirrored {
+    transform: scaleX(-1);
+}
 
 #threeCanvas {
 
-    position: absolute;
+    position: fixed;
 
     inset: 0;
 
     width: 100%;
     height: 100%;
 
+    z-index: 2;
+
     pointer-events: none;
-
-    z-index: 10;
 }
-
-
-/* =========================
-   STATUS
-========================= */
 
 #status {
 
-    position: absolute;
+    position: fixed;
 
-    top: 10px;
-    left: 50%;
+    left: 12px;
+    bottom: 14px;
 
-    transform: translateX(-50%);
+    z-index: 20;
 
-    z-index: 50;
+    padding: 8px 12px;
 
-    max-width: calc(100% - 20px);
+    border-radius: 20px;
 
-    padding: 8px 14px;
-
-    border-radius: 14px;
-
-    background:
-        rgba(0, 0, 0, 0.72);
+    background: rgba(0,0,0,.60);
 
     color: #fff;
 
-    font-size: 13px;
+    font-size: 12px;
 
-    text-align: center;
+    max-width: 70%;
 
-    white-space: nowrap;
-
-    overflow: hidden;
-
-    text-overflow: ellipsis;
+    pointer-events: none;
 }
 
 
-/* =========================
-   TOP BAR
-========================= */
+/* RIGHT SIDE BUTTONS */
 
-#topBar {
+#sideControls {
 
-    position: absolute;
+    position: fixed;
 
-    top: 50px;
+    right: 10px;
 
-    left: 8px;
-    right: 8px;
+    top: 50%;
 
-    z-index: 50;
+    transform: translateY(-50%);
+
+    z-index: 30;
 
     display: flex;
 
-    justify-content: center;
+    flex-direction: column;
 
     align-items: center;
 
-    gap: 7px;
+    gap: 10px;
 
-    flex-wrap: wrap;
+    max-height: 90vh;
+
+    overflow-y: auto;
+
+    padding: 5px;
+
+    scrollbar-width: none;
 }
 
+#sideControls::-webkit-scrollbar {
+    display: none;
+}
 
-/* =========================
-   BUTTON
-========================= */
+.tool {
 
-button {
-
-    min-width: 44px;
-    min-height: 44px;
-
-    padding: 9px 12px;
+    width: 48px;
+    height: 48px;
 
     border: none;
 
-    border-radius: 12px;
+    border-radius: 50%;
 
-    background:
-        rgba(255, 255, 255, 0.94);
+    background: rgba(0,0,0,.65);
 
-    color: #000;
+    color: white;
 
-    font-size: 13px;
+    font-size: 20px;
 
-    font-weight: 700;
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
 
     cursor: pointer;
 
     touch-action: manipulation;
 }
 
-button:active {
-
-    transform: scale(0.96);
+.tool:active {
+    transform: scale(.9);
 }
 
-button:disabled {
+.tool.primary {
 
-    opacity: 0.45;
+    background: rgba(255,255,255,.95);
 
-    cursor: not-allowed;
+    color: #111;
+}
+
+.tool.recording {
+    background: #e53935;
 }
 
 
-/* =========================
-   CONTROLS PANEL
-========================= */
+/* 3D PANEL */
 
-#controls {
+#modelPanel {
 
-    position: absolute;
+    position: fixed;
 
-    left: 8px;
-    right: 8px;
+    right: 68px;
 
-    bottom: 70px;
+    top: 50%;
 
-    z-index: 60;
+    transform: translateY(-50%);
 
-    display: none;
+    z-index: 40;
 
-    max-height: 50vh;
+    width: min(245px,68vw);
+
+    max-height: 82vh;
 
     overflow-y: auto;
 
@@ -251,873 +200,283 @@ button:disabled {
 
     border-radius: 18px;
 
-    background:
-        rgba(0, 0, 0, 0.86);
+    background: rgba(15,15,18,.94);
 
-    border:
-        1px solid
-        rgba(255,255,255,0.15);
+    color: white;
 
-    -webkit-overflow-scrolling: touch;
+    display: none;
 }
 
+#modelPanel.show {
+    display: block;
+}
 
-/* =========================
-   CONTROL
-========================= */
+.panelTitle {
+
+    font-size: 15px;
+
+    font-weight: bold;
+
+    margin-bottom: 12px;
+}
 
 .control {
-
-    margin-bottom: 13px;
+    margin-bottom: 10px;
 }
 
-.control:last-child {
-
-    margin-bottom: 0;
-}
-
-
-.controlHeader {
+.control label {
 
     display: flex;
 
     justify-content: space-between;
 
-    align-items: center;
-
-    gap: 10px;
+    font-size: 11px;
 
     margin-bottom: 4px;
-
-    font-size: 13px;
 }
 
-.controlHeader span:last-child {
-
-    min-width: 50px;
-
-    text-align: right;
-
-    font-weight: 700;
-}
-
-
-/* =========================
-   RANGE
-========================= */
-
-input[type="range"] {
-
+.control input[type="range"] {
     width: 100%;
-
-    height: 34px;
-
-    margin: 0;
-
-    accent-color: #ffffff;
 }
 
-
-/* =========================
-   BOTTOM BAR
-========================= */
-
-#bottomBar {
-
-    position: absolute;
-
-    left: 8px;
-    right: 8px;
-
-    bottom: 10px;
-
-    z-index: 50;
-
-    display: flex;
-
-    justify-content: center;
-
-    align-items: center;
-
-    gap: 7px;
-
-    flex-wrap: wrap;
-}
-
-
-/* =========================
-   RECORDING
-========================= */
-
-#recordButton.recording {
-
-    background: #e00000;
-
-    color: #fff;
-}
-
-
-/* =========================
-   AUDIO
-========================= */
-
-#audioButton.recording {
-
-    background: #e00000;
-
-    color: #fff;
-}
-
-
-/* =========================
-   HIDDEN FILE INPUTS
-========================= */
-
-#import3DInput,
-#importProjectInput {
-
+.hiddenInput {
     display: none;
-}
-
-
-/* =========================
-   CAMERA FLIP
-========================= */
-
-.camera-mirrored {
-
-    transform:
-        scaleX(-1);
-}
-
-
-/* =========================
-   LANDSCAPE / SMALL SCREEN
-========================= */
-
-@media (max-height: 600px) {
-
-    #topBar {
-
-        top: 45px;
-    }
-
-    #controls {
-
-        max-height: 42vh;
-    }
-
-    #bottomBar {
-
-        bottom: 6px;
-    }
-}
-
-
-/* =========================
-   VERY SMALL WIDTH
-========================= */
-
-@media (max-width: 380px) {
-
-    button {
-
-        padding: 8px 9px;
-
-        font-size: 12px;
-    }
-
-    #topBar {
-
-        gap: 5px;
-    }
-
-    #bottomBar {
-
-        gap: 5px;
-    }
 }
 
 </style>
 
 </head>
 
-
 <body>
 
 
-<div id="app">
-
-
-    <!-- =========================
-         CAMERA
-    ========================== -->
-
-    <video
-        id="camera"
-        autoplay
-        muted
-        playsinline
-        webkit-playsinline>
-    </video>
-
-
-    <!-- =========================
-         THREE.JS CANVAS
-    ========================== -->
-
-    <canvas
-        id="threeCanvas">
-    </canvas>
-
-
-    <!-- =========================
-         STATUS
-    ========================== -->
-
-    <div id="status">
-        Aziz AR Ready
-    </div>
-
-
-    <!-- =========================
-         TOP BUTTONS
-    ========================== -->
-
-    <div id="topBar">
-
-
-        <button
-            id="cameraButton"
-            type="button">
-            Start Camera
-        </button>
-
-
-        <button
-            id="switchCameraButton"
-            type="button">
-            Back Camera
-        </button>
-
-
-        <button
-            id="modelButton"
-            type="button">
-            3D Controls
-        </button>
-
-
-        <button
-            id="import3DButton"
-            type="button">
-            Import 3D
-        </button>
-
-
-        <button
-            id="export3DButton"
-            type="button">
-            Export 3D
-        </button>
-
-
-    </div>
-
-
-    <!-- =========================
-         3D CONTROLS
-    ========================== -->
-
-    <div id="controls">
-
-
-        <!-- POSITION X -->
-
-        <div class="control">
-
-            <div class="controlHeader">
-
-                <span>
-                    Position X
-                </span>
-
-                <span id="posXValue">
-                    0
-                </span>
-
-            </div>
-
-            <input
-                id="posX"
-                type="range"
-                min="-2"
-                max="2"
-                step="0.01"
-                value="0"
-            >
-
-        </div>
-
-
-        <!-- POSITION Y -->
-
-        <div class="control">
-
-            <div class="controlHeader">
-
-                <span>
-                    Position Y
-                </span>
-
-                <span id="posYValue">
-                    0
-                </span>
-
-            </div>
-
-            <input
-                id="posY"
-                type="range"
-                min="-2"
-                max="2"
-                step="0.01"
-                value="0"
-            >
-
-        </div>
-
-
-        <!-- POSITION Z -->
-
-        <div class="control">
-
-            <div class="controlHeader">
-
-                <span>
-                    Position Z
-                </span>
-
-                <span id="posZValue">
-                    0
-                </span>
-
-            </div>
-
-            <input
-                id="posZ"
-                type="range"
-                min="-2"
-                max="2"
-                step="0.01"
-                value="0"
-            >
-
-        </div>
-
-
-        <!-- ROTATION X -->
-
-        <div class="control">
-
-            <div class="controlHeader">
-
-                <span>
-                    Rotate X 360°
-                </span>
-
-                <span id="rotXValue">
-                    0°
-                </span>
-
-            </div>
-
-            <input
-                id="rotX"
-                type="range"
-                min="0"
-                max="360"
-                step="1"
-                value="0"
-            >
-
-        </div>
-
-
-        <!-- ROTATION Y -->
-
-        <div class="control">
-
-            <div class="controlHeader">
-
-                <span>
-                    Rotate Y 360°
-                </span>
-
-                <span id="rotYValue">
-                    0°
-                </span>
-
-            </div>
-
-            <input
-                id="rotY"
-                type="range"
-                min="0"
-                max="360"
-                step="1"
-                value="0"
-            >
-
-        </div>
-
-
-        <!-- ROTATION Z -->
-
-        <div class="control">
-
-            <div class="controlHeader">
-
-                <span>
-                    Rotate Z 360°
-                </span>
-
-                <span id="rotZValue">
-                    0°
-                </span>
-
-            </div>
-
-            <input
-                id="rotZ"
-                type="range"
-                min="0"
-                max="360"
-                step="1"
-                value="0"
-            >
-
-        </div>
-
-
-        <!-- SCALE -->
-
-        <div class="control">
-
-            <div class="controlHeader">
-
-                <span>
-                    Scale
-                </span>
-
-                <span id="scaleValue">
-                    1.00
-                </span>
-
-            </div>
-
-            <input
-                id="scale"
-                type="range"
-                min="0.1"
-                max="3"
-                step="0.01"
-                value="1"
-            >
-
-        </div>
-
-
-    </div>    <!-- =========================
-         BOTTOM BUTTONS
-    ========================== -->
-
-    <div id="bottomBar">
-
-
-        <button
-            id="photoButton"
-            type="button">
-            Photo
-        </button>
-
-
-        <button
-            id="recordButton"
-            type="button">
-            Record Video
-        </button>
-
-
-        <button
-            id="audioButton"
-            type="button">
-            Audio
-        </button>
-
-
-        <button
-            id="resetButton"
-            type="button">
-            Reset 3D
-        </button>
-
-
-    </div>
-
-
-    <!-- =========================
-         3D FILE INPUT
-    ========================== -->
-
-    <input
-        id="import3DInput"
-        type="file"
-        accept=".glb,.gltf,.obj,.fbx,.stl"
-    >
-
-
-    <!-- =========================
-         PROJECT SETTINGS INPUT
-    ========================== -->
-
-    <input
-        id="importProjectInput"
-        type="file"
-        accept=".json"
-    >
-
+<!-- CAMERA -->
+
+<video
+    id="camera"
+    autoplay
+    muted
+    playsinline>
+</video>
+
+
+<!-- 3D CANVAS -->
+
+<canvas id="threeCanvas"></canvas>
+
+
+<!-- STATUS -->
+
+<div id="status">
+    Ready
+</div>
+
+
+<!-- RIGHT SIDE CONTROLS -->
+
+<div id="sideControls">
+
+    <button
+        id="cameraButton"
+        class="tool primary">
+        ▶
+    </button>
+
+    <button
+        id="switchCameraButton"
+        class="tool">
+        ↔
+    </button>
+
+    <button
+        id="photoButton"
+        class="tool">
+        📷
+    </button>
+
+    <button
+        id="recordButton"
+        class="tool">
+        ⏺
+    </button>
+
+    <button
+        id="audioButton"
+        class="tool">
+        🎙
+    </button>
+
+    <button
+        id="import3DButton"
+        class="tool">
+        📥
+    </button>
+
+    <button
+        id="modelButton"
+        class="tool">
+        3D
+    </button>
+
+    <button
+        id="export3DButton"
+        class="tool">
+        📤
+    </button>
+
+    <button
+        id="resetButton"
+        class="tool">
+        ↺
+    </button>
 
 </div>
 
 
-<!-- =========================
-     MAIN APP.JS
-========================== -->
+<!-- 3D CONTROL PANEL -->
+
+<div id="modelPanel">
+
+    <div class="panelTitle">
+        3D MODEL
+    </div>
+
+    <div class="control">
+
+        <label>
+            <span>X</span>
+            <span id="posXValue">0</span>
+        </label>
+
+        <input
+            id="posX"
+            type="range"
+            min="-3"
+            max="3"
+            step="0.01"
+            value="0">
+
+    </div>
+
+    <div class="control">
+
+        <label>
+            <span>Y</span>
+            <span id="posYValue">0</span>
+        </label>
+
+        <input
+            id="posY"
+            type="range"
+            min="-3"
+            max="3"
+            step="0.01"
+            value="0">
+
+    </div>
+
+    <div class="control">
+
+        <label>
+            <span>Z</span>
+            <span id="posZValue">0</span>
+        </label>
+
+        <input
+            id="posZ"
+            type="range"
+            min="-3"
+            max="3"
+            step="0.01"
+            value="0">
+
+    </div>
+
+    <div class="control">
+
+        <label>
+            <span>Rotate X</span>
+            <span id="rotXValue">0°</span>
+        </label>
+
+        <input
+            id="rotX"
+            type="range"
+            min="0"
+            max="360"
+            step="1"
+            value="0">
+
+    </div>    <div class="control">
+
+        <label>
+            <span>Rotate Y</span>
+            <span id="rotYValue">0°</span>
+        </label>
+
+        <input
+            id="rotY"
+            type="range"
+            min="0"
+            max="360"
+            step="1"
+            value="0">
+
+    </div>
+
+
+    <div class="control">
+
+        <label>
+            <span>Rotate Z</span>
+            <span id="rotZValue">0°</span>
+        </label>
+
+        <input
+            id="rotZ"
+            type="range"
+            min="0"
+            max="360"
+            step="1"
+            value="0">
+
+    </div>
+
+
+    <div class="control">
+
+        <label>
+            <span>Scale</span>
+            <span id="scaleValue">1.00</span>
+        </label>
+
+        <input
+            id="scale"
+            type="range"
+            min="0.1"
+            max="4"
+            step="0.01"
+            value="1">
+
+    </div>
+
+</div>
+
+
+<!-- 3D MODEL FILE INPUT -->
+
+<input
+    id="import3DInput"
+    class="hiddenInput"
+    type="file"
+    accept=".glb,.gltf,.obj,.fbx,.stl">
+
+
+<!-- APP JAVASCRIPT -->
 
 <script
     type="module"
-    src="./js/app.js?v=1">
-</script>
-
-
-<!-- =========================
-     BASIC HTML UI LOGIC
-========================== -->
-
-<script>
-
-(function () {
-
-
-    /* =========================
-       ELEMENTS
-    ========================== */
-
-    const status =
-        document.getElementById("status");
-
-    const controls =
-        document.getElementById("controls");
-
-    const modelButton =
-        document.getElementById("modelButton");
-
-    const import3DButton =
-        document.getElementById("import3DButton");
-
-    const export3DButton =
-        document.getElementById("export3DButton");
-
-    const import3DInput =
-        document.getElementById("import3DInput");
-
-
-    /* =========================
-       STATUS
-    ========================== */
-
-    function setStatus(message) {
-
-        if (status) {
-
-            status.textContent =
-                message;
-        }
-
-        console.log(
-            "[AZIZ AR]",
-            message
-        );
-    }
-
-
-    window.azizSetStatus =
-        setStatus;
-
-
-    setStatus(
-        "HTML READY"
-    );
-
-
-    /* =========================
-       3D CONTROLS OPEN/CLOSE
-    ========================== */
-
-    if (modelButton) {
-
-        modelButton.addEventListener(
-            "click",
-            function () {
-
-                if (
-                    controls.style.display ===
-                    "block"
-                ) {
-
-                    controls.style.display =
-                        "none";
-
-                } else {
-
-                    controls.style.display =
-                        "block";
-                }
-
-            }
-        );
-    }
-
-
-    /* =========================
-       IMPORT 3D
-    ========================== */
-
-    if (import3DButton) {
-
-        import3DButton.addEventListener(
-            "click",
-            function () {
-
-                if (import3DInput) {
-
-                    import3DInput.click();
-                }
-
-            }
-        );
-    }
-
-
-    if (import3DInput) {
-
-        import3DInput.addEventListener(
-            "change",
-            function () {
-
-                const file =
-                    import3DInput.files &&
-                    import3DInput.files[0];
-
-
-                if (!file) {
-
-                    return;
-                }
-
-
-                console.log(
-                    "[AZIZ AR] 3D selected:",
-                    file.name
-                );
-
-
-                setStatus(
-                    "3D SELECTED: " +
-                    file.name
-                );
-
-
-                /*
-                 * app.js will handle
-                 * the actual 3D loading.
-                 */
-
-                window.azizSelected3DFile =
-                    file;
-
-            }
-        );
-    }
-
-
-    /* =========================
-       SLIDER DISPLAY
-    ========================== */
-
-    const sliderPairs = [
-
-        ["posX", "posXValue"],
-        ["posY", "posYValue"],
-        ["posZ", "posZValue"],
-
-        ["rotX", "rotXValue"],
-        ["rotY", "rotYValue"],
-        ["rotZ", "rotZValue"],
-
-        ["scale", "scaleValue"]
-
-    ];
-
-
-    sliderPairs.forEach(
-        function (pair) {
-
-            const slider =
-                document.getElementById(
-                    pair[0]
-                );
-
-            const value =
-                document.getElementById(
-                    pair[1]
-                );
-
-
-            if (
-                !slider ||
-                !value
-            ) {
-
-                return;
-            }
-
-
-            slider.addEventListener(
-                "input",
-                function () {
-
-                    let text =
-                        slider.value;
-
-
-                    if (
-                        pair[0]
-                            .startsWith("rot")
-                    ) {
-
-                        text += "°";
-
-                    } else if (
-                        pair[0] === "scale"
-                    ) {
-
-                        text =
-                            Number(
-                                slider.value
-                            ).toFixed(2);
-                    }
-
-
-                    value.textContent =
-                        text;
-
-
-                    /*
-                     * app.js can listen to
-                     * these same slider events
-                     * and update the 3D model.
-                     */
-
-                }
-            );
-
-
-            slider.dispatchEvent(
-                new Event("input")
-            );
-
-        }
-    );
-
-
-    /* =========================
-       RESET 3D
-    ========================== */
-
-    const resetButton =
-        document.getElementById(
-            "resetButton"
-        );
-
-
-    if (resetButton) {
-
-        resetButton.addEventListener(
-            "click",
-            function () {
-
-
-                const defaults = {
-
-                    posX: 0,
-                    posY: 0,
-                    posZ: 0,
-
-                    rotX: 0,
-                    rotY: 0,
-                    rotZ: 0,
-
-                    scale: 1
-
-                };
-
-
-                Object.keys(defaults)
-                    .forEach(
-                        function (id) {
-
-                            const slider =
-                                document.getElementById(
-                                    id
-                                );
-
-
-                            if (slider) {
-
-                                slider.value =
-                                    defaults[id];
-
-                                slider.dispatchEvent(
-                                    new Event("input")
-                                );
-                            }
-
-                        }
-                    );
-
-
-                setStatus(
-                    "3D RESET"
-                );
-
-            }
-        );
-    }
-
-
-    /* =========================
-       DO NOT HANDLE CAMERA,
-       RECORDING OR FACE TRACKING
-       HERE.
-       
-       app.js will handle those.
-    ========================== */
-
-
-})();
-
+    src="./js/app.js?v=3">
 </script>
 
 
