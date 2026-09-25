@@ -3,6 +3,8 @@ import {
     FilesetResolver
 } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.mjs";
 
+alert("FACE SCRIPT LOADED");
+
 const video = document.getElementById("camera");
 const status = document.getElementById("status");
 
@@ -10,7 +12,7 @@ let faceLandmarker = null;
 let lastVideoTime = -1;
 let trackingStarted = false;
 
-function statusMessage(message) {
+function showStatus(message) {
     console.log("[AZIZ AR]", message);
 
     if (status) {
@@ -18,16 +20,18 @@ function statusMessage(message) {
     }
 }
 
-async function loadFaceTracker() {
+async function startFaceTracking() {
+
     try {
-        statusMessage("FACE: Loading MediaPipe...");
+
+        showStatus("FACE: Loading MediaPipe...");
 
         const vision =
             await FilesetResolver.forVisionTasks(
                 "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
             );
 
-        statusMessage("FACE: Loading model...");
+        showStatus("FACE: Loading Face Model...");
 
         const modelPath =
             new URL(
@@ -35,7 +39,10 @@ async function loadFaceTracker() {
                 import.meta.url
             ).href;
 
-        console.log("[AZIZ AR] Model:", modelPath);
+        console.log(
+            "[AZIZ AR] Model path:",
+            modelPath
+        );
 
         faceLandmarker =
             await FaceLandmarker.createFromOptions(
@@ -57,22 +64,26 @@ async function loadFaceTracker() {
                 }
             );
 
-        statusMessage("FACE TRACKING READY");
+        showStatus(
+            "FACE TRACKING READY ✓"
+        );
 
         waitForCamera();
 
     } catch (error) {
 
         console.error(
-            "[AZIZ AR] Face tracker error:",
+            "[AZIZ AR] FACE TRACKING ERROR:",
             error
         );
 
-        statusMessage(
+        showStatus(
             "FACE ERROR: " +
-            (error && error.message
-                ? error.message
-                : String(error))
+            (
+                error && error.message
+                    ? error.message
+                    : String(error)
+            )
         );
     }
 }
@@ -81,8 +92,8 @@ function waitForCamera() {
 
     if (!video) {
 
-        statusMessage(
-            "ERROR: Camera element not found"
+        showStatus(
+            "ERROR: CAMERA ELEMENT NOT FOUND"
         );
 
         return;
@@ -102,8 +113,8 @@ function waitForCamera() {
         return;
     }
 
-    statusMessage(
-        "FACE: Waiting for camera..."
+    showStatus(
+        "FACE: WAITING FOR CAMERA..."
     );
 
     setTimeout(
@@ -141,7 +152,10 @@ function detectFace() {
         return;
     }
 
-    if (video.currentTime === lastVideoTime) {
+    if (
+        video.currentTime ===
+        lastVideoTime
+    ) {
 
         requestAnimationFrame(
             detectFace
@@ -167,13 +181,18 @@ function detectFace() {
             results.faceLandmarks.length > 0
         ) {
 
-            statusMessage(
+            showStatus(
                 "FACE DETECTED ✓"
+            );
+
+            console.log(
+                "[AZIZ AR] Face landmarks:",
+                results.faceLandmarks[0]
             );
 
         } else {
 
-            statusMessage(
+            showStatus(
                 "FACE NOT DETECTED"
             );
         }
@@ -181,15 +200,17 @@ function detectFace() {
     } catch (error) {
 
         console.error(
-            "[AZIZ AR] Detection error:",
+            "[AZIZ AR] DETECTION ERROR:",
             error
         );
 
-        statusMessage(
+        showStatus(
             "DETECTION ERROR: " +
-            (error && error.message
-                ? error.message
-                : String(error))
+            (
+                error && error.message
+                    ? error.message
+                    : String(error)
+            )
         );
     }
 
@@ -198,4 +219,4 @@ function detectFace() {
     );
 }
 
-loadFaceTracker();
+startFaceTracking();
