@@ -3,28 +3,28 @@ import {
     FilesetResolver
 } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.mjs";
 
-alert("APP JS RUNNING");
-
 const video = document.getElementById("camera");
 const status = document.getElementById("status");
 
+let faceLandmarker = null;
+let detecting = false;
+
 async function startFaceTracking() {
     try {
-        status.textContent = "Loading Face Tracking...";
+        status.textContent = "Loading Face Model...";
 
         const filesetResolver =
             await FilesetResolver.forVisionTasks(
                 "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
             );
 
-        status.textContent = "Loading Face Model...";
+        const modelPath =
+            new URL(
+                "../models/face_landmarker.task",
+                import.meta.url
+            ).href;
 
-        const modelPath = new URL(
-            "../models/face_landmarker.task",
-            import.meta.url
-        ).href;
-
-        const faceLandmarker =
+        faceLandmarker =
             await FaceLandmarker.createFromOptions(
                 filesetResolver,
                 {
@@ -41,41 +41,49 @@ async function startFaceTracking() {
 
         status.textContent = "FACE TRACKING READY ✓";
 
-        function detectFace() {
-            if (video.readyState >= 2) {
-                try {
-                    const results =
-                        faceLandmarker.detectForVideo(
-                            video,
-                            performance.now()
-                        );
-
-                    if (
-                        results.faceLandmarks &&
-                        results.faceLandmarks.length > 0
-                    ) {
-                        status.textContent = "FACE DETECTED ✓";
-                    } else {
-                        status.textContent = "FACE NOT DETECTED";
-                    }
-                } catch (error) {
-                    console.error(error);
-                    status.textContent =
-                        "DETECTION ERROR: " + error.message;
-                }
-            }
-
-            requestAnimationFrame(detectFace);
-        }
-
+        detecting = true;
         detectFace();
 
     } catch (error) {
-        console.error("FACE TRACKING ERROR:", error);
+        console.error(error);
         status.textContent =
-            "ERROR: " + error.message;
+            "FACE MODEL ERROR: " + error.message;
     }
 }
 
-startFaceTracking();
-alert("FACE TRACKING FUNCTION STARTED");
+function detectFace() {
+    if (!detecting || !faceLandmarker) return;
+
+    if (video.readyState >= 2) {
+        try {
+            const results =
+                faceLandmarker.detectForVideo(
+                    video,
+                    performance.now()
+                );
+
+            if (
+                results.faceLandmarks &&
+                results.faceLandmarks.length > 0
+            ) {
+                status.textContent = "FACE DETECTED ✓";
+            } else {
+                status.textContent = "FACE NOT DETECTED";
+            }
+
+        } catch (error) {
+            console.error(error);
+            status.textContent =
+                "DETECTION ERROR: " + error.message;
+        }
+    }
+
+    requestAnimationFrame(detectFace);
+}
+
+/* Wait until the camera is actually running */
+video.addEventListener("playing", () => {
+    if (!faceLandmarker) {
+        startFaceTracking();
+    }
+});
