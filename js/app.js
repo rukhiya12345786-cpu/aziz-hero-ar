@@ -1,7 +1,7 @@
 import {
     FaceLandmarker,
     FilesetResolver
-} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.mjs";
+} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22";
 
 alert("FACE SCRIPT LOADED");
 
@@ -21,52 +21,40 @@ function showStatus(message) {
 }
 
 async function startFaceTracking() {
-
     try {
-
         showStatus("FACE: Loading MediaPipe...");
 
-        const vision =
-            await FilesetResolver.forVisionTasks(
-                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
-            );
+        const vision = await FilesetResolver.forVisionTasks(
+            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
+        );
 
         showStatus("FACE: Loading Face Model...");
 
-        const modelPath =
-            new URL(
-                "../models/face_landmarker.task",
-                import.meta.url
-            ).href;
+        const modelPath = new URL(
+            "../models/face_landmarker.task",
+            import.meta.url
+        ).href;
 
-        console.log(
-            "[AZIZ AR] Model path:",
-            modelPath
+        console.log("[AZIZ AR] Model:", modelPath);
+
+        faceLandmarker = await FaceLandmarker.createFromOptions(
+            vision,
+            {
+                baseOptions: {
+                    modelAssetPath: modelPath
+                },
+
+                runningMode: "VIDEO",
+
+                numFaces: 1,
+
+                minFaceDetectionConfidence: 0.3,
+                minFacePresenceConfidence: 0.3,
+                minTrackingConfidence: 0.3
+            }
         );
 
-        faceLandmarker =
-            await FaceLandmarker.createFromOptions(
-                vision,
-                {
-                    baseOptions: {
-                        modelAssetPath: modelPath
-                    },
-
-                    runningMode: "VIDEO",
-
-                    numFaces: 1,
-
-                    minFaceDetectionConfidence: 0.3,
-
-                    minFacePresenceConfidence: 0.3,
-
-                    minTrackingConfidence: 0.3
-                }
-            );
-
-        showStatus(
-            "FACE TRACKING READY ✓"
-        );
+        showStatus("FACE TRACKING READY ✓");
 
         waitForCamera();
 
@@ -79,11 +67,7 @@ async function startFaceTracking() {
 
         showStatus(
             "FACE ERROR: " +
-            (
-                error && error.message
-                    ? error.message
-                    : String(error)
-            )
+            (error.message || String(error))
         );
     }
 }
@@ -91,11 +75,7 @@ async function startFaceTracking() {
 function waitForCamera() {
 
     if (!video) {
-
-        showStatus(
-            "ERROR: CAMERA ELEMENT NOT FOUND"
-        );
-
+        showStatus("ERROR: CAMERA ELEMENT NOT FOUND");
         return;
     }
 
@@ -105,67 +85,35 @@ function waitForCamera() {
 
             trackingStarted = true;
 
-            requestAnimationFrame(
-                detectFace
-            );
+            requestAnimationFrame(detectFace);
         }
 
         return;
     }
 
-    showStatus(
-        "FACE: WAITING FOR CAMERA..."
-    );
+    showStatus("FACE: WAITING FOR CAMERA...");
 
-    setTimeout(
-        waitForCamera,
-        300
-    );
+    setTimeout(waitForCamera, 300);
 }
 
 function detectFace() {
 
-    if (!faceLandmarker) {
-
-        requestAnimationFrame(
-            detectFace
-        );
-
-        return;
-    }
-
-    if (!video) {
-
-        requestAnimationFrame(
-            detectFace
-        );
-
+    if (!faceLandmarker || !video) {
+        requestAnimationFrame(detectFace);
         return;
     }
 
     if (video.readyState < 2) {
-
-        requestAnimationFrame(
-            detectFace
-        );
-
+        requestAnimationFrame(detectFace);
         return;
     }
 
-    if (
-        video.currentTime ===
-        lastVideoTime
-    ) {
-
-        requestAnimationFrame(
-            detectFace
-        );
-
+    if (video.currentTime === lastVideoTime) {
+        requestAnimationFrame(detectFace);
         return;
     }
 
-    lastVideoTime =
-        video.currentTime;
+    lastVideoTime = video.currentTime;
 
     try {
 
@@ -181,20 +129,11 @@ function detectFace() {
             results.faceLandmarks.length > 0
         ) {
 
-            showStatus(
-                "FACE DETECTED ✓"
-            );
-
-            console.log(
-                "[AZIZ AR] Face landmarks:",
-                results.faceLandmarks[0]
-            );
+            showStatus("FACE DETECTED ✓");
 
         } else {
 
-            showStatus(
-                "FACE NOT DETECTED"
-            );
+            showStatus("FACE NOT DETECTED");
         }
 
     } catch (error) {
@@ -206,17 +145,11 @@ function detectFace() {
 
         showStatus(
             "DETECTION ERROR: " +
-            (
-                error && error.message
-                    ? error.message
-                    : String(error)
-            )
+            (error.message || String(error))
         );
     }
 
-    requestAnimationFrame(
-        detectFace
-    );
+    requestAnimationFrame(detectFace);
 }
 
 startFaceTracking();
