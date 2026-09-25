@@ -1,11 +1,26 @@
-// AZIZ HERO AR - TEST
+// CAMERA TEST
 
+const video = document.getElementById("camera");
 const statusBox = document.getElementById("status");
 const cameraButton = document.getElementById("cameraButton");
 
-statusBox.textContent = "JavaScript WORKING ✅";
+statusBox.textContent = "Camera Test Ready";
 
-cameraButton.addEventListener("click", () => {
-  statusBox.textContent = "BUTTON WORKING ✅";
-  alert("Camera button JavaScript is working!");
+cameraButton.addEventListener("click", async () => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: "user"
+      },
+      audio: true
+    });
+
+    video.srcObject = stream;
+    video.play();
+
+    statusBox.textContent = "CAMERA WORKING ✅";
+  } catch (error) {
+    statusBox.textContent = "CAMERA ERROR: " + error.name;
+    alert("Camera Error: " + error.name);
+  }
 });
