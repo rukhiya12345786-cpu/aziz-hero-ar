@@ -1,3 +1,4 @@
+alert("FACE SCRIPT LOADED");
 import {
     FaceLandmarker,
     FilesetResolver
