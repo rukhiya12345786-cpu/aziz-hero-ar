@@ -1,217 +1,383 @@
 import * as THREE from "three";
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
-import { STLLoader } from "three/addons/loaders/STLLoader.js";
-import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
-import { OBJExporter } from "three/addons/exporters/OBJExporter.js";
+
+import { GLTFLoader } from
+  "three/addons/loaders/GLTFLoader.js";
+
+import { OBJLoader } from
+  "three/addons/loaders/OBJLoader.js";
+
+import { STLLoader } from
+  "three/addons/loaders/STLLoader.js";
+
+import { GLTFExporter } from
+  "three/addons/exporters/GLTFExporter.js";
+
+import { OBJExporter } from
+  "three/addons/exporters/OBJExporter.js";
 
 "use strict";
 
-const $ = (id) => document.getElementById(id);
+const $ = (id) =>
+  document.getElementById(id);
 
-const ui = {
-  camera: $("camera"),
+const el = {
+  video: $("camera"),
   canvas: $("threeCanvas"),
   status: $("status"),
 
-  cameraButton: $("cameraButton"),
-  switchCameraButton: $("switchCameraButton"),
-  photoButton: $("photoButton"),
-  recordButton: $("recordButton"),
-  audioButton: $("audioButton"),
+  cameraButton:
+    $("cameraButton"),
 
-  trackingButton: $("trackingButton"),
-  modelButton: $("modelButton"),
+  switchCameraButton:
+    $("switchCameraButton"),
 
-  import3DButton: $("import3DButton"),
-  import3DInput: $("import3DInput"),
+  photoButton:
+    $("photoButton"),
 
-  export3DButton: $("export3DButton"),
-  exportFormat: $("exportFormat"),
+  recordButton:
+    $("recordButton"),
 
-  resetButton: $("resetButton"),
+  audioButton:
+    $("audioButton"),
 
-  sideControls: $("sideControls"),
+  import3DButton:
+    $("import3DButton"),
 
-  scaleSlider: $("scaleSlider"),
-  xSlider: $("xSlider"),
-  ySlider: $("ySlider"),
-  zSlider: $("zSlider"),
+  import3DInput:
+    $("import3DInput"),
 
-  rotateXSlider: $("rotateXSlider"),
-  rotateYSlider: $("rotateYSlider"),
-  rotateZSlider: $("rotateZSlider")
+  export3DButton:
+    $("export3DButton"),
+
+  exportFormat:
+    $("exportFormat"),
+
+  resetButton:
+    $("resetButton"),
+
+  modelButton:
+    $("modelButton"),
+
+  sideControls:
+    $("sideControls"),
+
+  scaleSlider:
+    $("scaleSlider"),
+
+  xSlider:
+    $("xSlider"),
+
+  ySlider:
+    $("ySlider"),
+
+  zSlider:
+    $("zSlider"),
+
+  rotateXSlider:
+    $("rotateXSlider"),
+
+  rotateYSlider:
+    $("rotateYSlider"),
+
+  rotateZSlider:
+    $("rotateZSlider"),
+
+  trackingButton:
+    $("trackingButton")
 };
 
 let scene = null;
-let threeCamera = null;
+let camera3D = null;
 let renderer = null;
 
-let modelRoot = null;
-let demoCube = null;
+let activeCameraStream = null;
+let microphoneStream = null;
 
-let cameraStream = null;
 let mediaRecorder = null;
 let recordedChunks = [];
 
+let currentModel = null;
+let cube = null;
+
+let animationFrameId = null;
+
 let facingMode = "user";
-let recording = false;
-let microphoneEnabled = false;
+
+let isRecording = false;
+let audioEnabled = false;
 
 let faceLandmarker = null;
 let trackingEnabled = false;
-let trackingLoading = false;
+let trackingBusy = false;
+
 let lastTrackingTime = 0;
 
-const requiredElements = [
-  "camera",
-  "threeCanvas",
-  "status",
-  "cameraButton",
-  "switchCameraButton",
-  "photoButton",
-  "recordButton",
-  "import3DButton",
-  "import3DInput",
-  "export3DButton",
-  "resetButton"
-];
+let mediaPipePromise = null;
 
-function setStatus(message, error = false) {
-  if (!ui.status) return;
+const clock =
+  new THREE.Clock();
 
-  ui.status.textContent = String(message);
-  ui.status.dataset.state = error ? "error" : "normal";
+function setStatus(
+  message,
+  isError = false
+) {
+  if (el.status) {
+    el.status.textContent =
+      String(message);
+
+    el.status.dataset.state =
+      isError
+        ? "error"
+        : "normal";
+  }
+
+  if (isError) {
+    console.error(message);
+  } else {
+    console.log(message);
+  }
 }
 
-function reportError(label, error) {
+function showError(
+  error,
+  label = "App error"
+) {
   const message =
-    error && error.message
-      ? error.message
-      : String(error);
+    error?.message ||
+    String(error);
 
-  console.error(label, error);
-  setStatus(`${label}: ${message}`, true);
+  setStatus(
+    `${label}: ${message}`,
+    true
+  );
 }
 
-function checkElements() {
-  const missing = requiredElements.filter(
-    (id) => !$(id)
-  );
-
-  if (missing.length > 0) {
+function requireElement(
+  element,
+  id
+) {
+  if (!element) {
     throw new Error(
-      `Missing HTML elements: ${missing.join(", ")}`
+      `Required HTML element is missing: #${id}`
     );
   }
+
+  return element;
 }
 
-function setButtonText(button, text) {
+function setButtonLabel(
+  button,
+  label
+) {
   if (button) {
-    button.textContent = text;
+    button.textContent =
+      label;
   }
 }
 
-function downloadBlob(blob, filename) {
+function downloadBlob(
+  blob,
+  filename
+) {
   if (!blob) {
-    throw new Error("Download data is empty.");
+    throw new Error(
+      "Download data is empty."
+    );
   }
 
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
+  const url =
+    URL.createObjectURL(
+      blob
+    );
+
+  const link =
+    document.createElement(
+      "a"
+    );
 
   link.href = url;
   link.download = filename;
   link.style.display = "none";
 
-  document.body.appendChild(link);
+  document.body.appendChild(
+    link
+  );
+
   link.click();
   link.remove();
 
-  setTimeout(() => {
-    URL.revokeObjectURL(url);
-  }, 1500);
+  window.setTimeout(
+    () => {
+      URL.revokeObjectURL(
+        url
+      );
+    },
+    1500
+  );
+}
+
+window.addEventListener(
+  "error",
+  (event) => {
+    if (event.message) {
+      showError(
+        event.message,
+        "JavaScript error"
+      );
+    }
+  }
+);
+
+window.addEventListener(
+  "unhandledrejection",
+  (event) => {
+    showError(
+      event.reason,
+      "Async error"
+    );
+  }
+);
+
+function checkRequiredElements() {
+  const required = [
+    ["camera", el.video],
+    ["threeCanvas", el.canvas],
+    ["status", el.status],
+    ["cameraButton", el.cameraButton],
+    [
+      "switchCameraButton",
+      el.switchCameraButton
+    ],
+    ["photoButton", el.photoButton],
+    ["recordButton", el.recordButton],
+    [
+      "import3DButton",
+      el.import3DButton
+    ],
+    [
+      "import3DInput",
+      el.import3DInput
+    ],
+    [
+      "export3DButton",
+      el.export3DButton
+    ],
+    ["resetButton", el.resetButton]
+  ];
+
+  const missing =
+    required
+      .filter(
+        ([, element]) =>
+          !element
+      )
+      .map(
+        ([id]) => id
+      );
+
+  if (missing.length) {
+    throw new Error(
+      `Missing HTML element IDs: ${missing.join(", ")}`
+    );
+  }
 }
 
 function initThree() {
-  if (!ui.canvas) {
-    throw new Error("3D canvas is missing.");
-  }
-
-  scene = new THREE.Scene();
-
-  threeCamera = new THREE.PerspectiveCamera(
-    45,
-    1,
-    0.01,
-    100
+  requireElement(
+    el.canvas,
+    "threeCanvas"
   );
 
-  threeCamera.position.set(0, 0, 5);
+  scene =
+    new THREE.Scene();
 
-  try {
-    renderer = new THREE.WebGLRenderer({
-      canvas: ui.canvas,
+  camera3D =
+    new THREE.PerspectiveCamera(
+      45,
+      window.innerWidth /
+        window.innerHeight,
+      0.01,
+      100
+    );
+
+  camera3D.position.set(
+    0,
+    0,
+    5
+  );
+
+  renderer =
+    new THREE.WebGLRenderer({
+      canvas: el.canvas,
       alpha: true,
       antialias: true,
       preserveDrawingBuffer: true
     });
-  } catch (error) {
-    throw new Error(
-      `WebGL renderer failed: ${error.message}`
-    );
-  }
 
   renderer.setPixelRatio(
-    Math.min(window.devicePixelRatio || 1, 2)
+    Math.min(
+      window.devicePixelRatio ||
+        1,
+      2
+    )
   );
 
-  renderer.setClearColor(0x000000, 0);
+  renderer.setClearColor(
+    0x000000,
+    0
+  );
 
   renderer.outputColorSpace =
     THREE.SRGBColorSpace;
 
-  const hemisphereLight =
+  const hemisphere =
     new THREE.HemisphereLight(
       0xffffff,
-      0x333333,
+      0x444466,
       2
     );
 
-  scene.add(hemisphereLight);
+  scene.add(
+    hemisphere
+  );
 
-  const keyLight =
+  const key =
     new THREE.DirectionalLight(
       0xffffff,
       2.5
     );
 
-  keyLight.position.set(
+  key.position.set(
     3,
     5,
     5
   );
 
-  scene.add(keyLight);
+  scene.add(key);
 
-  const fillLight =
+  const fill =
     new THREE.DirectionalLight(
       0xffffff,
       1.2
     );
 
-  fillLight.position.set(
+  fill.position.set(
     -4,
-    2,
+    1,
     3
   );
 
-  scene.add(fillLight);
+  scene.add(fill);
 
-  modelRoot = new THREE.Group();
-  modelRoot.name = "AR_MODEL_ROOT";
+  currentModel =
+    new THREE.Group();
 
-  scene.add(modelRoot);
+  currentModel.name =
+    "AR_MODEL_ROOT";
+
+  scene.add(
+    currentModel
+  );
 
   createDemoCube();
 
@@ -221,96 +387,118 @@ function initThree() {
     "resize",
     resizeRenderer
   );
+
+  animate();
+
+  setStatus(
+    "3D scene ready. Press Open Camera."
+  );
 }
 
 function createDemoCube() {
-  if (!modelRoot) return;
+  if (!currentModel) {
+    return;
+  }
 
-  clearModel();
+  clearModelChildren();
 
   const geometry =
     new THREE.BoxGeometry(
-      0.6,
-      0.6,
-      0.6
+      0.65,
+      0.65,
+      0.65
     );
 
   const material =
     new THREE.MeshStandardMaterial({
-      color: 0x299cff,
-      metalness: 0.2,
-      roughness: 0.4
+      color: 0x29a8ff,
+      metalness: 0.25,
+      roughness: 0.35
     });
 
-  demoCube =
+  cube =
     new THREE.Mesh(
       geometry,
       material
     );
 
-  demoCube.name = "DemoCube";
+  cube.name =
+    "DemoCube";
 
-  modelRoot.add(
-    demoCube
+  currentModel.add(
+    cube
   );
 }
 
-function clearModel() {
-  if (!modelRoot) return;
-
-  while (
-    modelRoot.children.length > 0
-  ) {
-    const object =
-      modelRoot.children[
-        modelRoot.children.length - 1
-      ];
-
-    modelRoot.remove(object);
-
-    object.traverse?.((child) => {
-      if (child.geometry) {
-        child.geometry.dispose();
-      }
-
-      if (child.material) {
-        const materials =
-          Array.isArray(child.material)
-            ? child.material
-            : [child.material];
-
-        materials.forEach((material) => {
-          Object.values(material).forEach(
-            (value) => {
-              if (
-                value &&
-                value.isTexture
-              ) {
-                value.dispose();
-              }
-            }
-          );
-
-          material.dispose();
-        });
-      }
-    });
+function clearModelChildren() {
+  if (!currentModel) {
+    return;
   }
 
-  demoCube = null;
+  while (
+    currentModel.children.length
+  ) {
+    const child =
+      currentModel.children[0];
+
+    currentModel.remove(
+      child
+    );
+
+    child.traverse?.(
+      (object) => {
+        if (object.geometry) {
+          object.geometry.dispose();
+        }
+
+        if (object.material) {
+          const materials =
+            Array.isArray(
+              object.material
+            )
+              ? object.material
+              : [object.material];
+
+          materials.forEach(
+            (material) => {
+              Object.values(
+                material
+              ).forEach(
+                (value) => {
+                  if (
+                    value &&
+                    value.isTexture
+                  ) {
+                    value.dispose();
+                  }
+                }
+              );
+
+              material.dispose();
+            }
+          );
+        }
+      }
+    );
+  }
+
+  cube = null;
 }
 
 function resizeRenderer() {
-  if (!renderer || !threeCamera) {
+  if (
+    !renderer ||
+    !camera3D
+  ) {
     return;
   }
 
   const width =
-    ui.canvas.clientWidth ||
+    el.canvas.clientWidth ||
     window.innerWidth;
 
   const height =
-    ui.canvas.clientHeight ||
+    el.canvas.clientHeight ||
     window.innerHeight;
 
   renderer.setSize(
@@ -319,38 +507,47 @@ function resizeRenderer() {
     false
   );
 
-  threeCamera.aspect =
+  camera3D.aspect =
     width / height;
 
-  threeCamera.updateProjectionMatrix();
+  camera3D.updateProjectionMatrix();
 }
 
 function animate() {
-  requestAnimationFrame(
-    animate
-  );
+  animationFrameId =
+    window.requestAnimationFrame(
+      animate
+    );
+
+  const delta =
+    clock.getDelta();
 
   if (
-    demoCube &&
+    cube &&
     !trackingEnabled
   ) {
-    demoCube.rotation.x += 0.008;
-    demoCube.rotation.y += 0.012;
+    cube.rotation.x +=
+      delta * 0.45;
+
+    cube.rotation.y +=
+      delta * 0.70;
   }
 
   if (
     trackingEnabled &&
     faceLandmarker &&
-    !trackingLoading
+    !trackingBusy
   ) {
     const now =
       performance.now();
 
     if (
-      now - lastTrackingTime >
+      now -
+        lastTrackingTime >
       50
     ) {
-      lastTrackingTime = now;
+      lastTrackingTime =
+        now;
 
       updateFaceTracking(
         now
@@ -361,13 +558,93 @@ function animate() {
   if (
     renderer &&
     scene &&
-    threeCamera
+    camera3D
   ) {
     renderer.render(
       scene,
-      threeCamera
+      camera3D
     );
   }
+}
+
+function applyModelControls() {
+  if (!currentModel) {
+    return;
+  }
+
+  const scale =
+    Number(
+      el.scaleSlider?.value ??
+        1
+    );
+
+  const x =
+    Number(
+      el.xSlider?.value ??
+        0
+    );
+
+  const y =
+    Number(
+      el.ySlider?.value ??
+        0
+    );
+
+  const z =
+    Number(
+      el.zSlider?.value ??
+        0
+    );
+
+  const rx =
+    THREE.MathUtils.degToRad(
+      Number(
+        el.rotateXSlider
+          ?.value ?? 0
+      )
+    );
+
+  const ry =
+    THREE.MathUtils.degToRad(
+      Number(
+        el.rotateYSlider
+          ?.value ?? 0
+      )
+    );
+
+  const rz =
+    THREE.MathUtils.degToRad(
+      Number(
+        el.rotateZSlider
+          ?.value ?? 0
+      )
+    );
+
+  currentModel.scale.setScalar(
+    Number.isFinite(scale)
+      ? scale
+      : 1
+  );
+
+  currentModel.position.set(
+    Number.isFinite(x)
+      ? x
+      : 0,
+
+    Number.isFinite(y)
+      ? y
+      : 0,
+
+    Number.isFinite(z)
+      ? z
+      : 0
+  );
+
+  currentModel.rotation.set(
+    rx,
+    ry,
+    rz
+  );
 }
 
 function resetControls() {
@@ -381,75 +658,32 @@ function resetControls() {
     rotateZSlider: "0"
   };
 
-  Object.entries(values).forEach(
+  Object.entries(
+    values
+  ).forEach(
     ([id, value]) => {
-      const element = $(id);
+      const element =
+        $(id);
 
       if (element) {
-        element.value = value;
+        element.value =
+          value;
       }
     }
   );
-}
 
-function initializeBase() {
-  checkElements();
-
-  if (ui.camera) {
-    ui.camera.setAttribute(
-      "playsinline",
-      ""
-    );
-
-    ui.camera.setAttribute(
-      "autoplay",
-      ""
-    );
-
-    ui.camera.muted = true;
-  }
-
-  initThree();
-  resetControls();
-  animate();
-
-  setStatus(
-    "Ready. Press Open Camera."
-  );
-}
-
-window.addEventListener(
-  "error",
-  (event) => {
-    if (event.message) {
-      setStatus(
-        `JavaScript error: ${event.message}`,
-        true
-      );
-    }
-  }
-);
-
-window.addEventListener(
-  "unhandledrejection",
-  (event) => {
-    reportError(
-      "Async error",
-      event.reason
-    );
-  }
-);
-
-initializeBase();async function openCamera() {
+  applyModelControls();
+}async function startCamera() {
   try {
     stopCamera();
 
     if (
       !navigator.mediaDevices ||
-      !navigator.mediaDevices.getUserMedia
+      !navigator.mediaDevices
+        .getUserMedia
     ) {
       throw new Error(
-        "Camera access is not supported by this browser."
+        "Camera API is not supported in this browser."
       );
     }
 
@@ -457,29 +691,40 @@ initializeBase();async function openCamera() {
       "Requesting camera permission..."
     );
 
-    cameraStream =
-      await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: {
-            ideal: facingMode
+    activeCameraStream =
+      await navigator.mediaDevices
+        .getUserMedia({
+          video: {
+            facingMode: {
+              ideal:
+                facingMode
+            },
+
+            width: {
+              ideal: 1280
+            },
+
+            height: {
+              ideal: 720
+            }
           },
-          width: {
-            ideal: 1280
-          },
-          height: {
-            ideal: 720
-          }
-        },
-        audio: false
-      });
 
-    ui.camera.srcObject =
-      cameraStream;
+          audio: false
+        });
 
-    ui.camera.muted = true;
-    ui.camera.playsInline = true;
+    el.video.srcObject =
+      activeCameraStream;
 
-    await ui.camera.play();
+    el.video.muted =
+      true;
+
+    el.video.playsInline =
+      true;
+
+    el.video.autoplay =
+      true;
+
+    await el.video.play();
 
     setStatus(
       "Camera is running."
@@ -490,34 +735,60 @@ initializeBase();async function openCamera() {
     }
 
   } catch (error) {
-    reportError(
-      "Camera error",
-      error
+    showError(
+      error,
+      "Camera error"
     );
   }
 }
 
 function stopCamera() {
-  if (cameraStream) {
-    cameraStream
+  if (
+    microphoneStream
+  ) {
+    microphoneStream
       .getTracks()
-      .forEach((track) => {
-        try {
-          track.stop();
-        } catch (error) {
-          console.warn(
-            "Camera track stop error:",
-            error
-          );
+      .forEach(
+        (track) => {
+          try {
+            track.stop();
+          } catch {}
         }
-      });
+      );
 
-    cameraStream = null;
+    microphoneStream =
+      null;
   }
 
-  if (ui.camera) {
-    ui.camera.pause();
-    ui.camera.srcObject = null;
+  if (
+    activeCameraStream
+  ) {
+    activeCameraStream
+      .getTracks()
+      .forEach(
+        (track) => {
+          try {
+            track.stop();
+          } catch {}
+        }
+      );
+
+    activeCameraStream =
+      null;
+  }
+
+  audioEnabled =
+    false;
+
+  setButtonLabel(
+    el.audioButton,
+    "Audio"
+  );
+
+  if (el.video) {
+    el.video.pause();
+    el.video.srcObject =
+      null;
   }
 }
 
@@ -533,60 +804,64 @@ async function switchCamera() {
       : "Switching to back camera..."
   );
 
-  await openCamera();
+  await startCamera();
 }
 
 function takePhoto() {
   try {
     if (
-      !ui.camera ||
-      ui.camera.readyState < 2
+      !el.video ||
+      el.video.readyState < 2
     ) {
       setStatus(
-        "Open the camera first.",
+        "Start the camera before taking a photo.",
         true
       );
+
       return;
     }
 
     const width =
-      ui.camera.videoWidth ||
+      el.video.videoWidth ||
       1280;
 
     const height =
-      ui.camera.videoHeight ||
+      el.video.videoHeight ||
       720;
 
-    const photo =
+    const photoCanvas =
       document.createElement(
         "canvas"
       );
 
-    photo.width = width;
-    photo.height = height;
+    photoCanvas.width =
+      width;
 
-    const context =
-      photo.getContext(
+    photoCanvas.height =
+      height;
+
+    const ctx =
+      photoCanvas.getContext(
         "2d"
       );
 
-    if (!context) {
+    if (!ctx) {
       throw new Error(
         "Could not create photo canvas."
       );
     }
 
-    context.drawImage(
-      ui.camera,
+    ctx.drawImage(
+      el.video,
       0,
       0,
       width,
       height
     );
 
-    if (ui.canvas) {
-      context.drawImage(
-        ui.canvas,
+    if (el.canvas) {
+      ctx.drawImage(
+        el.canvas,
         0,
         0,
         width,
@@ -594,13 +869,14 @@ function takePhoto() {
       );
     }
 
-    photo.toBlob(
+    photoCanvas.toBlob(
       (blob) => {
         if (!blob) {
           setStatus(
             "Photo creation failed.",
             true
           );
+
           return;
         }
 
@@ -617,14 +893,14 @@ function takePhoto() {
     );
 
   } catch (error) {
-    reportError(
-      "Photo error",
-      error
+    showError(
+      error,
+      "Photo error"
     );
   }
 }
 
-function getRecorderType() {
+function getSupportedRecorderMimeType() {
   if (
     !window.MediaRecorder
   ) {
@@ -663,38 +939,45 @@ function startRecording() {
       );
     }
 
-    if (!cameraStream) {
+    if (
+      !activeCameraStream
+    ) {
       setStatus(
-        "Open the camera first.",
+        "Start the camera before recording.",
         true
       );
+
       return;
     }
 
-    if (recording) {
+    if (isRecording) {
       return;
     }
 
-    recordedChunks = [];
+    recordedChunks =
+      [];
+
+    const tracks =
+      activeCameraStream
+        .getTracks();
 
     const videoTracks =
-      cameraStream.getVideoTracks();
+      activeCameraStream
+        .getVideoTracks();
 
-    if (
-      videoTracks.length === 0
-    ) {
+    if (!videoTracks.length) {
       throw new Error(
-        "Camera video track is unavailable."
+        "No camera video track is available."
       );
     }
 
     const recordingStream =
       new MediaStream(
-        videoTracks
+        tracks
       );
 
     const mimeType =
-      getRecorderType();
+      getSupportedRecorderMimeType();
 
     mediaRecorder =
       mimeType
@@ -712,7 +995,8 @@ function startRecording() {
       (event) => {
         if (
           event.data &&
-          event.data.size > 0
+          event.data.size >
+            0
         ) {
           recordedChunks.push(
             event.data
@@ -726,14 +1010,15 @@ function startRecording() {
     mediaRecorder.onerror =
       (event) => {
         console.error(
-          "MediaRecorder error:",
+          "Recorder error:",
           event
         );
 
-        recording = false;
+        isRecording =
+          false;
 
-        setButtonText(
-          ui.recordButton,
+        setButtonLabel(
+          el.recordButton,
           "Record"
         );
 
@@ -747,10 +1032,11 @@ function startRecording() {
       250
     );
 
-    recording = true;
+    isRecording =
+      true;
 
-    setButtonText(
-      ui.recordButton,
+    setButtonLabel(
+      el.recordButton,
       "Stop Recording"
     );
 
@@ -759,9 +1045,9 @@ function startRecording() {
     );
 
   } catch (error) {
-    reportError(
-      "Recording error",
-      error
+    showError(
+      error,
+      "Recording error"
     );
   }
 }
@@ -772,10 +1058,11 @@ function stopRecording() {
     mediaRecorder.state ===
       "inactive"
   ) {
-    recording = false;
+    isRecording =
+      false;
 
-    setButtonText(
-      ui.recordButton,
+    setButtonLabel(
+      el.recordButton,
       "Record"
     );
 
@@ -784,20 +1071,21 @@ function stopRecording() {
 
   mediaRecorder.stop();
 
-  recording = false;
+  isRecording =
+    false;
 
-  setButtonText(
-    ui.recordButton,
+  setButtonLabel(
+    el.recordButton,
     "Record"
   );
 
   setStatus(
-    "Saving recording..."
+    "Finishing recording..."
   );
 }
 
 function toggleRecording() {
-  if (recording) {
+  if (isRecording) {
     stopRecording();
   } else {
     startRecording();
@@ -807,12 +1095,13 @@ function toggleRecording() {
 function saveRecording() {
   try {
     if (
-      recordedChunks.length === 0
+      !recordedChunks.length
     ) {
       setStatus(
-        "No video data was recorded.",
+        "No recorded video data was produced.",
         true
       );
+
       return;
     }
 
@@ -840,44 +1129,44 @@ function saveRecording() {
       `aziz-ar-video-${Date.now()}.${extension}`
     );
 
-    recordedChunks = [];
-    mediaRecorder = null;
+    recordedChunks =
+      [];
+
+    mediaRecorder =
+      null;
 
     setStatus(
       "Recording saved."
     );
 
   } catch (error) {
-    reportError(
-      "Save recording error",
-      error
+    showError(
+      error,
+      "Save recording error"
     );
   }
-  }async function toggleMicrophone() {
+}
+
+async function toggleAudio() {
   try {
-    if (!cameraStream) {
+    if (
+      !activeCameraStream
+    ) {
       setStatus(
-        "Open the camera first.",
+        "Start the camera before enabling audio.",
         true
       );
+
       return;
     }
 
     if (
-      microphoneEnabled &&
-      cameraStream.getAudioTracks().length > 0
+      audioEnabled
     ) {
-      cameraStream
-        .getAudioTracks()
-        .forEach((track) => {
-          track.stop();
-          cameraStream.removeTrack(track);
-        });
+      stopMicrophone();
 
-      microphoneEnabled = false;
-
-      setButtonText(
-        ui.audioButton,
+      setButtonLabel(
+        el.audioButton,
         "Audio"
       );
 
@@ -888,35 +1177,28 @@ function saveRecording() {
       return;
     }
 
-    if (
-      !navigator.mediaDevices ||
-      !navigator.mediaDevices.getUserMedia
-    ) {
-      throw new Error(
-        "Microphone access is not supported."
-      );
-    }
+    microphoneStream =
+      await navigator.mediaDevices
+        .getUserMedia({
+          audio: {
+            echoCancellation:
+              true,
 
-    setStatus(
-      "Requesting microphone permission..."
-    );
+            noiseSuppression:
+              true,
 
-    const audioStream =
-      await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        },
-        video: false
-      });
+            autoGainControl:
+              true
+          },
+
+          video: false
+        });
 
     const audioTracks =
-      audioStream.getAudioTracks();
+      microphoneStream
+        .getAudioTracks();
 
-    if (
-      audioTracks.length === 0
-    ) {
+    if (!audioTracks.length) {
       throw new Error(
         "Microphone track was not created."
       );
@@ -924,16 +1206,17 @@ function saveRecording() {
 
     audioTracks.forEach(
       (track) => {
-        cameraStream.addTrack(
+        activeCameraStream.addTrack(
           track
         );
       }
     );
 
-    microphoneEnabled = true;
+    audioEnabled =
+      true;
 
-    setButtonText(
-      ui.audioButton,
+    setButtonLabel(
+      el.audioButton,
       "Audio On"
     );
 
@@ -942,49 +1225,106 @@ function saveRecording() {
     );
 
   } catch (error) {
-    reportError(
-      "Microphone error",
-      error
+    showError(
+      error,
+      "Audio error"
     );
   }
 }
 
-function addImportedModel(object) {
-  if (!modelRoot || !object) {
-    throw new Error(
-      "3D model could not be added."
-    );
+function stopMicrophone() {
+  if (
+    microphoneStream
+  ) {
+    microphoneStream
+      .getTracks()
+      .forEach(
+        (track) => {
+          try {
+            track.stop();
+          } catch {}
+        }
+      );
+
+    microphoneStream =
+      null;
   }
 
-  clearModel();
+  if (
+    activeCameraStream
+  ) {
+    activeCameraStream
+      .getAudioTracks()
+      .forEach(
+        (track) => {
+          try {
+            track.stop();
+            activeCameraStream
+              .removeTrack(track);
+          } catch {}
+        }
+      );
+  }
+
+  audioEnabled =
+    false;
+}
+
+function addModelToScene(
+  object
+) {
+  if (
+    !currentModel ||
+    !object
+  ) {
+    return;
+  }
+
+  clearModelChildren();
 
   object.name =
     object.name ||
     "ImportedModel";
 
-  modelRoot.add(
+  currentModel.add(
     object
   );
 
-  normalizeModel(
+  object.position.set(
+    0,
+    0,
+    0
+  );
+
+  object.rotation.set(
+    0,
+    0,
+    0
+  );
+
+  object.scale.set(
+    1,
+    1,
+    1
+  );
+
+  fitModelToView(
     object
   );
 
   setStatus(
-    "3D model loaded."
+    `Model loaded: ${object.name}`
   );
 }
 
-function normalizeModel(object) {
-  const box =
+function fitModelToView(
+  object
+) {
+  const bounds =
     new THREE.Box3()
-      .setFromObject(object);
-
-  if (box.isEmpty()) {
-    throw new Error(
-      "The selected model contains no visible geometry."
-    );
-  }
+      .setFromObject(
+        object
+      );
 
   const size =
     new THREE.Vector3();
@@ -992,8 +1332,13 @@ function normalizeModel(object) {
   const center =
     new THREE.Vector3();
 
-  box.getSize(size);
-  box.getCenter(center);
+  bounds.getSize(
+    size
+  );
+
+  bounds.getCenter(
+    center
+  );
 
   object.position.sub(
     center
@@ -1007,22 +1352,18 @@ function normalizeModel(object) {
     );
 
   if (
-    Number.isFinite(largest) &&
+    Number.isFinite(
+      largest
+    ) &&
     largest > 0
   ) {
-    const targetSize = 1.5;
-
-    const factor =
-      targetSize /
-      largest;
-
     object.scale.setScalar(
-      factor
+      1.5 / largest
     );
   }
-}
-
-function importModelFile(event) {
+}function handleModelImport(
+  event
+) {
   const file =
     event.target.files?.[0];
 
@@ -1030,7 +1371,7 @@ function importModelFile(event) {
     return;
   }
 
-  const name =
+  const filename =
     file.name.toLowerCase();
 
   setStatus(
@@ -1039,34 +1380,55 @@ function importModelFile(event) {
 
   try {
     if (
-      name.endsWith(".glb") ||
-      name.endsWith(".gltf")
+      filename.endsWith(
+        ".glb"
+      ) ||
+      filename.endsWith(
+        ".gltf"
+      )
     ) {
-      importGLTF(file);
+      importGLTF(
+        file
+      );
+
     } else if (
-      name.endsWith(".obj")
+      filename.endsWith(
+        ".obj"
+      )
     ) {
-      importOBJ(file);
+      importOBJ(
+        file
+      );
+
     } else if (
-      name.endsWith(".stl")
+      filename.endsWith(
+        ".stl"
+      )
     ) {
-      importSTL(file);
+      importSTL(
+        file
+      );
+
     } else {
       throw new Error(
-        "Supported formats: GLB, GLTF, OBJ, STL."
+        "Unsupported format. Use GLB, GLTF, OBJ, or STL."
       );
     }
+
   } catch (error) {
-    reportError(
-      "Import error",
-      error
+    showError(
+      error,
+      "Import error"
     );
-  } finally {
-    event.target.value = "";
   }
+
+  event.target.value =
+    "";
 }
 
-function importGLTF(file) {
+function importGLTF(
+  file
+) {
   const reader =
     new FileReader();
 
@@ -1097,21 +1459,23 @@ function importGLTF(file) {
               );
             }
 
-            addImportedModel(
+            addModelToScene(
               gltf.scene
             );
           },
+
           (error) => {
-            reportError(
-              "GLB/GLTF error",
-              error
+            showError(
+              error,
+              "GLTF/GLB error"
             );
           }
         );
+
       } catch (error) {
-        reportError(
-          "GLB/GLTF error",
-          error
+        showError(
+          error,
+          "GLTF/GLB error"
         );
       }
     };
@@ -1121,7 +1485,9 @@ function importGLTF(file) {
   );
 }
 
-function importOBJ(file) {
+function importOBJ(
+  file
+) {
   const reader =
     new FileReader();
 
@@ -1144,13 +1510,14 @@ function importOBJ(file) {
             reader.result
           );
 
-        addImportedModel(
+        addModelToScene(
           object
         );
+
       } catch (error) {
-        reportError(
-          "OBJ error",
-          error
+        showError(
+          error,
+          "OBJ error"
         );
       }
     };
@@ -1160,7 +1527,9 @@ function importOBJ(file) {
   );
 }
 
-function importSTL(file) {
+function importSTL(
+  file
+) {
   const reader =
     new FileReader();
 
@@ -1201,13 +1570,14 @@ function importSTL(file) {
         mesh.name =
           "ImportedSTL";
 
-        addImportedModel(
+        addModelToScene(
           mesh
         );
+
       } catch (error) {
-        reportError(
-          "STL error",
-          error
+        showError(
+          error,
+          "STL error"
         );
       }
     };
@@ -1218,97 +1588,174 @@ function importSTL(file) {
 }
 
 function exportModel() {
-  if (
-    !modelRoot ||
-    modelRoot.children.length === 0
-  ) {
-    setStatus(
-      "There is no 3D model to export.",
-      true
-    );
-    return;
-  }
-
   const format =
-    ui.exportFormat?.value ||
+    el.exportFormat?.value
+      ?.toLowerCase() ||
     "glb";
 
   if (
     format === "obj"
   ) {
-    exportOBJ();
+    exportModelOBJ();
   } else {
-    exportGLB();
+    exportModelGLTF(
+      format === "gltf"
+        ? false
+        : true
+    );
   }
 }
 
-function exportGLB() {
+function exportModelGLTF(
+  binary = true
+) {
+  if (
+    !currentModel ||
+    !currentModel.children.length
+  ) {
+    setStatus(
+      "There is no model to export.",
+      true
+    );
+
+    return;
+  }
+
   const exporter =
     new GLTFExporter();
 
   try {
     exporter.parse(
-      modelRoot,
+      currentModel,
+
       (result) => {
-        if (!(result instanceof ArrayBuffer)) {
-          setStatus(
-            "GLB export did not produce binary data.",
-            true
+        try {
+          if (
+            binary &&
+            result instanceof
+              ArrayBuffer
+          ) {
+            const blob =
+              new Blob(
+                [result],
+                {
+                  type:
+                    "model/gltf-binary"
+                }
+              );
+
+            downloadBlob(
+              blob,
+              `aziz-ar-model-${Date.now()}.glb`
+            );
+
+            setStatus(
+              "GLB model exported."
+            );
+
+          } else if (
+            typeof result ===
+            "string"
+          ) {
+            const blob =
+              new Blob(
+                [result],
+                {
+                  type:
+                    "model/gltf+json"
+                }
+              );
+
+            downloadBlob(
+              blob,
+              `aziz-ar-model-${Date.now()}.gltf`
+            );
+
+            setStatus(
+              "GLTF model exported."
+            );
+
+          } else {
+            const blob =
+              new Blob(
+                [
+                  JSON.stringify(
+                    result
+                  )
+                ],
+                {
+                  type:
+                    "model/gltf+json"
+                }
+              );
+
+            downloadBlob(
+              blob,
+              `aziz-ar-model-${Date.now()}.gltf`
+            );
+
+            setStatus(
+              "GLTF model exported."
+            );
+          }
+
+        } catch (error) {
+          showError(
+            error,
+            "GLTF export error"
           );
-          return;
         }
-
-        const blob =
-          new Blob(
-            [result],
-            {
-              type: "model/gltf-binary"
-            }
-          );
-
-        downloadBlob(
-          blob,
-          `aziz-ar-model-${Date.now()}.glb`
-        );
-
-        setStatus(
-          "GLB exported."
-        );
       },
+
       (error) => {
-        reportError(
-          "GLB export error",
-          error
+        showError(
+          error,
+          "GLTF export error"
         );
       },
+
       {
-        binary: true,
+        binary,
         onlyVisible: true
       }
     );
+
   } catch (error) {
-    reportError(
-      "GLB export error",
-      error
+    showError(
+      error,
+      "GLTF export error"
     );
   }
 }
 
-function exportOBJ() {
+function exportModelOBJ() {
+  if (
+    !currentModel ||
+    !currentModel.children.length
+  ) {
+    setStatus(
+      "There is no model to export.",
+      true
+    );
+
+    return;
+  }
+
   try {
     const exporter =
       new OBJExporter();
 
     const result =
       exporter.parse(
-        modelRoot
+        currentModel
       );
 
     const blob =
       new Blob(
         [result],
         {
-          type: "text/plain"
+          type:
+            "text/plain"
         }
       );
 
@@ -1318,271 +1765,229 @@ function exportOBJ() {
     );
 
     setStatus(
-      "OBJ exported."
+      "OBJ model exported."
     );
+
   } catch (error) {
-    reportError(
-      "OBJ export error",
-      error
+    showError(
+      error,
+      "OBJ export error"
     );
   }
-}function applyModelControls() {
-  if (!modelRoot) return;
-
-  const scale = Number(
-    ui.scaleSlider?.value ?? 1
-  );
-
-  const x = Number(
-    ui.xSlider?.value ?? 0
-  );
-
-  const y = Number(
-    ui.ySlider?.value ?? 0
-  );
-
-  const z = Number(
-    ui.zSlider?.value ?? 0
-  );
-
-  const rx = THREE.MathUtils.degToRad(
-    Number(
-      ui.rotateXSlider?.value ?? 0
-    )
-  );
-
-  const ry = THREE.MathUtils.degToRad(
-    Number(
-      ui.rotateYSlider?.value ?? 0
-    )
-  );
-
-  const rz = THREE.MathUtils.degToRad(
-    Number(
-      ui.rotateZSlider?.value ?? 0
-    )
-  );
-
-  modelRoot.scale.setScalar(
-    Number.isFinite(scale)
-      ? scale
-      : 1
-  );
-
-  modelRoot.position.set(
-    Number.isFinite(x) ? x : 0,
-    Number.isFinite(y) ? y : 0,
-    Number.isFinite(z) ? z : 0
-  );
-
-  modelRoot.rotation.set(
-    rx,
-    ry,
-    rz
-  );
 }
 
 function resetModel() {
-  if (!modelRoot) return;
+  if (!currentModel) {
+    return;
+  }
 
-  trackingEnabled = false;
-
-  clearModel();
+  clearModelChildren();
 
   createDemoCube();
 
   resetControls();
 
-  setButtonText(
-    ui.trackingButton,
-    "Face Tracking"
-  );
+  if (
+    trackingEnabled
+  ) {
+    stopFaceTracking();
+  }
 
   setStatus(
     "Model reset."
   );
 }
 
-function resetControls() {
-  const defaults = {
-    scaleSlider: "1",
-    xSlider: "0",
-    ySlider: "0",
-    zSlider: "0",
-    rotateXSlider: "0",
-    rotateYSlider: "0",
-    rotateZSlider: "0"
-  };
-
-  Object.entries(
-    defaults
-  ).forEach(
-    ([id, value]) => {
-      const element =
-        $(id);
-
-      if (element) {
-        element.value =
-          value;
-      }
-    }
-  );
-
-  applyModelControls();
-}
-
-function toggleModelControls() {
-  if (!ui.sideControls) {
+function toggleControls() {
+  if (!el.sideControls) {
     return;
   }
 
-  const currentlyVisible =
-    ui.sideControls.style.display !==
+  const isHidden =
+    el.sideControls.style.display ===
     "none";
 
-  ui.sideControls.style.display =
-    currentlyVisible
-      ? "none"
-      : "flex";
+  el.sideControls.style.display =
+    isHidden
+      ? "flex"
+      : "none";
 }
 
-async function loadFaceTrackingLibrary() {
+async function loadMediaPipe() {
   if (
-    window.FaceLandmarker &&
-    window.FilesetResolver
+    mediaPipePromise
   ) {
-    return {
-      FaceLandmarker:
-        window.FaceLandmarker,
-      FilesetResolver:
-        window.FilesetResolver
-    };
+    return mediaPipePromise;
   }
 
-  throw new Error(
-    "MediaPipe library is not available. Add the MediaPipe library script to index.html before enabling tracking."
-  );
+  mediaPipePromise =
+    import(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/vision_bundle.mjs"
+    )
+      .then(
+        (module) => {
+          if (
+            !module.FaceLandmarker ||
+            !module.FilesetResolver
+          ) {
+            throw new Error(
+              "MediaPipe FaceLandmarker module loaded without the required classes."
+            );
+          }
+
+          return module;
+        }
+      )
+      .catch(
+        (error) => {
+          mediaPipePromise =
+            null;
+
+          throw error;
+        }
+      );
+
+  return mediaPipePromise;
 }
 
 async function startFaceTracking() {
-  if (trackingLoading) {
+  if (
+    trackingBusy
+  ) {
     return;
   }
 
   if (
-    !ui.camera ||
-    ui.camera.readyState < 2
+    !el.video ||
+    el.video.readyState < 2
   ) {
     setStatus(
-      "Open the camera first.",
+      "Start the camera before face tracking.",
       true
     );
+
     return;
   }
 
-  trackingLoading = true;
+  trackingBusy =
+    true;
 
   try {
     setStatus(
       "Loading face tracking..."
     );
 
-    const {
-      FaceLandmarker,
-      FilesetResolver
-    } =
-      await loadFaceTrackingLibrary();
-
     const vision =
-      await FilesetResolver.forVisionTasks(
-        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
-      );
+      await loadMediaPipe();
+
+    const FilesetResolver =
+      vision.FilesetResolver;
+
+    const FaceLandmarker =
+      vision.FaceLandmarker;
+
+    const fileset =
+      await FilesetResolver
+        .forVisionTasks(
+          "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm"
+        );
 
     faceLandmarker =
-      await FaceLandmarker.createFromOptions(
-        vision,
-        {
-          baseOptions: {
-            modelAssetPath:
-              "./models/face_landmarker.task",
+      await FaceLandmarker
+        .createFromOptions(
+          fileset,
+          {
+            baseOptions: {
+              modelAssetPath:
+                "./models/face_landmarker.task",
 
-            delegate: "GPU"
-          },
+              delegate:
+                "GPU"
+            },
 
-          runningMode: "VIDEO",
+            runningMode:
+              "VIDEO",
 
-          numFaces: 1,
+            numFaces:
+              1,
 
-          minFaceDetectionConfidence:
-            0.5,
+            minFaceDetectionConfidence:
+              0.5,
 
-          minFacePresenceConfidence:
-            0.5,
+            minFacePresenceConfidence:
+              0.5,
 
-          minTrackingConfidence:
-            0.5,
+            minTrackingConfidence:
+              0.5,
 
-          outputFaceBlendshapes:
-            false,
+            outputFaceBlendshapes:
+              false,
 
-          outputFacialTransformationMatrixes:
-            true
-        }
-      );
+            outputFacialTransformationMatrixes:
+              true
+          }
+        );
 
-    trackingEnabled = true;
+    trackingEnabled =
+      true;
 
-    setButtonText(
-      ui.trackingButton,
+    setButtonLabel(
+      el.trackingButton,
       "Tracking On"
     );
 
     setStatus(
-      "Face tracking ready."
+      "Face tracking is ready."
     );
 
   } catch (error) {
-    faceLandmarker = null;
-    trackingEnabled = false;
+    faceLandmarker =
+      null;
 
-    setButtonText(
-      ui.trackingButton,
+    trackingEnabled =
+      false;
+
+    setButtonLabel(
+      el.trackingButton,
       "Face Tracking"
     );
 
-    reportError(
-      "Face tracking error",
-      error
+    showError(
+      error,
+      "Face tracking error"
     );
 
   } finally {
-    trackingLoading = false;
+    trackingBusy =
+      false;
   }
 }
 
 function stopFaceTracking() {
-  trackingEnabled = false;
+  trackingEnabled =
+    false;
 
-  faceLandmarker = null;
+  faceLandmarker =
+    null;
 
-  setButtonText(
-    ui.trackingButton,
-    "Face Tracking"
-  );
-
-  if (modelRoot) {
-    modelRoot.position.set(
+  if (currentModel) {
+    currentModel.position.set(
       0,
       0,
       0
     );
 
-    modelRoot.rotation.set(
+    currentModel.rotation.set(
       0,
       0,
       0
     );
   }
+
+  setButtonLabel(
+    el.trackingButton,
+    "Face Tracking"
+  );
 
   setStatus(
     "Face tracking stopped."
@@ -1590,7 +1995,9 @@ function stopFaceTracking() {
 }
 
 async function toggleFaceTracking() {
-  if (trackingEnabled) {
+  if (
+    trackingEnabled
+  ) {
     stopFaceTracking();
     return;
   }
@@ -1598,53 +2005,62 @@ async function toggleFaceTracking() {
   await startFaceTracking();
 }
 
-function updateFaceTracking(timestamp) {
+function updateFaceTracking(
+  timestamp
+) {
   if (
     !trackingEnabled ||
     !faceLandmarker ||
-    !ui.camera ||
-    ui.camera.readyState < 2
+    !el.video ||
+    el.video.readyState < 2 ||
+    trackingBusy
   ) {
     return;
   }
 
+  trackingBusy =
+    true;
+
   try {
     const result =
-      faceLandmarker.detectForVideo(
-        ui.camera,
-        timestamp
-      );
+      faceLandmarker
+        .detectForVideo(
+          el.video,
+          timestamp
+        );
 
     if (
       !result ||
       !result.faceLandmarks ||
-      result.faceLandmarks.length === 0
+      !result.faceLandmarks.length
     ) {
       return;
     }
 
-    const landmarks =
-      result.faceLandmarks[0];
-
-    updateModelFromLandmarks(
-      landmarks
+    updateModelFromFace(
+      result.faceLandmarks[0]
     );
 
   } catch (error) {
     console.error(
-      "Face tracking frame error:",
+      "Tracking frame error:",
       error
     );
+
+  } finally {
+    trackingBusy =
+      false;
   }
 }
 
-function updateModelFromLandmarks(
+function updateModelFromFace(
   landmarks
 ) {
   if (
-    !modelRoot ||
+    !currentModel ||
     !landmarks ||
-    landmarks.length < 264
+    landmarks.length <
+      264
   ) {
     return;
   }
@@ -1676,13 +2092,13 @@ function updateModelFromLandmarks(
 
   const eyeCenterX =
     (leftEye.x +
-      rightEye.x) /
-    2;
+      rightEye.x) *
+    0.5;
 
   const eyeCenterY =
     (leftEye.y +
-      rightEye.y) /
-    2;
+      rightEye.y) *
+    0.5;
 
   const eyeDistance =
     Math.hypot(
@@ -1697,32 +2113,33 @@ function updateModelFromLandmarks(
     !Number.isFinite(
       eyeDistance
     ) ||
-    eyeDistance <= 0.001
+    eyeDistance <=
+      0.001
   ) {
     return;
   }
 
   const faceCenterX =
     (forehead.x +
-      chin.x) /
-    2;
+      chin.x) *
+    0.5;
 
   const faceCenterY =
     (forehead.y +
-      chin.y) /
-    2;
+      chin.y) *
+    0.5;
 
-  const screenX =
+  const horizontalOffset =
     (faceCenterX -
       0.5) *
     3.0;
 
-  const screenY =
+  const verticalOffset =
     -(faceCenterY -
       0.5) *
     2.4;
 
-  const tilt =
+  const headTilt =
     Math.atan2(
       rightEye.y -
         leftEye.y,
@@ -1731,11 +2148,11 @@ function updateModelFromLandmarks(
         leftEye.x
     );
 
-  const turn =
+  const headTurn =
     THREE.MathUtils.clamp(
       (nose.x -
         eyeCenterX) *
-        5.0,
+        5,
 
       -1,
       1
@@ -1745,10 +2162,10 @@ function updateModelFromLandmarks(
     THREE.MathUtils.clamp(
       (nose.y -
         eyeCenterY) *
-        3.0,
+        2.5,
 
-      -1,
-      1
+      -0.8,
+      0.8
     );
 
   const trackingScale =
@@ -1760,93 +2177,93 @@ function updateModelFromLandmarks(
       2.5
     );
 
-  modelRoot.position.x =
-    screenX;
+  currentModel.position.x =
+    horizontalOffset;
 
-  modelRoot.position.y =
-    screenY;
+  currentModel.position.y =
+    verticalOffset;
 
-  modelRoot.position.z =
-    -0.5;
+  currentModel.position.z =
+    -0.55;
 
-  modelRoot.scale.setScalar(
+  currentModel.scale.setScalar(
     trackingScale
   );
 
-  modelRoot.rotation.z =
-    -tilt;
+  currentModel.rotation.z =
+    -headTilt;
 
-  modelRoot.rotation.y =
-    -turn * 0.8;
+  currentModel.rotation.y =
+    -headTurn * 0.8;
 
-  modelRoot.rotation.x =
+  currentModel.rotation.x =
     pitch;
 }function bindEvents() {
-  ui.cameraButton?.addEventListener(
+  el.cameraButton?.addEventListener(
     "click",
-    openCamera
+    startCamera
   );
 
-  ui.switchCameraButton?.addEventListener(
+  el.switchCameraButton?.addEventListener(
     "click",
     switchCamera
   );
 
-  ui.photoButton?.addEventListener(
+  el.photoButton?.addEventListener(
     "click",
     takePhoto
   );
 
-  ui.recordButton?.addEventListener(
+  el.recordButton?.addEventListener(
     "click",
     toggleRecording
   );
 
-  ui.audioButton?.addEventListener(
+  el.audioButton?.addEventListener(
     "click",
-    toggleMicrophone
+    toggleAudio
   );
 
-  ui.trackingButton?.addEventListener(
-    "click",
-    toggleFaceTracking
-  );
-
-  ui.modelButton?.addEventListener(
-    "click",
-    toggleModelControls
-  );
-
-  ui.import3DButton?.addEventListener(
+  el.import3DButton?.addEventListener(
     "click",
     () => {
-      ui.import3DInput?.click();
+      el.import3DInput?.click();
     }
   );
 
-  ui.import3DInput?.addEventListener(
+  el.import3DInput?.addEventListener(
     "change",
-    importModelFile
+    handleModelImport
   );
 
-  ui.export3DButton?.addEventListener(
+  el.export3DButton?.addEventListener(
     "click",
     exportModel
   );
 
-  ui.resetButton?.addEventListener(
+  el.resetButton?.addEventListener(
     "click",
     resetModel
   );
 
+  el.modelButton?.addEventListener(
+    "click",
+    toggleControls
+  );
+
+  el.trackingButton?.addEventListener(
+    "click",
+    toggleFaceTracking
+  );
+
   const sliders = [
-    ui.scaleSlider,
-    ui.xSlider,
-    ui.ySlider,
-    ui.zSlider,
-    ui.rotateXSlider,
-    ui.rotateYSlider,
-    ui.rotateZSlider
+    el.scaleSlider,
+    el.xSlider,
+    el.ySlider,
+    el.zSlider,
+    el.rotateXSlider,
+    el.rotateYSlider,
+    el.rotateZSlider
   ];
 
   sliders.forEach(
@@ -1859,50 +2276,93 @@ function updateModelFromLandmarks(
   );
 }
 
-function cleanup() {
-  trackingEnabled = false;
-  trackingLoading = false;
-  faceLandmarker = null;
+function prepareVideoElement() {
+  if (!el.video) {
+    return;
+  }
+
+  el.video.setAttribute(
+    "playsinline",
+    ""
+  );
+
+  el.video.setAttribute(
+    "autoplay",
+    ""
+  );
+
+  el.video.muted =
+    true;
+
+  el.video.style.display =
+    "block";
+}
+
+function cleanupApp() {
+  if (
+    animationFrameId
+  ) {
+    cancelAnimationFrame(
+      animationFrameId
+    );
+
+    animationFrameId =
+      null;
+  }
 
   if (
     mediaRecorder &&
-    mediaRecorder.state !== "inactive"
+    mediaRecorder.state !==
+      "inactive"
   ) {
     try {
       mediaRecorder.stop();
-    } catch (error) {
-      console.warn(
-        "Recorder cleanup error:",
-        error
-      );
-    }
+    } catch {}
   }
 
-  mediaRecorder = null;
-  recordedChunks = [];
+  mediaRecorder =
+    null;
+
+  recordedChunks =
+    [];
+
+  stopFaceTracking();
 
   stopCamera();
 }
 
-function startApp() {
+function initializeApp() {
   try {
+    checkRequiredElements();
+
+    prepareVideoElement();
+
+    initThree();
+
     bindEvents();
 
+    if (
+      el.sideControls
+    ) {
+      el.sideControls.style.display =
+        "flex";
+    }
+
     setStatus(
-      "Ready. Press Open Camera."
+      "Ready. Open Camera to begin."
     );
 
   } catch (error) {
-    reportError(
-      "Startup error",
-      error
+    showError(
+      error,
+      "App initialization error"
     );
   }
 }
 
 window.addEventListener(
   "beforeunload",
-  cleanup
+  cleanupApp
 );
 
-startApp();
+initializeApp();
