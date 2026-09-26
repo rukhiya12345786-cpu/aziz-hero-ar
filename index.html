@@ -1,287 +1,411 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta charset="UTF-8">
 
-<title>Aziz Hero AR</title>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+  >
 
-<style>
-*{
-    box-sizing:border-box;
-    -webkit-tap-highlight-color:transparent;
-}
+  <meta
+    name="theme-color"
+    content="#000000"
+  >
 
-html,body{
-    margin:0;
-    padding:0;
-    width:100%;
-    height:100%;
-    overflow:hidden;
-    background:#000;
-    font-family:Arial,sans-serif;
-}
+  <title>Aziz Hero AR</title>
 
-#app{
-    position:relative;
-    width:100%;
-    height:100%;
-    background:#000;
-    overflow:hidden;
-}
-
-#camera{
-    position:absolute;
-    inset:0;
-    width:100%;
-    height:100%;
-    object-fit:cover;
-    background:#000;
-    z-index:1;
-}
-
-#threeCanvas{
-    position:absolute;
-    inset:0;
-    width:100%;
-    height:100%;
-    z-index:2;
-    pointer-events:none;
-}
-
-#status{
-    position:absolute;
-    top:10px;
-    left:50%;
-    transform:translateX(-50%);
-    z-index:20;
-    color:#fff;
-    background:rgba(0,0,0,.55);
-    padding:6px 12px;
-    border-radius:20px;
-    font-size:12px;
-    white-space:nowrap;
-}
-
-#sideControls{
-    position:absolute;
-    right:10px;
-    top:50%;
-    transform:translateY(-50%);
-    z-index:30;
-    display:flex;
-    flex-direction:column;
-    gap:8px;
-}
-
-.ctrl{
-    width:46px;
-    height:46px;
-    border:0;
-    border-radius:50%;
-    background:rgba(20,20,20,.72);
-    color:#fff;
-    font-size:20px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    cursor:pointer;
-    box-shadow:0 2px 8px rgba(0,0,0,.35);
-}
-
-.ctrl:active{
-    transform:scale(.92);
-}
-
-#modelPanel{
-    position:absolute;
-    right:64px;
-    top:50%;
-    transform:translateY(-50%);
-    width:220px;
-    max-width:calc(100vw - 85px);
-    padding:12px;
-    border-radius:16px;
-    background:rgba(15,15,15,.92);
-    color:#fff;
-    z-index:29;
-    display:none;
-}
-
-#modelPanel.show{
-    display:block;
-}
-
-.sliderRow{
-    margin-bottom:8px;
-}
-
-.sliderRow label{
-    display:flex;
-    justify-content:space-between;
-    font-size:11px;
-    margin-bottom:3px;
-}
-
-.sliderRow input{
-    width:100%;
-}
-
-#bottomControls{
-    position:absolute;
-    bottom:14px;
-    left:50%;
-    transform:translateX(-50%);
-    z-index:30;
-    display:flex;
-    gap:8px;
-}
-
-.smallCtrl{
-    width:42px;
-    height:42px;
-    border:0;
-    border-radius:50%;
-    background:rgba(20,20,20,.72);
-    color:#fff;
-    font-size:18px;
-}
-
-.hidden{
-    display:none !important;
-}
-
-#fileInput{
-    display:none;
-}
-</style>
-
-<script type="importmap">
-{
-    "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
+  <style>
+    * {
+      box-sizing: border-box;
     }
-}
-</script>
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #000;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      position: relative;
+      color: #fff;
+    }
+
+    #app {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+    }
+
+    #camera {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      background: #000;
+      z-index: 1;
+    }
+
+    #threeCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    #topBar {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      right: 12px;
+      z-index: 10;
+
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+
+      pointer-events: none;
+    }
+
+    #appTitle {
+      margin: 0;
+      padding: 7px 10px;
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.55);
+      font-size: 14px;
+      font-weight: 700;
+      pointer-events: auto;
+    }
+
+    #status {
+      max-width: 65%;
+      padding: 7px 10px;
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.65);
+      color: #fff;
+      font-size: 12px;
+      line-height: 1.3;
+      text-align: right;
+      pointer-events: auto;
+    }
+
+    #status[data-state="error"] {
+      background: rgba(120, 0, 0, 0.85);
+    }
+
+    #controls {
+      position: absolute;
+      left: 10px;
+      right: 10px;
+      bottom: 12px;
+      z-index: 20;
+
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 7px;
+    }
+
+    button {
+      min-height: 42px;
+      padding: 8px 11px;
+      border: 0;
+      border-radius: 10px;
+      background: rgba(20, 20, 20, 0.82);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+
+    button:focus-visible {
+      outline: 2px solid #fff;
+      outline-offset: 2px;
+    }
+
+    #recordButton {
+      background: rgba(150, 20, 20, 0.9);
+    }
+
+    #sideControls {
+      position: absolute;
+      top: 78px;
+      right: 8px;
+      z-index: 25;
+
+      width: 145px;
+      max-height: calc(100% - 160px);
+      overflow-y: auto;
+
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+
+      padding: 8px;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.62);
+      backdrop-filter: blur(5px);
+    }
+
+    .controlGroup {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .controlGroup label {
+      font-size: 10px;
+      color: #ddd;
+    }
+
+    .controlGroup input[type="range"] {
+      width: 100%;
+      margin: 0;
+    }
+
+    #import3DInput {
+      display: none;
+    }
+
+    #exportFormat {
+      width: 100%;
+      min-height: 34px;
+      padding: 5px;
+      border: 0;
+      border-radius: 7px;
+      background: #222;
+      color: #fff;
+      font-size: 11px;
+    }
+  </style>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+    }
+  }
+  </script>
 </head>
 
 <body>
-
-<div id="app">
+  <main id="app">
 
     <video
-        id="camera"
-        autoplay
-        muted
-        playsinline
+      id="camera"
+      autoplay
+      muted
+      playsinline
+      webkit-playsinline
     ></video>
 
     <canvas id="threeCanvas"></canvas>
 
-    <div id="status">Ready</div>
-
-    <div id="sideControls">
-
-        <button class="ctrl" id="cameraButton" type="button">📷</button>
-
-        <button class="ctrl" id="switchCameraButton" type="button">🔄</button>
-
-        <button class="ctrl" id="photoButton" type="button">📸</button>
-
-        <button class="ctrl" id="recordButton" type="button">🎥</button>
-
-        <button class="ctrl" id="audioButton" type="button">🎙️</button>
-
-        <button class="ctrl" id="import3DButton" type="button">📂</button>
-
-        <button class="ctrl" id="modelButton" type="button">🧊</button>
-
-        <button class="ctrl" id="export3DButton" type="button">💾</button>
-
-        <button class="ctrl" id="resetButton" type="button">↩️</button>
-
-    </div>    <div id="bottomControls">
-
-        <button class="smallCtrl" id="zoomOutButton" type="button">−</button>
-
-        <button class="smallCtrl" id="zoomInButton" type="button">+</button>
-
-        <button class="smallCtrl" id="hideControlsButton" type="button">☰</button>
-
+    <div id="topBar">
+      <h1 id="appTitle">Aziz Hero AR</h1>
+      <div id="status">Loading...</div>
     </div>
 
+    <div id="controls">
 
-    <div id="modelPanel">
+      <button
+        id="cameraButton"
+        type="button"
+      >
+        Open Camera
+      </button>
 
-        <div class="sliderRow">
-            <label>
-                <span>Position X</span>
-                <span id="posXValue">0</span>
-            </label>
-            <input id="posX" type="range" min="-5" max="5" step="0.01" value="0">
-        </div>
+      <button
+        id="switchCameraButton"
+        type="button"
+      >
+        Switch Camera
+      </button>
 
-        <div class="sliderRow">
-            <label>
-                <span>Position Y</span>
-                <span id="posYValue">0</span>
-            </label>
-            <input id="posY" type="range" min="-5" max="5" step="0.01" value="0">
-        </div>
+      <button
+        id="photoButton"
+        type="button"
+      >
+        Photo
+      </button>
 
-        <div class="sliderRow">
-            <label>
-                <span>Position Z</span>
-                <span id="posZValue">0</span>
-            </label>
-            <input id="posZ" type="range" min="-10" max="5" step="0.01" value="0">
-        </div>
+      <button
+        id="recordButton"
+        type="button"
+      >
+        Record
+      </button>
 
-        <div class="sliderRow">
-            <label>
-                <span>Rotate X</span>
-                <span id="rotXValue">0°</span>
-            </label>
-            <input id="rotX" type="range" min="0" max="360" step="1" value="0">
-        </div>
+      <button
+        id="audioButton"
+        type="button"
+      >
+        Audio
+      </button>
 
-        <div class="sliderRow">
-            <label>
-                <span>Rotate Y</span>
-                <span id="rotYValue">0°</span>
-            </label>
-            <input id="rotY" type="range" min="0" max="360" step="1" value="0">
-        </div>
+      <button
+        id="trackingButton"
+        type="button"
+      >
+        Face Tracking
+      </button>
 
-        <div class="sliderRow">
-            <label>
-                <span>Rotate Z</span>
-                <span id="rotZValue">0°</span>
-            </label>
-            <input id="rotZ" type="range" min="0" max="360" step="1" value="0">
-        </div>
+      <button
+        id="modelButton"
+        type="button"
+      >
+        Model Controls
+      </button>
 
-        <div class="sliderRow">
-            <label>
-                <span>Scale</span>
-                <span id="scaleValue">1.00</span>
-            </label>
-            <input id="scale" type="range" min="0.05" max="5" step="0.01" value="1">
-        </div>
+      <button
+        id="import3DButton"
+        type="button"
+      >
+        Import 3D
+      </button>
 
-    </div>
+      <input
+        id="import3DInput"
+        type="file"
+        accept=".glb,.gltf,.obj,.stl"
+      >
 
+      <button
+        id="export3DButton"
+        type="button"
+      >
+        Export 3D
+      </button>
 
-    <input
-    id="import3DInput"
-    type="file"
-    accept=".glb,.gltf,.obj,.fbx,.stl"
->
+      <button
+        id="resetButton"
+        type="button"
+      >
+        Reset
+      </button>
 
-</div>
+    </div>    <aside id="sideControls">
 
+      <div class="controlGroup">
+        <label for="scaleSlider">Scale</label>
+        <input
+          id="scaleSlider"
+          type="range"
+          min="0.1"
+          max="3"
+          step="0.01"
+          value="1"
+        >
+      </div>
 
-<script type="module" src="./js/app.js?v=6"></script>
+      <div class="controlGroup">
+        <label for="xSlider">Position X</label>
+        <input
+          id="xSlider"
+          type="range"
+          min="-3"
+          max="3"
+          step="0.01"
+          value="0"
+        >
+      </div>
+
+      <div class="controlGroup">
+        <label for="ySlider">Position Y</label>
+        <input
+          id="ySlider"
+          type="range"
+          min="-3"
+          max="3"
+          step="0.01"
+          value="0"
+        >
+      </div>
+
+      <div class="controlGroup">
+        <label for="zSlider">Position Z</label>
+        <input
+          id="zSlider"
+          type="range"
+          min="-3"
+          max="3"
+          step="0.01"
+          value="0"
+        >
+      </div>
+
+      <div class="controlGroup">
+        <label for="rotateXSlider">Rotation X</label>
+        <input
+          id="rotateXSlider"
+          type="range"
+          min="-180"
+          max="180"
+          step="1"
+          value="0"
+        >
+      </div>
+
+      <div class="controlGroup">
+        <label for="rotateYSlider">Rotation Y</label>
+        <input
+          id="rotateYSlider"
+          type="range"
+          min="-180"
+          max="180"
+          step="1"
+          value="0"
+        >
+      </div>
+
+      <div class="controlGroup">
+        <label for="rotateZSlider">Rotation Z</label>
+        <input
+          id="rotateZSlider"
+          type="range"
+          min="-180"
+          max="180"
+          step="1"
+          value="0"
+        >
+      </div>
+
+      <div class="controlGroup">
+        <label for="exportFormat">Export Format</label>
+
+        <select id="exportFormat">
+          <option value="glb">GLB</option>
+          <option value="obj">OBJ</option>
+        </select>
+      </div>
+
+    </aside>
+
+  </main>
+
+  <script
+    type="module"
+    src="./js/app.js?v=1"
+  ></script>
 
 </body>
 </html>
