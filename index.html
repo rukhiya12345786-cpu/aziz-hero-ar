@@ -32,7 +32,6 @@
     }
 
     body {
-      position: relative;
       color: #fff;
     }
 
@@ -52,7 +51,9 @@
       object-fit: cover;
       display: block;
       background: #000;
-      z-index: 1;
+
+      transform: none;
+      -webkit-transform: none;
     }
 
     #threeCanvas {
@@ -62,138 +63,155 @@
       height: 100%;
       display: block;
       pointer-events: none;
-      z-index: 2;
+      background: transparent;
     }
 
-    #topBar {
+    #status {
       position: absolute;
       top: 12px;
       left: 12px;
       right: 12px;
-      z-index: 10;
 
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
+      z-index: 20;
+
+      min-height: 38px;
+      padding: 10px 12px;
+
+      border-radius: 10px;
+
+      background: rgba(0, 0, 0, 0.62);
+      color: #fff;
+
+      font-size: 13px;
+      line-height: 18px;
 
       pointer-events: none;
-    }
 
-    #appTitle {
-      margin: 0;
-      padding: 7px 10px;
-      border-radius: 10px;
-      background: rgba(0, 0, 0, 0.55);
-      font-size: 14px;
-      font-weight: 700;
-      pointer-events: auto;
-    }
-
-    #status {
-      max-width: 65%;
-      padding: 7px 10px;
-      border-radius: 10px;
-      background: rgba(0, 0, 0, 0.65);
-      color: #fff;
-      font-size: 12px;
-      line-height: 1.3;
-      text-align: right;
-      pointer-events: auto;
+      overflow-wrap: anywhere;
     }
 
     #status[data-state="error"] {
-      background: rgba(120, 0, 0, 0.85);
+      background: rgba(120, 0, 0, 0.82);
     }
 
-    #controls {
+    #topControls {
       position: absolute;
-      left: 10px;
-      right: 10px;
+      left: 12px;
+      right: 12px;
       bottom: 12px;
-      z-index: 20;
+
+      z-index: 30;
 
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
       gap: 7px;
+
+      padding: 8px;
+
+      border-radius: 14px;
+
+      background: rgba(0, 0, 0, 0.60);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
     }
 
-    button {
+    button,
+    select {
       min-height: 42px;
-      padding: 8px 11px;
-      border: 0;
+
+      border: 1px solid rgba(255, 255, 255, 0.24);
       border-radius: 10px;
-      background: rgba(20, 20, 20, 0.82);
+
+      padding: 8px 12px;
+
+      background: rgba(255, 255, 255, 0.12);
       color: #fff;
-      font-size: 12px;
+
+      font-size: 13px;
       font-weight: 600;
-      cursor: pointer;
+
       touch-action: manipulation;
     }
 
     button:active {
-      transform: scale(0.97);
+      background: rgba(255, 255, 255, 0.25);
     }
 
-    button:focus-visible {
-      outline: 2px solid #fff;
-      outline-offset: 2px;
+    select {
+      background: #111;
     }
 
-    #recordButton {
-      background: rgba(150, 20, 20, 0.9);
+    option {
+      background: #111;
+      color: #fff;
     }
 
     #sideControls {
       position: absolute;
-      top: 78px;
-      right: 8px;
+
+      top: 72px;
+      right: 10px;
+
       z-index: 25;
 
-      width: 145px;
-      max-height: calc(100% - 160px);
-      overflow-y: auto;
+      width: min(170px, 42vw);
 
       display: flex;
       flex-direction: column;
       gap: 7px;
 
-      padding: 8px;
+      padding: 9px;
+
       border-radius: 12px;
-      background: rgba(0, 0, 0, 0.62);
-      backdrop-filter: blur(5px);
+
+      background: rgba(0, 0, 0, 0.58);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
     }
 
-    .controlGroup {
+    #sideControls .controlTitle {
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+
+    #sideControls label {
       display: flex;
       flex-direction: column;
       gap: 3px;
-    }
 
-    .controlGroup label {
       font-size: 10px;
-      color: #ddd;
+      color: rgba(255, 255, 255, 0.85);
     }
 
-    .controlGroup input[type="range"] {
+    #sideControls input[type="range"] {
       width: 100%;
-      margin: 0;
+      min-height: 22px;
+      accent-color: #29a8ff;
     }
 
-    #import3DInput {
+    #fileInputs {
       display: none;
     }
 
-    #exportFormat {
-      width: 100%;
-      min-height: 34px;
-      padding: 5px;
-      border: 0;
-      border-radius: 7px;
-      background: #222;
-      color: #fff;
-      font-size: 11px;
+    @media (max-width: 520px) {
+      #topControls {
+        gap: 5px;
+        padding: 6px;
+      }
+
+      button,
+      select {
+        min-height: 38px;
+        padding: 7px 9px;
+        font-size: 11px;
+      }
+
+      #sideControls {
+        top: 64px;
+        width: 145px;
+      }
     }
   </style>
 
@@ -213,19 +231,111 @@
     <video
       id="camera"
       autoplay
-      muted
       playsinline
+      muted
+      disablepictureinpicture
       webkit-playsinline
     ></video>
 
     <canvas id="threeCanvas"></canvas>
 
-    <div id="topBar">
-      <h1 id="appTitle">Aziz Hero AR</h1>
-      <div id="status">Loading...</div>
+    <div id="status">
+      Loading app...
     </div>
 
-    <div id="controls">
+    <div id="sideControls">
+
+      <div class="controlTitle">
+        3D Controls
+      </div>
+
+      <label>
+        Scale
+        <input
+          id="scaleSlider"
+          type="range"
+          min="0.1"
+          max="5"
+          step="0.01"
+          value="1"
+        >
+      </label>
+
+      <label>
+        X Position
+        <input
+          id="xSlider"
+          type="range"
+          min="-3"
+          max="3"
+          step="0.01"
+          value="0"
+        >
+      </label>
+
+      <label>
+        Y Position
+        <input
+          id="ySlider"
+          type="range"
+          min="-3"
+          max="3"
+          step="0.01"
+          value="0"
+        >
+      </label>
+
+      <label>
+        Z Position
+        <input
+          id="zSlider"
+          type="range"
+          min="-3"
+          max="3"
+          step="0.01"
+          value="0"
+        >
+      </label>
+
+      <label>
+        Rotate X
+        <input
+          id="rotateXSlider"
+          type="range"
+          min="-180"
+          max="180"
+          step="1"
+          value="0"
+        >
+      </label>
+
+      <label>
+        Rotate Y
+        <input
+          id="rotateYSlider"
+          type="range"
+          min="-180"
+          max="180"
+          step="1"
+          value="0"
+        >
+      </label>
+
+      <label>
+        Rotate Z
+        <input
+          id="rotateZSlider"
+          type="range"
+          min="-180"
+          max="180"
+          step="1"
+          value="0"
+        >
+      </label>
+
+    </div>
+
+    <div id="topControls">
 
       <button
         id="cameraButton"
@@ -286,7 +396,7 @@
       <input
         id="import3DInput"
         type="file"
-        accept=".glb,.gltf,.obj,.stl"
+        accept=".glb,.gltf,.obj,.stl,model/gltf-binary,model/gltf+json,model/obj,model/stl"
       >
 
       <button
@@ -296,6 +406,23 @@
         Export 3D
       </button>
 
+      <select
+        id="exportFormat"
+        aria-label="Export format"
+      >
+        <option value="glb">
+          GLB
+        </option>
+
+        <option value="gltf">
+          GLTF
+        </option>
+
+        <option value="obj">
+          OBJ
+        </option>
+      </select>
+
       <button
         id="resetButton"
         type="button"
@@ -303,109 +430,12 @@
         Reset
       </button>
 
-    </div>    <aside id="sideControls">
-
-      <div class="controlGroup">
-        <label for="scaleSlider">Scale</label>
-        <input
-          id="scaleSlider"
-          type="range"
-          min="0.1"
-          max="3"
-          step="0.01"
-          value="1"
-        >
-      </div>
-
-      <div class="controlGroup">
-        <label for="xSlider">Position X</label>
-        <input
-          id="xSlider"
-          type="range"
-          min="-3"
-          max="3"
-          step="0.01"
-          value="0"
-        >
-      </div>
-
-      <div class="controlGroup">
-        <label for="ySlider">Position Y</label>
-        <input
-          id="ySlider"
-          type="range"
-          min="-3"
-          max="3"
-          step="0.01"
-          value="0"
-        >
-      </div>
-
-      <div class="controlGroup">
-        <label for="zSlider">Position Z</label>
-        <input
-          id="zSlider"
-          type="range"
-          min="-3"
-          max="3"
-          step="0.01"
-          value="0"
-        >
-      </div>
-
-      <div class="controlGroup">
-        <label for="rotateXSlider">Rotation X</label>
-        <input
-          id="rotateXSlider"
-          type="range"
-          min="-180"
-          max="180"
-          step="1"
-          value="0"
-        >
-      </div>
-
-      <div class="controlGroup">
-        <label for="rotateYSlider">Rotation Y</label>
-        <input
-          id="rotateYSlider"
-          type="range"
-          min="-180"
-          max="180"
-          step="1"
-          value="0"
-        >
-      </div>
-
-      <div class="controlGroup">
-        <label for="rotateZSlider">Rotation Z</label>
-        <input
-          id="rotateZSlider"
-          type="range"
-          min="-180"
-          max="180"
-          step="1"
-          value="0"
-        >
-      </div>
-
-      <div class="controlGroup">
-        <label for="exportFormat">Export Format</label>
-
-        <select id="exportFormat">
-          <option value="glb">GLB</option>
-          <option value="obj">OBJ</option>
-        </select>
-      </div>
-
-    </aside>
+    </div>    <div id="fileInputs">
+    </div>
 
   </main>
 
-  <script
-    type="module"
-    src="./js/app.js?v=1"
-  ></script>
+  <script type="module" src="./js/app.js?v=20260926"></script>
 
 </body>
 </html>
