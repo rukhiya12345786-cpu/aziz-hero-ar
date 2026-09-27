@@ -96,8 +96,7 @@ html, body {
 <script type="module">
 
 import * as THREE from
-"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js?v=10";
-
+"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js?v=11";
 
 const video = document.getElementById("camera");
 const threeCanvas = document.getElementById("threeCanvas");
@@ -107,13 +106,10 @@ const status = document.getElementById("status");
 const startButton = document.getElementById("startButton");
 
 let faceLandmarker = null;
-let cameraStream = null;
 let trackingStarted = false;
 
 
-/* =========================================
-   THREE.JS
-========================================= */
+/* THREE */
 
 const renderer = new THREE.WebGLRenderer({
     canvas: threeCanvas,
@@ -121,8 +117,14 @@ const renderer = new THREE.WebGLRenderer({
     antialias: true
 });
 
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(
+    Math.min(window.devicePixelRatio, 2)
+);
+
+renderer.setSize(
+    window.innerWidth,
+    window.innerHeight
+);
 
 const scene = new THREE.Scene();
 
@@ -136,69 +138,76 @@ const threeCamera = new THREE.PerspectiveCamera(
 threeCamera.position.z = 5;
 
 
-/* Cube */
+/* CUBE */
 
-const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
+const cubeGeometry =
+    new THREE.BoxGeometry(1, 1, 1);
 
-const cubeMaterial = new THREE.MeshNormalMaterial();
+const cubeMaterial =
+    new THREE.MeshNormalMaterial();
 
-const cube = new THREE.Mesh(
-    cubeGeometry,
-    cubeMaterial
+const cube =
+    new THREE.Mesh(
+        cubeGeometry,
+        cubeMaterial
+    );
+
+cube.scale.set(
+    0.45,
+    0.45,
+    0.45
 );
-
-cube.scale.set(0.55, 0.55, 0.55);
 
 scene.add(cube);
 
 
-/* =========================================
-   THREE ANIMATION
-========================================= */
+/* CUBE ANIMATION */
 
 function animateCube() {
 
     requestAnimationFrame(animateCube);
 
-    cube.rotation.x += 0.01;
-    cube.rotation.y += 0.015;
-
-    renderer.render(scene, threeCamera);
+    renderer.render(
+        scene,
+        threeCamera
+    );
 }
 
 animateCube();
 
 
-/* =========================================
-   CAMERA
-========================================= */
+/* CAMERA */
 
 async function startCamera() {
 
     try {
 
-        status.textContent = "OPENING CAMERA...";
+        status.textContent =
+            "OPENING CAMERA...";
 
-        cameraStream = await navigator.mediaDevices.getUserMedia({
-            video: {
-                facingMode: "user",
-                width: {
-                    ideal: 1280
+        const stream =
+            await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: "user",
+                    width: {
+                        ideal: 1280
+                    },
+                    height: {
+                        ideal: 720
+                    }
                 },
-                height: {
-                    ideal: 720
-                }
-            },
-            audio: false
-        });
+                audio: false
+            });
 
-        video.srcObject = cameraStream;
+        video.srcObject = stream;
 
         await video.play();
 
-        status.textContent = "CAMERA OK";
+        status.textContent =
+            "CAMERA OK";
 
-        startButton.style.display = "none";
+        startButton.style.display =
+            "none";
 
         await loadFaceTracker();
 
@@ -207,15 +216,12 @@ async function startCamera() {
         console.error(error);
 
         status.textContent =
-            "CAMERA ERROR: " + error.message;
-
+            "CAMERA ERROR";
     }
 }
 
 
-/* =========================================
-   MEDIAPIPE FACE TRACKER
-========================================= */
+/* MEDIAPIPE */
 
 async function loadFaceTracker() {
 
@@ -239,7 +245,6 @@ async function loadFaceTracker() {
                 "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm"
             );
 
-
         faceLandmarker =
             await FaceLandmarker.createFromOptions(
                 filesetResolver,
@@ -261,7 +266,6 @@ async function loadFaceTracker() {
                 }
             );
 
-
         status.textContent =
             "FACE TRACKER READY";
 
@@ -275,22 +279,25 @@ async function loadFaceTracker() {
 
         status.textContent =
             "TRACKER ERROR";
-
     }
 }
 
 
-/* =========================================
-   BIG GREEN FACE DOTS
-========================================= */
+/* GREEN DOTS */
 
 function drawLandmarks(landmarks) {
 
-    const width = window.innerWidth;
-    const height = window.innerHeight;
+    const width =
+        window.innerWidth;
+
+    const height =
+        window.innerHeight;
 
     const dpr =
-        Math.min(window.devicePixelRatio || 1, 2);
+        Math.min(
+            window.devicePixelRatio || 1,
+            2
+        );
 
     landmarkCanvas.width =
         Math.round(width * dpr);
@@ -298,16 +305,17 @@ function drawLandmarks(landmarks) {
     landmarkCanvas.height =
         Math.round(height * dpr);
 
-    landmarkCanvas.style.width =
-        width + "px";
-
-    landmarkCanvas.style.height =
-        height + "px";
-
     const ctx =
         landmarkCanvas.getContext("2d");
 
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.setTransform(
+        dpr,
+        0,
+        0,
+        dpr,
+        0,
+        0
+    );
 
     ctx.clearRect(
         0,
@@ -316,7 +324,6 @@ function drawLandmarks(landmarks) {
         height
     );
 
-
     for (const point of landmarks) {
 
         const x =
@@ -324,9 +331,6 @@ function drawLandmarks(landmarks) {
 
         const y =
             point.y * height;
-
-
-        /* Large outer glow */
 
         ctx.beginPath();
 
@@ -343,9 +347,6 @@ function drawLandmarks(landmarks) {
 
         ctx.fill();
 
-
-        /* Big green dot */
-
         ctx.beginPath();
 
         ctx.arc(
@@ -360,9 +361,6 @@ function drawLandmarks(landmarks) {
             "#00ff00";
 
         ctx.fill();
-
-
-        /* White center */
 
         ctx.beginPath();
 
@@ -379,18 +377,117 @@ function drawLandmarks(landmarks) {
 
         ctx.fill();
     }
+}/* FACE TO CUBE TRACKING */
+
+function updateCubeFromFace(landmarks) {
+
+    const width =
+        window.innerWidth;
+
+    const height =
+        window.innerHeight;
+
+
+    /* Nose */
+
+    const nose =
+        landmarks[1];
+
+
+    /* Left eye */
+
+    const leftEye =
+        landmarks[33];
+
+
+    /* Right eye */
+
+    const rightEye =
+        landmarks[263];
+
+
+    /* Face position */
+
+    const faceX =
+        nose.x * width;
+
+    const faceY =
+        nose.y * height;
+
+
+    /* Move cube to face */
+
+    const normalizedX =
+        (faceX / width) * 2 - 1;
+
+    const normalizedY =
+        -((faceY / height) * 2 - 1);
+
+
+    cube.position.x =
+        normalizedX * 2.25;
+
+    cube.position.y =
+        normalizedY * 1.7;
+
+
+    /* Face size */
+
+    const dx =
+        rightEye.x - leftEye.x;
+
+    const dy =
+        rightEye.y - leftEye.y;
+
+    const eyeDistance =
+        Math.sqrt(
+            dx * dx +
+            dy * dy
+        );
+
+
+    const cubeSize =
+        Math.max(
+            0.25,
+            Math.min(
+                1.15,
+                eyeDistance * 3.2
+            )
+        );
+
+
+    cube.scale.set(
+        cubeSize,
+        cubeSize,
+        cubeSize
+    );
+
+
+    /* Head left/right rotation */
+
+    const angle =
+        Math.atan2(
+            dy,
+            dx
+        );
+
+    cube.rotation.z =
+        -angle;
 }
 
 
-/* =========================================
-   FACE TRACKING LOOP
-========================================= */
+/* FACE TRACKING */
 
 function trackFace() {
 
-    if (!trackingStarted || !faceLandmarker) {
+    if (
+        !trackingStarted ||
+        !faceLandmarker
+    ) {
 
-        requestAnimationFrame(trackFace);
+        requestAnimationFrame(
+            trackFace
+        );
 
         return;
     }
@@ -415,12 +512,26 @@ function trackFace() {
                 result.faceLandmarks.length > 0
             ) {
 
+                const landmarks =
+                    result.faceLandmarks[0];
+
+
+                /* Green dots */
+
                 drawLandmarks(
-                    result.faceLandmarks[0]
+                    landmarks
                 );
 
+
+                /* Cube follows face */
+
+                updateCubeFromFace(
+                    landmarks
+                );
+
+
                 status.textContent =
-                    "FACE TRACKING: ON";
+                    "HEAD TRACKING: ON";
 
             } else {
 
@@ -448,13 +559,13 @@ function trackFace() {
     }
 
 
-    requestAnimationFrame(trackFace);
+    requestAnimationFrame(
+        trackFace
+    );
 }
 
 
-/* =========================================
-   RESIZE
-========================================= */
+/* RESIZE */
 
 window.addEventListener(
     "resize",
@@ -475,9 +586,7 @@ window.addEventListener(
 );
 
 
-/* =========================================
-   START
-========================================= */
+/* START */
 
 startButton.addEventListener(
     "click",
