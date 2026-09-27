@@ -1769,50 +1769,49 @@ function toggleTracking() {
 }
 
 function bindButtons() {
-  el.cameraButton?.addEventListener(
-    "click",
-    startCamera
-  );
+  const buttons = [
+    [el.cameraButton, startCamera],
+    [el.switchCameraButton, switchCamera],
+    [el.flipCameraButton, flipCameraView],
+    [el.photoButton, capturePhoto],
+    [el.recordButton, toggleRecording],
+    [el.audioButton, toggleAudio],
+    [el.trackingButton, toggleTracking],
+    [el.import3DButton, () => el.import3DInput?.click()],
+    [el.export3DButton, exportModel],
+    [el.resetButton, resetModel],
+    [el.hideControlsButton, toggleControls],
+    [el.showControlsButton, showControls]
+  ];
 
-  el.switchCameraButton?.addEventListener(
-    "click",
-    switchCamera
-  );
+  buttons.forEach(([button, action]) => {
+    if (!button) return;
 
-  el.flipCameraButton?.addEventListener(
-    "click",
-    flipCameraView
-  );
+    button.style.pointerEvents = "auto";
 
-  el.photoButton?.addEventListener(
-    "click",
-    capturePhoto
-  );
+    button.onclick = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
 
-  el.recordButton?.addEventListener(
-    "click",
-    toggleRecording
-  );
+      try {
+        action();
+      } catch (error) {
+        showError(error, "Button error");
+      }
+    };
+  });
 
-  el.audioButton?.addEventListener(
-    "click",
-    toggleAudio
-  );
+  if (el.modelButton) {
+    el.modelButton.style.pointerEvents = "auto";
 
-  el.trackingButton?.addEventListener(
-    "click",
-    toggleTracking
-  );
+    el.modelButton.onclick = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
 
-  el.modelButton?.addEventListener(
-    "click",
-    () => {
       if (!el.sideControls) return;
 
       const hidden =
-        el.sideControls.classList.contains(
-          "hiddenControls"
-        );
+        el.sideControls.classList.contains("hiddenControls");
 
       if (hidden) {
         showControls();
@@ -1822,111 +1821,14 @@ function bindButtons() {
           block: "nearest"
         });
       }
-    }
-  );
+    };
+  }
 
-  el.import3DButton?.addEventListener(
-    "click",
-    () => {
-      el.import3DInput?.click();
-    }
-  );
-
-  el.import3DInput?.addEventListener(
-    "change",
-    handleModelImport
-  );
-
-  el.export3DButton?.addEventListener(
-    "click",
-    exportModel
-  );
-
-  el.resetButton?.addEventListener(
-    "click",
-    resetModel
-  );
-
-  el.hideControlsButton?.addEventListener(
-    "click",
-    toggleControls
-  );
-
-  el.showControlsButton?.addEventListener(
-    "click",
-    showControls
-  );
+  if (el.import3DInput) {
+    el.import3DInput.onchange = handleModelImport;
+  }
 }
-
-function initializeUI() {
-  el.sideControls.classList.remove(
-    "hiddenControls"
-  );
-
-  el.showControlsButton.style.display =
-    "none";
-
-  setButtonLabel(
-    el.cameraButton,
-    "Open Camera"
-  );
-
-  setButtonLabel(
-    el.switchCameraButton,
-    "Camera"
-  );
-
-  setButtonLabel(
-    el.flipCameraButton,
-    "Flip"
-  );
-
-  setButtonLabel(
-    el.photoButton,
-    "Photo"
-  );
-
-  setButtonLabel(
-    el.recordButton,
-    "Record"
-  );
-
-  setButtonLabel(
-    el.audioButton,
-    "Audio Off"
-  );
-
-  setButtonLabel(
-    el.trackingButton,
-    "Tracking Off"
-  );
-
-  setButtonLabel(
-    el.modelButton,
-    "3D Model"
-  );
-
-  setButtonLabel(
-    el.import3DButton,
-    "Import 3D"
-  );
-
-  setButtonLabel(
-    el.export3DButton,
-    "Export 3D"
-  );
-
-  setButtonLabel(
-    el.resetButton,
-    "Reset"
-  );
-
-  setButtonLabel(
-    el.hideControlsButton,
-    "Hide Controls"
-  );
-}
-
+  
 function cleanup() {
   if (trackingTimer) {
     clearInterval(
