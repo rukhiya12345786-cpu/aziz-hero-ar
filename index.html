@@ -3,13 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Azeez AR Head Tracker</title>
 
 <script type="importmap">
 {
   "imports": {
     "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/",
+    "@mediapipe/tasks-vision": "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.mjs"
   }
 }
 </script>
@@ -113,11 +115,15 @@ button:active {
   transform: scale(0.97);
 }
 
+button:disabled {
+  opacity: 0.5;
+}
+
 .sideControls {
   position: absolute;
   top: 115px;
   right: 8px;
-  width: 145px;
+  width: 150px;
   max-width: calc(100% - 16px);
   padding: 9px;
   border-radius: 10px;
@@ -159,11 +165,24 @@ button:active {
   color: #fff;
 }
 
+#import3DInput {
+  display: none;
+}
+
 #modelFileInput {
   display: none;
 }
 
+.hiddenControls {
+  display: none !important;
+}
+
+.fullscreenTracking #status {
+  display: none;
+}
+
 @media (max-width: 600px) {
+
   .topControls {
     right: 90px;
   }
@@ -178,6 +197,10 @@ button:active {
   .sideControls {
     top: 105px;
     width: 132px;
+  }
+
+  #status {
+    font-size: 11px;
   }
 }
 </style>
@@ -256,7 +279,9 @@ button:active {
         Hide Controls
       </button>
 
-    </div>    <div id="sideControls" class="sideControls">
+    </div>
+
+    <div id="sideControls" class="sideControls">
 
       <h3>3D Controls</h3>
 
@@ -302,9 +327,7 @@ button:active {
           max="5"
           step="0.01"
           value="0">
-      </div>
-
-      <div class="controlRow">
+      </div>      <div class="controlRow">
         <label for="rotateXSlider">Rotation X</label>
         <input
           id="rotateXSlider"
@@ -350,12 +373,15 @@ button:active {
   <input
     id="import3DInput"
     type="file"
-    accept=".glb,.gltf,.obj,.stl"
+    accept=".glb,.gltf,.obj,.stl,.fbx"
     style="display:none;">
 
 </div>
 
-<script type="module" src="./js/app.js?v=20260926"></script>
+<script
+  type="module"
+  src="./js/app.js?v=20260927">
+</script>
 
 </body>
 </html>
