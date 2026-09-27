@@ -662,4 +662,55 @@ if (resetButton) {
     "click",
     resetImportedModelControls
   );
+}const sideControls =
+  document.getElementById("sideControls");
+
+const hideControlsButton =
+  document.getElementById("hideControlsButton");
+
+const showControlsButton =
+  document.getElementById("showControlsButton");
+
+if (
+  sideControls &&
+  hideControlsButton &&
+  showControlsButton
+) {
+  hideControlsButton.addEventListener(
+    "click",
+    () => {
+      sideControls.classList.add(
+        "hiddenControls"
+      );
+
+      hideControlsButton.style.display =
+        "none";
+
+      showControlsButton.style.display =
+        "block";
+
+      showStatus(
+        "Controls hidden"
+      );
+    }
+  );
+
+  showControlsButton.addEventListener(
+    "click",
+    () => {
+      sideControls.classList.remove(
+        "hiddenControls"
+      );
+
+      hideControlsButton.style.display =
+        "block";
+
+      showControlsButton.style.display =
+        "none";
+
+      showStatus(
+        "Controls visible"
+      );
+    }
+  );
 }
