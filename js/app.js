@@ -822,3 +822,71 @@ if (typeof FaceMesh !== "undefined") {
 } else {
     status.textContent = "FACE MESH LIBRARY NOT LOADED";
 }
+let faceMeshDetector = null;
+let faceMeshRunning = false;
+let faceMeshBusy = false;
+
+async function startFaceMeshTracking() {
+    if (faceMeshRunning) return;
+
+    if (typeof FaceMesh === "undefined") {
+        status.textContent = "FACE MESH LIBRARY NOT FOUND";
+        return;
+    }
+
+    try {
+        faceMeshDetector = new FaceMesh({
+            locateFile: (file) =>
+                `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+        });
+
+        faceMeshDetector.setOptions({
+            maxNumFaces: 1,
+            refineLandmarks: true,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+
+        faceMeshDetector.onResults((results) => {
+            if (
+                results.multiFaceLandmarks &&
+                results.multiFaceLandmarks.length > 0
+            ) {
+                status.textContent = "FACE DETECTED";
+            } else {
+                status.textContent = "NO FACE DETECTED";
+            }
+        });
+
+        faceMeshRunning = true;
+        status.textContent = "FACE TRACKING STARTING";
+
+        detectFaceMeshFrame();
+    } catch (error) {
+        status.textContent = "FACE TRACKING ERROR: " + error.message;
+        faceMeshRunning = false;
+    }
+}
+
+async function detectFaceMeshFrame() {
+    if (!faceMeshRunning) return;
+
+    if (video.readyState >= 2 && !faceMeshBusy) {
+        faceMeshBusy = true;
+
+        try {
+            await faceMeshDetector.send({ image: video });
+        } catch (error) {
+            status.textContent = "FACE TRACKING ERROR: " + error.message;
+            faceMeshRunning = false;
+        }
+
+        faceMeshBusy = false;
+    }
+
+    if (faceMeshRunning) {
+        requestAnimationFrame(detectFaceMeshFrame);
+    }
+}
+
+video.addEventListener("playing", startFaceMeshTracking);
