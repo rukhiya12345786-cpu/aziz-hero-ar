@@ -817,3 +817,8 @@ if (showControlsButton) {
   showControlsButton.style.display =
     "none";
 }
+if (typeof FaceMesh !== "undefined") {
+    status.textContent = "FACE MESH LIBRARY LOADED";
+} else {
+    status.textContent = "FACE MESH LIBRARY NOT LOADED";
+}
