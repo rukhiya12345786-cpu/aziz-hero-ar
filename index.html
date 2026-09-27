@@ -53,7 +53,7 @@ html, body {
     top: 15px;
     left: 15px;
     right: 15px;
-    z-index: 10;
+    z-index: 20;
 }
 
 #status {
@@ -66,27 +66,40 @@ html, body {
     font-weight: bold;
 }
 
-#startButton,
-#modelButton {
+button {
     display: block;
     margin-top: 10px;
     padding: 12px 18px;
     border: 0;
     border-radius: 10px;
-    background: #00ff00;
-    color: #000;
     font-size: 15px;
     font-weight: bold;
 }
 
+#startButton {
+    background: #00ff00;
+    color: #000;
+}
+
 #modelButton {
     background: #ffffff;
+    color: #000;
 }
 
 #modelInput {
     display: none;
 }
 </style>
+
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js?v=15",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+    }
+}
+</script>
+
 </head>
 
 <body>
@@ -119,18 +132,16 @@ html, body {
     <input
         id="modelInput"
         type="file"
-        accept=".glb,model/gltf-binary"
-    >
-
+        accept=".glb">
 </div>
 
 <script type="module">
 
-import * as THREE from
-"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js?v=14";
+import * as THREE from "three";
 
-import { GLTFLoader } from
-"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js?v=14";
+import {
+    GLTFLoader
+} from "three/addons/loaders/GLTFLoader.js";
 
 
 const video =
@@ -156,9 +167,7 @@ const modelInput =
 
 
 let faceLandmarker = null;
-
 let trackingStarted = false;
-
 let loadedModel = null;
 
 
@@ -173,7 +182,7 @@ const renderer =
 
 renderer.setPixelRatio(
     Math.min(
-        window.devicePixelRatio,
+        window.devicePixelRatio || 1,
         2
     )
 );
@@ -212,7 +221,7 @@ const anchor =
 scene.add(anchor);
 
 
-/* TEMPORARY CUBE */
+/* TEST CUBE */
 
 const cubeGeometry =
     new THREE.BoxGeometry(
@@ -248,7 +257,7 @@ const gltfLoader =
     new GLTFLoader();
 
 
-/* START CAMERA */
+/* CAMERA */
 
 async function startCamera() {
 
@@ -257,9 +266,19 @@ async function startCamera() {
         status.textContent =
             "OPENING CAMERA...";
 
+        if (
+            !navigator.mediaDevices ||
+            !navigator.mediaDevices.getUserMedia
+        ) {
+
+            status.textContent =
+                "CAMERA NOT SUPPORTED";
+
+            return;
+        }
+
         const stream =
-            await navigator.mediaDevices
-            .getUserMedia({
+            await navigator.mediaDevices.getUserMedia({
                 video: {
                     facingMode: "user",
                     width: {
@@ -295,7 +314,7 @@ async function startCamera() {
 }
 
 
-/* MEDIAPIPE */
+/* FACE TRACKER */
 
 async function loadFaceTracker() {
 
@@ -306,7 +325,7 @@ async function loadFaceTracker() {
 
         const vision =
             await import(
-                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/vision_bundle.mjs"
+                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/vision_bundle.mjs?v=15"
             );
 
         const {
@@ -316,15 +335,13 @@ async function loadFaceTracker() {
 
 
         const filesetResolver =
-            await FilesetResolver
-            .forVisionTasks(
+            await FilesetResolver.forVisionTasks(
                 "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm"
             );
 
 
         faceLandmarker =
-            await FaceLandmarker
-            .createFromOptions(
+            await FaceLandmarker.createFromOptions(
                 filesetResolver,
                 {
                     baseOptions: {
@@ -367,11 +384,9 @@ async function loadFaceTracker() {
 }
 
 
-/* GREEN DOTS */
+/* GREEN LANDMARKS */
 
-function drawLandmarks(
-    landmarks
-) {
+function drawLandmarks(landmarks) {
 
     const width =
         window.innerWidth;
@@ -396,7 +411,6 @@ function drawLandmarks(
     const ctx =
         landmarkCanvas.getContext("2d");
 
-
     ctx.setTransform(
         dpr,
         0,
@@ -405,7 +419,6 @@ function drawLandmarks(
         0,
         0
     );
-
 
     ctx.clearRect(
         0,
@@ -473,7 +486,10 @@ function drawLandmarks(
 
         ctx.fill();
     }
-}/* LOAD LOCAL GLB */
+}
+
+
+/* GLB BUTTON */
 
 modelButton.addEventListener(
     "click",
@@ -484,6 +500,8 @@ modelButton.addEventListener(
     }
 );
 
+
+/* GLB FILE */
 
 modelInput.addEventListener(
     "change",
@@ -496,25 +514,11 @@ modelInput.addEventListener(
             return;
         }
 
-
-        if (
-            !file.name
-            .toLowerCase()
-            .endsWith(".glb")
-        ) {
-
-            status.textContent =
-                "PLEASE SELECT A GLB FILE";
-
-            return;
-        }
+        status.textContent =
+            "LOADING 3D MODEL...";
 
 
         try {
-
-            status.textContent =
-                "LOADING 3D MODEL...";
-
 
             const arrayBuffer =
                 await file.arrayBuffer();
@@ -525,86 +529,28 @@ modelInput.addEventListener(
                 "",
                 (gltf) => {
 
-                    /* Remove old model */
-
                     if (loadedModel) {
 
                         anchor.remove(
                             loadedModel
                         );
-
-                        loadedModel.traverse(
-                            (object) => {
-
-                                if (
-                                    object.geometry
-                                ) {
-                                    object.geometry
-                                    .dispose();
-                                }
-
-                                if (
-                                    object.material
-                                ) {
-
-                                    if (
-                                        Array.isArray(
-                                            object.material
-                                        )
-                                    ) {
-
-                                        object.material
-                                        .forEach(
-                                            material => {
-                                                material.dispose();
-                                            }
-                                        );
-
-                                    } else {
-
-                                        object.material
-                                        .dispose();
-                                    }
-                                }
-                            }
-                        );
                     }
 
-
-                    /* Remove cube */
 
                     anchor.remove(
                         cube
                     );
 
 
-                    /* Add model */
-
                     loadedModel =
                         gltf.scene;
 
-
-                    anchor.add(
-                        loadedModel
-                    );
-
-
-                    /*
-                     * Initial model scale.
-                     * We will adjust this
-                     * after seeing the model.
-                     */
 
                     loadedModel.scale.set(
                         1,
                         1,
                         1
                     );
-
-
-                    /*
-                     * Initial position.
-                     */
 
                     loadedModel.position.set(
                         0,
@@ -613,36 +559,16 @@ modelInput.addEventListener(
                     );
 
 
+                    anchor.add(
+                        loadedModel
+                    );
+
+
                     status.textContent =
                         "GLB MODEL LOADED";
-
                 },
 
-                (progress) => {
-
-                    if (
-                        progress.total > 0
-                    ) {
-
-                        const percent =
-                            Math.round(
-                                (
-                                    progress.loaded /
-                                    progress.total
-                                ) * 100
-                            );
-
-                        status.textContent =
-                            "LOADING MODEL " +
-                            percent +
-                            "%";
-
-                    } else {
-
-                        status.textContent =
-                            "LOADING MODEL...";
-                    }
-                },
+                undefined,
 
                 (error) => {
 
@@ -661,14 +587,7 @@ modelInput.addEventListener(
                 "MODEL ERROR";
         }
     }
-);
-
-
-/* =========================================
-   HEAD ANCHOR
-========================================= */
-
-function updateHeadAnchor(
+);function updateHeadAnchor(
     landmarks,
     transformationMatrix
 ) {
@@ -682,7 +601,6 @@ function updateHeadAnchor(
 
     const nose =
         landmarks[1];
-
 
     const leftEye =
         landmarks[33];
@@ -747,7 +665,7 @@ function updateHeadAnchor(
     );
 
 
-    /* 3D rotation */
+    /* Head rotation */
 
     if (
         transformationMatrix &&
@@ -756,7 +674,6 @@ function updateHeadAnchor(
 
         const matrix =
             new THREE.Matrix4();
-
 
         matrix.fromArray(
             transformationMatrix
@@ -781,11 +698,12 @@ function updateHeadAnchor(
 
 
         const euler =
-            new THREE.Euler()
-            .setFromQuaternion(
-                quaternion,
-                "YXZ"
-            );
+            new THREE.Euler();
+
+        euler.setFromQuaternion(
+            quaternion,
+            "YXZ"
+        );
 
 
         anchor.rotation.x =
@@ -800,9 +718,7 @@ function updateHeadAnchor(
 }
 
 
-/* =========================================
-   FACE TRACKING
-========================================= */
+/* FACE TRACKING */
 
 function trackFace() {
 
@@ -830,8 +746,7 @@ function trackFace() {
 
 
             const result =
-                faceLandmarker
-                .detectForVideo(
+                faceLandmarker.detectForVideo(
                     video,
                     now
                 );
@@ -846,20 +761,20 @@ function trackFace() {
                     result.faceLandmarks[0];
 
 
+                /* Draw green dots */
+
                 drawLandmarks(
                     landmarks
                 );
 
 
-                let matrix = null;
+                let matrix =
+                    null;
 
 
                 if (
-                    result
-                    .facialTransformationMatrixes &&
-                    result
-                    .facialTransformationMatrixes
-                    .length > 0
+                    result.facialTransformationMatrixes &&
+                    result.facialTransformationMatrixes.length > 0
                 ) {
 
                     matrix =
@@ -869,16 +784,25 @@ function trackFace() {
                 }
 
 
+                /* Move 3D object */
+
                 updateHeadAnchor(
                     landmarks,
                     matrix
                 );
 
 
-                status.textContent =
-                    loadedModel
-                    ? "GLB HEAD TRACKING: ON"
-                    : "HEAD TRACKING: ON";
+                if (loadedModel) {
+
+                    status.textContent =
+                        "GLB HEAD TRACKING: ON";
+
+                } else {
+
+                    status.textContent =
+                        "HEAD TRACKING: ON";
+                }
+
 
             } else {
 
@@ -915,15 +839,14 @@ function trackFace() {
 }
 
 
-/* =========================================
-   RENDER
-========================================= */
+/* THREE RENDER */
 
 function render() {
 
     requestAnimationFrame(
         render
     );
+
 
     renderer.render(
         scene,
@@ -934,34 +857,54 @@ function render() {
 render();
 
 
-/* =========================================
-   RESIZE
-========================================= */
+/* RESIZE */
 
 window.addEventListener(
     "resize",
     () => {
 
+        const width =
+            window.innerWidth;
+
+        const height =
+            window.innerHeight;
+
+
         renderer.setSize(
-            window.innerWidth,
-            window.innerHeight
+            width,
+            height
         );
 
 
         threeCamera.aspect =
-            window.innerWidth /
-            window.innerHeight;
+            width / height;
 
 
         threeCamera.updateProjectionMatrix();
 
+
+        landmarkCanvas.width =
+            Math.round(
+                width *
+                Math.min(
+                    window.devicePixelRatio || 1,
+                    2
+                )
+            );
+
+        landmarkCanvas.height =
+            Math.round(
+                height *
+                Math.min(
+                    window.devicePixelRatio || 1,
+                    2
+                )
+            );
     }
 );
 
 
-/* =========================================
-   START
-========================================= */
+/* START BUTTON */
 
 startButton.addEventListener(
     "click",
