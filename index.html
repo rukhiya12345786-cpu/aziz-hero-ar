@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Azeez AR - Stable Test v3</title>
+<title>Azeez AR - Face Tracker Test</title>
 
 <style>
 html, body {
@@ -36,12 +36,13 @@ html, body {
     top: 15px;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 10;
+    z-index: 20;
     color: white;
-    background: rgba(0,0,0,.6);
-    padding: 8px 14px;
+    background: rgba(0,0,0,.7);
+    padding: 9px 14px;
     border-radius: 8px;
     font-family: Arial, sans-serif;
+    font-size: 15px;
 }
 
 #startButton {
@@ -49,7 +50,7 @@ html, body {
     left: 50%;
     bottom: 30px;
     transform: translateX(-50%);
-    z-index: 10;
+    z-index: 20;
     padding: 15px 25px;
     border: 0;
     border-radius: 12px;
@@ -61,7 +62,7 @@ html, body {
 <script type="importmap">
 {
   "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js?v=3"
+    "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js?v=4"
   }
 }
 </script>
@@ -137,15 +138,12 @@ function animate() {
     cube.rotation.x += 0.01;
     cube.rotation.y += 0.015;
 
-    renderer.render(
-        scene,
-        camera3D
-    );
+    renderer.render(scene, camera3D);
 }
 
 animate();
 
-button.addEventListener("click", async () => {
+async function openCamera() {
 
     try {
 
@@ -164,9 +162,11 @@ button.addEventListener("click", async () => {
         await video.play();
 
         status.textContent =
-            "Camera + 3D working";
+            "Camera OK - Loading tracker...";
 
         button.style.display = "none";
+
+        loadFaceTracker();
 
     } catch (error) {
 
@@ -175,7 +175,41 @@ button.addEventListener("click", async () => {
         status.textContent =
             "Camera error: " + error.name;
     }
-});
+}
+
+async function loadFaceTracker() {
+
+    try {
+
+        const module =
+            await import(
+                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.mjs?v=4"
+            );
+
+        if (module.FaceLandmarker) {
+
+            status.textContent =
+                "Face tracker library loaded";
+
+        } else {
+
+            status.textContent =
+                "Face tracker library failed";
+        }
+
+    } catch (error) {
+
+        console.error(error);
+
+        status.textContent =
+            "Tracker load error";
+    }
+}
+
+button.addEventListener(
+    "click",
+    openCamera
+);
 
 window.addEventListener("resize", () => {
 
