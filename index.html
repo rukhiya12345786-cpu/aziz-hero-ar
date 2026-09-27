@@ -54,6 +54,9 @@ html, body {
     left: 15px;
     right: 15px;
     z-index: 20;
+    max-height: calc(100vh - 30px);
+    overflow-y: auto;
+    padding-bottom: 20px;
 }
 
 #status {
@@ -86,15 +89,59 @@ button {
     color: #000;
 }
 
+#resetButton {
+    background: #ffcc00;
+    color: #000;
+}
+
 #modelInput {
     display: none;
+}
+
+#controls {
+    display: none;
+    margin-top: 12px;
+    padding: 12px;
+    max-width: 360px;
+    border-radius: 14px;
+    background: rgba(0,0,0,0.78);
+}
+
+#controlsTitle {
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.control {
+    margin-top: 9px;
+}
+
+.controlTop {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #ffffff;
+    font-size: 13px;
+    margin-bottom: 4px;
+}
+
+.controlValue {
+    color: #00ff00;
+    font-weight: bold;
+}
+
+input[type="range"] {
+    width: 100%;
+    height: 28px;
 }
 </style>
 
 <script type="importmap">
 {
     "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js?v=15",
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js?v=16",
         "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
     }
 }
@@ -133,6 +180,117 @@ button {
         id="modelInput"
         type="file"
         accept=".glb">
+
+    <div id="controls">
+
+        <div id="controlsTitle">
+            MODEL ADJUSTMENT
+        </div>
+
+        <div class="control">
+            <div class="controlTop">
+                <span>X Position</span>
+                <span id="xValue" class="controlValue">0.00</span>
+            </div>
+            <input
+                id="xSlider"
+                type="range"
+                min="-2"
+                max="2"
+                step="0.01"
+                value="0">
+        </div>
+
+        <div class="control">
+            <div class="controlTop">
+                <span>Y Position</span>
+                <span id="yValue" class="controlValue">0.00</span>
+            </div>
+            <input
+                id="ySlider"
+                type="range"
+                min="-2"
+                max="2"
+                step="0.01"
+                value="0">
+        </div>
+
+        <div class="control">
+            <div class="controlTop">
+                <span>Z Position</span>
+                <span id="zValue" class="controlValue">0.00</span>
+            </div>
+            <input
+                id="zSlider"
+                type="range"
+                min="-3"
+                max="3"
+                step="0.01"
+                value="0">
+        </div>
+
+        <div class="control">
+            <div class="controlTop">
+                <span>Scale</span>
+                <span id="scaleValue" class="controlValue">1.00</span>
+            </div>
+            <input
+                id="scaleSlider"
+                type="range"
+                min="0.1"
+                max="3"
+                step="0.01"
+                value="1">
+        </div>
+
+        <div class="control">
+            <div class="controlTop">
+                <span>Rotate X</span>
+                <span id="rotXValue" class="controlValue">0°</span>
+            </div>
+            <input
+                id="rotXSlider"
+                type="range"
+                min="-360"
+                max="360"
+                step="1"
+                value="0">
+        </div>
+
+        <div class="control">
+            <div class="controlTop">
+                <span>Rotate Y</span>
+                <span id="rotYValue" class="controlValue">0°</span>
+            </div>
+            <input
+                id="rotYSlider"
+                type="range"
+                min="-360"
+                max="360"
+                step="1"
+                value="0">
+        </div>
+
+        <div class="control">
+            <div class="controlTop">
+                <span>Rotate Z</span>
+                <span id="rotZValue" class="controlValue">0°</span>
+            </div>
+            <input
+                id="rotZSlider"
+                type="range"
+                min="-360"
+                max="360"
+                step="1"
+                value="0">
+        </div>
+
+        <button id="resetButton">
+            RESET MODEL
+        </button>
+
+    </div>
+
 </div>
 
 <script type="module">
@@ -164,6 +322,56 @@ const modelButton =
 
 const modelInput =
     document.getElementById("modelInput");
+
+const controls =
+    document.getElementById("controls");
+
+const resetButton =
+    document.getElementById("resetButton");
+
+
+const xSlider =
+    document.getElementById("xSlider");
+
+const ySlider =
+    document.getElementById("ySlider");
+
+const zSlider =
+    document.getElementById("zSlider");
+
+const scaleSlider =
+    document.getElementById("scaleSlider");
+
+const rotXSlider =
+    document.getElementById("rotXSlider");
+
+const rotYSlider =
+    document.getElementById("rotYSlider");
+
+const rotZSlider =
+    document.getElementById("rotZSlider");
+
+
+const xValue =
+    document.getElementById("xValue");
+
+const yValue =
+    document.getElementById("yValue");
+
+const zValue =
+    document.getElementById("zValue");
+
+const scaleValue =
+    document.getElementById("scaleValue");
+
+const rotXValue =
+    document.getElementById("rotXValue");
+
+const rotYValue =
+    document.getElementById("rotYValue");
+
+const rotZValue =
+    document.getElementById("rotZValue");
 
 
 let faceLandmarker = null;
@@ -257,6 +465,19 @@ const gltfLoader =
     new GLTFLoader();
 
 
+/* MODEL DEFAULT VALUES */
+
+const defaultModelSettings = {
+    x: 0,
+    y: 0,
+    z: 0,
+    scale: 1,
+    rotX: 0,
+    rotY: 0,
+    rotZ: 0
+};
+
+
 /* CAMERA */
 
 async function startCamera() {
@@ -325,7 +546,7 @@ async function loadFaceTracker() {
 
         const vision =
             await import(
-                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/vision_bundle.mjs?v=15"
+                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/vision_bundle.mjs?v=16"
             );
 
         const {
@@ -530,7 +751,6 @@ modelInput.addEventListener(
                 (gltf) => {
 
                     if (loadedModel) {
-
                         anchor.remove(
                             loadedModel
                         );
@@ -546,26 +766,20 @@ modelInput.addEventListener(
                         gltf.scene;
 
 
-                    loadedModel.scale.set(
-                        1,
-                        1,
-                        1
-                    );
-
-                    loadedModel.position.set(
-                        0,
-                        0,
-                        0
-                    );
-
-
                     anchor.add(
                         loadedModel
                     );
 
 
+                    applyModelSettings();
+
+                    controls.style.display =
+                        "block";
+
+
                     status.textContent =
                         "GLB MODEL LOADED";
+
                 },
 
                 undefined,
@@ -587,7 +801,155 @@ modelInput.addEventListener(
                 "MODEL ERROR";
         }
     }
-);function updateHeadAnchor(
+);function applyModelSettings() {
+
+    if (!loadedModel) {
+        return;
+    }
+
+
+    const x =
+        parseFloat(xSlider.value);
+
+    const y =
+        parseFloat(ySlider.value);
+
+    const z =
+        parseFloat(zSlider.value);
+
+    const scale =
+        parseFloat(scaleSlider.value);
+
+    const rotX =
+        parseFloat(rotXSlider.value);
+
+    const rotY =
+        parseFloat(rotYSlider.value);
+
+    const rotZ =
+        parseFloat(rotZSlider.value);
+
+
+    loadedModel.position.set(
+        x,
+        y,
+        z
+    );
+
+
+    loadedModel.scale.set(
+        scale,
+        scale,
+        scale
+    );
+
+
+    loadedModel.rotation.set(
+        THREE.MathUtils.degToRad(rotX),
+        THREE.MathUtils.degToRad(rotY),
+        THREE.MathUtils.degToRad(rotZ)
+    );
+
+
+    xValue.textContent =
+        x.toFixed(2);
+
+    yValue.textContent =
+        y.toFixed(2);
+
+    zValue.textContent =
+        z.toFixed(2);
+
+    scaleValue.textContent =
+        scale.toFixed(2);
+
+    rotXValue.textContent =
+        rotX + "°";
+
+    rotYValue.textContent =
+        rotY + "°";
+
+    rotZValue.textContent =
+        rotZ + "°";
+}
+
+
+/* SLIDER EVENTS */
+
+xSlider.addEventListener(
+    "input",
+    applyModelSettings
+);
+
+ySlider.addEventListener(
+    "input",
+    applyModelSettings
+);
+
+zSlider.addEventListener(
+    "input",
+    applyModelSettings
+);
+
+scaleSlider.addEventListener(
+    "input",
+    applyModelSettings
+);
+
+rotXSlider.addEventListener(
+    "input",
+    applyModelSettings
+);
+
+rotYSlider.addEventListener(
+    "input",
+    applyModelSettings
+);
+
+rotZSlider.addEventListener(
+    "input",
+    applyModelSettings
+);
+
+
+/* RESET */
+
+resetButton.addEventListener(
+    "click",
+    () => {
+
+        xSlider.value =
+            defaultModelSettings.x;
+
+        ySlider.value =
+            defaultModelSettings.y;
+
+        zSlider.value =
+            defaultModelSettings.z;
+
+        scaleSlider.value =
+            defaultModelSettings.scale;
+
+        rotXSlider.value =
+            defaultModelSettings.rotX;
+
+        rotYSlider.value =
+            defaultModelSettings.rotY;
+
+        rotZSlider.value =
+            defaultModelSettings.rotZ;
+
+
+        applyModelSettings();
+    }
+);
+
+
+/* =========================================
+   HEAD ANCHOR
+========================================= */
+
+function updateHeadAnchor(
     landmarks,
     transformationMatrix
 ) {
@@ -608,8 +970,6 @@ modelInput.addEventListener(
     const rightEye =
         landmarks[263];
 
-
-    /* Face position */
 
     const faceX =
         nose.x * width;
@@ -632,13 +992,15 @@ modelInput.addEventListener(
         normalizedY * 1.7;
 
 
-    /* Face size */
+    /* FACE SIZE */
 
     const dx =
-        rightEye.x - leftEye.x;
+        rightEye.x -
+        leftEye.x;
 
     const dy =
-        rightEye.y - leftEye.y;
+        rightEye.y -
+        leftEye.y;
 
 
     const eyeDistance =
@@ -665,7 +1027,7 @@ modelInput.addEventListener(
     );
 
 
-    /* Head rotation */
+    /* HEAD ROTATION */
 
     if (
         transformationMatrix &&
@@ -718,7 +1080,9 @@ modelInput.addEventListener(
 }
 
 
-/* FACE TRACKING */
+/* =========================================
+   FACE TRACKING
+========================================= */
 
 function trackFace() {
 
@@ -761,8 +1125,6 @@ function trackFace() {
                     result.faceLandmarks[0];
 
 
-                /* Draw green dots */
-
                 drawLandmarks(
                     landmarks
                 );
@@ -784,25 +1146,16 @@ function trackFace() {
                 }
 
 
-                /* Move 3D object */
-
                 updateHeadAnchor(
                     landmarks,
                     matrix
                 );
 
 
-                if (loadedModel) {
-
-                    status.textContent =
-                        "GLB HEAD TRACKING: ON";
-
-                } else {
-
-                    status.textContent =
-                        "HEAD TRACKING: ON";
-                }
-
+                status.textContent =
+                    loadedModel
+                    ? "GLB HEAD TRACKING: ON"
+                    : "HEAD TRACKING: ON";
 
             } else {
 
@@ -839,7 +1192,9 @@ function trackFace() {
 }
 
 
-/* THREE RENDER */
+/* =========================================
+   RENDER
+========================================= */
 
 function render() {
 
@@ -857,7 +1212,9 @@ function render() {
 render();
 
 
-/* RESIZE */
+/* =========================================
+   RESIZE
+========================================= */
 
 window.addEventListener(
     "resize",
@@ -882,29 +1239,13 @@ window.addEventListener(
 
         threeCamera.updateProjectionMatrix();
 
-
-        landmarkCanvas.width =
-            Math.round(
-                width *
-                Math.min(
-                    window.devicePixelRatio || 1,
-                    2
-                )
-            );
-
-        landmarkCanvas.height =
-            Math.round(
-                height *
-                Math.min(
-                    window.devicePixelRatio || 1,
-                    2
-                )
-            );
     }
 );
 
 
-/* START BUTTON */
+/* =========================================
+   START
+========================================= */
 
 startButton.addEventListener(
     "click",
