@@ -16,6 +16,24 @@
 </script>
 
 <style>
+  #topControls,
+#sideControls,
+button,
+select,
+input {
+  position: relative;
+  z-index: 100;
+  pointer-events: auto;
+}
+
+#camera,
+#threeCanvas {
+  z-index: 1;
+}
+
+button {
+  touch-action: manipulation;
+}
 * {
   box-sizing: border-box;
 }
