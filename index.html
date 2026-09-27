@@ -60,43 +60,78 @@ html, body {
     display: inline-block;
     padding: 10px 14px;
     border-radius: 10px;
-    background: rgba(0,0,0,0.75);
+    background: rgba(0,0,0,0.78);
     color: #00ff00;
     font-size: 14px;
     font-weight: bold;
 }
 
-#startButton {
+#startButton,
+#modelButton {
     display: block;
     margin-top: 10px;
-    padding: 12px 20px;
+    padding: 12px 18px;
     border: 0;
     border-radius: 10px;
     background: #00ff00;
     color: #000;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: bold;
+}
+
+#modelButton {
+    background: #ffffff;
+}
+
+#modelInput {
+    display: none;
 }
 </style>
 </head>
 
 <body>
 
-<video id="camera" autoplay playsinline muted></video>
+<video
+    id="camera"
+    autoplay
+    playsinline
+    muted>
+</video>
 
 <canvas id="threeCanvas"></canvas>
 
 <canvas id="landmarkCanvas"></canvas>
 
 <div id="ui">
-    <div id="status">READY</div>
-    <button id="startButton">START CAMERA</button>
+
+    <div id="status">
+        READY
+    </div>
+
+    <button id="startButton">
+        START CAMERA
+    </button>
+
+    <button id="modelButton">
+        LOAD GLB MODEL
+    </button>
+
+    <input
+        id="modelInput"
+        type="file"
+        accept=".glb,model/gltf-binary"
+    >
+
 </div>
 
 <script type="module">
 
 import * as THREE from
-"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js?v=13";
+"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js?v=14";
+
+import { GLTFLoader } from
+"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js?v=14";
+
 
 const video =
     document.getElementById("camera");
@@ -113,8 +148,18 @@ const status =
 const startButton =
     document.getElementById("startButton");
 
+const modelButton =
+    document.getElementById("modelButton");
+
+const modelInput =
+    document.getElementById("modelInput");
+
+
 let faceLandmarker = null;
+
 let trackingStarted = false;
+
+let loadedModel = null;
 
 
 /* THREE */
@@ -127,7 +172,10 @@ const renderer =
     });
 
 renderer.setPixelRatio(
-    Math.min(window.devicePixelRatio, 2)
+    Math.min(
+        window.devicePixelRatio,
+        2
+    )
 );
 
 renderer.setSize(
@@ -164,7 +212,7 @@ const anchor =
 scene.add(anchor);
 
 
-/* CUBE */
+/* TEMPORARY CUBE */
 
 const cubeGeometry =
     new THREE.BoxGeometry(
@@ -176,7 +224,7 @@ const cubeGeometry =
 const cubeMaterial =
     new THREE.MeshNormalMaterial({
         transparent: true,
-        opacity: 0.75
+        opacity: 0.65
     });
 
 const cube =
@@ -194,7 +242,13 @@ cube.scale.set(
 anchor.add(cube);
 
 
-/* CAMERA */
+/* GLB LOADER */
+
+const gltfLoader =
+    new GLTFLoader();
+
+
+/* START CAMERA */
 
 async function startCamera() {
 
@@ -419,14 +473,206 @@ function drawLandmarks(
 
         ctx.fill();
     }
-}/* =========================================
-   HEAD ANCHOR TRACKING
+}/* LOAD LOCAL GLB */
+
+modelButton.addEventListener(
+    "click",
+    () => {
+
+        modelInput.click();
+
+    }
+);
+
+
+modelInput.addEventListener(
+    "change",
+    async (event) => {
+
+        const file =
+            event.target.files[0];
+
+        if (!file) {
+            return;
+        }
+
+
+        if (
+            !file.name
+            .toLowerCase()
+            .endsWith(".glb")
+        ) {
+
+            status.textContent =
+                "PLEASE SELECT A GLB FILE";
+
+            return;
+        }
+
+
+        try {
+
+            status.textContent =
+                "LOADING 3D MODEL...";
+
+
+            const arrayBuffer =
+                await file.arrayBuffer();
+
+
+            gltfLoader.parse(
+                arrayBuffer,
+                "",
+                (gltf) => {
+
+                    /* Remove old model */
+
+                    if (loadedModel) {
+
+                        anchor.remove(
+                            loadedModel
+                        );
+
+                        loadedModel.traverse(
+                            (object) => {
+
+                                if (
+                                    object.geometry
+                                ) {
+                                    object.geometry
+                                    .dispose();
+                                }
+
+                                if (
+                                    object.material
+                                ) {
+
+                                    if (
+                                        Array.isArray(
+                                            object.material
+                                        )
+                                    ) {
+
+                                        object.material
+                                        .forEach(
+                                            material => {
+                                                material.dispose();
+                                            }
+                                        );
+
+                                    } else {
+
+                                        object.material
+                                        .dispose();
+                                    }
+                                }
+                            }
+                        );
+                    }
+
+
+                    /* Remove cube */
+
+                    anchor.remove(
+                        cube
+                    );
+
+
+                    /* Add model */
+
+                    loadedModel =
+                        gltf.scene;
+
+
+                    anchor.add(
+                        loadedModel
+                    );
+
+
+                    /*
+                     * Initial model scale.
+                     * We will adjust this
+                     * after seeing the model.
+                     */
+
+                    loadedModel.scale.set(
+                        1,
+                        1,
+                        1
+                    );
+
+
+                    /*
+                     * Initial position.
+                     */
+
+                    loadedModel.position.set(
+                        0,
+                        0,
+                        0
+                    );
+
+
+                    status.textContent =
+                        "GLB MODEL LOADED";
+
+                },
+
+                (progress) => {
+
+                    if (
+                        progress.total > 0
+                    ) {
+
+                        const percent =
+                            Math.round(
+                                (
+                                    progress.loaded /
+                                    progress.total
+                                ) * 100
+                            );
+
+                        status.textContent =
+                            "LOADING MODEL " +
+                            percent +
+                            "%";
+
+                    } else {
+
+                        status.textContent =
+                            "LOADING MODEL...";
+                    }
+                },
+
+                (error) => {
+
+                    console.error(error);
+
+                    status.textContent =
+                        "GLB LOAD ERROR";
+                }
+            );
+
+        } catch (error) {
+
+            console.error(error);
+
+            status.textContent =
+                "MODEL ERROR";
+        }
+    }
+);
+
+
+/* =========================================
+   HEAD ANCHOR
 ========================================= */
 
 function updateHeadAnchor(
     landmarks,
     transformationMatrix
 ) {
+
     const width =
         window.innerWidth;
 
@@ -434,13 +680,9 @@ function updateHeadAnchor(
         window.innerHeight;
 
 
-    /* Nose */
-
     const nose =
         landmarks[1];
 
-
-    /* Eyes */
 
     const leftEye =
         landmarks[33];
@@ -449,7 +691,7 @@ function updateHeadAnchor(
         landmarks[263];
 
 
-    /* Face center */
+    /* Face position */
 
     const faceX =
         nose.x * width;
@@ -465,10 +707,6 @@ function updateHeadAnchor(
         -((faceY / height) * 2 - 1);
 
 
-    /*
-     * Head anchor position.
-     */
-
     anchor.position.x =
         normalizedX * 2.25;
 
@@ -476,15 +714,14 @@ function updateHeadAnchor(
         normalizedY * 1.7;
 
 
-    /*
-     * Face size.
-     */
+    /* Face size */
 
     const dx =
         rightEye.x - leftEye.x;
 
     const dy =
         rightEye.y - leftEye.y;
+
 
     const eyeDistance =
         Math.sqrt(
@@ -510,9 +747,7 @@ function updateHeadAnchor(
     );
 
 
-    /*
-     * 3D head rotation.
-     */
+    /* 3D rotation */
 
     if (
         transformationMatrix &&
@@ -521,6 +756,7 @@ function updateHeadAnchor(
 
         const matrix =
             new THREE.Matrix4();
+
 
         matrix.fromArray(
             transformationMatrix
@@ -640,7 +876,9 @@ function trackFace() {
 
 
                 status.textContent =
-                    "HEAD ANCHOR: ON";
+                    loadedModel
+                    ? "GLB HEAD TRACKING: ON"
+                    : "HEAD TRACKING: ON";
 
             } else {
 
@@ -677,7 +915,9 @@ function trackFace() {
 }
 
 
-/* RENDER LOOP */
+/* =========================================
+   RENDER
+========================================= */
 
 function render() {
 
@@ -694,7 +934,9 @@ function render() {
 render();
 
 
-/* RESIZE */
+/* =========================================
+   RESIZE
+========================================= */
 
 window.addEventListener(
     "resize",
@@ -717,7 +959,9 @@ window.addEventListener(
 );
 
 
-/* START */
+/* =========================================
+   START
+========================================= */
 
 startButton.addEventListener(
     "click",
@@ -725,5 +969,6 @@ startButton.addEventListener(
 );
 
 </script>
+
 </body>
 </html>
