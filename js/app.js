@@ -17,9 +17,47 @@ const modelInput =
 const modelButtonElement =
   document.getElementById("modelButton");
 
+const appControls =
+  document.getElementById("appControls");
+
+const sideControls =
+  document.getElementById("sideControls");
+
+const hideControlsButton =
+  document.getElementById("hideControlsButton");
+
+const showControlsButton =
+  document.getElementById("showControlsButton");
+
+const scaleSlider =
+  document.getElementById("scaleSlider");
+
+const xSlider =
+  document.getElementById("xSlider");
+
+const ySlider =
+  document.getElementById("ySlider");
+
+const zSlider =
+  document.getElementById("zSlider");
+
+const rotateXSlider =
+  document.getElementById("rotateXSlider");
+
+const rotateYSlider =
+  document.getElementById("rotateYSlider");
+
+const rotateZSlider =
+  document.getElementById("rotateZSlider");
+
+const resetButton =
+  document.getElementById("resetButton");
+
 let cameraStream = null;
 let facingMode = "user";
 let isMirrored = false;
+
+let importedModel = null;
 
 function showStatus(message) {
   if (status) {
@@ -44,9 +82,11 @@ async function openCamera() {
     showStatus("Requesting camera...");
 
     if (cameraStream) {
-      cameraStream.getTracks().forEach(track => {
-        track.stop();
-      });
+      cameraStream
+        .getTracks()
+        .forEach(track => {
+          track.stop();
+        });
 
       cameraStream = null;
     }
@@ -66,13 +106,18 @@ async function openCamera() {
       await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: facingMode,
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
+          width: {
+            ideal: 1280
+          },
+          height: {
+            ideal: 720
+          }
         },
         audio: false
       });
 
-    video.srcObject = cameraStream;
+    video.srcObject =
+      cameraStream;
 
     await video.play();
 
@@ -89,12 +134,17 @@ async function openCamera() {
     );
 
   } catch (error) {
-    console.error(error);
+    console.error(
+      "Camera error:",
+      error
+    );
 
     showStatus(
       "CAMERA ERROR: " +
-      (error.message ||
-        "Camera could not start")
+      (
+        error.message ||
+        "Camera could not start"
+      )
     );
   }
 }
@@ -105,7 +155,10 @@ async function switchCamera() {
       ? "environment"
       : "user";
 
-  if (facingMode === "environment") {
+  if (
+    facingMode ===
+    "environment"
+  ) {
     isMirrored = false;
   }
 
@@ -113,7 +166,8 @@ async function switchCamera() {
 }
 
 function flipCamera() {
-  isMirrored = !isMirrored;
+  isMirrored =
+    !isMirrored;
 
   updateMirror();
 
@@ -145,17 +199,32 @@ if (flipCameraButton) {
   );
 }
 
-window.addEventListener("error", event => {
-  showStatus(
-    "ERROR: " +
-    (event.message ||
-      "Unknown error")
-  );
-});
+window.addEventListener(
+  "error",
+  event => {
+    console.error(
+      "Page error:",
+      event.error || event.message
+    );
+
+    showStatus(
+      "ERROR: " +
+      (
+        event.message ||
+        "Unknown error"
+      )
+    );
+  }
+);
 
 window.addEventListener(
   "unhandledrejection",
   event => {
+    console.error(
+      "Promise error:",
+      event.reason
+    );
+
     showStatus(
       "ERROR: " +
       (
@@ -168,12 +237,33 @@ window.addEventListener(
 
 updateMirror();
 
-showStatus("Loading 3D engine...");
+showStatus(
+  "Loading 3D engine..."
+);
 
-const THREE =
-  await import(
-    "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
+let THREE;
+
+try {
+  THREE =
+    await import(
+      "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
+    );
+} catch (error) {
+  console.error(
+    "Three.js error:",
+    error
   );
+
+  showStatus(
+    "THREE.JS ERROR: " +
+    (
+      error.message ||
+      "Three.js failed to load"
+    )
+  );
+
+  throw error;
+}
 
 const scene =
   new THREE.Scene();
@@ -204,25 +294,30 @@ const threeCamera =
 
 threeCamera.position.z = 5;
 
-const light =
+const directionalLight =
   new THREE.DirectionalLight(
     0xffffff,
     3
   );
 
-light.position.set(
+directionalLight.position.set(
   2,
   3,
   5
 );
 
-scene.add(light);
-
 scene.add(
+  directionalLight
+);
+
+const ambientLight =
   new THREE.AmbientLight(
     0xffffff,
     1.5
-  )
+  );
+
+scene.add(
+  ambientLight
 );
 
 const cube =
@@ -297,8 +392,6 @@ showStatus(
   "Camera + 3D ready"
 );
 
-let importedModel = null;
-
 async function loadThreeAddon(path) {
   return await import(path);
 }
@@ -333,17 +426,17 @@ async function import3DModel(file) {
       const url =
         URL.createObjectURL(file);
 
-      const result =
-        await loader.loadAsync(
+      try {
+        const result =
+          await loader.loadAsync(url);
+
+        object =
+          result.scene;
+      } finally {
+        URL.revokeObjectURL(
           url
         );
-
-      URL.revokeObjectURL(
-        url
-      );
-
-      object =
-        result.scene;
+      }
 
     } else if (
       fileName.endsWith(".obj")
@@ -359,14 +452,14 @@ async function import3DModel(file) {
       const url =
         URL.createObjectURL(file);
 
-      object =
-        await loader.loadAsync(
+      try {
+        object =
+          await loader.loadAsync(url);
+      } finally {
+        URL.revokeObjectURL(
           url
         );
-
-      URL.revokeObjectURL(
-        url
-      );
+      }
 
     } else if (
       fileName.endsWith(".stl")
@@ -382,14 +475,16 @@ async function import3DModel(file) {
       const url =
         URL.createObjectURL(file);
 
-      const geometry =
-        await loader.loadAsync(
+      let geometry;
+
+      try {
+        geometry =
+          await loader.loadAsync(url);
+      } finally {
+        URL.revokeObjectURL(
           url
         );
-
-      URL.revokeObjectURL(
-        url
-      );
+      }
 
       geometry.computeVertexNormals();
 
@@ -471,6 +566,8 @@ async function import3DModel(file) {
       importedModel
     );
 
+    setSliderDefaults();
+
     showStatus(
       "3D model imported"
     );
@@ -533,15 +630,18 @@ function fitModelToView(object) {
     );
   }
 
-  object.position.z = 0;
+  object.position.z =
+    0;
 }
 
 if (modelButtonElement) {
   modelButtonElement.addEventListener(
     "click",
     () => {
-      modelInput.value = "";
-      modelInput.click();
+      if (modelInput) {
+        modelInput.value = "";
+        modelInput.click();
+      }
     }
   );
 }
@@ -557,14 +657,133 @@ if (modelInput) {
       import3DModel(file);
     }
   );
-const appControls =
-  document.getElementById("appControls");
+}
 
-const hideControlsButton =
-  document.getElementById("hideControlsButton");
+function setSliderDefaults() {
+  if (scaleSlider) {
+    scaleSlider.value = "1";
+  }
 
-const showControlsButton =
-  document.getElementById("showControlsButton");
+  if (xSlider) {
+    xSlider.value = "0";
+  }
+
+  if (ySlider) {
+    ySlider.value = "0";
+  }
+
+  if (zSlider) {
+    zSlider.value = "0";
+  }
+
+  if (rotateXSlider) {
+    rotateXSlider.value = "0";
+  }
+
+  if (rotateYSlider) {
+    rotateYSlider.value = "0";
+  }
+
+  if (rotateZSlider) {
+    rotateZSlider.value = "0";
+  }
+}
+
+function updateImportedModelControls() {
+  if (!importedModel) {
+    return;
+  }
+
+  if (scaleSlider) {
+    importedModel.scale.setScalar(
+      Number(scaleSlider.value)
+    );
+  }
+
+  if (xSlider) {
+    importedModel.position.x =
+      Number(xSlider.value);
+  }
+
+  if (ySlider) {
+    importedModel.position.y =
+      Number(ySlider.value);
+  }
+
+  if (zSlider) {
+    importedModel.position.z =
+      Number(zSlider.value);
+  }
+
+  if (rotateXSlider) {
+    importedModel.rotation.x =
+      THREE.MathUtils.degToRad(
+        Number(
+          rotateXSlider.value
+        )
+      );
+  }
+
+  if (rotateYSlider) {
+    importedModel.rotation.y =
+      THREE.MathUtils.degToRad(
+        Number(
+          rotateYSlider.value
+        )
+      );
+  }
+
+  if (rotateZSlider) {
+    importedModel.rotation.z =
+      THREE.MathUtils.degToRad(
+        Number(
+          rotateZSlider.value
+        )
+      );
+  }
+}
+
+[
+  scaleSlider,
+  xSlider,
+  ySlider,
+  zSlider,
+  rotateXSlider,
+  rotateYSlider,
+  rotateZSlider
+].forEach(slider => {
+  if (slider) {
+    slider.addEventListener(
+      "input",
+      updateImportedModelControls
+    );
+  }
+});
+
+function resetImportedModelControls() {
+  if (!importedModel) {
+    showStatus(
+      "Import a 3D model first"
+    );
+
+    return;
+  }
+
+  setSliderDefaults();
+
+  updateImportedModelControls();
+
+  showStatus(
+    "3D controls reset"
+  );
+}
+
+if (resetButton) {
+  resetButton.addEventListener(
+    "click",
+    resetImportedModelControls
+  );
+}
 
 if (
   appControls &&
@@ -574,14 +793,11 @@ if (
   hideControlsButton.addEventListener(
     "click",
     () => {
-      appControls.style.display = "none";
+      appControls.style.display =
+        "none";
 
       showControlsButton.style.display =
         "block";
-
-      showStatus(
-        "Controls hidden"
-      );
     }
   );
 
@@ -593,10 +809,11 @@ if (
 
       showControlsButton.style.display =
         "none";
-
-      showStatus(
-        "Controls visible"
-      );
     }
   );
+}
+
+if (showControlsButton) {
+  showControlsButton.style.display =
+    "none";
 }
