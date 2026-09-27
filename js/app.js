@@ -817,3 +817,148 @@ if (showControlsButton) {
   showControlsButton.style.display =
     "none";
 }
+const trackingButton =
+  document.getElementById("trackingButton");
+
+let faceLandmarker = null;
+let trackingActive = false;
+let trackingBusy = false;
+
+async function startFaceTracking() {
+  if (trackingActive) {
+    showStatus("Tracking already ON");
+    return;
+  }
+
+  try {
+    showStatus("Loading face tracking...");
+
+    const vision =
+      await import(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm"
+      );
+
+    const filesetResolver =
+      await vision.FilesetResolver.forVisionTasks(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
+      );
+
+    faceLandmarker =
+      await vision.FaceLandmarker.createFromOptions(
+        filesetResolver,
+        {
+          baseOptions: {
+            modelAssetPath:
+              "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+            delegate: "GPU"
+          },
+
+          runningMode: "VIDEO",
+
+          numFaces: 1,
+
+          outputFaceBlendshapes: false,
+
+          outputFacialTransformationMatrixes: true
+        }
+      );
+
+    trackingActive = true;
+
+    showStatus(
+      "Face tracking engine ready"
+    );
+
+    requestFaceTracking();
+
+  } catch (error) {
+    console.error(
+      "Face tracking error:",
+      error
+    );
+
+    trackingActive = false;
+
+    showStatus(
+      "TRACKING ERROR: " +
+      (
+        error.message ||
+        "Face tracking failed"
+      )
+    );
+  }
+}
+
+function requestFaceTracking() {
+  if (!trackingActive) {
+    return;
+  }
+
+  requestAnimationFrame(
+    requestFaceTracking
+  );
+
+  if (
+    trackingBusy ||
+    !faceLandmarker ||
+    video.readyState < 2
+  ) {
+    return;
+  }
+
+  trackingBusy = true;
+
+  try {
+    const now =
+      performance.now();
+
+    const result =
+      faceLandmarker.detectForVideo(
+        video,
+        now
+      );
+
+    if (
+      result &&
+      result.faceLandmarks &&
+      result.faceLandmarks.length > 0
+    ) {
+      showTrackingStatus(
+        "Face detected"
+      );
+    } else {
+      showTrackingStatus(
+        "Looking for face..."
+      );
+    }
+
+  } catch (error) {
+    console.error(
+      "Tracking frame error:",
+      error
+    );
+  }
+
+  trackingBusy = false;
+}
+
+let lastTrackingMessage = "";
+
+function showTrackingStatus(message) {
+  if (
+    message !==
+    lastTrackingMessage
+  ) {
+    lastTrackingMessage =
+      message;
+
+    showStatus(message);
+  }
+}
+
+if (trackingButton) {
+  trackingButton.addEventListener(
+    "click",
+    startFaceTracking
+  );
+}
