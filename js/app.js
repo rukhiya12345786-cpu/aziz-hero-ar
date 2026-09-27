@@ -859,6 +859,16 @@ async function startFaceMeshTracking() {
         const nose = landmarks[1];
         const leftEye = landmarks[33];
         const rightEye = landmarks[263];
+      const eyeAngle = Math.atan2(
+    rightEye.y - leftEye.y,
+    rightEye.x - leftEye.x
+);
+
+const headYaw =
+    (nose.x - 0.5) * Math.PI * 0.8;
+
+const headPitch =
+    (nose.y - 0.5) * Math.PI * 0.5;
 
         if (typeof importedModel !== "undefined" && importedModel) {
             const x = (nose.x - 0.5) * 4;
