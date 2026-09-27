@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Azeez AR - MediaPipe Test</title>
+<title>Azeez AR - Face Detection</title>
 
 <style>
 html, body {
@@ -62,7 +62,7 @@ html, body {
 <script type="importmap">
 {
   "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js?v=5"
+    "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js?v=6"
   }
 }
 </script>
@@ -86,6 +86,9 @@ const video = document.getElementById("camera");
 const canvas = document.getElementById("threeCanvas");
 const status = document.getElementById("status");
 const button = document.getElementById("startButton");
+
+let faceLandmarker = null;
+let lastVideoTime = -1;
 
 const scene = new THREE.Scene();
 
@@ -194,27 +197,109 @@ async function loadMediaPipe() {
                 "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/vision_bundle.mjs"
             );
 
-        if (
-            mediaPipe.FaceLandmarker &&
-            mediaPipe.FilesetResolver
-        ) {
+        const FaceLandmarker =
+            mediaPipe.FaceLandmarker;
 
-            status.textContent =
-                "MediaPipe library loaded";
+        const FilesetResolver =
+            mediaPipe.FilesetResolver;
 
-        } else {
+        status.textContent =
+            "MediaPipe library loaded";
 
-            status.textContent =
-                "MediaPipe API missing";
-        }
+        const vision =
+            await FilesetResolver.forVisionTasks(
+                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm"
+            );
+
+        status.textContent =
+            "Loading face model...";
+
+        faceLandmarker =
+            await FaceLandmarker.createFromOptions(
+                vision,
+                {
+                    baseOptions: {
+                        modelAssetPath:
+                            "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+                        delegate: "GPU"
+                    },
+
+                    runningMode: "VIDEO",
+
+                    numFaces: 1,
+
+                    outputFaceBlendshapes: false,
+
+                    outputFacialTransformationMatrixes: true
+                }
+            );
+
+        status.textContent =
+            "Face model loaded";
+
+        requestAnimationFrame(
+            detectFace
+        );
 
     } catch (error) {
 
         console.error(error);
 
         status.textContent =
-            "MediaPipe load error";
+            "Face model error";
     }
+}
+
+function detectFace() {
+
+    if (
+        faceLandmarker &&
+        video.readyState >= 2
+    ) {
+
+        if (
+            video.currentTime !==
+            lastVideoTime
+        ) {
+
+            lastVideoTime =
+                video.currentTime;
+
+            try {
+
+                const result =
+                    faceLandmarker.detectForVideo(
+                        video,
+                        performance.now()
+                    );
+
+                if (
+                    result.faceLandmarks &&
+                    result.faceLandmarks.length > 0
+                ) {
+
+                    status.textContent =
+                        "FACE DETECTED";
+
+                } else {
+
+                    status.textContent =
+                        "Looking for face...";
+                }
+
+            } catch (error) {
+
+                console.error(error);
+
+                status.textContent =
+                    "Detection error";
+            }
+        }
+    }
+
+    requestAnimationFrame(
+        detectFace
+    );
 }
 
 button.addEventListener(
