@@ -203,3 +203,152 @@ updateMirror();
 showStatus(
   "Camera test ready"
 );
+const THREE =
+  await import(
+    "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
+  );
+
+
+const scene =
+  new THREE.Scene();
+
+
+const renderer =
+  new THREE.WebGLRenderer({
+    canvas: canvas,
+    alpha: true,
+    antialias: true,
+    preserveDrawingBuffer: true
+  });
+
+
+renderer.setPixelRatio(
+  Math.min(
+    window.devicePixelRatio || 1,
+    2
+  )
+);
+
+
+const threeCamera =
+  new THREE.PerspectiveCamera(
+    45,
+    window.innerWidth /
+      window.innerHeight,
+    0.1,
+    100
+  );
+
+
+threeCamera.position.z = 5;
+
+
+const light =
+  new THREE.DirectionalLight(
+    0xffffff,
+    3
+  );
+
+
+light.position.set(
+  2,
+  3,
+  5
+);
+
+
+scene.add(light);
+
+
+scene.add(
+  new THREE.AmbientLight(
+    0xffffff,
+    1.5
+  )
+);
+
+
+const cube =
+  new THREE.Mesh(
+    new THREE.BoxGeometry(
+      1,
+      1,
+      1
+    ),
+    new THREE.MeshStandardMaterial({
+      color: 0x00ff88,
+      roughness: 0.5,
+      metalness: 0.1
+    })
+  );
+
+
+cube.position.set(
+  0,
+  0,
+  0
+);
+
+
+scene.add(cube);
+
+
+function resize3D() {
+
+  const width =
+    window.innerWidth;
+
+  const height =
+    window.innerHeight;
+
+
+  renderer.setSize(
+    width,
+    height,
+    false
+  );
+
+
+  threeCamera.aspect =
+    width / height;
+
+
+  threeCamera.updateProjectionMatrix();
+}
+
+
+function animate3D() {
+
+  requestAnimationFrame(
+    animate3D
+  );
+
+
+  cube.rotation.x +=
+    0.01;
+
+  cube.rotation.y +=
+    0.015;
+
+
+  renderer.render(
+    scene,
+    threeCamera
+  );
+}
+
+
+resize3D();
+
+window.addEventListener(
+  "resize",
+  resize3D
+);
+
+
+animate3D();
+
+
+showStatus(
+  "Camera + 3D ready"
+);
