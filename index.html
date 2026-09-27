@@ -96,7 +96,7 @@ html, body {
 <script type="module">
 
 import * as THREE from
-"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js?v=12";
+"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js?v=13";
 
 const video =
     document.getElementById("camera");
@@ -149,7 +149,19 @@ const threeCamera =
         100
     );
 
-threeCamera.position.z = 5;
+threeCamera.position.set(
+    0,
+    0,
+    5
+);
+
+
+/* HEAD ANCHOR */
+
+const anchor =
+    new THREE.Group();
+
+scene.add(anchor);
 
 
 /* CUBE */
@@ -162,8 +174,10 @@ const cubeGeometry =
     );
 
 const cubeMaterial =
-    new THREE.MeshNormalMaterial();
-
+    new THREE.MeshNormalMaterial({
+        transparent: true,
+        opacity: 0.75
+    });
 
 const cube =
     new THREE.Mesh(
@@ -177,24 +191,7 @@ cube.scale.set(
     0.45
 );
 
-scene.add(cube);
-
-
-/* RENDER */
-
-function animateCube() {
-
-    requestAnimationFrame(
-        animateCube
-    );
-
-    renderer.render(
-        scene,
-        threeCamera
-    );
-}
-
-animateCube();
+anchor.add(cube);
 
 
 /* CAMERA */
@@ -336,20 +333,14 @@ function drawLandmarks(
 
 
     landmarkCanvas.width =
-        Math.round(
-            width * dpr
-        );
+        Math.round(width * dpr);
 
     landmarkCanvas.height =
-        Math.round(
-            height * dpr
-        );
+        Math.round(height * dpr);
 
 
     const ctx =
-        landmarkCanvas.getContext(
-            "2d"
-        );
+        landmarkCanvas.getContext("2d");
 
 
     ctx.setTransform(
@@ -429,10 +420,10 @@ function drawLandmarks(
         ctx.fill();
     }
 }/* =========================================
-   3D HEAD TRACKING
+   HEAD ANCHOR TRACKING
 ========================================= */
 
-function updateCubeFromFace(
+function updateHeadAnchor(
     landmarks,
     transformationMatrix
 ) {
@@ -443,36 +434,13 @@ function updateCubeFromFace(
         window.innerHeight;
 
 
-    /* Nose position */
+    /* Nose */
 
     const nose =
         landmarks[1];
 
 
-    const faceX =
-        nose.x * width;
-
-    const faceY =
-        nose.y * height;
-
-
-    /* Screen position */
-
-    const normalizedX =
-        (faceX / width) * 2 - 1;
-
-    const normalizedY =
-        -((faceY / height) * 2 - 1);
-
-
-    cube.position.x =
-        normalizedX * 2.25;
-
-    cube.position.y =
-        normalizedY * 1.7;
-
-
-    /* Face size */
+    /* Eyes */
 
     const leftEye =
         landmarks[33];
@@ -481,12 +449,42 @@ function updateCubeFromFace(
         landmarks[263];
 
 
+    /* Face center */
+
+    const faceX =
+        nose.x * width;
+
+    const faceY =
+        nose.y * height;
+
+
+    const normalizedX =
+        (faceX / width) * 2 - 1;
+
+    const normalizedY =
+        -((faceY / height) * 2 - 1);
+
+
+    /*
+     * Head anchor position.
+     */
+
+    anchor.position.x =
+        normalizedX * 2.25;
+
+    anchor.position.y =
+        normalizedY * 1.7;
+
+
+    /*
+     * Face size.
+     */
+
     const dx =
         rightEye.x - leftEye.x;
 
     const dy =
         rightEye.y - leftEye.y;
-
 
     const eyeDistance =
         Math.sqrt(
@@ -495,26 +493,26 @@ function updateCubeFromFace(
         );
 
 
-    const cubeSize =
+    const headScale =
         Math.max(
-            0.25,
+            0.35,
             Math.min(
-                1.15,
-                eyeDistance * 3.2
+                1.35,
+                eyeDistance * 3.5
             )
         );
 
 
-    cube.scale.set(
-        cubeSize,
-        cubeSize,
-        cubeSize
+    anchor.scale.set(
+        headScale,
+        headScale,
+        headScale
     );
 
 
-    /* =====================================
-       MEDIAPIPE 3D TRANSFORMATION MATRIX
-    ===================================== */
+    /*
+     * 3D head rotation.
+     */
 
     if (
         transformationMatrix &&
@@ -523,7 +521,6 @@ function updateCubeFromFace(
 
         const matrix =
             new THREE.Matrix4();
-
 
         matrix.fromArray(
             transformationMatrix
@@ -547,11 +544,6 @@ function updateCubeFromFace(
         );
 
 
-        /*
-         * Convert MediaPipe rotation
-         * into Three.js rotation.
-         */
-
         const euler =
             new THREE.Euler()
             .setFromQuaternion(
@@ -560,24 +552,20 @@ function updateCubeFromFace(
             );
 
 
-        /*
-         * Head turn
-         */
-
-        cube.rotation.x =
+        anchor.rotation.x =
             euler.x;
 
-        cube.rotation.y =
+        anchor.rotation.y =
             euler.y;
 
-        cube.rotation.z =
+        anchor.rotation.z =
             euler.z;
     }
 }
 
 
 /* =========================================
-   FACE TRACKING LOOP
+   FACE TRACKING
 ========================================= */
 
 function trackFace() {
@@ -622,14 +610,10 @@ function trackFace() {
                     result.faceLandmarks[0];
 
 
-                /* Green dots */
-
                 drawLandmarks(
                     landmarks
                 );
 
-
-                /* 3D head tracking */
 
                 let matrix = null;
 
@@ -649,14 +633,14 @@ function trackFace() {
                 }
 
 
-                updateCubeFromFace(
+                updateHeadAnchor(
                     landmarks,
                     matrix
                 );
 
 
                 status.textContent =
-                    "3D HEAD TRACKING: ON";
+                    "HEAD ANCHOR: ON";
 
             } else {
 
@@ -693,9 +677,24 @@ function trackFace() {
 }
 
 
-/* =========================================
-   RESIZE
-========================================= */
+/* RENDER LOOP */
+
+function render() {
+
+    requestAnimationFrame(
+        render
+    );
+
+    renderer.render(
+        scene,
+        threeCamera
+    );
+}
+
+render();
+
+
+/* RESIZE */
 
 window.addEventListener(
     "resize",
@@ -718,9 +717,7 @@ window.addEventListener(
 );
 
 
-/* =========================================
-   START
-========================================= */
+/* START */
 
 startButton.addEventListener(
     "click",
@@ -728,6 +725,5 @@ startButton.addEventListener(
 );
 
 </script>
-
 </body>
 </html>
