@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Azeez AR - Camera Test</title>
+<title>Azeez AR - Camera and 3D Test</title>
 
 <style>
 html, body {
@@ -17,10 +17,19 @@ html, body {
 }
 
 #camera {
+    position: fixed;
+    inset: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    display: block;
+}
+
+#threeCanvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
 }
 
 #startButton {
@@ -48,23 +57,85 @@ html, body {
     z-index: 10;
 }
 </style>
+
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
+    }
+}
+</script>
 </head>
 
 <body>
 
 <video id="camera" autoplay playsinline></video>
 
+<canvas id="threeCanvas"></canvas>
+
 <div id="status">Camera is off</div>
 
 <button id="startButton">OPEN CAMERA</button>
 
-<script>
+<script type="module">
+
+import * as THREE from "three";
+
 const video = document.getElementById("camera");
+const canvas = document.getElementById("threeCanvas");
 const button = document.getElementById("startButton");
 const status = document.getElementById("status");
 
+const scene = new THREE.Scene();
+
+const camera3D = new THREE.PerspectiveCamera(
+    45,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    100
+);
+
+camera3D.position.z = 5;
+
+const renderer = new THREE.WebGLRenderer({
+    canvas: canvas,
+    alpha: true,
+    antialias: true
+});
+
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+
+const light = new THREE.DirectionalLight(0xffffff, 2);
+light.position.set(2, 2, 5);
+scene.add(light);
+
+const ambient = new THREE.AmbientLight(0xffffff, 1);
+scene.add(ambient);
+
+const geometry = new THREE.BoxGeometry(0.7, 0.7, 0.7);
+
+const material = new THREE.MeshNormalMaterial();
+
+const cube = new THREE.Mesh(geometry, material);
+
+scene.add(cube);
+
+function animate() {
+    requestAnimationFrame(animate);
+
+    cube.rotation.x += 0.01;
+    cube.rotation.y += 0.015;
+
+    renderer.render(scene, camera3D);
+}
+
+animate();
+
 button.addEventListener("click", async () => {
+
     try {
+
         const stream = await navigator.mediaDevices.getUserMedia({
             video: {
                 facingMode: "user"
@@ -74,14 +145,31 @@ button.addEventListener("click", async () => {
 
         video.srcObject = stream;
 
-        status.textContent = "Camera is working";
+        status.textContent = "Camera and 3D are working";
+
         button.style.display = "none";
 
     } catch (error) {
+
         status.textContent = "Camera error: " + error.message;
+
         console.error(error);
     }
 });
+
+window.addEventListener("resize", () => {
+
+    camera3D.aspect =
+        window.innerWidth / window.innerHeight;
+
+    camera3D.updateProjectionMatrix();
+
+    renderer.setSize(
+        window.innerWidth,
+        window.innerHeight
+    );
+});
+
 </script>
 
 </body>
