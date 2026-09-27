@@ -557,113 +557,8 @@ if (modelInput) {
       import3DModel(file);
     }
   );
-}const scaleSlider =
-  document.getElementById("scaleSlider");
-
-const xSlider =
-  document.getElementById("xSlider");
-
-const ySlider =
-  document.getElementById("ySlider");
-
-const zSlider =
-  document.getElementById("zSlider");
-
-const rotateXSlider =
-  document.getElementById("rotateXSlider");
-
-const rotateYSlider =
-  document.getElementById("rotateYSlider");
-
-const rotateZSlider =
-  document.getElementById("rotateZSlider");
-
-function updateImportedModelControls() {
-  if (!importedModel) {
-    showStatus("Import a 3D model first");
-    return;
-  }
-
-  const scale =
-    Number(scaleSlider.value);
-
-  importedModel.scale.setScalar(
-    scale
-  );
-
-  importedModel.position.x =
-    Number(xSlider.value);
-
-  importedModel.position.y =
-    Number(ySlider.value);
-
-  importedModel.position.z =
-    Number(zSlider.value);
-
-  importedModel.rotation.x =
-    THREE.MathUtils.degToRad(
-      Number(rotateXSlider.value)
-    );
-
-  importedModel.rotation.y =
-    THREE.MathUtils.degToRad(
-      Number(rotateYSlider.value)
-    );
-
-  importedModel.rotation.z =
-    THREE.MathUtils.degToRad(
-      Number(rotateZSlider.value)
-    );
-}
-
-[
-  scaleSlider,
-  xSlider,
-  ySlider,
-  zSlider,
-  rotateXSlider,
-  rotateYSlider,
-  rotateZSlider
-].forEach(slider => {
-  if (slider) {
-    slider.addEventListener(
-      "input",
-      updateImportedModelControls
-    );
-  }
-});
-
-function resetImportedModelControls() {
-  if (!importedModel) {
-    return;
-  }
-
-  scaleSlider.value = "1";
-  xSlider.value = "0";
-  ySlider.value = "0";
-  zSlider.value = "0";
-
-  rotateXSlider.value = "0";
-  rotateYSlider.value = "0";
-  rotateZSlider.value = "0";
-
-  updateImportedModelControls();
-
-  showStatus(
-    "3D controls reset"
-  );
-}
-
-const resetButton =
-  document.getElementById("resetButton");
-
-if (resetButton) {
-  resetButton.addEventListener(
-    "click",
-    resetImportedModelControls
-  );
-}const sideControls =
-  document.getElementById("sideControls");
+const appControls =
+  document.getElementById("appControls");
 
 const hideControlsButton =
   document.getElementById("hideControlsButton");
@@ -672,19 +567,14 @@ const showControlsButton =
   document.getElementById("showControlsButton");
 
 if (
-  sideControls &&
+  appControls &&
   hideControlsButton &&
   showControlsButton
 ) {
   hideControlsButton.addEventListener(
     "click",
     () => {
-      sideControls.classList.add(
-        "hiddenControls"
-      );
-
-      hideControlsButton.style.display =
-        "none";
+      appControls.style.display = "none";
 
       showControlsButton.style.display =
         "block";
@@ -698,11 +588,7 @@ if (
   showControlsButton.addEventListener(
     "click",
     () => {
-      sideControls.classList.remove(
-        "hiddenControls"
-      );
-
-      hideControlsButton.style.display =
+      appControls.style.display =
         "block";
 
       showControlsButton.style.display =
