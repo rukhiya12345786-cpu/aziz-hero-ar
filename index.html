@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Azeez AR - Camera and 3D Test</title>
+<title>Azeez AR - Face Tracking Test</title>
 
 <style>
 html, body {
@@ -32,6 +32,19 @@ html, body {
     pointer-events: none;
 }
 
+#status {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: white;
+    font-size: 16px;
+    z-index: 10;
+    background: rgba(0,0,0,0.6);
+    padding: 8px 14px;
+    border-radius: 8px;
+}
+
 #startButton {
     position: fixed;
     left: 50%;
@@ -46,25 +59,17 @@ html, body {
     color: black;
     z-index: 10;
 }
-
-#status {
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    color: white;
-    font-size: 16px;
-    z-index: 10;
-}
 </style>
 
 <script type="importmap">
 {
     "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+        "@mediapipe/tasks-vision": "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.mjs"
     }
 }
 </script>
+
 </head>
 
 <body>
@@ -73,18 +78,26 @@ html, body {
 
 <canvas id="threeCanvas"></canvas>
 
-<div id="status">Camera is off</div>
+<div id="status">Ready</div>
 
-<button id="startButton">OPEN CAMERA</button>
+<button id="startButton">START TRACKING</button>
 
 <script type="module">
 
 import * as THREE from "three";
 
+import {
+    FaceLandmarker,
+    FilesetResolver
+} from "@mediapipe/tasks-vision";
+
 const video = document.getElementById("camera");
 const canvas = document.getElementById("threeCanvas");
-const button = document.getElementById("startButton");
 const status = document.getElementById("status");
+const button = document.getElementById("startButton");
+
+let faceLandmarker = null;
+let lastVideoTime = -1;
 
 const scene = new THREE.Scene();
 
@@ -106,69 +119,179 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 
-const light = new THREE.DirectionalLight(0xffffff, 2);
-light.position.set(2, 2, 5);
-scene.add(light);
+const geometry = new THREE.BufferGeometry();
 
-const ambient = new THREE.AmbientLight(0xffffff, 1);
-scene.add(ambient);
+const positions = new Float32Array(478 * 3);
 
-const geometry = new THREE.BoxGeometry(0.7, 0.7, 0.7);
+geometry.setAttribute(
+    "position",
+    new THREE.BufferAttribute(positions, 3)
+);
 
-const material = new THREE.MeshNormalMaterial();
+const material = new THREE.PointsMaterial({
+    color: 0x00ff00,
+    size: 0.025
+});
 
-const cube = new THREE.Mesh(geometry, material);
+const facePoints = new THREE.Points(
+    geometry,
+    material
+);
 
-scene.add(cube);
+scene.add(facePoints);
 
-function animate() {
-    requestAnimationFrame(animate);
+async function createFaceTracker() {
 
-    cube.rotation.x += 0.01;
-    cube.rotation.y += 0.015;
+    status.textContent = "Loading face tracker...";
 
-    renderer.render(scene, camera3D);
+    const vision = await FilesetResolver.forVisionTasks(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
+    );
+
+    faceLandmarker = await FaceLandmarker.createFromOptions(
+        vision,
+        {
+            baseOptions: {
+                modelAssetPath:
+                    "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+                delegate: "GPU"
+            },
+
+            runningMode: "VIDEO",
+
+            numFaces: 1,
+
+            outputFaceBlendshapes: false,
+
+            outputFacialTransformationMatrixes: true
+        }
+    );
+
+    status.textContent = "Face tracker loaded";
 }
 
-animate();
-
-button.addEventListener("click", async () => {
+async function startCamera() {
 
     try {
 
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-                facingMode: "user"
-            },
-            audio: false
-        });
+        const stream =
+            await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: "user"
+                },
+                audio: false
+            });
 
         video.srcObject = stream;
 
-        status.textContent = "Camera and 3D are working";
+        await video.play();
+
+        await createFaceTracker();
 
         button.style.display = "none";
 
+        status.textContent = "Looking for face...";
+
+        requestAnimationFrame(trackFace);
+
     } catch (error) {
 
-        status.textContent = "Camera error: " + error.message;
-
         console.error(error);
+
+        status.textContent =
+            "Tracking error: " + error.message;
     }
-});
+}
 
-window.addEventListener("resize", () => {
+function trackFace() {
 
-    camera3D.aspect =
-        window.innerWidth / window.innerHeight;
+    if (
+        video.readyState >= 2 &&
+        faceLandmarker
+    ) {
 
-    camera3D.updateProjectionMatrix();
+        if (video.currentTime !== lastVideoTime) {
 
-    renderer.setSize(
-        window.innerWidth,
-        window.innerHeight
-    );
-});
+            lastVideoTime = video.currentTime;
+
+            const result =
+                faceLandmarker.detectForVideo(
+                    video,
+                    performance.now()
+                );
+
+            if (
+                result.faceLandmarks &&
+                result.faceLandmarks.length > 0
+            ) {
+
+                const landmarks =
+                    result.faceLandmarks[0];
+
+                const count =
+                    Math.min(
+                        landmarks.length,
+                        478
+                    );
+
+                for (let i = 0; i < count; i++) {
+
+                    const point =
+                        landmarks[i];
+
+                    const x =
+                        (point.x - 0.5) * 4;
+
+                    const y =
+                        -(point.y - 0.5) * 4;
+
+                    const z =
+                        -point.z * 4;
+
+                    positions[i * 3] = x;
+                    positions[i * 3 + 1] = y;
+                    positions[i * 3 + 2] = z;
+                }
+
+                geometry.attributes.position.needsUpdate = true;
+
+                status.textContent =
+                    "FACE TRACKING: ON";
+
+            } else {
+
+                status.textContent =
+                    "Looking for face...";
+            }
+        }
+    }
+
+    renderer.render(scene, camera3D);
+
+    requestAnimationFrame(trackFace);
+}
+
+button.addEventListener(
+    "click",
+    startCamera
+);
+
+window.addEventListener(
+    "resize",
+    () => {
+
+        camera3D.aspect =
+            window.innerWidth /
+            window.innerHeight;
+
+        camera3D.updateProjectionMatrix();
+
+        renderer.setSize(
+            window.innerWidth,
+            window.innerHeight
+        );
+    }
+);
 
 </script>
 
