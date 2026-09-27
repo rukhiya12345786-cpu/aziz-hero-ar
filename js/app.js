@@ -63,8 +63,15 @@ let trackingEnabled = false;
 let trackingBusy = false;
 let lastTrackingTime = 0;
 let mediaPipePromise = null;
+let lastVideoTime = -1;
 
 const clock = new THREE.Clock();
+
+const FACE_MODEL_URL =
+  "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
+
+const MEDIAPIPE_WASM_URL =
+  "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm";
 
 function setStatus(message, isError = false) {
   if (el.status) {
@@ -103,7 +110,7 @@ function downloadBlob(blob, filename) {
   link.click();
   link.remove();
 
-  window.setTimeout(() => {
+  setTimeout(() => {
     URL.revokeObjectURL(url);
   }, 1500);
 }
@@ -183,18 +190,12 @@ function initThree() {
 
   camera3D.position.set(0, 0, 5);
 
-  try {
-    renderer = new THREE.WebGLRenderer({
-      canvas: el.canvas,
-      alpha: true,
-      antialias: true,
-      preserveDrawingBuffer: true
-    });
-  } catch (error) {
-    throw new Error(
-      `Could not start 3D renderer: ${error.message}`
-    );
-  }
+  renderer = new THREE.WebGLRenderer({
+    canvas: el.canvas,
+    alpha: true,
+    antialias: true,
+    preserveDrawingBuffer: true
+  });
 
   renderer.setPixelRatio(
     Math.min(window.devicePixelRatio || 1, 2)
@@ -238,6 +239,7 @@ function initThree() {
   trackingRoot.add(currentModel);
 
   createDemoCube();
+
   resizeRenderer();
 
   window.addEventListener(
@@ -255,20 +257,12 @@ function initThree() {
 function createDemoCube() {
   if (!currentModel) return;
 
-  if (cube) {
-    currentModel.remove(cube);
-
-    cube.geometry?.dispose();
-
-    if (cube.material) {
-      cube.material.dispose();
-    }
-  }
+  clearModelChildren();
 
   const geometry = new THREE.BoxGeometry(
-    0.65,
-    0.65,
-    0.65
+    0.55,
+    0.55,
+    0.55
   );
 
   const material = new THREE.MeshStandardMaterial({
@@ -283,8 +277,6 @@ function createDemoCube() {
   );
 
   cube.name = "DemoCube";
-
-  cube.position.set(0, 0, 0);
 
   currentModel.add(cube);
 }
@@ -324,11 +316,8 @@ function animate() {
     cube &&
     !trackingEnabled
   ) {
-    cube.rotation.x +=
-      delta * 0.45;
-
-    cube.rotation.y +=
-      delta * 0.7;
+    cube.rotation.x += delta * 0.45;
+    cube.rotation.y += delta * 0.7;
   }
 
   if (
@@ -355,15 +344,10 @@ function animate() {
     faceLandmarker &&
     !trackingBusy
   ) {
-    const now =
-      performance.now();
+    const now = performance.now();
 
-    if (
-      now - lastTrackingTime >
-      50
-    ) {
+    if (now - lastTrackingTime > 33) {
       lastTrackingTime = now;
-
       updateFaceTracking(now);
     }
   }
@@ -381,9 +365,10 @@ function animate() {
       }
 
       if (object.material) {
-        const materials = Array.isArray(object.material)
-          ? object.material
-          : [object.material];
+        const materials =
+          Array.isArray(object.material)
+            ? object.material
+            : [object.material];
 
         materials.forEach((material) => {
           for (const value of Object.values(material)) {
@@ -416,6 +401,8 @@ function addModelToScene(object) {
   object.scale.set(1, 1, 1);
 
   fitModelToView(object);
+
+  applyModelControls();
 
   setStatus(
     `Model loaded: ${object.name}`
@@ -460,11 +447,8 @@ function fitModelToView(object) {
 function applyCameraOrientation() {
   if (!el.video) return;
 
-  el.video.style.transform =
-    "scaleX(1)";
-
-  el.video.style.webkitTransform =
-    "scaleX(1)";
+  el.video.style.transform = "scaleX(1)";
+  el.video.style.webkitTransform = "scaleX(1)";
 }
 
 async function startCamera() {
@@ -484,11 +468,31 @@ async function startCamera() {
       "Requesting camera permission..."
     );
 
-    activeCameraStream =
-      await navigator.mediaDevices.getUserMedia({
+    let constraints = {
+      video: {
+        facingMode: {
+          exact: facingMode
+        },
+        width: {
+          ideal: 1280
+        },
+        height: {
+          ideal: 720
+        }
+      },
+      audio: false
+    };
+
+    try {
+      activeCameraStream =
+        await navigator.mediaDevices.getUserMedia(
+          constraints
+        );
+    } catch (firstError) {
+      constraints = {
         video: {
           facingMode: {
-            exact: facingMode
+            ideal: facingMode
           },
           width: {
             ideal: 1280
@@ -498,7 +502,13 @@ async function startCamera() {
           }
         },
         audio: false
-      });
+      };
+
+      activeCameraStream =
+        await navigator.mediaDevices.getUserMedia(
+          constraints
+        );
+    }
 
     el.video.srcObject =
       activeCameraStream;
@@ -521,57 +531,6 @@ async function startCamera() {
       await startFaceTracking();
     }
   } catch (error) {
-    if (
-      error?.name ===
-        "OverconstrainedError" ||
-      error?.name ===
-        "ConstraintNotSatisfiedError"
-    ) {
-      try {
-        activeCameraStream =
-          await navigator.mediaDevices.getUserMedia({
-            video: {
-              facingMode: {
-                ideal: facingMode
-              },
-              width: {
-                ideal: 1280
-              },
-              height: {
-                ideal: 720
-              }
-            },
-            audio: false
-          });
-
-        el.video.srcObject =
-          activeCameraStream;
-
-        applyCameraOrientation();
-
-        await el.video.play();
-
-        setStatus(
-          facingMode === "user"
-            ? "Front camera is running."
-            : "Back camera is running."
-        );
-
-        if (trackingEnabled) {
-          await startFaceTracking();
-        }
-
-        return;
-      } catch (fallbackError) {
-        showError(
-          fallbackError,
-          "Camera error"
-        );
-
-        return;
-      }
-    }
-
     showError(
       error,
       "Camera error"
@@ -588,7 +547,7 @@ function stopCamera() {
           track.stop();
         } catch (error) {
           console.warn(
-            "Could not stop camera track:",
+            "Camera stop error:",
             error
           );
         }
@@ -620,12 +579,10 @@ async function switchCamera() {
 
 function getOutputSize() {
   const width =
-    el.video?.videoWidth ||
-    1280;
+    el.video?.videoWidth || 1280;
 
   const height =
-    el.video?.videoHeight ||
-    720;
+    el.video?.videoHeight || 720;
 
   return {
     width: Math.max(
@@ -652,11 +609,8 @@ function prepareRecordingCanvas() {
       );
   }
 
-  recordingCanvas.width =
-    width;
-
-  recordingCanvas.height =
-    height;
+  recordingCanvas.width = width;
+  recordingCanvas.height = height;
 
   recordingContext =
     recordingCanvas.getContext(
@@ -678,19 +632,9 @@ function drawCameraFrame(
   canvas,
   video
 ) {
-  if (
-    !context ||
-    !canvas ||
-    !video
-  ) {
+  if (!context || !canvas || !video) {
     return;
   }
-
-  const width =
-    canvas.width;
-
-  const height =
-    canvas.height;
 
   context.save();
 
@@ -706,16 +650,16 @@ function drawCameraFrame(
   context.clearRect(
     0,
     0,
-    width,
-    height
+    canvas.width,
+    canvas.height
   );
 
   context.drawImage(
     video,
     0,
     0,
-    width,
-    height
+    canvas.width,
+    canvas.height
   );
 
   context.restore();
@@ -730,9 +674,7 @@ function drawRecordingFrame() {
     return;
   }
 
-  if (
-    el.video.readyState < 2
-  ) {
+  if (el.video.readyState < 2) {
     return;
   }
 
@@ -742,10 +684,7 @@ function drawRecordingFrame() {
     el.video
   );
 
-  if (
-    el.canvas &&
-    renderer
-  ) {
+  if (el.canvas && renderer) {
     recordingContext.drawImage(
       el.canvas,
       0,
@@ -766,7 +705,6 @@ function takePhoto() {
         "Start the camera before taking a photo.",
         true
       );
-
       return;
     }
 
@@ -780,16 +718,11 @@ function takePhoto() {
         "canvas"
       );
 
-    photoCanvas.width =
-      width;
-
-    photoCanvas.height =
-      height;
+    photoCanvas.width = width;
+    photoCanvas.height = height;
 
     const context =
-      photoCanvas.getContext(
-        "2d"
-      );
+      photoCanvas.getContext("2d");
 
     if (!context) {
       throw new Error(
@@ -803,10 +736,7 @@ function takePhoto() {
       el.video
     );
 
-    if (
-      el.canvas &&
-      renderer
-    ) {
+    if (el.canvas && renderer) {
       context.drawImage(
         el.canvas,
         0,
@@ -823,7 +753,6 @@ function takePhoto() {
             "Photo creation failed.",
             true
           );
-
           return;
         }
 
@@ -832,9 +761,7 @@ function takePhoto() {
           `aziz-ar-photo-${Date.now()}.png`
         );
 
-        setStatus(
-          "Photo saved."
-        );
+        setStatus("Photo saved.");
       },
       "image/png"
     );
@@ -844,7 +771,9 @@ function takePhoto() {
       "Photo error"
     );
   }
-  }function getSupportedRecorderMimeType() {
+}
+
+function getSupportedRecorderMimeType() {
   const types = [
     "video/webm;codecs=vp9,opus",
     "video/webm;codecs=vp8,opus",
@@ -863,9 +792,7 @@ function takePhoto() {
   }
 
   return "";
-}
-
-function startRecording() {
+  }function startRecording() {
   try {
     if (!window.MediaRecorder) {
       throw new Error(
@@ -881,9 +808,7 @@ function startRecording() {
       return;
     }
 
-    if (isRecording) {
-      return;
-    }
+    if (isRecording) return;
 
     prepareRecordingCanvas();
 
@@ -907,20 +832,10 @@ function startRecording() {
       );
     }
 
-    const cameraAudioTracks =
-      activeCameraStream.getAudioTracks();
-
-    if (
-      !microphoneStream &&
-      cameraAudioTracks.length
-    ) {
-      recordingTracks.push(
-        ...cameraAudioTracks
-      );
-    }
-
     const recordingStream =
-      new MediaStream(recordingTracks);
+      new MediaStream(
+        recordingTracks
+      );
 
     const mimeType =
       getSupportedRecorderMimeType();
@@ -928,9 +843,7 @@ function startRecording() {
     mediaRecorder = mimeType
       ? new MediaRecorder(
           recordingStream,
-          {
-            mimeType
-          }
+          { mimeType }
         )
       : new MediaRecorder(
           recordingStream
@@ -952,22 +865,17 @@ function startRecording() {
       saveRecording;
 
     mediaRecorder.onerror =
-      (event) => {
-        console.error(
-          "Recorder error:",
-          event
-        );
-
-        setStatus(
-          "Recording error.",
-          true
-        );
-
+      () => {
         isRecording = false;
 
         setButtonLabel(
           el.recordButton,
           "Record"
+        );
+
+        setStatus(
+          "Recording error.",
+          true
         );
       };
 
@@ -994,8 +902,7 @@ function startRecording() {
 function stopRecording() {
   if (
     !mediaRecorder ||
-    mediaRecorder.state ===
-      "inactive"
+    mediaRecorder.state === "inactive"
   ) {
     isRecording = false;
 
@@ -1043,7 +950,6 @@ function saveRecording() {
         "No recorded video data was produced.",
         true
       );
-
       return;
     }
 
@@ -1054,9 +960,7 @@ function saveRecording() {
     const blob =
       new Blob(
         recordedChunks,
-        {
-          type: mimeType
-        }
+        { type: mimeType }
       );
 
     const extension =
@@ -1079,7 +983,7 @@ function saveRecording() {
             track.stop();
           } catch (error) {
             console.warn(
-              "Could not stop recording track:",
+              "Recording track stop error:",
               error
             );
           }
@@ -1108,7 +1012,6 @@ async function toggleAudio() {
         "Start the camera before enabling audio.",
         true
       );
-
       return;
     }
 
@@ -1121,7 +1024,7 @@ async function toggleAudio() {
               track.stop();
             } catch (error) {
               console.warn(
-                "Could not stop microphone track:",
+                "Microphone stop error:",
                 error
               );
             }
@@ -1150,11 +1053,9 @@ async function toggleAudio() {
         video: false
       });
 
-    const audioTrack =
-      microphoneStream
-        .getAudioTracks()[0];
-
-    if (!audioTrack) {
+    if (
+      !microphoneStream.getAudioTracks().length
+    ) {
       throw new Error(
         "Microphone track was not created."
       );
@@ -1182,9 +1083,7 @@ function handleModelImport(event) {
   const file =
     event.target.files?.[0];
 
-  if (!file) {
-    return;
-  }
+  if (!file) return;
 
   const filename =
     file.name.toLowerCase();
@@ -1228,9 +1127,7 @@ function handleModelImport(event) {
       );
     };
 
-    reader.readAsArrayBuffer(
-      file
-    );
+    reader.readAsArrayBuffer(file);
   } else if (
     filename.endsWith(".obj")
   ) {
@@ -1244,9 +1141,7 @@ function handleModelImport(event) {
             reader.result
           );
 
-        addModelToScene(
-          object
-        );
+        addModelToScene(object);
       } catch (error) {
         showError(
           error,
@@ -1287,9 +1182,7 @@ function handleModelImport(event) {
         mesh.name =
           "ImportedSTL";
 
-        addModelToScene(
-          mesh
-        );
+        addModelToScene(mesh);
       } catch (error) {
         showError(
           error,
@@ -1298,9 +1191,7 @@ function handleModelImport(event) {
       }
     };
 
-    reader.readAsArrayBuffer(
-      file
-    );
+    reader.readAsArrayBuffer(file);
   } else {
     setStatus(
       "Unsupported format. Use GLB, GLTF, OBJ, or STL.",
@@ -1320,7 +1211,6 @@ function exportModelGLTF() {
       "There is no model to export.",
       true
     );
-
     return;
   }
 
@@ -1331,8 +1221,11 @@ function exportModelGLTF() {
     currentModel,
     (result) => {
       try {
+        const isBinary =
+          result instanceof ArrayBuffer;
+
         const blob =
-          result instanceof ArrayBuffer
+          isBinary
             ? new Blob(
                 [result],
                 {
@@ -1348,14 +1241,11 @@ function exportModelGLTF() {
                 }
               );
 
-        const filename =
-          result instanceof ArrayBuffer
-            ? "aziz-ar-model.glb"
-            : "aziz-ar-model.gltf";
-
         downloadBlob(
           blob,
-          filename
+          isBinary
+            ? "aziz-ar-model.glb"
+            : "aziz-ar-model.gltf"
         );
 
         setStatus(
@@ -1390,7 +1280,6 @@ function exportModelOBJ() {
       "There is no model to export.",
       true
     );
-
     return;
   }
 
@@ -1430,8 +1319,7 @@ function exportModelOBJ() {
 function exportModel() {
   const format =
     el.exportFormat?.value
-      ?.toLowerCase() ||
-    "glb";
+      ?.toLowerCase() || "glb";
 
   if (format === "obj") {
     exportModelOBJ();
@@ -1441,41 +1329,29 @@ function exportModel() {
 }
 
 function resetModel() {
-  if (!currentModel) {
-    return;
-  }
+  if (!currentModel) return;
 
   clearModelChildren();
 
   createDemoCube();
 
-  if (el.scaleSlider) {
-    el.scaleSlider.value = "1";
-  }
+  const defaults = [
+    [el.scaleSlider, "1"],
+    [el.xSlider, "0"],
+    [el.ySlider, "0"],
+    [el.zSlider, "0"],
+    [el.rotateXSlider, "0"],
+    [el.rotateYSlider, "0"],
+    [el.rotateZSlider, "0"]
+  ];
 
-  if (el.xSlider) {
-    el.xSlider.value = "0";
-  }
-
-  if (el.ySlider) {
-    el.ySlider.value = "0";
-  }
-
-  if (el.zSlider) {
-    el.zSlider.value = "0";
-  }
-
-  if (el.rotateXSlider) {
-    el.rotateXSlider.value = "0";
-  }
-
-  if (el.rotateYSlider) {
-    el.rotateYSlider.value = "0";
-  }
-
-  if (el.rotateZSlider) {
-    el.rotateZSlider.value = "0";
-  }
+  defaults.forEach(
+    ([slider, value]) => {
+      if (slider) {
+        slider.value = value;
+      }
+    }
+  );
 
   if (trackingRoot) {
     trackingRoot.position.set(
@@ -1505,9 +1381,7 @@ function resetModel() {
 }
 
 function applyModelControls() {
-  if (!currentModel) {
-    return;
-  }
+  if (!currentModel) return;
 
   const scale =
     Number(
@@ -1567,42 +1441,34 @@ function applyModelControls() {
     ry,
     rz
   );
-}
-
-function toggleControls() {
-  if (!el.sideControls) {
-    return;
-  }
+      }function toggleControls() {
+  if (!el.sideControls) return;
 
   const isHidden =
-    el.sideControls.dataset.open !==
-    "true";
+    el.sideControls.dataset.open !== "true";
 
   el.sideControls.dataset.open =
-    isHidden
-      ? "true"
-      : "false";
+    isHidden ? "true" : "false";
 
   el.sideControls.style.display =
-    isHidden
-      ? "flex"
-      : "none";
-          }async function loadMediaPipe() {
+    isHidden ? "flex" : "none";
+}
+
+async function loadMediaPipe() {
   if (mediaPipePromise) {
     return mediaPipePromise;
   }
 
-  mediaPipePromise = import(
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/vision_bundle.mjs"
-  );
+  mediaPipePromise =
+    import(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/vision_bundle.mjs"
+    );
 
   return mediaPipePromise;
 }
 
 async function startFaceTracking() {
-  if (trackingBusy) {
-    return;
-  }
+  if (trackingBusy) return;
 
   if (
     !el.video ||
@@ -1612,7 +1478,6 @@ async function startFaceTracking() {
       "Start the camera before face tracking.",
       true
     );
-
     return;
   }
 
@@ -1631,9 +1496,15 @@ async function startFaceTracking() {
       FilesetResolver
     } = vision;
 
+    if (!FaceLandmarker || !FilesetResolver) {
+      throw new Error(
+        "MediaPipe Face Landmarker could not be loaded."
+      );
+    }
+
     const fileset =
       await FilesetResolver.forVisionTasks(
-        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm"
+        MEDIAPIPE_WASM_URL
       );
 
     faceLandmarker =
@@ -1642,7 +1513,7 @@ async function startFaceTracking() {
         {
           baseOptions: {
             modelAssetPath:
-              "./models/face_landmarker.task",
+              FACE_MODEL_URL,
             delegate: "GPU"
           },
 
@@ -1668,10 +1539,16 @@ async function startFaceTracking() {
       );
 
     trackingEnabled = true;
+    lastVideoTime = -1;
 
     if (trackingRoot) {
       trackingRoot.visible = true;
     }
+
+    setButtonLabel(
+      el.trackingButton,
+      "Tracking On"
+    );
 
     setStatus(
       "Face tracking is ready."
@@ -1679,6 +1556,11 @@ async function startFaceTracking() {
   } catch (error) {
     faceLandmarker = null;
     trackingEnabled = false;
+
+    setButtonLabel(
+      el.trackingButton,
+      "Face Tracking"
+    );
 
     showError(
       error,
@@ -1691,7 +1573,20 @@ async function startFaceTracking() {
 
 function stopFaceTracking() {
   trackingEnabled = false;
+
+  if (faceLandmarker) {
+    try {
+      faceLandmarker.close?.();
+    } catch (error) {
+      console.warn(
+        "Face landmarker close error:",
+        error
+      );
+    }
+  }
+
   faceLandmarker = null;
+  lastVideoTime = -1;
 
   if (trackingRoot) {
     trackingRoot.position.set(
@@ -1713,6 +1608,11 @@ function stopFaceTracking() {
     );
   }
 
+  setButtonLabel(
+    el.trackingButton,
+    "Face Tracking"
+  );
+
   setStatus(
     "Face tracking stopped."
   );
@@ -1721,28 +1621,22 @@ function stopFaceTracking() {
 async function toggleFaceTracking() {
   if (trackingEnabled) {
     stopFaceTracking();
+    return;
+  }
 
-    if (el.trackingButton) {
-      setButtonLabel(
-        el.trackingButton,
-        "Face Tracking"
-      );
-    }
-
+  if (
+    !activeCameraStream ||
+    !el.video ||
+    el.video.readyState < 2
+  ) {
+    setStatus(
+      "Open the camera first.",
+      true
+    );
     return;
   }
 
   await startFaceTracking();
-
-  if (
-    trackingEnabled &&
-    el.trackingButton
-  ) {
-    setButtonLabel(
-      el.trackingButton,
-      "Tracking On"
-    );
-  }
 }
 
 async function updateFaceTracking(timestamp) {
@@ -1756,6 +1650,16 @@ async function updateFaceTracking(timestamp) {
     return;
   }
 
+  const videoTime =
+    el.video.currentTime;
+
+  if (
+    videoTime === lastVideoTime
+  ) {
+    return;
+  }
+
+  lastVideoTime = videoTime;
   trackingBusy = true;
 
   try {
@@ -1770,11 +1674,19 @@ async function updateFaceTracking(timestamp) {
       !result.faceLandmarks ||
       !result.faceLandmarks.length
     ) {
+      if (trackingRoot) {
+        trackingRoot.visible = false;
+      }
+
       setStatus(
         "Face not detected."
       );
 
       return;
+    }
+
+    if (trackingRoot) {
+      trackingRoot.visible = true;
     }
 
     const landmarks =
@@ -1800,7 +1712,8 @@ function updateModelFromFace(
 ) {
   if (
     !trackingRoot ||
-    !landmarks?.length
+    !landmarks ||
+    !landmarks.length
   ) {
     return;
   }
@@ -1817,66 +1730,59 @@ function updateModelFromFace(
   const chin =
     landmarks[152];
 
+  const nose =
+    landmarks[1];
+
   if (
     !leftEye ||
     !rightEye ||
     !forehead ||
-    !chin
+    !chin ||
+    !nose
   ) {
     return;
   }
 
   const eyeCenterX =
     (leftEye.x +
-      rightEye.x) *
-    0.5;
+      rightEye.x) * 0.5;
 
   const eyeCenterY =
     (leftEye.y +
-      rightEye.y) *
-    0.5;
+      rightEye.y) * 0.5;
 
   const eyeDistance =
     Math.hypot(
-      rightEye.x -
-        leftEye.x,
-      rightEye.y -
-        leftEye.y
+      rightEye.x - leftEye.x,
+      rightEye.y - leftEye.y
     );
 
   if (
-    !Number.isFinite(
-      eyeDistance
-    ) ||
-    eyeDistance <= 0.001
+    !Number.isFinite(eyeDistance) ||
+    eyeDistance < 0.005
   ) {
     return;
   }
 
   const faceCenterX =
-    (forehead.x +
-      chin.x) *
-    0.5;
+    nose.x;
 
   const faceCenterY =
-    (forehead.y +
-      chin.y) *
-    0.5;
+    (forehead.y * 0.65) +
+    (chin.y * 0.35);
 
   const horizontal =
     THREE.MathUtils.clamp(
-      (faceCenterX - 0.5) *
-        3.0,
-      -2.5,
-      2.5
+      (faceCenterX - 0.5) * 4.2,
+      -2.2,
+      2.2
     );
 
   const vertical =
     THREE.MathUtils.clamp(
-      -(faceCenterY - 0.5) *
-        2.4,
-      -2.5,
-      2.5
+      -(faceCenterY - 0.5) * 3.4,
+      -2.0,
+      2.0
     );
 
   trackingRoot.position.x =
@@ -1885,20 +1791,21 @@ function updateModelFromFace(
   trackingRoot.position.y =
     vertical;
 
-  trackingRoot.position.z =
+  const depth =
     THREE.MathUtils.clamp(
-      -(1.2 /
-        eyeDistance) *
-        0.12,
-      -1.5,
-      -0.15
+      -(eyeDistance * 7.0),
+      -1.7,
+      -0.35
     );
+
+  trackingRoot.position.z =
+    depth;
 
   const trackingScale =
     THREE.MathUtils.clamp(
-      eyeDistance * 4.5,
-      0.45,
-      2.5
+      eyeDistance * 6.0,
+      0.35,
+      2.2
     );
 
   trackingRoot.scale.setScalar(
@@ -1928,9 +1835,7 @@ function updateModelFromFace(
   }
 }
 
-function applyFaceTransformationMatrix(
-  data
-) {
+function applyFaceTransformationMatrix(data) {
   try {
     const matrix =
       new THREE.Matrix4();
@@ -1960,23 +1865,27 @@ function applyFaceTransformationMatrix(
       "YXZ"
     );
 
-    const yaw =
+    let yaw = euler.y;
+    let pitch = euler.x;
+    let roll = euler.z;
+
+    yaw =
       THREE.MathUtils.clamp(
-        euler.y,
+        yaw,
         -Math.PI,
         Math.PI
       );
 
-    const pitch =
+    pitch =
       THREE.MathUtils.clamp(
-        euler.x,
+        pitch,
         -Math.PI / 2,
         Math.PI / 2
       );
 
-    const roll =
+    roll =
       THREE.MathUtils.clamp(
-        euler.z,
+        roll,
         -Math.PI,
         Math.PI
       );
@@ -2002,31 +1911,23 @@ function applyLandmarkRotation(
 ) {
   const headTilt =
     Math.atan2(
-      rightEye.y -
-        leftEye.y,
-      rightEye.x -
-        leftEye.x
+      rightEye.y - leftEye.y,
+      rightEye.x - leftEye.x
     );
+
+  const eyeWidth =
+    rightEye.x - leftEye.x;
 
   const headTurn =
     THREE.MathUtils.clamp(
-      (
-        (rightEye.x -
-          leftEye.x) -
-        0.17
-      ) *
-        8,
+      (eyeWidth - 0.17) * 8,
       -1,
       1
     );
 
   const pitch =
     THREE.MathUtils.clamp(
-      (
-        eyeCenterY -
-        0.42
-      ) *
-        3,
+      (eyeCenterY - 0.42) * 3,
       -0.8,
       0.8
     );
@@ -2045,12 +1946,9 @@ function setTrackingModelVisibility(
   visible
 ) {
   if (trackingRoot) {
-    trackingRoot.visible =
-      visible;
+    trackingRoot.visible = visible;
   }
-}
-
-function bindEvents() {
+}function bindEvents() {
   el.cameraButton?.addEventListener(
     "click",
     startCamera
@@ -2118,14 +2016,12 @@ function bindEvents() {
     el.rotateZSlider
   ];
 
-  sliders.forEach(
-    (slider) => {
-      slider?.addEventListener(
-        "input",
-        applyModelControls
-      );
-    }
-  );
+  sliders.forEach((slider) => {
+    slider?.addEventListener(
+      "input",
+      applyModelControls
+    );
+  });
 }
 
 function cleanupApp() {
@@ -2139,8 +2035,7 @@ function cleanupApp() {
 
   if (
     mediaRecorder &&
-    mediaRecorder.state !==
-      "inactive"
+    mediaRecorder.state !== "inactive"
   ) {
     try {
       mediaRecorder.stop();
@@ -2160,7 +2055,7 @@ function cleanupApp() {
           track.stop();
         } catch (error) {
           console.warn(
-            "Could not stop recording track:",
+            "Recording cleanup error:",
             error
           );
         }
@@ -2169,6 +2064,7 @@ function cleanupApp() {
     recordingCanvasStream = null;
   }
 
+  stopFaceTracking();
   stopCamera();
 
   if (microphoneStream) {
@@ -2179,7 +2075,7 @@ function cleanupApp() {
           track.stop();
         } catch (error) {
           console.warn(
-            "Could not stop microphone track:",
+            "Microphone cleanup error:",
             error
           );
         }
@@ -2190,9 +2086,6 @@ function cleanupApp() {
 
   mediaRecorder = null;
   recordedChunks = [];
-
-  faceLandmarker = null;
-  trackingEnabled = false;
 }
 
 window.addEventListener(
@@ -2213,6 +2106,16 @@ function initializeApp() {
     if (el.sideControls) {
       el.sideControls.dataset.open =
         "true";
+
+      el.sideControls.style.display =
+        "flex";
+    }
+
+    if (el.trackingButton) {
+      setButtonLabel(
+        el.trackingButton,
+        "Face Tracking"
+      );
     }
 
     setStatus(
