@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Azeez AR - Face Tracker Test</title>
+<title>Azeez AR - MediaPipe Test</title>
 
 <style>
 html, body {
@@ -38,7 +38,7 @@ html, body {
     transform: translateX(-50%);
     z-index: 20;
     color: white;
-    background: rgba(0,0,0,.7);
+    background: rgba(0,0,0,.75);
     padding: 9px 14px;
     border-radius: 8px;
     font-family: Arial, sans-serif;
@@ -62,7 +62,7 @@ html, body {
 <script type="importmap">
 {
   "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js?v=4"
+    "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js?v=5"
   }
 }
 </script>
@@ -113,7 +113,11 @@ renderer.setSize(
     window.innerHeight
 );
 
-const light = new THREE.AmbientLight(0xffffff, 2);
+const light = new THREE.AmbientLight(
+    0xffffff,
+    2
+);
+
 scene.add(light);
 
 const geometry = new THREE.BoxGeometry(
@@ -138,7 +142,10 @@ function animate() {
     cube.rotation.x += 0.01;
     cube.rotation.y += 0.015;
 
-    renderer.render(scene, camera3D);
+    renderer.render(
+        scene,
+        camera3D
+    );
 }
 
 animate();
@@ -147,7 +154,8 @@ async function openCamera() {
 
     try {
 
-        status.textContent = "Opening camera...";
+        status.textContent =
+            "Opening camera...";
 
         const stream =
             await navigator.mediaDevices.getUserMedia({
@@ -161,12 +169,12 @@ async function openCamera() {
 
         await video.play();
 
-        status.textContent =
-            "Camera OK - Loading tracker...";
-
         button.style.display = "none";
 
-        loadFaceTracker();
+        status.textContent =
+            "Camera OK - Loading MediaPipe...";
+
+        await loadMediaPipe();
 
     } catch (error) {
 
@@ -177,24 +185,27 @@ async function openCamera() {
     }
 }
 
-async function loadFaceTracker() {
+async function loadMediaPipe() {
 
     try {
 
-        const module =
+        const mediaPipe =
             await import(
-                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.mjs?v=4"
+                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/vision_bundle.mjs"
             );
 
-        if (module.FaceLandmarker) {
+        if (
+            mediaPipe.FaceLandmarker &&
+            mediaPipe.FilesetResolver
+        ) {
 
             status.textContent =
-                "Face tracker library loaded";
+                "MediaPipe library loaded";
 
         } else {
 
             status.textContent =
-                "Face tracker library failed";
+                "MediaPipe API missing";
         }
 
     } catch (error) {
@@ -202,7 +213,7 @@ async function loadFaceTracker() {
         console.error(error);
 
         status.textContent =
-            "Tracker load error";
+            "MediaPipe load error";
     }
 }
 
@@ -211,19 +222,22 @@ button.addEventListener(
     openCamera
 );
 
-window.addEventListener("resize", () => {
+window.addEventListener(
+    "resize",
+    () => {
 
-    camera3D.aspect =
-        window.innerWidth /
-        window.innerHeight;
+        camera3D.aspect =
+            window.innerWidth /
+            window.innerHeight;
 
-    camera3D.updateProjectionMatrix();
+        camera3D.updateProjectionMatrix();
 
-    renderer.setSize(
-        window.innerWidth,
-        window.innerHeight
-    );
-});
+        renderer.setSize(
+            window.innerWidth,
+            window.innerHeight
+        );
+    }
+);
 
 </script>
 
