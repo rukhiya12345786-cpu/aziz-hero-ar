@@ -11,10 +11,15 @@ const switchCameraButton =
 const flipCameraButton =
   document.getElementById("flipCameraButton");
 
+const modelInput =
+  document.getElementById("import3DInput");
+
+const modelButtonElement =
+  document.getElementById("modelButton");
+
 let cameraStream = null;
 let facingMode = "user";
 let isMirrored = false;
-
 
 function showStatus(message) {
   if (status) {
@@ -24,9 +29,7 @@ function showStatus(message) {
   console.log(message);
 }
 
-
 function updateMirror() {
-
   const transform =
     isMirrored
       ? "scaleX(-1)"
@@ -36,32 +39,22 @@ function updateMirror() {
   canvas.style.transform = transform;
 }
 
-
 async function openCamera() {
-
   try {
-
     showStatus("Requesting camera...");
 
-    if (
-      cameraStream
-    ) {
-
-      cameraStream
-        .getTracks()
-        .forEach(track => {
-          track.stop();
-        });
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => {
+        track.stop();
+      });
 
       cameraStream = null;
     }
-
 
     if (
       !navigator.mediaDevices ||
       !navigator.mediaDevices.getUserMedia
     ) {
-
       showStatus(
         "Camera API not available. Use HTTPS."
       );
@@ -69,31 +62,25 @@ async function openCamera() {
       return;
     }
 
-
     cameraStream =
       await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: facingMode,
-          width: {
-            ideal: 1280
-          },
-          height: {
-            ideal: 720
-          }
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
         },
         audio: false
       });
 
-
-    video.srcObject =
-      cameraStream;
-
+    video.srcObject = cameraStream;
 
     await video.play();
 
-
     updateMirror();
 
+    if (typeof cube !== "undefined") {
+      cube.visible = false;
+    }
 
     showStatus(
       facingMode === "user"
@@ -102,44 +89,33 @@ async function openCamera() {
     );
 
   } catch (error) {
-
     console.error(error);
 
     showStatus(
       "CAMERA ERROR: " +
-      (
-        error.message ||
-        "Camera could not start"
-      )
+      (error.message ||
+        "Camera could not start")
     );
   }
 }
 
-
 async function switchCamera() {
-
   facingMode =
     facingMode === "user"
       ? "environment"
       : "user";
 
-
   if (facingMode === "environment") {
     isMirrored = false;
   }
 
-
   await openCamera();
 }
 
-
 function flipCamera() {
-
-  isMirrored =
-    !isMirrored;
+  isMirrored = !isMirrored;
 
   updateMirror();
-
 
   showStatus(
     isMirrored
@@ -148,44 +124,38 @@ function flipCamera() {
   );
 }
 
+if (cameraButton) {
+  cameraButton.addEventListener(
+    "click",
+    openCamera
+  );
+}
 
-cameraButton.addEventListener(
-  "click",
-  openCamera
-);
+if (switchCameraButton) {
+  switchCameraButton.addEventListener(
+    "click",
+    switchCamera
+  );
+}
 
+if (flipCameraButton) {
+  flipCameraButton.addEventListener(
+    "click",
+    flipCamera
+  );
+}
 
-switchCameraButton.addEventListener(
-  "click",
-  switchCamera
-);
-
-
-flipCameraButton.addEventListener(
-  "click",
-  flipCamera
-);
-
-
-window.addEventListener(
-  "error",
-  event => {
-
-    showStatus(
-      "ERROR: " +
-      (
-        event.message ||
-        "Unknown error"
-      )
-    );
-  }
-);
-
+window.addEventListener("error", event => {
+  showStatus(
+    "ERROR: " +
+    (event.message ||
+      "Unknown error")
+  );
+});
 
 window.addEventListener(
   "unhandledrejection",
   event => {
-
     showStatus(
       "ERROR: " +
       (
@@ -196,22 +166,17 @@ window.addEventListener(
   }
 );
 
-
 updateMirror();
 
+showStatus("Loading 3D engine...");
 
-showStatus(
-  "Camera test ready"
-);
 const THREE =
   await import(
     "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
   );
 
-
 const scene =
   new THREE.Scene();
-
 
 const renderer =
   new THREE.WebGLRenderer({
@@ -221,14 +186,12 @@ const renderer =
     preserveDrawingBuffer: true
   });
 
-
 renderer.setPixelRatio(
   Math.min(
     window.devicePixelRatio || 1,
     2
   )
 );
-
 
 const threeCamera =
   new THREE.PerspectiveCamera(
@@ -239,9 +202,7 @@ const threeCamera =
     100
   );
 
-
 threeCamera.position.z = 5;
-
 
 const light =
   new THREE.DirectionalLight(
@@ -249,16 +210,13 @@ const light =
     3
   );
 
-
 light.position.set(
   2,
   3,
   5
 );
 
-
 scene.add(light);
-
 
 scene.add(
   new THREE.AmbientLight(
@@ -267,13 +225,12 @@ scene.add(
   )
 );
 
-
 const cube =
   new THREE.Mesh(
     new THREE.BoxGeometry(
-      1,
-      1,
-      1
+      0.7,
+      0.7,
+      0.7
     ),
     new THREE.MeshStandardMaterial({
       color: 0x00ff88,
@@ -282,25 +239,22 @@ const cube =
     })
   );
 
-
 cube.position.set(
   0,
   0,
   0
 );
 
+cube.visible = true;
 
 scene.add(cube);
 
-
 function resize3D() {
-
   const width =
     window.innerWidth;
 
   const height =
     window.innerHeight;
-
 
   renderer.setSize(
     width,
@@ -308,35 +262,27 @@ function resize3D() {
     false
   );
 
-
   threeCamera.aspect =
     width / height;
-
 
   threeCamera.updateProjectionMatrix();
 }
 
-
 function animate3D() {
-
   requestAnimationFrame(
     animate3D
   );
 
-
-  cube.rotation.x +=
-    0.01;
-
-  cube.rotation.y +=
-    0.015;
-
+  if (cube.visible) {
+    cube.rotation.x += 0.01;
+    cube.rotation.y += 0.015;
+  }
 
   renderer.render(
     scene,
     threeCamera
   );
 }
-
 
 resize3D();
 
@@ -345,81 +291,56 @@ window.addEventListener(
   resize3D
 );
 
-
 animate3D();
-
 
 showStatus(
   "Camera + 3D ready"
 );
-const modelInput =
-  document.getElementById("import3DInput");
-
-const modelButtonElement =
-  document.getElementById("modelButton");
-
 
 let importedModel = null;
 
-
 async function loadThreeAddon(path) {
-
-  return await import(
-    path
-  );
+  return await import(path);
 }
 
-
 async function import3DModel(file) {
-
   if (!file) {
     return;
   }
 
-
   try {
-
     showStatus(
       "Loading 3D model..."
     );
 
-
     const fileName =
       file.name.toLowerCase();
 
-
     let object = null;
-
 
     if (
       fileName.endsWith(".glb") ||
       fileName.endsWith(".gltf")
     ) {
-
       const module =
         await loadThreeAddon(
           "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js"
         );
 
-
       const loader =
         new module.GLTFLoader();
 
-
       const url =
         URL.createObjectURL(file);
-
 
       const result =
         await loader.loadAsync(
           url
         );
 
-
       URL.revokeObjectURL(
         url
       );
-
 
       object =
         result.scene;
@@ -427,26 +348,21 @@ async function import3DModel(file) {
     } else if (
       fileName.endsWith(".obj")
     ) {
-
       const module =
         await loadThreeAddon(
           "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/OBJLoader.js"
         );
 
-
       const loader =
         new module.OBJLoader();
 
-
       const url =
         URL.createObjectURL(file);
-
 
       object =
         await loader.loadAsync(
           url
         );
-
 
       URL.revokeObjectURL(
         url
@@ -455,34 +371,27 @@ async function import3DModel(file) {
     } else if (
       fileName.endsWith(".stl")
     ) {
-
       const module =
         await loadThreeAddon(
           "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/STLLoader.js"
         );
 
-
       const loader =
         new module.STLLoader();
 
-
       const url =
         URL.createObjectURL(file);
-
 
       const geometry =
         await loader.loadAsync(
           url
         );
 
-
       URL.revokeObjectURL(
         url
       );
 
-
       geometry.computeVertexNormals();
-
 
       const material =
         new THREE.MeshStandardMaterial({
@@ -491,7 +400,6 @@ async function import3DModel(file) {
           metalness: 0.1
         });
 
-
       object =
         new THREE.Mesh(
           geometry,
@@ -499,7 +407,6 @@ async function import3DModel(file) {
         );
 
     } else {
-
       showStatus(
         "Unsupported 3D format"
       );
@@ -507,9 +414,7 @@ async function import3DModel(file) {
       return;
     }
 
-
     if (!object) {
-
       showStatus(
         "3D model could not be loaded"
       );
@@ -517,23 +422,18 @@ async function import3DModel(file) {
       return;
     }
 
-
     if (importedModel) {
-
       scene.remove(
         importedModel
       );
 
-
       importedModel.traverse(
         child => {
-
           if (child.geometry) {
             child.geometry.dispose();
           }
 
           if (child.material) {
-
             const materials =
               Array.isArray(
                 child.material
@@ -541,10 +441,8 @@ async function import3DModel(file) {
                 ? child.material
                 : [child.material];
 
-
             materials.forEach(
               material => {
-
                 if (material.map) {
                   material.map.dispose();
                 }
@@ -557,32 +455,31 @@ async function import3DModel(file) {
       );
     }
 
-
     importedModel =
       object;
 
+    cube.visible = false;
+
+    importedModel.visible =
+      true;
 
     scene.add(
       importedModel
     );
 
-
     fitModelToView(
       importedModel
     );
-
 
     showStatus(
       "3D model imported"
     );
 
   } catch (error) {
-
     console.error(
       "3D import error:",
       error
     );
-
 
     showStatus(
       "3D IMPORT ERROR: " +
@@ -594,39 +491,28 @@ async function import3DModel(file) {
   }
 }
 
-
-function fitModelToView(
-  object
-) {
-
+function fitModelToView(object) {
   const box =
     new THREE.Box3()
-      .setFromObject(
-        object
-      );
-
+      .setFromObject(object);
 
   if (box.isEmpty()) {
     return;
   }
-
 
   const center =
     box.getCenter(
       new THREE.Vector3()
     );
 
-
   const size =
     box.getSize(
       new THREE.Vector3()
     );
 
-
   object.position.sub(
     center
   );
-
 
   const maxSize =
     Math.max(
@@ -635,55 +521,40 @@ function fitModelToView(
       size.z
     );
 
-
   if (
     maxSize > 0 &&
     Number.isFinite(maxSize)
   ) {
-
     const scale =
       1.5 / maxSize;
-
 
     object.scale.setScalar(
       scale
     );
   }
 
-
-  object.position.z =
-    0;
+  object.position.z = 0;
 }
 
-
 if (modelButtonElement) {
-
   modelButtonElement.addEventListener(
     "click",
     () => {
-
       modelInput.value = "";
-
       modelInput.click();
     }
   );
 }
 
-
 if (modelInput) {
-
   modelInput.addEventListener(
     "change",
     event => {
-
       const file =
         event.target.files &&
         event.target.files[0];
 
-
-      import3DModel(
-        file
-      );
+      import3DModel(file);
     }
   );
 }
