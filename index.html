@@ -84,6 +84,11 @@ button {
   color: #000;
 }
 
+#flipButton {
+  background: #00aaff;
+  color: #fff;
+}
+
 #modelButton {
   background: #fff;
   color: #000;
@@ -95,7 +100,7 @@ button {
 }
 
 #fitButton {
-  background: #00aaff;
+  background: #9b59ff;
   color: #fff;
 }
 
@@ -146,7 +151,7 @@ input[type="range"] {
 <script type="importmap">
 {
   "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js?v=17",
+    "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js?v=18",
     "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
   }
 }
@@ -167,6 +172,8 @@ input[type="range"] {
 
   <button id="startButton">START CAMERA</button>
 
+  <button id="flipButton">FLIP CAMERA</button>
+
   <button id="modelButton">LOAD GLB MODEL</button>
 
   <input id="modelInput" type="file" accept=".glb">
@@ -182,12 +189,8 @@ input[type="range"] {
         <span>X Position</span>
         <span id="xValue" class="controlValue">0.00</span>
       </div>
-      <input id="xSlider"
-        type="range"
-        min="-2"
-        max="2"
-        step="0.01"
-        value="0">
+      <input id="xSlider" type="range"
+        min="-2" max="2" step="0.01" value="0">
     </div>
 
     <div class="control">
@@ -195,12 +198,8 @@ input[type="range"] {
         <span>Y Position</span>
         <span id="yValue" class="controlValue">0.00</span>
       </div>
-      <input id="ySlider"
-        type="range"
-        min="-2"
-        max="2"
-        step="0.01"
-        value="0">
+      <input id="ySlider" type="range"
+        min="-2" max="2" step="0.01" value="0">
     </div>
 
     <div class="control">
@@ -208,12 +207,8 @@ input[type="range"] {
         <span>Z Position</span>
         <span id="zValue" class="controlValue">0.00</span>
       </div>
-      <input id="zSlider"
-        type="range"
-        min="-3"
-        max="3"
-        step="0.01"
-        value="0">
+      <input id="zSlider" type="range"
+        min="-3" max="3" step="0.01" value="0">
     </div>
 
     <div class="control">
@@ -221,12 +216,8 @@ input[type="range"] {
         <span>Scale</span>
         <span id="scaleValue" class="controlValue">1.00</span>
       </div>
-      <input id="scaleSlider"
-        type="range"
-        min="0.1"
-        max="3"
-        step="0.01"
-        value="1">
+      <input id="scaleSlider" type="range"
+        min="0.1" max="3" step="0.01" value="1">
     </div>
 
     <div class="control">
@@ -234,12 +225,8 @@ input[type="range"] {
         <span>Rotate X</span>
         <span id="rotXValue" class="controlValue">0°</span>
       </div>
-      <input id="rotXSlider"
-        type="range"
-        min="-360"
-        max="360"
-        step="1"
-        value="0">
+      <input id="rotXSlider" type="range"
+        min="-360" max="360" step="1" value="0">
     </div>
 
     <div class="control">
@@ -247,12 +234,8 @@ input[type="range"] {
         <span>Rotate Y</span>
         <span id="rotYValue" class="controlValue">0°</span>
       </div>
-      <input id="rotYSlider"
-        type="range"
-        min="-360"
-        max="360"
-        step="1"
-        value="0">
+      <input id="rotYSlider" type="range"
+        min="-360" max="360" step="1" value="0">
     </div>
 
     <div class="control">
@@ -260,12 +243,8 @@ input[type="range"] {
         <span>Rotate Z</span>
         <span id="rotZValue" class="controlValue">0°</span>
       </div>
-      <input id="rotZSlider"
-        type="range"
-        min="-360"
-        max="360"
-        step="1"
-        value="0">
+      <input id="rotZSlider" type="range"
+        min="-360" max="360" step="1" value="0">
     </div>
 
     <button id="resetButton">RESET MODEL</button>
@@ -296,6 +275,9 @@ const status =
 
 const startButton =
   document.getElementById("startButton");
+
+const flipButton =
+  document.getElementById("flipButton");
 
 const modelButton =
   document.getElementById("modelButton");
@@ -363,11 +345,17 @@ let trackingStarted = false;
 
 let loadedModel = null;
 
-let modelCenter = new THREE.Vector3();
+let modelCenter =
+  new THREE.Vector3();
 
-let modelSize = new THREE.Vector3();
+let modelSize =
+  new THREE.Vector3();
 
 let headFitEnabled = false;
+
+let currentFacingMode = "user";
+
+let currentStream = null;
 
 
 const renderer =
@@ -378,7 +366,10 @@ const renderer =
   });
 
 renderer.setPixelRatio(
-  Math.min(window.devicePixelRatio || 1, 2)
+  Math.min(
+    window.devicePixelRatio || 1,
+    2
+  )
 );
 
 renderer.setSize(
@@ -394,7 +385,8 @@ const scene =
 const threeCamera =
   new THREE.PerspectiveCamera(
     45,
-    window.innerWidth / window.innerHeight,
+    window.innerWidth /
+    window.innerHeight,
     0.1,
     100
   );
@@ -419,7 +411,11 @@ anchor.add(modelPivot);
 
 
 const cubeGeometry =
-  new THREE.BoxGeometry(1, 1, 1);
+  new THREE.BoxGeometry(
+    1,
+    1,
+    1
+  );
 
 const cubeMaterial =
   new THREE.MeshNormalMaterial({
@@ -464,6 +460,7 @@ async function startCamera() {
     status.textContent =
       "OPENING CAMERA...";
 
+
     if (
       !navigator.mediaDevices ||
       !navigator.mediaDevices.getUserMedia
@@ -477,22 +474,28 @@ async function startCamera() {
 
 
     const stream =
-      await navigator.mediaDevices.getUserMedia({
+      await navigator.mediaDevices
+        .getUserMedia({
 
-        video: {
-          facingMode: "user",
-          width: {
-            ideal: 1280
+          video: {
+            facingMode:
+              currentFacingMode,
+
+            width: {
+              ideal: 1280
+            },
+
+            height: {
+              ideal: 720
+            }
           },
-          height: {
-            ideal: 720
-          }
-        },
 
-        audio: false
+          audio: false
+        });
 
-      });
 
+    currentStream =
+      stream;
 
     video.srcObject =
       stream;
@@ -501,7 +504,10 @@ async function startCamera() {
 
 
     status.textContent =
-      "CAMERA OK";
+      currentFacingMode === "user"
+        ? "FRONT CAMERA"
+        : "BACK CAMERA";
+
 
     startButton.style.display =
       "none";
@@ -519,6 +525,118 @@ async function startCamera() {
 }
 
 
+async function flipCamera() {
+
+  try {
+
+    if (!navigator.mediaDevices ||
+        !navigator.mediaDevices.getUserMedia) {
+
+      status.textContent =
+        "CAMERA NOT SUPPORTED";
+
+      return;
+    }
+
+
+    if (currentStream) {
+
+      currentStream
+        .getTracks()
+        .forEach(track => {
+          track.stop();
+        });
+
+      currentStream = null;
+    }
+
+
+    currentFacingMode =
+      currentFacingMode === "user"
+        ? "environment"
+        : "user";
+
+
+    status.textContent =
+      "SWITCHING CAMERA...";
+
+
+    let stream;
+
+
+    try {
+
+      stream =
+        await navigator.mediaDevices
+          .getUserMedia({
+
+            video: {
+              facingMode: {
+                exact:
+                  currentFacingMode
+              },
+
+              width: {
+                ideal: 1280
+              },
+
+              height: {
+                ideal: 720
+              }
+            },
+
+            audio: false
+          });
+
+    } catch (firstError) {
+
+      stream =
+        await navigator.mediaDevices
+          .getUserMedia({
+
+            video: {
+              facingMode:
+                currentFacingMode,
+
+              width: {
+                ideal: 1280
+              },
+
+              height: {
+                ideal: 720
+              }
+            },
+
+            audio: false
+          });
+    }
+
+
+    currentStream =
+      stream;
+
+    video.srcObject =
+      stream;
+
+    await video.play();
+
+
+    status.textContent =
+      currentFacingMode === "user"
+        ? "FRONT CAMERA"
+        : "BACK CAMERA";
+
+
+  } catch (error) {
+
+    console.error(error);
+
+    status.textContent =
+      "FLIP CAMERA ERROR";
+  }
+}
+
+
 async function loadFaceTracker() {
 
   try {
@@ -529,7 +647,7 @@ async function loadFaceTracker() {
 
     const vision =
       await import(
-        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/vision_bundle.mjs?v=17"
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/vision_bundle.mjs?v=18"
       );
 
 
@@ -546,36 +664,44 @@ async function loadFaceTracker() {
 
 
     faceLandmarker =
-      await FaceLandmarker.createFromOptions(
-        filesetResolver,
-        {
+      await FaceLandmarker
+        .createFromOptions(
+          filesetResolver,
+          {
 
-          baseOptions: {
+            baseOptions: {
 
-            modelAssetPath:
-              "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+              modelAssetPath:
+                "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
 
-            delegate: "GPU"
+              delegate:
+                "GPU"
 
-          },
+            },
 
-          runningMode: "VIDEO",
+            runningMode:
+              "VIDEO",
 
-          numFaces: 1,
+            numFaces:
+              1,
 
-          outputFaceBlendshapes: false,
+            outputFaceBlendshapes:
+              false,
 
-          outputFacialTransformationMatrixes: true
+            outputFacialTransformationMatrixes:
+              true
 
-        }
-      );
+          }
+        );
 
 
     status.textContent =
       "FACE TRACKER READY";
 
+
     trackingStarted =
       true;
+
 
     requestAnimationFrame(
       trackFace
@@ -591,7 +717,9 @@ async function loadFaceTracker() {
 }
 
 
-function drawLandmarks(landmarks) {
+function drawLandmarks(
+  landmarks
+) {
 
   const width =
     window.innerWidth;
@@ -607,14 +735,19 @@ function drawLandmarks(landmarks) {
 
 
   landmarkCanvas.width =
-    Math.round(width * dpr);
+    Math.round(
+      width * dpr
+    );
 
   landmarkCanvas.height =
-    Math.round(height * dpr);
+    Math.round(
+      height * dpr
+    );
 
 
   const ctx =
-    landmarkCanvas.getContext("2d");
+    landmarkCanvas
+      .getContext("2d");
 
 
   ctx.setTransform(
@@ -699,9 +832,7 @@ function drawLandmarks(landmarks) {
 modelButton.addEventListener(
   "click",
   () => {
-
     modelInput.click();
-
   }
 );
 
@@ -772,10 +903,9 @@ modelInput.addEventListener(
 
           status.textContent =
             "GLB LOAD ERROR";
-
         }
-
       );
+
 
     } catch (error) {
 
@@ -783,9 +913,7 @@ modelInput.addEventListener(
 
       status.textContent =
         "MODEL ERROR";
-
     }
-
   }
 );
 
@@ -888,11 +1016,18 @@ function applyModelSettings() {
   );
 
 
-  modelPivot.scale.set(
-    scale,
-    scale,
-    scale
-  );
+  if (!headFitEnabled) {
+
+    modelPivot.scale.set(
+      scale,
+      scale,
+      scale
+    );
+
+  } else {
+
+    applyHeadFit();
+  }
 
 
   modelPivot.rotation.set(
@@ -908,7 +1043,6 @@ function applyModelSettings() {
     THREE.MathUtils.degToRad(
       rotZ
     )
-
   );
 
 
@@ -994,17 +1128,27 @@ fitButton.addEventListener(
         : "HEAD FIT MODE";
 
 
-    status.textContent =
-      headFitEnabled
-        ? "HEAD FIT ENABLED"
-        : "HEAD FIT DISABLED";
+    if (headFitEnabled) {
 
+      applyHeadFit();
+
+      status.textContent =
+        "HEAD FIT ENABLED";
+
+    } else {
+
+      applyModelSettings();
+
+      status.textContent =
+        "HEAD FIT DISABLED";
+    }
   }
 );function applyHeadFit() {
 
   if (!loadedModel) return;
 
   if (!headFitEnabled) return;
+
 
   if (
     modelSize.x === 0 &&
@@ -1014,26 +1158,42 @@ fitButton.addEventListener(
     return;
   }
 
+
   const targetHeadSize = 1.0;
 
-  const largestDimension = Math.max(
-    modelSize.x,
-    modelSize.y,
-    modelSize.z
-  );
 
-  if (largestDimension <= 0) return;
+  const largestDimension =
+    Math.max(
+      modelSize.x,
+      modelSize.y,
+      modelSize.z
+    );
+
+
+  if (largestDimension <= 0) {
+    return;
+  }
+
 
   const fitScale =
-    targetHeadSize / largestDimension;
+    targetHeadSize /
+    largestDimension;
+
 
   const userScale =
-    parseFloat(scaleSlider.value);
+    parseFloat(
+      scaleSlider.value
+    );
+
+
+  const finalScale =
+    fitScale * userScale;
+
 
   modelPivot.scale.set(
-    fitScale * userScale,
-    fitScale * userScale,
-    fitScale * userScale
+    finalScale,
+    finalScale,
+    finalScale
   );
 }
 
@@ -1071,11 +1231,11 @@ resetButton.addEventListener(
         -modelCenter.y,
         -modelCenter.z
       );
-
     }
 
 
     applyModelSettings();
+
 
     status.textContent =
       "MODEL RESET";
@@ -1125,7 +1285,9 @@ function updateHeadAnchor(
     (faceX / width) * 2 - 1;
 
   const normalizedY =
-    -((faceY / height) * 2 - 1);
+    -(
+      (faceY / height) * 2 - 1
+    );
 
 
   anchor.position.x =
@@ -1175,6 +1337,7 @@ function updateHeadAnchor(
 
     const matrix =
       new THREE.Matrix4();
+
 
     matrix.fromArray(
       transformationMatrix
@@ -1251,10 +1414,11 @@ function trackFace() {
 
 
       const result =
-        faceLandmarker.detectForVideo(
-          video,
-          now
-        );
+        faceLandmarker
+          .detectForVideo(
+            video,
+            now
+          );
 
 
       if (
@@ -1271,8 +1435,7 @@ function trackFace() {
         );
 
 
-        let matrix =
-          null;
+        let matrix = null;
 
 
         if (
@@ -1302,12 +1465,12 @@ function trackFace() {
             )
             : "HEAD TRACKING: ON";
 
+
       } else {
 
         const ctx =
-          landmarkCanvas.getContext(
-            "2d"
-          );
+          landmarkCanvas
+            .getContext("2d");
 
 
         ctx.clearRect(
@@ -1345,6 +1508,7 @@ function render() {
     render
   );
 
+
   renderer.render(
     scene,
     threeCamera
@@ -1377,7 +1541,6 @@ window.addEventListener(
 
 
     threeCamera.updateProjectionMatrix();
-
   }
 );
 
@@ -1385,6 +1548,12 @@ window.addEventListener(
 startButton.addEventListener(
   "click",
   startCamera
+);
+
+
+flipButton.addEventListener(
+  "click",
+  flipCamera
 );
 
 </script>
