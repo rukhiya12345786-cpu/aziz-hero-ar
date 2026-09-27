@@ -96,14 +96,22 @@ html, body {
 <script type="module">
 
 import * as THREE from
-"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js?v=11";
+"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js?v=12";
 
-const video = document.getElementById("camera");
-const threeCanvas = document.getElementById("threeCanvas");
-const landmarkCanvas = document.getElementById("landmarkCanvas");
+const video =
+    document.getElementById("camera");
 
-const status = document.getElementById("status");
-const startButton = document.getElementById("startButton");
+const threeCanvas =
+    document.getElementById("threeCanvas");
+
+const landmarkCanvas =
+    document.getElementById("landmarkCanvas");
+
+const status =
+    document.getElementById("status");
+
+const startButton =
+    document.getElementById("startButton");
 
 let faceLandmarker = null;
 let trackingStarted = false;
@@ -111,11 +119,12 @@ let trackingStarted = false;
 
 /* THREE */
 
-const renderer = new THREE.WebGLRenderer({
-    canvas: threeCanvas,
-    alpha: true,
-    antialias: true
-});
+const renderer =
+    new THREE.WebGLRenderer({
+        canvas: threeCanvas,
+        alpha: true,
+        antialias: true
+    });
 
 renderer.setPixelRatio(
     Math.min(window.devicePixelRatio, 2)
@@ -126,14 +135,19 @@ renderer.setSize(
     window.innerHeight
 );
 
-const scene = new THREE.Scene();
 
-const threeCamera = new THREE.PerspectiveCamera(
-    45,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    100
-);
+const scene =
+    new THREE.Scene();
+
+
+const threeCamera =
+    new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth /
+        window.innerHeight,
+        0.1,
+        100
+    );
 
 threeCamera.position.z = 5;
 
@@ -141,10 +155,15 @@ threeCamera.position.z = 5;
 /* CUBE */
 
 const cubeGeometry =
-    new THREE.BoxGeometry(1, 1, 1);
+    new THREE.BoxGeometry(
+        1,
+        1,
+        1
+    );
 
 const cubeMaterial =
     new THREE.MeshNormalMaterial();
+
 
 const cube =
     new THREE.Mesh(
@@ -161,11 +180,13 @@ cube.scale.set(
 scene.add(cube);
 
 
-/* CUBE ANIMATION */
+/* RENDER */
 
 function animateCube() {
 
-    requestAnimationFrame(animateCube);
+    requestAnimationFrame(
+        animateCube
+    );
 
     renderer.render(
         scene,
@@ -186,7 +207,8 @@ async function startCamera() {
             "OPENING CAMERA...";
 
         const stream =
-            await navigator.mediaDevices.getUserMedia({
+            await navigator.mediaDevices
+            .getUserMedia({
                 video: {
                     facingMode: "user",
                     width: {
@@ -199,7 +221,8 @@ async function startCamera() {
                 audio: false
             });
 
-        video.srcObject = stream;
+        video.srcObject =
+            stream;
 
         await video.play();
 
@@ -240,16 +263,21 @@ async function loadFaceTracker() {
             FilesetResolver
         } = vision;
 
+
         const filesetResolver =
-            await FilesetResolver.forVisionTasks(
+            await FilesetResolver
+            .forVisionTasks(
                 "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm"
             );
 
+
         faceLandmarker =
-            await FaceLandmarker.createFromOptions(
+            await FaceLandmarker
+            .createFromOptions(
                 filesetResolver,
                 {
                     baseOptions: {
+
                         modelAssetPath:
                             "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
 
@@ -260,18 +288,23 @@ async function loadFaceTracker() {
 
                     numFaces: 1,
 
-                    outputFaceBlendshapes: false,
+                    outputFaceBlendshapes:
+                        false,
 
-                    outputFacialTransformationMatrixes: true
+                    outputFacialTransformationMatrixes:
+                        true
                 }
             );
+
 
         status.textContent =
             "FACE TRACKER READY";
 
         trackingStarted = true;
 
-        requestAnimationFrame(trackFace);
+        requestAnimationFrame(
+            trackFace
+        );
 
     } catch (error) {
 
@@ -285,7 +318,9 @@ async function loadFaceTracker() {
 
 /* GREEN DOTS */
 
-function drawLandmarks(landmarks) {
+function drawLandmarks(
+    landmarks
+) {
 
     const width =
         window.innerWidth;
@@ -299,14 +334,23 @@ function drawLandmarks(landmarks) {
             2
         );
 
+
     landmarkCanvas.width =
-        Math.round(width * dpr);
+        Math.round(
+            width * dpr
+        );
 
     landmarkCanvas.height =
-        Math.round(height * dpr);
+        Math.round(
+            height * dpr
+        );
+
 
     const ctx =
-        landmarkCanvas.getContext("2d");
+        landmarkCanvas.getContext(
+            "2d"
+        );
+
 
     ctx.setTransform(
         dpr,
@@ -317,6 +361,7 @@ function drawLandmarks(landmarks) {
         0
     );
 
+
     ctx.clearRect(
         0,
         0,
@@ -324,13 +369,17 @@ function drawLandmarks(landmarks) {
         height
     );
 
-    for (const point of landmarks) {
+
+    for (
+        const point of landmarks
+    ) {
 
         const x =
             point.x * width;
 
         const y =
             point.y * height;
+
 
         ctx.beginPath();
 
@@ -347,6 +396,7 @@ function drawLandmarks(landmarks) {
 
         ctx.fill();
 
+
         ctx.beginPath();
 
         ctx.arc(
@@ -361,6 +411,7 @@ function drawLandmarks(landmarks) {
             "#00ff00";
 
         ctx.fill();
+
 
         ctx.beginPath();
 
@@ -377,10 +428,14 @@ function drawLandmarks(landmarks) {
 
         ctx.fill();
     }
-}/* FACE TO CUBE TRACKING */
+}/* =========================================
+   3D HEAD TRACKING
+========================================= */
 
-function updateCubeFromFace(landmarks) {
-
+function updateCubeFromFace(
+    landmarks,
+    transformationMatrix
+) {
     const width =
         window.innerWidth;
 
@@ -388,25 +443,11 @@ function updateCubeFromFace(landmarks) {
         window.innerHeight;
 
 
-    /* Nose */
+    /* Nose position */
 
     const nose =
         landmarks[1];
 
-
-    /* Left eye */
-
-    const leftEye =
-        landmarks[33];
-
-
-    /* Right eye */
-
-    const rightEye =
-        landmarks[263];
-
-
-    /* Face position */
 
     const faceX =
         nose.x * width;
@@ -415,7 +456,7 @@ function updateCubeFromFace(landmarks) {
         nose.y * height;
 
 
-    /* Move cube to face */
+    /* Screen position */
 
     const normalizedX =
         (faceX / width) * 2 - 1;
@@ -433,11 +474,19 @@ function updateCubeFromFace(landmarks) {
 
     /* Face size */
 
+    const leftEye =
+        landmarks[33];
+
+    const rightEye =
+        landmarks[263];
+
+
     const dx =
         rightEye.x - leftEye.x;
 
     const dy =
         rightEye.y - leftEye.y;
+
 
     const eyeDistance =
         Math.sqrt(
@@ -463,20 +512,73 @@ function updateCubeFromFace(landmarks) {
     );
 
 
-    /* Head left/right rotation */
+    /* =====================================
+       MEDIAPIPE 3D TRANSFORMATION MATRIX
+    ===================================== */
 
-    const angle =
-        Math.atan2(
-            dy,
-            dx
+    if (
+        transformationMatrix &&
+        transformationMatrix.length >= 16
+    ) {
+
+        const matrix =
+            new THREE.Matrix4();
+
+
+        matrix.fromArray(
+            transformationMatrix
         );
 
-    cube.rotation.z =
-        -angle;
+
+        const position =
+            new THREE.Vector3();
+
+        const quaternion =
+            new THREE.Quaternion();
+
+        const scale =
+            new THREE.Vector3();
+
+
+        matrix.decompose(
+            position,
+            quaternion,
+            scale
+        );
+
+
+        /*
+         * Convert MediaPipe rotation
+         * into Three.js rotation.
+         */
+
+        const euler =
+            new THREE.Euler()
+            .setFromQuaternion(
+                quaternion,
+                "YXZ"
+            );
+
+
+        /*
+         * Head turn
+         */
+
+        cube.rotation.x =
+            euler.x;
+
+        cube.rotation.y =
+            euler.y;
+
+        cube.rotation.z =
+            euler.z;
+    }
 }
 
 
-/* FACE TRACKING */
+/* =========================================
+   FACE TRACKING LOOP
+========================================= */
 
 function trackFace() {
 
@@ -493,15 +595,19 @@ function trackFace() {
     }
 
 
-    if (video.readyState >= 2) {
+    if (
+        video.readyState >= 2
+    ) {
 
         try {
 
             const now =
                 performance.now();
 
+
             const result =
-                faceLandmarker.detectForVideo(
+                faceLandmarker
+                .detectForVideo(
                     video,
                     now
                 );
@@ -523,20 +629,41 @@ function trackFace() {
                 );
 
 
-                /* Cube follows face */
+                /* 3D head tracking */
+
+                let matrix = null;
+
+
+                if (
+                    result
+                    .facialTransformationMatrixes &&
+                    result
+                    .facialTransformationMatrixes
+                    .length > 0
+                ) {
+
+                    matrix =
+                        result
+                        .facialTransformationMatrixes[0]
+                        .data;
+                }
+
 
                 updateCubeFromFace(
-                    landmarks
+                    landmarks,
+                    matrix
                 );
 
 
                 status.textContent =
-                    "HEAD TRACKING: ON";
+                    "3D HEAD TRACKING: ON";
 
             } else {
 
                 const ctx =
-                    landmarkCanvas.getContext("2d");
+                    landmarkCanvas
+                    .getContext("2d");
+
 
                 ctx.clearRect(
                     0,
@@ -544,6 +671,7 @@ function trackFace() {
                     landmarkCanvas.width,
                     landmarkCanvas.height
                 );
+
 
                 status.textContent =
                     "FACE NOT FOUND";
@@ -565,7 +693,9 @@ function trackFace() {
 }
 
 
-/* RESIZE */
+/* =========================================
+   RESIZE
+========================================= */
 
 window.addEventListener(
     "resize",
@@ -576,9 +706,11 @@ window.addEventListener(
             window.innerHeight
         );
 
+
         threeCamera.aspect =
             window.innerWidth /
             window.innerHeight;
+
 
         threeCamera.updateProjectionMatrix();
 
@@ -586,7 +718,9 @@ window.addEventListener(
 );
 
 
-/* START */
+/* =========================================
+   START
+========================================= */
 
 startButton.addEventListener(
     "click",
