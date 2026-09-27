@@ -352,3 +352,338 @@ animate3D();
 showStatus(
   "Camera + 3D ready"
 );
+const modelInput =
+  document.getElementById("import3DInput");
+
+const modelButtonElement =
+  document.getElementById("modelButton");
+
+
+let importedModel = null;
+
+
+async function loadThreeAddon(path) {
+
+  return await import(
+    path
+  );
+}
+
+
+async function import3DModel(file) {
+
+  if (!file) {
+    return;
+  }
+
+
+  try {
+
+    showStatus(
+      "Loading 3D model..."
+    );
+
+
+    const fileName =
+      file.name.toLowerCase();
+
+
+    let object = null;
+
+
+    if (
+      fileName.endsWith(".glb") ||
+      fileName.endsWith(".gltf")
+    ) {
+
+      const module =
+        await loadThreeAddon(
+          "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js"
+        );
+
+
+      const loader =
+        new module.GLTFLoader();
+
+
+      const url =
+        URL.createObjectURL(file);
+
+
+      const result =
+        await loader.loadAsync(
+          url
+        );
+
+
+      URL.revokeObjectURL(
+        url
+      );
+
+
+      object =
+        result.scene;
+
+    } else if (
+      fileName.endsWith(".obj")
+    ) {
+
+      const module =
+        await loadThreeAddon(
+          "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/OBJLoader.js"
+        );
+
+
+      const loader =
+        new module.OBJLoader();
+
+
+      const url =
+        URL.createObjectURL(file);
+
+
+      object =
+        await loader.loadAsync(
+          url
+        );
+
+
+      URL.revokeObjectURL(
+        url
+      );
+
+    } else if (
+      fileName.endsWith(".stl")
+    ) {
+
+      const module =
+        await loadThreeAddon(
+          "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/STLLoader.js"
+        );
+
+
+      const loader =
+        new module.STLLoader();
+
+
+      const url =
+        URL.createObjectURL(file);
+
+
+      const geometry =
+        await loader.loadAsync(
+          url
+        );
+
+
+      URL.revokeObjectURL(
+        url
+      );
+
+
+      geometry.computeVertexNormals();
+
+
+      const material =
+        new THREE.MeshStandardMaterial({
+          color: 0xffffff,
+          roughness: 0.6,
+          metalness: 0.1
+        });
+
+
+      object =
+        new THREE.Mesh(
+          geometry,
+          material
+        );
+
+    } else {
+
+      showStatus(
+        "Unsupported 3D format"
+      );
+
+      return;
+    }
+
+
+    if (!object) {
+
+      showStatus(
+        "3D model could not be loaded"
+      );
+
+      return;
+    }
+
+
+    if (importedModel) {
+
+      scene.remove(
+        importedModel
+      );
+
+
+      importedModel.traverse(
+        child => {
+
+          if (child.geometry) {
+            child.geometry.dispose();
+          }
+
+          if (child.material) {
+
+            const materials =
+              Array.isArray(
+                child.material
+              )
+                ? child.material
+                : [child.material];
+
+
+            materials.forEach(
+              material => {
+
+                if (material.map) {
+                  material.map.dispose();
+                }
+
+                material.dispose();
+              }
+            );
+          }
+        }
+      );
+    }
+
+
+    importedModel =
+      object;
+
+
+    scene.add(
+      importedModel
+    );
+
+
+    fitModelToView(
+      importedModel
+    );
+
+
+    showStatus(
+      "3D model imported"
+    );
+
+  } catch (error) {
+
+    console.error(
+      "3D import error:",
+      error
+    );
+
+
+    showStatus(
+      "3D IMPORT ERROR: " +
+      (
+        error.message ||
+        "Unable to load model"
+      )
+    );
+  }
+}
+
+
+function fitModelToView(
+  object
+) {
+
+  const box =
+    new THREE.Box3()
+      .setFromObject(
+        object
+      );
+
+
+  if (box.isEmpty()) {
+    return;
+  }
+
+
+  const center =
+    box.getCenter(
+      new THREE.Vector3()
+    );
+
+
+  const size =
+    box.getSize(
+      new THREE.Vector3()
+    );
+
+
+  object.position.sub(
+    center
+  );
+
+
+  const maxSize =
+    Math.max(
+      size.x,
+      size.y,
+      size.z
+    );
+
+
+  if (
+    maxSize > 0 &&
+    Number.isFinite(maxSize)
+  ) {
+
+    const scale =
+      1.5 / maxSize;
+
+
+    object.scale.setScalar(
+      scale
+    );
+  }
+
+
+  object.position.z =
+    0;
+}
+
+
+if (modelButtonElement) {
+
+  modelButtonElement.addEventListener(
+    "click",
+    () => {
+
+      modelInput.value = "";
+
+      modelInput.click();
+    }
+  );
+}
+
+
+if (modelInput) {
+
+  modelInput.addEventListener(
+    "change",
+    event => {
+
+      const file =
+        event.target.files &&
+        event.target.files[0];
+
+
+      import3DModel(
+        file
+      );
+    }
+  );
+}
