@@ -848,15 +848,42 @@ async function startFaceMeshTracking() {
         });
 
         faceMeshDetector.onResults((results) => {
-            if (
-                results.multiFaceLandmarks &&
-                results.multiFaceLandmarks.length > 0
-            ) {
-                status.textContent = "FACE DETECTED";
-            } else {
-                status.textContent = "NO FACE DETECTED";
-            }
-        });
+    if (
+        results.multiFaceLandmarks &&
+        results.multiFaceLandmarks.length > 0
+    ) {
+        status.textContent = "FACE DETECTED";
+
+        const landmarks = results.multiFaceLandmarks[0];
+
+        const nose = landmarks[1];
+        const leftEye = landmarks[33];
+        const rightEye = landmarks[263];
+
+        if (typeof importedModel !== "undefined" && importedModel) {
+            const x = (nose.x - 0.5) * 4;
+            const y = -(nose.y - 0.5) * 3;
+
+            importedModel.position.x = x;
+            importedModel.position.y = y;
+
+            const eyeDistance = Math.sqrt(
+                Math.pow(rightEye.x - leftEye.x, 2) +
+                Math.pow(rightEye.y - leftEye.y, 2)
+            );
+
+            const newScale = Math.max(0.1, eyeDistance * 8);
+
+            importedModel.scale.set(
+                newScale,
+                newScale,
+                newScale
+            );
+        }
+    } else {
+        status.textContent = "NO FACE DETECTED";
+    }
+});
 
         faceMeshRunning = true;
         status.textContent = "FACE TRACKING STARTING";
