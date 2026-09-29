@@ -2,163 +2,190 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Azeez AR Head Tracker</title>
-
-<style>
-*{
-  box-sizing:border-box;
-  -webkit-tap-highlight-color:transparent;
-}
-
-html,
-body{
-  margin:0;
-  padding:0;
-  width:100%;
-  height:100%;
-  overflow:hidden;
-  background:#000;
-  font-family:Arial,sans-serif;
-}
-
-#stage{
-  position:fixed;
-  inset:0;
-  overflow:hidden;
-  background:#000;
-}
-
-#camera,
-#threeCanvas,
-#occlusionCanvas,
-#landmarkCanvas{
-  position:absolute;
-  inset:0;
-  width:100%;
-  height:100%;
-}
-
-#camera{
-  z-index:1;
-  object-fit:cover;
-  background:#000;
-}
-
-#threeCanvas{
-  z-index:2;
-  pointer-events:none;
-}
-
-#occlusionCanvas{
-  z-index:3;
-  pointer-events:none;
-}
-
-#landmarkCanvas{
-  z-index:4;
-  pointer-events:none;
-}
-
-#controls{
-  position:absolute;
-  z-index:20;
-  left:8px;
-  right:8px;
-  bottom:8px;
-  max-height:47vh;
-  overflow-y:auto;
-  padding:10px;
-  border-radius:14px;
-  background:rgba(0,0,0,.72);
-  color:#fff;
-  backdrop-filter:blur(8px);
-}
-
-.row{
-  display:flex;
-  flex-wrap:wrap;
-  gap:6px;
-  margin-bottom:7px;
-}
-
-button{
-  border:0;
-  border-radius:9px;
-  padding:9px 11px;
-  background:#222;
-  color:#fff;
-  font-size:13px;
-  font-weight:bold;
-}
-
-button:active{
-  transform:scale(.97);
-}
-
-input[type="range"]{
-  width:100%;
-  accent-color:#00ff66;
-}
-
-.control{
-  margin:5px 0;
-  font-size:12px;
-}
-
-.control label{
-  display:flex;
-  justify-content:space-between;
-  margin-bottom:3px;
-}
-
-.title{
-  color:#00ff66;
-  font-weight:bold;
-  margin-bottom:7px;
-  font-size:14px;
-}
-
-.section{
-  border-top:1px solid rgba(255,255,255,.15);
-  padding-top:7px;
-  margin-top:7px;
-}
-
-#status{
-  position:absolute;
-  z-index:30;
-  top:8px;
-  left:8px;
-  right:8px;
-  padding:8px 10px;
-  border-radius:9px;
-  background:rgba(0,0,0,.62);
-  color:#00ff66;
-  font-size:12px;
-  pointer-events:none;
-}
-
-#fileInput,
-#settingsInput{
-  display:none;
-}
-</style>
 
 <script type="importmap">
 {
-  "imports":{
-    "three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
-    "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
   }
 }
 </script>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  font-family: Arial, sans-serif;
+  color: #fff;
+}
+
+#app {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+}
+
+#camera {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(1);
+  z-index: 1;
+  background: #000;
+}
+
+#threeCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+  transform: scaleX(1);
+}
+
+#status {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  z-index: 20;
+  max-width: calc(100% - 20px);
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: rgba(0,0,0,0.65);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+#appControls {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.topControls {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  pointer-events: auto;
+}
+
+button,
+select,
+input {
+  font: inherit;
+}
+
+button,
+select {
+  min-height: 38px;
+  border: 0;
+  border-radius: 8px;
+  padding: 7px 10px;
+  background: rgba(20,20,20,0.86);
+  color: #fff;
+  font-size: 12px;
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+.sideControls {
+  position: absolute;
+  top: 115px;
+  right: 8px;
+  width: 145px;
+  max-width: calc(100% - 16px);
+  padding: 9px;
+  border-radius: 10px;
+  background: rgba(0,0,0,0.68);
+  pointer-events: auto;
+}
+
+.sideControls h3 {
+  margin: 0 0 7px;
+  font-size: 12px;
+}
+
+.controlRow {
+  margin-bottom: 7px;
+}
+
+.controlRow label {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 10px;
+}
+
+.controlRow input[type="range"] {
+  width: 100%;
+  height: 20px;
+  accent-color: #fff;
+}
+
+#showControlsButton {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 30;
+  display: none;
+  min-height: 36px;
+  padding: 7px 11px;
+  border-radius: 9px;
+  background: rgba(0,0,0,0.8);
+  color: #fff;
+}
+
+#modelFileInput {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .topControls {
+    right: 90px;
+  }
+
+  button,
+  select {
+    min-height: 34px;
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+
+  .sideControls {
+    top: 105px;
+    width: 132px;
+  }
+}
+</style>
 </head>
 
 <body>
 
-<div id="stage">
+<div id="app">
 
   <video
     id="camera"
@@ -169,2193 +196,130 @@ input[type="range"]{
 
   <canvas id="threeCanvas"></canvas>
 
-  <canvas id="occlusionCanvas"></canvas>
+  <div id="status">Ready</div>
 
-  <canvas id="landmarkCanvas"></canvas>
+  <div id="appControls">
 
-  <div id="status">Starting...</div>
+    <div class="topControls">
 
-  <div id="controls">
+      <button id="cameraButton" type="button">Open Camera</button>
+      <button id="switchCameraButton" type="button">Camera</button>
+      <button id="flipCameraButton" type="button">Flip</button>
+      <button id="photoButton" type="button">Photo</button>
+      <button id="recordButton" type="button">Record</button>
+      <button id="audioButton" type="button">Audio Off</button>
+      <button id="trackingButton" type="button">Tracking</button>
+      <button id="modelButton" type="button">3D Model</button>
+      <button id="import3DButton" type="button">Import 3D</button>
+      <button id="export3DButton" type="button">Export 3D</button>
 
-    <div class="title">
-      AZEEZ AR HEAD TRACKER
-    </div>
+      <select id="exportFormat">
+        <option value="glb">GLB</option>
+        <option value="gltf">GLTF</option>
+        <option value="obj">OBJ</option>
+      </select>
 
-    <div class="row">
-      <button id="openCameraBtn">
-        OPEN CAMERA
-      </button>
+      <button id="resetButton" type="button">Reset</button>
+      <button id="hideControlsButton" type="button">Hide Controls</button>
 
-      <button id="switchCameraBtn">
-        FRONT / BACK
-      </button>
+    </div>    <div id="sideControls" class="sideControls">
 
-      <button id="mirrorBtn">
-        MIRROR: OFF
-      </button>
-    </div>
+      <h3>3D Controls</h3>
 
-    <div class="row">
-      <button id="modelBtn">
-        IMPORT GLB
-      </button>
+      <div class="controlRow">
+        <label for="scaleSlider">Scale</label>
+        <input
+          id="scaleSlider"
+          type="range"
+          min="0.1"
+          max="5"
+          step="0.01"
+          value="1">
+      </div>
 
-      <button id="recordBtn">
-        START RECORD
-      </button>
-    </div>
-
-    <div class="row">
-      <button id="settingsExportBtn">
-        EXPORT SETTINGS
-      </button>
-
-      <button id="settingsImportBtn">
-        IMPORT SETTINGS
-      </button>
-
-      <button id="glbExportBtn">
-        EXPORT GLB
-      </button>
-    </div>
-
-    <input
-      id="fileInput"
-      type="file"
-      accept=".glb,.gltf">
-
-    <input
-      id="settingsInput"
-      type="file"
-      accept=".json">
-
-    <div class="section">
-
-      <div class="control">
-
-        <label>
-          <span>Position X</span>
-          <span id="xValue">0</span>
-        </label>
-
+      <div class="controlRow">
+        <label for="xSlider">Position X</label>
         <input
           id="xSlider"
-          type="range"
-          min="-2"
-          max="2"
-          step="0.01"
-          value="0">
-
-      </div>
-
-      <div class="control">
-
-        <label>
-          <span>Position Y</span>
-          <span id="yValue">0</span>
-        </label>
-
-        <input
-          id="ySlider"
-          type="range"
-          min="-2"
-          max="2"
-          step="0.01"
-          value="0">
-
-      </div>
-
-      <div class="control">
-
-        <label>
-          <span>Depth Z</span>
-          <span id="zValue">0</span>
-        </label>
-
-        <input
-          id="zSlider"
           type="range"
           min="-3"
           max="3"
           step="0.01"
           value="0">
-
       </div>
 
-      <div class="control">
-
-        <label>
-          <span>Scale</span>
-          <span id="scaleValue">1.00</span>
-        </label>
-
+      <div class="controlRow">
+        <label for="ySlider">Position Y</label>
         <input
-          id="scaleSlider"
+          id="ySlider"
           type="range"
-          min="0.1"
-          max="4"
+          min="-3"
+          max="3"
           step="0.01"
-          value="1">
-
+          value="0">
       </div>
 
-    </div>
-
-    <div class="section">
-
-      <div class="control">
-
-        <label>
-          <span>Rotation X</span>
-          <span id="rotXValue">0°</span>
-        </label>
-
+      <div class="controlRow">
+        <label for="zSlider">Position Z</label>
         <input
-          id="rotXSlider"
+          id="zSlider"
           type="range"
-          min="-360"
-          max="360"
+          min="-5"
+          max="5"
+          step="0.01"
+          value="0">
+      </div>
+
+      <div class="controlRow">
+        <label for="rotateXSlider">Rotation X</label>
+        <input
+          id="rotateXSlider"
+          type="range"
+          min="-180"
+          max="180"
           step="1"
           value="0">
-
       </div>
 
-      <div class="control">
-
-        <label>
-          <span>Rotation Y</span>
-          <span id="rotYValue">0°</span>
-        </label>
-
+      <div class="controlRow">
+        <label for="rotateYSlider">Rotation Y</label>
         <input
-          id="rotYSlider"
+          id="rotateYSlider"
           type="range"
-          min="-360"
-          max="360"
+          min="-180"
+          max="180"
           step="1"
           value="0">
-
       </div>
 
-      <div class="control">
-
-        <label>
-          <span>Rotation Z</span>
-          <span id="rotZValue">0°</span>
-        </label>
-
+      <div class="controlRow">
+        <label for="rotateZSlider">Rotation Z</label>
         <input
-          id="rotZSlider"
+          id="rotateZSlider"
           type="range"
-          min="-360"
-          max="360"
+          min="-180"
+          max="180"
           step="1"
           value="0">
-
       </div>
-
-    </div>
-
-    <div class="row">
-
-      <button id="resetBtn">
-        RESET
-      </button>
-
-      <button id="fitBtn">
-        HEAD FIT
-      </button>
-
-      <button id="depthBtn">
-        DEPTH MODE: FRONT
-      </button>
 
     </div>
 
   </div>
 
+  <button id="showControlsButton" type="button">
+    Show Controls
+  </button>
+
+  <input
+    id="import3DInput"
+    type="file"
+    accept=".glb,.gltf,.obj,.stl"
+    style="display:none;">
+
 </div>
 
-<script type="module">
-
-import * as THREE from "three";
-
-import {
-  GLTFLoader
-} from "three/addons/loaders/GLTFLoader.js";
-
-import {
-  GLTFExporter
-} from "three/addons/exporters/GLTFExporter.js";
-
-import {
-  FilesetResolver,
-  FaceLandmarker
-} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/vision_bundle.mjs";
-
-
-const video =
-  document.getElementById("camera");
-
-const threeCanvas =
-  document.getElementById("threeCanvas");
-
-const occlusionCanvas =
-  document.getElementById("occlusionCanvas");
-
-const landmarkCanvas =
-  document.getElementById("landmarkCanvas");
-
-const statusEl =
-  document.getElementById("status");
-
-
-const openCameraBtn =
-  document.getElementById("openCameraBtn");
-
-const switchCameraBtn =
-  document.getElementById("switchCameraBtn");
-
-const mirrorBtn =
-  document.getElementById("mirrorBtn");
-
-const modelBtn =
-  document.getElementById("modelBtn");
-
-const recordBtn =
-  document.getElementById("recordBtn");
-
-const settingsExportBtn =
-  document.getElementById("settingsExportBtn");
-
-const settingsImportBtn =
-  document.getElementById("settingsImportBtn");
-
-const glbExportBtn =
-  document.getElementById("glbExportBtn");
-
-const fileInput =
-  document.getElementById("fileInput");
-
-const settingsInput =
-  document.getElementById("settingsInput");
-
-
-const xSlider =
-  document.getElementById("xSlider");
-
-const ySlider =
-  document.getElementById("ySlider");
-
-const zSlider =
-  document.getElementById("zSlider");
-
-const scaleSlider =
-  document.getElementById("scaleSlider");
-
-const rotXSlider =
-  document.getElementById("rotXSlider");
-
-const rotYSlider =
-  document.getElementById("rotYSlider");
-
-const rotZSlider =
-  document.getElementById("rotZSlider");
-
-
-const xValue =
-  document.getElementById("xValue");
-
-const yValue =
-  document.getElementById("yValue");
-
-const zValue =
-  document.getElementById("zValue");
-
-const scaleValue =
-  document.getElementById("scaleValue");
-
-const rotXValue =
-  document.getElementById("rotXValue");
-
-const rotYValue =
-  document.getElementById("rotYValue");
-
-const rotZValue =
-  document.getElementById("rotZValue");
-
-
-const resetBtn =
-  document.getElementById("resetBtn");
-
-const fitBtn =
-  document.getElementById("fitBtn");
-
-const depthBtn =
-  document.getElementById("depthBtn");
-
-
-let stream = null;
-
-let facingMode = "user";
-
-let mirrorEnabled = false;
-
-let depthBehind = false;
-
-let faceLandmarker = null;
-
-let lastVideoTime = -1;
-
-let latestLandmarks = null;
-
-let latestTransformationMatrix = null;
-
-let headBoundary = [];
-
-let loadedModel = null;
-
-let mediaRecorder = null;
-
-let recordedChunks = [];
-
-let recordingCanvas = null;
-
-let recordingContext = null;
-
-let recordingAnimation = null;
-
-
-const renderer =
-  new THREE.WebGLRenderer({
-    canvas:threeCanvas,
-    alpha:true,
-    antialias:true,
-    preserveDrawingBuffer:true
-  });
-
-renderer.setPixelRatio(
-  Math.min(
-    window.devicePixelRatio || 1,
-    2
-  )
-);
-
-renderer.setClearColor(
-  0x000000,
-  0
-);
-
-
-const scene =
-  new THREE.Scene();
-
-
-const camera3D =
-  new THREE.PerspectiveCamera(
-    45,
-    1,
-    0.01,
-    100
-  );
-
-camera3D.position.set(
-  0,
-  0,
-  5
-);
-
-
-const ambient =
-  new THREE.AmbientLight(
-    0xffffff,
-    2.2
-  );
-
-scene.add(ambient);
-
-
-const directional =
-  new THREE.DirectionalLight(
-    0xffffff,
-    2.5
-  );
-
-directional.position.set(
-  2,
-  3,
-  5
-);
-
-scene.add(directional);
-
-
-const anchor =
-  new THREE.Group();
-
-scene.add(anchor);
-
-
-const modelPivot =
-  new THREE.Group();
-
-anchor.add(modelPivot);
-
-
-const loader =
-  new GLTFLoader();
-
-const exporter =
-  new GLTFExporter();
-
-
-function setStatus(message){
-
-  statusEl.textContent =
-    message;
-}
-
-
-function resizeCanvases(){
-
-  const w =
-    window.innerWidth;
-
-  const h =
-    window.innerHeight;
-
-  const dpr =
-    Math.min(
-      window.devicePixelRatio || 1,
-      2
-    );
-
-  threeCanvas.width =
-    Math.floor(w * dpr);
-
-  threeCanvas.height =
-    Math.floor(h * dpr);
-
-  occlusionCanvas.width =
-    Math.floor(w * dpr);
-
-  occlusionCanvas.height =
-    Math.floor(h * dpr);
-
-  landmarkCanvas.width =
-    Math.floor(w * dpr);
-
-  landmarkCanvas.height =
-    Math.floor(h * dpr);
-
-  threeCanvas.style.width =
-    w + "px";
-
-  threeCanvas.style.height =
-    h + "px";
-
-  occlusionCanvas.style.width =
-    w + "px";
-
-  occlusionCanvas.style.height =
-    h + "px";
-
-  landmarkCanvas.style.width =
-    w + "px";
-
-  landmarkCanvas.style.height =
-    h + "px";
-
-  renderer.setSize(
-    w,
-    h,
-    false
-  );
-
-  camera3D.aspect =
-    w / h;
-
-  camera3D.updateProjectionMatrix();
-}
-
-
-window.addEventListener(
-  "resize",
-  resizeCanvases
-);
-
-resizeCanvases();
-
-
-function updateLabels(){
-
-  xValue.textContent =
-    Number(xSlider.value)
-      .toFixed(2);
-
-  yValue.textContent =
-    Number(ySlider.value)
-      .toFixed(2);
-
-  zValue.textContent =
-    Number(zSlider.value)
-      .toFixed(2);
-
-  scaleValue.textContent =
-    Number(scaleSlider.value)
-      .toFixed(2);
-
-  rotXValue.textContent =
-    rotXSlider.value + "°";
-
-  rotYValue.textContent =
-    rotYSlider.value + "°";
-
-  rotZValue.textContent =
-    rotZSlider.value + "°";
-}
-
-
-function updateModelControls(){
-
-  modelPivot.position.x =
-    Number(xSlider.value);
-
-  modelPivot.position.y =
-    Number(ySlider.value);
-
-  modelPivot.position.z =
-    Number(zSlider.value);
-
-  const scale =
-    Number(scaleSlider.value);
-
-  modelPivot.scale.set(
-    scale,
-    scale,
-    scale
-  );
-
-  modelPivot.rotation.x =
-    THREE.MathUtils.degToRad(
-      Number(rotXSlider.value)
-    );
-
-  modelPivot.rotation.y =
-    THREE.MathUtils.degToRad(
-      Number(rotYSlider.value)
-    );
-
-  modelPivot.rotation.z =
-    THREE.MathUtils.degToRad(
-      Number(rotZSlider.value)
-    );
-
-  updateLabels();
-}
-
-
-[
-  xSlider,
-  ySlider,
-  zSlider,
-  scaleSlider,
-  rotXSlider,
-  rotYSlider,
-  rotZSlider
-].forEach(
-  slider => {
-
-    slider.addEventListener(
-      "input",
-      updateModelControls
-    );
-
-  }
-);
-
-
-function clearLoadedModel(){
-
-  if(!loadedModel){
-    return;
-  }
-
-  modelPivot.remove(
-    loadedModel
-  );
-
-  loadedModel.traverse(
-    object => {
-
-      if(object.geometry){
-        object.geometry.dispose();
-      }
-
-      if(object.material){
-
-        const materials =
-          Array.isArray(
-            object.material
-          )
-          ? object.material
-          : [object.material];
-
-        materials.forEach(
-          material => {
-
-            if(material.map){
-              material.map.dispose();
-            }
-
-            material.dispose();
-
-          }
-        );
-      }
-    }
-  );
-
-  loadedModel = null;
-}
-
-
-function loadGLBFile(file){
-
-  if(!file){
-    return;
-  }
-
-  setStatus(
-    "Loading 3D model..."
-  );
-
-  const url =
-    URL.createObjectURL(file);
-
-  loader.load(
-    url,
-
-    gltf => {
-
-      clearLoadedModel();
-
-      loadedModel =
-        gltf.scene;
-
-      modelPivot.add(
-        loadedModel
-      );
-
-      loadedModel.traverse(
-        object => {
-
-          if(!object.isMesh){
-            return;
-          }
-
-          object.castShadow =
-            true;
-
-          object.receiveShadow =
-            true;
-
-          if(object.material){
-
-            object.material.side =
-              THREE.DoubleSide;
-
-            object.material.depthTest =
-              true;
-
-            object.material.depthWrite =
-              true;
-          }
-        }
-      );
-
-      URL.revokeObjectURL(url);
-
-      setStatus(
-        "3D model loaded"
-      );
-    },
-
-    undefined,
-
-    error => {
-
-      console.error(error);
-
-      URL.revokeObjectURL(url);
-
-      setStatus(
-        "GLB LOAD ERROR"
-      );
-    }
-  );
-}
-
-
-modelBtn.addEventListener(
-  "click",
-  () => {
-
-    fileInput.value = "";
-
-    fileInput.click();
-
-  }
-);
-
-
-fileInput.addEventListener(
-  "change",
-  () => {
-
-    const file =
-      fileInput.files &&
-      fileInput.files[0];
-
-    loadGLBFile(file);
-
-  }
-);
-
-
-async function startCamera(){
-
-  try{
-
-    if(stream){
-
-      stream.getTracks()
-        .forEach(
-          track =>
-            track.stop()
-        );
-
-      stream = null;
-    }
-
-    stream =
-      await navigator.mediaDevices
-        .getUserMedia({
-
-          video:{
-            facingMode:{
-              ideal:facingMode
-            },
-
-            width:{
-              ideal:1280
-            },
-
-            height:{
-              ideal:720
-            }
-          },
-
-          audio:true
-
-        });
-
-    video.srcObject =
-      stream;
-
-    await video.play();
-
-    applyVideoTransform();
-
-    setStatus(
-      "Camera ready - tracking..."
-    );
-
-  }catch(error){
-
-    console.error(error);
-
-    setStatus(
-      "CAMERA ERROR: " +
-      error.message
-    );
-  }
-}
-
-
-openCameraBtn.addEventListener(
-  "click",
-  async () => {
-
-    await startCamera();
-
-  }
-);
-
-
-function applyVideoTransform(){
-
-  video.style.transform =
-    mirrorEnabled
-      ? "scaleX(-1)"
-      : "scaleX(1)";
-}
-
-
-mirrorBtn.addEventListener(
-  "click",
-  () => {
-
-    mirrorEnabled =
-      !mirrorEnabled;
-
-    mirrorBtn.textContent =
-      mirrorEnabled
-        ? "MIRROR: ON"
-        : "MIRROR: OFF";
-
-    applyVideoTransform();
-
-  }
-);
-
-
-switchCameraBtn.addEventListener(
-  "click",
-  async () => {
-
-    facingMode =
-      facingMode === "user"
-        ? "environment"
-        : "user";
-
-    await startCamera();
-
-  }
-);
-
-
-async function createFaceLandmarker(){
-
-  try{
-
-    setStatus(
-      "Loading face tracking..."
-    );
-
-    const vision =
-      await FilesetResolver
-        .forVisionTasks(
-          "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm"
-        );
-
-    faceLandmarker =
-      await FaceLandmarker
-        .createFromOptions(
-          vision,
-          {
-
-            baseOptions:{
-              modelAssetPath:
-                "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-
-              delegate:"GPU"
-            },
-
-            runningMode:"VIDEO",
-
-            numFaces:1,
-
-            outputFaceBlendshapes:false,
-
-            outputFacialTransformationMatrixes:true
-          }
-        );
-
-    setStatus(
-      "Face tracking ready"
-    );
-
-    requestAnimationFrame(
-      trackingLoop
-    );
-
-  }catch(error){
-
-    console.error(error);
-
-    setStatus(
-      "FACE MODEL ERROR: " +
-      error.message
-    );
-  }
-}
-
-
-function getCanvasPoint(
-  landmark,
-  canvas
-){
-
-  return {
-
-    x:
-      landmark.x *
-      canvas.width,
-
-    y:
-      landmark.y *
-      canvas.height
-
-  };
-}
-
-
-function drawLandmarks(){
-
-  const ctx =
-    landmarkCanvas.getContext(
-      "2d"
-    );
-
-  ctx.clearRect(
-    0,
-    0,
-    landmarkCanvas.width,
-    landmarkCanvas.height
-  );
-
-  if(!latestLandmarks){
-    return;
-  }
-
-  ctx.fillStyle =
-    "#00ff66";
-
-  for(
-    const point
-    of latestLandmarks
-  ){
-
-    const p =
-      getCanvasPoint(
-        point,
-        landmarkCanvas
-      );
-
-    ctx.beginPath();
-
-    ctx.arc(
-      p.x,
-      p.y,
-      2.3,
-      0,
-      Math.PI * 2
-    );
-
-    ctx.fill();
-  }
-
-  drawHeadOutline(ctx);
-}
-
-
-function drawHeadOutline(ctx){
-
-  if(!latestLandmarks){
-    return;
-  }
-
-  const ids = [
-
-    10,
-    338,
-    297,
-    332,
-    284,
-    251,
-    389,
-    356,
-    454,
-    323,
-    361,
-    288,
-    397,
-    365,
-    379,
-    378,
-    400,
-    377,
-    152,
-    148,
-    176,
-    149,
-    150,
-    136,
-    172,
-    58,
-    132,
-    93,
-    234,
-    127,
-    162,
-    21,
-    54,
-    103,
-    67,
-    109,
-    10
-
-  ];
-
-  headBoundary = [];
-
-  ctx.beginPath();
-
-  ids.forEach(
-    (id,index) => {
-
-      const point =
-        latestLandmarks[id];
-
-      if(!point){
-        return;
-      }
-
-      const p =
-        getCanvasPoint(
-          point,
-          landmarkCanvas
-        );
-
-      headBoundary.push(p);
-
-      if(index === 0){
-
-        ctx.moveTo(
-          p.x,
-          p.y
-        );
-
-      }else{
-
-        ctx.lineTo(
-          p.x,
-          p.y
-        );
-      }
-    }
-  );
-
-  ctx.closePath();
-
-  ctx.strokeStyle =
-    "#00ff66";
-
-  ctx.lineWidth =
-    2;
-
-  ctx.stroke();
-
-  ctx.fillStyle =
-    "#00ff66";
-
-  headBoundary.forEach(
-    p => {
-
-      ctx.beginPath();
-
-      ctx.arc(
-        p.x,
-        p.y,
-        3,
-        0,
-        Math.PI * 2
-      );
-
-      ctx.fill();
-
-    }
-  );
-}function drawOcclusion(){
-
-  const ctx =
-    occlusionCanvas.getContext("2d");
-
-  ctx.clearRect(
-    0,
-    0,
-    occlusionCanvas.width,
-    occlusionCanvas.height
-  );
-
-  if(
-    !depthBehind ||
-    !latestLandmarks ||
-    headBoundary.length < 3 ||
-    video.readyState < 2
-  ){
-    return;
-  }
-
-  ctx.save();
-
-  ctx.beginPath();
-
-  headBoundary.forEach(
-    (p,index) => {
-
-      if(index === 0){
-
-        ctx.moveTo(
-          p.x,
-          p.y
-        );
-
-      }else{
-
-        ctx.lineTo(
-          p.x,
-          p.y
-        );
-      }
-    }
-  );
-
-  ctx.closePath();
-
-  ctx.clip();
-
-  ctx.drawImage(
-    video,
-    0,
-    0,
-    occlusionCanvas.width,
-    occlusionCanvas.height
-  );
-
-  ctx.restore();
-}
-
-
-function updateHeadAnchor(){
-
-  if(
-    !latestLandmarks ||
-    latestLandmarks.length === 0
-  ){
-    return;
-  }
-
-  const nose =
-    latestLandmarks[1];
-
-  const leftEye =
-    latestLandmarks[33];
-
-  const rightEye =
-    latestLandmarks[263];
-
-  if(
-    !nose ||
-    !leftEye ||
-    !rightEye
-  ){
-    return;
-  }
-
-  const eyeCenterX =
-    (leftEye.x + rightEye.x) * 0.5;
-
-  const eyeCenterY =
-    (leftEye.y + rightEye.y) * 0.5;
-
-  const eyeDistance =
-    Math.max(
-      0.001,
-      Math.abs(
-        rightEye.x -
-        leftEye.x
-      )
-    );
-
-  const headCenterX =
-    (eyeCenterX + nose.x) * 0.5;
-
-  const headCenterY =
-    (eyeCenterY + nose.y) * 0.5;
-
-  const screenX =
-    (headCenterX - 0.5) * 2.0;
-
-  const screenY =
-    -(headCenterY - 0.5) * 2.0;
-
-  anchor.position.x =
-    screenX;
-
-  anchor.position.y =
-    screenY;
-
-  anchor.position.z =
-    -eyeDistance * 0.95;
-
-  if(
-    latestTransformationMatrix &&
-    latestTransformationMatrix.data
-  ){
-
-    const elements =
-      latestTransformationMatrix.data;
-
-    if(
-      elements.length >= 16
-    ){
-
-      const matrix =
-        new THREE.Matrix4();
-
-      matrix.fromArray(
-        elements
-      );
-
-      const rotation =
-        new THREE.Matrix4();
-
-      rotation.extractRotation(
-        matrix
-      );
-
-      anchor.quaternion
-        .setFromRotationMatrix(
-          rotation
-        );
-    }
-  }
-}
-
-
-function trackingLoop(){
-
-  requestAnimationFrame(
-    trackingLoop
-  );
-
-  if(
-    !faceLandmarker ||
-    video.readyState < 2 ||
-    video.videoWidth === 0
-  ){
-    return;
-  }
-
-  const currentTime =
-    performance.now();
-
-  if(
-    video.currentTime ===
-    lastVideoTime
-  ){
-    return;
-  }
-
-  lastVideoTime =
-    video.currentTime;
-
-  try{
-
-    const result =
-      faceLandmarker.detectForVideo(
-        video,
-        currentTime
-      );
-
-    if(
-      result &&
-      result.faceLandmarks &&
-      result.faceLandmarks.length
-    ){
-
-      latestLandmarks =
-        result.faceLandmarks[0];
-
-      if(
-        result.facialTransformationMatrixes &&
-        result.facialTransformationMatrixes.length
-      ){
-
-        latestTransformationMatrix =
-          result.facialTransformationMatrixes[0];
-      }else{
-
-        latestTransformationMatrix =
-          null;
-      }
-
-      updateHeadAnchor();
-
-      drawLandmarks();
-
-      drawOcclusion();
-
-    }else{
-
-      latestLandmarks =
-        null;
-
-      latestTransformationMatrix =
-        null;
-
-      headBoundary = [];
-
-      const lctx =
-        landmarkCanvas.getContext(
-          "2d"
-        );
-
-      const octx =
-        occlusionCanvas.getContext(
-          "2d"
-        );
-
-      lctx.clearRect(
-        0,
-        0,
-        landmarkCanvas.width,
-        landmarkCanvas.height
-      );
-
-      octx.clearRect(
-        0,
-        0,
-        occlusionCanvas.width,
-        occlusionCanvas.height
-      );
-    }
-
-  }catch(error){
-
-    console.error(
-      "Tracking error:",
-      error
-    );
-
-    setStatus(
-      "TRACKING ERROR"
-    );
-  }
-
-  renderer.render(
-    scene,
-    camera3D
-  );
-}
-
-
-depthBtn.addEventListener(
-  "click",
-  () => {
-
-    depthBehind =
-      !depthBehind;
-
-    depthBtn.textContent =
-      depthBehind
-        ? "DEPTH MODE: BEHIND"
-        : "DEPTH MODE: FRONT";
-
-    if(depthBehind){
-
-      occlusionCanvas.style.display =
-        "block";
-
-      setStatus(
-        "Depth mode: BEHIND"
-      );
-
-    }else{
-
-      const ctx =
-        occlusionCanvas.getContext(
-          "2d"
-        );
-
-      ctx.clearRect(
-        0,
-        0,
-        occlusionCanvas.width,
-        occlusionCanvas.height
-      );
-
-      setStatus(
-        "Depth mode: FRONT"
-      );
-    }
-  }
-);
-
-
-resetBtn.addEventListener(
-  "click",
-  () => {
-
-    xSlider.value =
-      "0";
-
-    ySlider.value =
-      "0";
-
-    zSlider.value =
-      "0";
-
-    scaleSlider.value =
-      "1";
-
-    rotXSlider.value =
-      "0";
-
-    rotYSlider.value =
-      "0";
-
-    rotZSlider.value =
-      "0";
-
-    depthBehind =
-      false;
-
-    depthBtn.textContent =
-      "DEPTH MODE: FRONT";
-
-    updateModelControls();
-
-    setStatus(
-      "Controls reset"
-    );
-  }
-);
-
-
-fitBtn.addEventListener(
-  "click",
-  () => {
-
-    if(!latestLandmarks){
-
-      setStatus(
-        "Face not detected"
-      );
-
-      return;
-    }
-
-    const leftEye =
-      latestLandmarks[33];
-
-    const rightEye =
-      latestLandmarks[263];
-
-    if(
-      !leftEye ||
-      !rightEye
-    ){
-      return;
-    }
-
-    const eyeDistance =
-      Math.abs(
-        rightEye.x -
-        leftEye.x
-      );
-
-    const targetScale =
-      THREE.MathUtils.clamp(
-        eyeDistance * 4.5,
-        0.15,
-        4
-      );
-
-    scaleSlider.value =
-      targetScale.toFixed(2);
-
-    xSlider.value =
-      "0";
-
-    ySlider.value =
-      "0";
-
-    zSlider.value =
-      "0";
-
-    updateModelControls();
-
-    setStatus(
-      "Head fit applied"
-    );
-  }
-);
-
-
-function collectSettings(){
-
-  return {
-
-    x:
-      Number(xSlider.value),
-
-    y:
-      Number(ySlider.value),
-
-    z:
-      Number(zSlider.value),
-
-    scale:
-      Number(scaleSlider.value),
-
-    rotX:
-      Number(rotXSlider.value),
-
-    rotY:
-      Number(rotYSlider.value),
-
-    rotZ:
-      Number(rotZSlider.value),
-
-    mirror:
-      mirrorEnabled,
-
-    facingMode:
-      facingMode,
-
-    depthBehind:
-      depthBehind
-  };
-}
-
-
-function applySettings(data){
-
-  if(!data){
-    return;
-  }
-
-  if(data.x !== undefined){
-    xSlider.value =
-      data.x;
-  }
-
-  if(data.y !== undefined){
-    ySlider.value =
-      data.y;
-  }
-
-  if(data.z !== undefined){
-    zSlider.value =
-      data.z;
-  }
-
-  if(data.scale !== undefined){
-    scaleSlider.value =
-      data.scale;
-  }
-
-  if(data.rotX !== undefined){
-    rotXSlider.value =
-      data.rotX;
-  }
-
-  if(data.rotY !== undefined){
-    rotYSlider.value =
-      data.rotY;
-  }
-
-  if(data.rotZ !== undefined){
-    rotZSlider.value =
-      data.rotZ;
-  }
-
-  if(data.mirror !== undefined){
-
-    mirrorEnabled =
-      !!data.mirror;
-
-    mirrorBtn.textContent =
-      mirrorEnabled
-        ? "MIRROR: ON"
-        : "MIRROR: OFF";
-
-    applyVideoTransform();
-  }
-
-  if(
-    data.facingMode === "user" ||
-    data.facingMode === "environment"
-  ){
-
-    facingMode =
-      data.facingMode;
-  }
-
-  if(data.depthBehind !== undefined){
-
-    depthBehind =
-      !!data.depthBehind;
-
-    depthBtn.textContent =
-      depthBehind
-        ? "DEPTH MODE: BEHIND"
-        : "DEPTH MODE: FRONT";
-  }
-
-  updateModelControls();
-}
-
-
-function downloadBlob(
-  blob,
-  filename
-){
-
-  const url =
-    URL.createObjectURL(blob);
-
-  const a =
-    document.createElement("a");
-
-  a.href =
-    url;
-
-  a.download =
-    filename;
-
-  document.body.appendChild(a);
-
-  a.click();
-
-  a.remove();
-
-  setTimeout(
-    () => {
-      URL.revokeObjectURL(url);
-    },
-    1000
-  );
-}
-
-
-settingsExportBtn.addEventListener(
-  "click",
-  () => {
-
-    const data =
-      collectSettings();
-
-    const blob =
-      new Blob(
-        [
-          JSON.stringify(
-            data,
-            null,
-            2
-          )
-        ],
-        {
-          type:"application/json"
-        }
-      );
-
-    downloadBlob(
-      blob,
-      "azeez-ar-settings.json"
-    );
-
-    setStatus(
-      "Settings exported"
-    );
-  }
-);
-
-
-settingsImportBtn.addEventListener(
-  "click",
-  () => {
-
-    settingsInput.value =
-      "";
-
-    settingsInput.click();
-  }
-);
-
-
-settingsInput.addEventListener(
-  "change",
-  () => {
-
-    const file =
-      settingsInput.files &&
-      settingsInput.files[0];
-
-    if(!file){
-      return;
-    }
-
-    const reader =
-      new FileReader();
-
-    reader.onload =
-      () => {
-
-        try{
-
-          const data =
-            JSON.parse(
-              reader.result
-            );
-
-          applySettings(
-            data
-          );
-
-          setStatus(
-            "Settings imported"
-          );
-
-        }catch(error){
-
-          console.error(error);
-
-          setStatus(
-            "SETTINGS FILE ERROR"
-          );
-        }
-      };
-
-    reader.readAsText(
-      file
-    );
-  }
-);
-
-
-function getRecordingMimeType(){
-
-  const types = [
-
-    "video/webm;codecs=vp9,opus",
-
-    "video/webm;codecs=vp8,opus",
-
-    "video/webm"
-
-  ];
-
-  for(
-    const type of types
-  ){
-
-    if(
-      MediaRecorder.isTypeSupported(
-        type
-      )
-    ){
-      return type;
-    }
-  }
-
-  return "";
-}
-
-
-function drawRecordingFrame(
-  ctx,
-  width,
-  height
-){
-
-  ctx.clearRect(
-    0,
-    0,
-    width,
-    height
-  );
-
-  if(
-    video.readyState >= 2
-  ){
-
-    ctx.save();
-
-    if(mirrorEnabled){
-
-      ctx.translate(
-        width,
-        0
-      );
-
-      ctx.scale(
-        -1,
-        1
-      );
-    }
-
-    ctx.drawImage(
-      video,
-      0,
-      0,
-      width,
-      height
-    );
-
-    ctx.restore();
-  }
-
-  ctx.drawImage(
-    threeCanvas,
-    0,
-    0,
-    width,
-    height
-  );
-
-  if(depthBehind){
-
-    ctx.drawImage(
-      occlusionCanvas,
-      0,
-      0,
-      width,
-      height
-    );
-  }
-
-  ctx.drawImage(
-    landmarkCanvas,
-    0,
-    0,
-    width,
-    height
-  );
-  }function startRecording(){
-
-  if(!stream){
-
-    setStatus(
-      "Open camera first"
-    );
-
-    return;
-  }
-
-  const width =
-    video.videoWidth ||
-    window.innerWidth;
-
-  const height =
-    video.videoHeight ||
-    window.innerHeight;
-
-  recordingCanvas =
-    document.createElement(
-      "canvas"
-    );
-
-  recordingCanvas.width =
-    width;
-
-  recordingCanvas.height =
-    height;
-
-  recordingContext =
-    recordingCanvas.getContext(
-      "2d"
-    );
-
-  const canvasStream =
-    recordingCanvas.captureStream(
-      30
-    );
-
-  if(stream){
-
-    stream
-      .getAudioTracks()
-      .forEach(
-        track => {
-
-          canvasStream.addTrack(
-            track
-          );
-
-        }
-      );
-  }
-
-  const mimeType =
-    getRecordingMimeType();
-
-  recordedChunks = [];
-
-  try{
-
-    mediaRecorder =
-      new MediaRecorder(
-        canvasStream,
-        mimeType
-          ? {mimeType}
-          : undefined
-      );
-
-  }catch(error){
-
-    console.error(error);
-
-    setStatus(
-      "RECORDING NOT SUPPORTED"
-    );
-
-    return;
-  }
-
-  mediaRecorder.ondataavailable =
-    event => {
-
-      if(
-        event.data &&
-        event.data.size > 0
-      ){
-
-        recordedChunks.push(
-          event.data
-        );
-      }
-    };
-
-
-  mediaRecorder.onstop =
-    () => {
-
-      const blob =
-        new Blob(
-          recordedChunks,
-          {
-            type:
-              mediaRecorder.mimeType ||
-              "video/webm"
-          }
-        );
-
-      downloadBlob(
-        blob,
-        "azeez-ar-recording.webm"
-      );
-
-      setStatus(
-        "Recording saved"
-      );
-    };
-
-
-  mediaRecorder.start();
-
-  recordBtn.textContent =
-    "STOP RECORD";
-
-  setStatus(
-    "Recording..."
-  );
-
-
-  function recordingLoop(){
-
-    if(
-      !mediaRecorder ||
-      mediaRecorder.state ===
-      "inactive"
-    ){
-
-      recordingAnimation =
-        null;
-
-      return;
-    }
-
-    drawRecordingFrame(
-      recordingContext,
-      width,
-      height
-    );
-
-    recordingAnimation =
-      requestAnimationFrame(
-        recordingLoop
-      );
-  }
-
-
-  recordingLoop();
-}
-
-
-function stopRecording(){
-
-  if(
-    mediaRecorder &&
-    mediaRecorder.state !==
-    "inactive"
-  ){
-
-    mediaRecorder.stop();
-  }
-
-  if(recordingAnimation){
-
-    cancelAnimationFrame(
-      recordingAnimation
-    );
-
-    recordingAnimation =
-      null;
-  }
-
-  recordBtn.textContent =
-    "START RECORD";
-}
-
-
-recordBtn.addEventListener(
-  "click",
-  () => {
-
-    if(
-      mediaRecorder &&
-      mediaRecorder.state ===
-      "recording"
-    ){
-
-      stopRecording();
-
-    }else{
-
-      startRecording();
-    }
-  }
-);
-
-
-glbExportBtn.addEventListener(
-  "click",
-  () => {
-
-    if(!loadedModel){
-
-      setStatus(
-        "No GLB model loaded"
-      );
-
-      return;
-    }
-
-    setStatus(
-      "Exporting GLB..."
-    );
-
-    exporter.parse(
-
-      loadedModel,
-
-      result => {
-
-        let blob;
-
-        if(
-          result instanceof ArrayBuffer
-        ){
-
-          blob =
-            new Blob(
-              [result],
-              {
-                type:
-                  "model/gltf-binary"
-              }
-            );
-
-        }else{
-
-          blob =
-            new Blob(
-              [
-                JSON.stringify(
-                  result
-                )
-              ],
-              {
-                type:
-                  "application/json"
-              }
-            );
-        }
-
-        downloadBlob(
-          blob,
-          "azeez-ar-model.glb"
-        );
-
-        setStatus(
-          "GLB exported"
-        );
-      },
-
-      error => {
-
-        console.error(error);
-
-        setStatus(
-          "GLB EXPORT ERROR"
-        );
-      },
-
-      {
-        binary:true
-      }
-    );
-  }
-);
-
-
-window.addEventListener(
-  "beforeunload",
-  () => {
-
-    if(stream){
-
-      stream
-        .getTracks()
-        .forEach(
-          track =>
-            track.stop()
-        );
-    }
-
-    if(recordingAnimation){
-
-      cancelAnimationFrame(
-        recordingAnimation
-      );
-    }
-  }
-);
-
-
-updateModelControls();
-
-createFaceLandmarker();
-
-setStatus(
-  "Press OPEN CAMERA"
-);
-
-</script>
+<script type="module" src="./js/app.js?v=20260929"></script>
 
 </body>
 </html>
