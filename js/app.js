@@ -11,14 +11,17 @@ import {
 } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/+esm";
 
 
-const $ = (id) => document.getElementById(id);
+const $ = (id) =>
+    document.getElementById(id);
 
 
 const el = {
 
-    video: $("video"),
+    video:
+        $("video"),
 
-    canvas: $("canvas"),
+    canvas:
+        $("canvas"),
 
     openCameraButton:
         $("openCameraButton") ||
@@ -114,18 +117,14 @@ const el = {
 function status(message) {
 
     if (el.status) {
-        el.status.textContent = message;
+        el.status.textContent =
+            message;
     }
 
-    console.log("[Azeez AR]", message);
-}
-
-
-function setButtonText(button, text) {
-
-    if (button) {
-        button.textContent = text;
-    }
+    console.log(
+        "[Azeez AR]",
+        message
+    );
 }
 
 
@@ -137,107 +136,261 @@ function degreesToRadians(value) {
 }
 
 
+/* =========================
+   THREE.JS
+========================= */
+
 let scene = null;
-
 let camera = null;
-
 let renderer = null;
 
-let cameraStream = null;
-
-let facingMode = "user";
-
-let cameraFlipped = false;
-
-
 let modelRoot = null;
-
 let currentModel = null;
 
 let testCube = null;
 
-let modelURL = null;
+
+/* =========================
+   CAMERA
+========================= */
+
+let cameraStream = null;
+
+let facingMode =
+    "user";
+
+let cameraFlipped =
+    false;
 
 
-let modelBaseScale = 1;
-
-let modelBasePosition =
-    new THREE.Vector3();
-
-let modelBaseRotation =
-    new THREE.Euler();
-
+/* =========================
+   FACE TRACKING
+========================= */
 
 let faceLandmarker = null;
 
-let trackingReady = false;
+let trackingReady =
+    false;
 
-let trackingRunning = false;
+let trackingRunning =
+    false;
 
-let faceDetected = false;
+let faceDetected =
+    false;
 
-let lastDetectionTime = 0;
+let lastVideoTime =
+    -1;
 
-let detectionInterval = 33;
-
-
-let headX = 0.5;
-
-let headY = 0.5;
-
-let headDepth = 1;
-
-let headYaw = 0;
-
-let headPitch = 0;
-
-let headRoll = 0;
+let trackingFrameId =
+    null;
 
 
-let smoothX = 0.5;
+/* =========================
+   HEAD VALUES
+========================= */
 
-let smoothY = 0.5;
+let headX =
+    0.5;
 
-let smoothDepth = 1;
+let headY =
+    0.5;
 
-let smoothYaw = 0;
+let headDepth =
+    1;
 
-let smoothPitch = 0;
+let headYaw =
+    0;
 
-let smoothRoll = 0;
+let headPitch =
+    0;
 
-
-let recorder = null;
-
-let recordChunks = [];
-
-let recording = false;
+let headRoll =
+    0;
 
 
-let trackingFrameId = null;
+let smoothX =
+    0.5;
 
+let smoothY =
+    0.5;
+
+let smoothDepth =
+    1;
+
+let smoothYaw =
+    0;
+
+let smoothPitch =
+    0;
+
+let smoothRoll =
+    0;
+
+
+let headFaceWidth =
+    0.28;
+
+let headFaceHeight =
+    0.38;
+
+
+/* =========================
+   GREEN FACE OVERLAY
+========================= */
+
+let landmarkCanvas =
+    null;
+
+let landmarkContext =
+    null;
+
+let landmarkVisible =
+    true;
+
+let lastLandmarks =
+    null;
+
+
+/* =========================
+   HEAD OCCLUDER
+========================= */
+
+let faceOccluder =
+    null;
+
+let faceOccluderMaterial =
+    null;
+
+
+/* =========================
+   RECORDING
+========================= */
+
+let recorder =
+    null;
+
+let recordChunks =
+    [];
+
+let recording =
+    false;
+
+
+/* =========================
+   MODEL
+========================= */
+
+let modelURL =
+    null;
+
+
+/* =========================
+   FACE LANDMARK INDICES
+========================= */
+
+const GREEN_POINTS = [
+
+    10,
+    338,
+    297,
+    332,
+    284,
+    251,
+    389,
+    356,
+    454,
+    323,
+    361,
+    288,
+    397,
+    365,
+    379,
+    378,
+    400,
+    377,
+    152,
+    148,
+    176,
+    149,
+    150,
+    136,
+    172,
+    58,
+    132,
+    93,
+    234,
+    127,
+    162,
+    21,
+    54,
+    103,
+    67,
+    109,
+
+    33,
+    133,
+    362,
+    263,
+
+    1,
+    4,
+
+    61,
+    291,
+
+    70,
+    300,
+
+    107,
+    336,
+
+    159,
+    386,
+
+    145,
+    374
+];
+
+
+/* =========================
+   CREATE THREE.JS
+========================= */
 
 function createRenderer() {
 
     if (!el.canvas) {
-        throw new Error("Canvas element not found.");
+
+        throw new Error(
+            "Canvas element not found."
+        );
     }
 
-    renderer = new THREE.WebGLRenderer({
 
-        canvas: el.canvas,
+    renderer =
+        new THREE.WebGLRenderer({
 
-        alpha: true,
+            canvas:
+                el.canvas,
 
-        antialias: true,
+            alpha:
+                true,
 
-        preserveDrawingBuffer: true
+            antialias:
+                true,
 
-    });
+            preserveDrawingBuffer:
+                true
+
+        });
+
 
     renderer.setPixelRatio(
-        Math.min(window.devicePixelRatio || 1, 2)
+        Math.min(
+            window.devicePixelRatio || 1,
+            2
+        )
     );
+
 
     renderer.setSize(
         window.innerWidth,
@@ -245,28 +398,49 @@ function createRenderer() {
         false
     );
 
+
     renderer.outputColorSpace =
         THREE.SRGBColorSpace;
+
 
     renderer.setClearColor(
         0x000000,
         0
     );
+
+
+    renderer.autoClear =
+        true;
 }
 
 
+/* =========================
+   CREATE SCENE
+========================= */
+
 function createScene() {
 
-    scene = new THREE.Scene();
+    scene =
+        new THREE.Scene();
 
 
-    camera = new THREE.PerspectiveCamera(
-        45,
-        window.innerWidth /
-            Math.max(window.innerHeight, 1),
-        0.01,
-        100
-    );
+    camera =
+        new THREE.PerspectiveCamera(
+
+            45,
+
+            window.innerWidth /
+                Math.max(
+                    window.innerHeight,
+                    1
+                ),
+
+            0.01,
+
+            100
+
+        );
+
 
     camera.position.set(
         0,
@@ -278,10 +452,14 @@ function createScene() {
     modelRoot =
         new THREE.Group();
 
+
     modelRoot.name =
         "HeadTrackedModel";
 
-    scene.add(modelRoot);
+
+    scene.add(
+        modelRoot
+    );
 
 
     const ambient =
@@ -290,85 +468,60 @@ function createScene() {
             1.5
         );
 
-    scene.add(ambient);
+
+    scene.add(
+        ambient
+    );
 
 
-    const keyLight =
+    const light =
         new THREE.DirectionalLight(
             0xffffff,
             2
         );
 
-    keyLight.position.set(
+
+    light.position.set(
         2,
         3,
         5
     );
 
-    scene.add(keyLight);
 
-
-    const fillLight =
-        new THREE.DirectionalLight(
-            0xffffff,
-            1
-        );
-
-    fillLight.position.set(
-        -3,
-        1,
-        2
-    );
-
-    scene.add(fillLight);
-}
-
-
-function resizeRenderer() {
-
-    if (!renderer || !camera) {
-        return;
-    }
-
-    const width =
-        window.innerWidth;
-
-    const height =
-        window.innerHeight;
-
-    camera.aspect =
-        width /
-        Math.max(height, 1);
-
-    camera.updateProjectionMatrix();
-
-    renderer.setSize(
-        width,
-        height,
-        false
+    scene.add(
+        light
     );
 }
 
+
+/* =========================
+   TEST CUBE
+========================= */
 
 function createTestCube() {
 
     const geometry =
         new THREE.BoxGeometry(
-            0.55,
-            0.55,
-            0.55
+            0.45,
+            0.45,
+            0.45
         );
+
 
     const material =
         new THREE.MeshStandardMaterial({
 
-            color: 0x1683ff,
+            color:
+                0x1683ff,
 
-            roughness: 0.45,
+            roughness:
+                0.45,
 
-            metalness: 0.1
+            metalness:
+                0.1
 
         });
+
 
     testCube =
         new THREE.Mesh(
@@ -376,14 +529,14 @@ function createTestCube() {
             material
         );
 
-    testCube.position.set(
-        0,
-        0,
-        0
-    );
 
     testCube.name =
         "TestCube";
+
+
+    testCube.visible =
+        true;
+
 
     modelRoot.add(
         testCube
@@ -391,18 +544,358 @@ function createTestCube() {
 }
 
 
-function renderScene() {
+/* =========================
+   GREEN LANDMARK CANVAS
+========================= */
 
-    if (!renderer || !scene || !camera) {
+function createLandmarkCanvas() {
+
+    landmarkCanvas =
+        document.createElement(
+            "canvas"
+        );
+
+
+    landmarkCanvas.id =
+        "faceLandmarkCanvas";
+
+
+    landmarkCanvas.style.position =
+        "fixed";
+
+
+    landmarkCanvas.style.left =
+        "0";
+
+
+    landmarkCanvas.style.top =
+        "0";
+
+
+    landmarkCanvas.style.width =
+        "100%";
+
+
+    landmarkCanvas.style.height =
+        "100%";
+
+
+    landmarkCanvas.style.pointerEvents =
+        "none";
+
+
+    landmarkCanvas.style.zIndex =
+        "20";
+
+
+    document.body.appendChild(
+        landmarkCanvas
+    );
+
+
+    landmarkContext =
+        landmarkCanvas.getContext(
+            "2d"
+        );
+
+
+    resizeLandmarkCanvas();
+}
+
+
+function resizeLandmarkCanvas() {
+
+    if (!landmarkCanvas) {
         return;
     }
 
-    renderer.render(
-        scene,
-        camera
+
+    const ratio =
+        Math.min(
+            window.devicePixelRatio || 1,
+            2
+        );
+
+
+    landmarkCanvas.width =
+        Math.floor(
+            window.innerWidth *
+            ratio
+        );
+
+
+    landmarkCanvas.height =
+        Math.floor(
+            window.innerHeight *
+            ratio
+        );
+
+
+    landmarkContext.setTransform(
+        ratio,
+        0,
+        0,
+        ratio,
+        0,
+        0
     );
 }
 
+
+/* =========================
+   DRAW GREEN DOTS
+========================= */
+
+function drawFaceLandmarks(
+    landmarks
+) {
+
+    if (
+        !landmarkContext ||
+        !landmarkCanvas
+    ) {
+        return;
+    }
+
+
+    landmarkContext.clearRect(
+        0,
+        0,
+        window.innerWidth,
+        window.innerHeight
+    );
+
+
+    if (
+        !landmarkVisible ||
+        !landmarks
+    ) {
+        return;
+    }
+
+
+    const width =
+        window.innerWidth;
+
+    const height =
+        window.innerHeight;
+
+
+    /*
+     * Green dots.
+     */
+
+    landmarkContext.fillStyle =
+        "#00ff00";
+
+
+    for (
+        let i = 0;
+        i < landmarks.length;
+        i++
+    ) {
+
+        const point =
+            landmarks[i];
+
+
+        if (!point) {
+            continue;
+        }
+
+
+        const x =
+            point.x *
+            width;
+
+
+        const y =
+            point.y *
+            height;
+
+
+        landmarkContext.beginPath();
+
+
+        landmarkContext.arc(
+            x,
+            y,
+            1.8,
+            0,
+            Math.PI * 2
+        );
+
+
+        landmarkContext.fill();
+    }
+
+
+    /*
+     * Larger green points on important
+     * face/head landmarks.
+     */
+
+    landmarkContext.fillStyle =
+        "#00ff44";
+
+
+    for (
+        const index of GREEN_POINTS
+    ) {
+
+        const point =
+            landmarks[index];
+
+
+        if (!point) {
+            continue;
+        }
+
+
+        const x =
+            point.x *
+            width;
+
+
+        const y =
+            point.y *
+            height;
+
+
+        landmarkContext.beginPath();
+
+
+        landmarkContext.arc(
+            x,
+            y,
+            3,
+            0,
+            Math.PI * 2
+        );
+
+
+        landmarkContext.fill();
+    }
+}
+
+
+/* =========================
+   INVISIBLE HEAD OCCLUDER
+========================= */
+
+function createFaceOccluder() {
+
+    const geometry =
+        new THREE.SphereGeometry(
+            1,
+            32,
+            20
+        );
+
+
+    faceOccluderMaterial =
+        new THREE.MeshBasicMaterial({
+
+            color:
+                0x000000,
+
+            colorWrite:
+                false,
+
+            depthWrite:
+                true,
+
+            depthTest:
+                true,
+
+            transparent:
+                true,
+
+            opacity:
+                0,
+
+            side:
+                THREE.DoubleSide
+
+        });
+
+
+    faceOccluder =
+        new THREE.Mesh(
+            geometry,
+            faceOccluderMaterial
+        );
+
+
+    faceOccluder.name =
+        "InvisibleHeadOccluder";
+
+
+    faceOccluder.renderOrder =
+        0;
+
+
+    faceOccluder.frustumCulled =
+        false;
+
+
+    faceOccluder.visible =
+        false;
+
+
+    scene.add(
+        faceOccluder
+    );
+}
+
+
+/* =========================
+   RESIZE
+========================= */
+
+function resizeRenderer() {
+
+    if (
+        !renderer ||
+        !camera
+    ) {
+        return;
+    }
+
+
+    const width =
+        window.innerWidth;
+
+
+    const height =
+        window.innerHeight;
+
+
+    camera.aspect =
+        width /
+        Math.max(
+            height,
+            1
+        );
+
+
+    camera.updateProjectionMatrix();
+
+
+    renderer.setSize(
+        width,
+        height,
+        false
+    );
+
+
+    resizeLandmarkCanvas();
+}
+
+
+/* =========================
+   RENDER LOOP
+========================= */
 
 function renderLoop() {
 
@@ -410,9 +903,24 @@ function renderLoop() {
         renderLoop
     );
 
-    renderScene();
+
+    if (
+        renderer &&
+        scene &&
+        camera
+    ) {
+
+        renderer.render(
+            scene,
+            camera
+        );
+    }
 }
 
+
+/* =========================
+   INITIAL START
+========================= */
 
 window.addEventListener(
     "resize",
@@ -428,6 +936,10 @@ try {
 
     createTestCube();
 
+    createLandmarkCanvas();
+
+    createFaceOccluder();
+
     resizeRenderer();
 
     status(
@@ -438,17 +950,21 @@ try {
 
 } catch (error) {
 
-    console.error(error);
+    console.error(
+        error
+    );
+
 
     status(
         "3D ERROR: " +
         error.message
     );
-}function clearCurrentModel() {
+            }function clearCurrentModel() {
 
     if (!modelRoot) {
         return;
     }
+
 
     while (
         modelRoot.children.length > 0
@@ -459,60 +975,88 @@ try {
                 modelRoot.children.length - 1
             ];
 
-        modelRoot.remove(child);
 
-        child.traverse((object) => {
+        modelRoot.remove(
+            child
+        );
 
-            if (object.geometry) {
-                object.geometry.dispose();
+
+        child.traverse(
+            (object) => {
+
+                if (object.geometry) {
+
+                    object.geometry.dispose();
+                }
+
+
+                if (object.material) {
+
+                    const materials =
+                        Array.isArray(
+                            object.material
+                        )
+                            ? object.material
+                            : [object.material];
+
+
+                    materials.forEach(
+                        (material) => {
+
+                            if (material.map) {
+                                material.map.dispose();
+                            }
+
+                            if (material.normalMap) {
+                                material.normalMap.dispose();
+                            }
+
+                            if (material.roughnessMap) {
+                                material.roughnessMap.dispose();
+                            }
+
+                            if (material.metalnessMap) {
+                                material.metalnessMap.dispose();
+                            }
+
+                            material.dispose();
+                        }
+                    );
+                }
             }
-
-            if (object.material) {
-
-                const materials =
-                    Array.isArray(object.material)
-                        ? object.material
-                        : [object.material];
-
-                materials.forEach((material) => {
-
-                    if (material.map) {
-                        material.map.dispose();
-                    }
-
-                    if (material.normalMap) {
-                        material.normalMap.dispose();
-                    }
-
-                    if (material.roughnessMap) {
-                        material.roughnessMap.dispose();
-                    }
-
-                    if (material.metalnessMap) {
-                        material.metalnessMap.dispose();
-                    }
-
-                    material.dispose();
-                });
-            }
-        });
+        );
     }
 
-    currentModel = null;
-    testCube = null;
+
+    currentModel =
+        null;
+
+
+    testCube =
+        null;
 }
 
 
-function centerAndFitModel(object) {
+/* =========================
+   MODEL CENTER AND FIT
+========================= */
+
+function centerAndFitModel(
+    object
+) {
 
     const box =
         new THREE.Box3()
-            .setFromObject(object);
+            .setFromObject(
+                object
+            );
+
 
     const size =
         box.getSize(
             new THREE.Vector3()
         );
+
 
     const center =
         box.getCenter(
@@ -520,7 +1064,9 @@ function centerAndFitModel(object) {
         );
 
 
-    object.position.sub(center);
+    object.position.sub(
+        center
+    );
 
 
     const maxSize =
@@ -532,15 +1078,20 @@ function centerAndFitModel(object) {
 
 
     if (
-        Number.isFinite(maxSize) &&
+        Number.isFinite(
+            maxSize
+        ) &&
         maxSize > 0
     ) {
 
-        const targetSize = 1.8;
+        const targetSize =
+            1.8;
+
 
         const fitScale =
             targetSize /
             maxSize;
+
 
         object.scale.multiplyScalar(
             fitScale
@@ -548,103 +1099,160 @@ function centerAndFitModel(object) {
     }
 
 
-    object.traverse((child) => {
+    object.traverse(
+        (child) => {
 
-        if (child.isMesh) {
+            if (
+                child.isMesh
+            ) {
 
-            child.castShadow = false;
+                child.frustumCulled =
+                    false;
 
-            child.receiveShadow = false;
 
-            if (child.material) {
+                child.castShadow =
+                    false;
 
-                const materials =
-                    Array.isArray(child.material)
-                        ? child.material
-                        : [child.material];
 
-                materials.forEach(
-                    (material) => {
+                child.receiveShadow =
+                    false;
 
-                        material.side =
-                            THREE.DoubleSide;
 
-                        material.needsUpdate =
-                            true;
-                    }
-                );
+                if (
+                    child.material
+                ) {
+
+                    const materials =
+                        Array.isArray(
+                            child.material
+                        )
+                            ? child.material
+                            : [child.material];
+
+
+                    materials.forEach(
+                        (material) => {
+
+                            material.side =
+                                THREE.DoubleSide;
+
+                            material.depthTest =
+                                true;
+
+                            material.depthWrite =
+                                true;
+
+                            material.needsUpdate =
+                                true;
+                        }
+                    );
+                }
             }
         }
-    });
-
-
-    modelBaseScale = 1;
-
-    modelBasePosition.set(
-        0,
-        0,
-        0
     );
 
-    modelBaseRotation.set(
+
+    object.position.set(
         0,
         0,
         0
     );
 
 
-    object.position.copy(
-        modelBasePosition
-    );
-
-    object.rotation.copy(
-        modelBaseRotation
+    object.rotation.set(
+        0,
+        0,
+        0
     );
 }
 
 
-function addLoadedModel(object) {
+/* =========================
+   ADD LOADED MODEL
+========================= */
+
+function addLoadedModel(
+    object
+) {
 
     clearCurrentModel();
 
-    currentModel = object;
+
+    currentModel =
+        object;
+
 
     modelRoot.add(
         currentModel
     );
+
 
     centerAndFitModel(
         currentModel
     );
 
 
-    if (el.scaleSlider) {
-        el.scaleSlider.value = "1";
+    /*
+     * Hide test cube.
+     */
+
+    if (testCube) {
+
+        testCube.visible =
+            false;
     }
 
-    if (el.xSlider) {
-        el.xSlider.value = "0";
-    }
 
-    if (el.ySlider) {
-        el.ySlider.value = "0";
-    }
+    /*
+     * Reset sliders.
+     */
 
-    if (el.zSlider) {
-        el.zSlider.value = "0";
-    }
+    const defaults = {
 
-    if (el.rotateXSlider) {
-        el.rotateXSlider.value = "0";
-    }
+        scaleSlider:
+            "1",
 
-    if (el.rotateYSlider) {
-        el.rotateYSlider.value = "0";
-    }
+        xSlider:
+            "0",
 
-    if (el.rotateZSlider) {
-        el.rotateZSlider.value = "0";
-    }
+        ySlider:
+            "0",
+
+        zSlider:
+            "0",
+
+        rotateXSlider:
+            "0",
+
+        rotateYSlider:
+            "0",
+
+        rotateZSlider:
+            "0"
+
+    };
+
+
+    Object.entries(
+        defaults
+    ).forEach(
+        ([id, value]) => {
+
+            const input =
+                $(id);
+
+
+            if (input) {
+
+                input.value =
+                    value;
+            }
+        }
+    );
+
+
+    currentModel.visible =
+        true;
 
 
     applyModelControls();
@@ -656,7 +1264,13 @@ function addLoadedModel(object) {
 }
 
 
-async function loadModelFile(file) {
+/* =========================
+   LOAD GLB / GLTF / OBJ / STL
+========================= */
+
+async function loadModelFile(
+    file
+) {
 
     if (!file) {
         return;
@@ -683,7 +1297,8 @@ async function loadModelFile(file) {
                 modelURL
             );
 
-            modelURL = null;
+            modelURL =
+                null;
         }
 
 
@@ -788,11 +1403,14 @@ async function loadModelFile(file) {
             const material =
                 new THREE.MeshStandardMaterial({
 
-                    color: 0xffffff,
+                    color:
+                        0xffffff,
 
-                    roughness: 0.5,
+                    roughness:
+                        0.5,
 
-                    metalness: 0.05,
+                    metalness:
+                        0.05,
 
                     side:
                         THREE.DoubleSide
@@ -815,9 +1433,10 @@ async function loadModelFile(file) {
         } else {
 
             throw new Error(
-                "Unsupported 3D format."
+                "Unsupported 3D format. Use GLB, GLTF, OBJ or STL."
             );
         }
+
 
     } catch (error) {
 
@@ -825,6 +1444,7 @@ async function loadModelFile(file) {
             "MODEL ERROR:",
             error
         );
+
 
         status(
             "MODEL ERROR: " +
@@ -834,9 +1454,16 @@ async function loadModelFile(file) {
 }
 
 
+/* =========================
+   CAMERA ORIENTATION
+========================= */
+
 function applyCameraOrientation() {
 
-    if (!el.video || !el.canvas) {
+    if (
+        !el.video ||
+        !el.canvas
+    ) {
         return;
     }
 
@@ -850,10 +1477,58 @@ function applyCameraOrientation() {
     el.video.style.transform =
         transform;
 
+
     el.canvas.style.transform =
         transform;
+
+
+    /*
+     * Keep green tracking points
+     * aligned with the camera.
+     */
+
+    if (landmarkCanvas) {
+
+        landmarkCanvas.style.transform =
+            transform;
+    }
 }
 
+
+/* =========================
+   STOP CAMERA
+========================= */
+
+function stopCamera() {
+
+    if (cameraStream) {
+
+        cameraStream
+            .getTracks()
+            .forEach(
+                (track) => {
+
+                    track.stop();
+                }
+            );
+
+
+        cameraStream =
+            null;
+    }
+
+
+    if (el.video) {
+
+        el.video.srcObject =
+            null;
+    }
+}
+
+
+/* =========================
+   START CAMERA
+========================= */
 
 async function startCamera() {
 
@@ -867,40 +1542,60 @@ async function startCamera() {
     }
 
 
+    if (
+        !navigator.mediaDevices ||
+        !navigator.mediaDevices.getUserMedia
+    ) {
+
+        status(
+            "Camera API is not available."
+        );
+
+        return;
+    }
+
+
     try {
 
-        if (cameraStream) {
-            stopCamera();
-        }
+        stopCamera();
 
 
         cameraStream =
-            await navigator.mediaDevices.getUserMedia({
+            await navigator
+                .mediaDevices
+                .getUserMedia({
 
-                video: {
+                    video: {
 
-                    facingMode: {
-                        ideal: facingMode
+                        facingMode: {
+                            ideal:
+                                facingMode
+                        },
+
+                        width: {
+                            ideal:
+                                1280
+                        },
+
+                        height: {
+                            ideal:
+                                720
+                        },
+
+                        frameRate: {
+                            ideal:
+                                30,
+
+                            max:
+                                30
+                        }
+
                     },
 
-                    width: {
-                        ideal: 1280
-                    },
+                    audio:
+                        true
 
-                    height: {
-                        ideal: 720
-                    },
-
-                    frameRate: {
-                        ideal: 30,
-                        max: 30
-                    }
-
-                },
-
-                audio: true
-
-            });
+                });
 
 
         el.video.srcObject =
@@ -925,36 +1620,18 @@ async function startCamera() {
             error
         );
 
+
         status(
-            "Camera error: " +
+            "CAMERA ERROR: " +
             error.message
         );
     }
 }
 
 
-function stopCamera() {
-
-    if (!cameraStream) {
-        return;
-    }
-
-
-    cameraStream
-        .getTracks()
-        .forEach(
-            (track) => track.stop()
-        );
-
-
-    cameraStream = null;
-
-
-    if (el.video) {
-        el.video.srcObject = null;
-    }
-}
-
+/* =========================
+   SWITCH CAMERA
+========================= */
 
 async function switchCamera() {
 
@@ -975,6 +1652,10 @@ async function switchCamera() {
 }
 
 
+/* =========================
+   FLIP CAMERA
+========================= */
+
 function toggleCameraFlip() {
 
     cameraFlipped =
@@ -989,7 +1670,14 @@ function toggleCameraFlip() {
             ? "Camera flipped."
             : "Camera normal."
     );
-}function applyModelControls() {
+}
+
+
+/* =========================
+   MODEL CONTROLS
+========================= */
+
+function applyModelControls() {
 
     if (!currentModel) {
         return;
@@ -1052,22 +1740,59 @@ function toggleCameraFlip() {
         );
 
 
-    modelBaseScale =
+    /*
+     * Store manual values.
+     */
+
+    currentModel.userData.manualScale =
         scale;
 
 
-    modelBasePosition.set(
-        x,
-        y,
-        z
-    );
+    currentModel.userData.manualX =
+        x;
 
 
-    modelBaseRotation.set(
-        degreesToRadians(rx),
-        degreesToRadians(ry),
-        degreesToRadians(rz)
-    );
+    currentModel.userData.manualY =
+        y;
+
+
+    currentModel.userData.manualZ =
+        z;
+
+
+    currentModel.userData.manualRX =
+        degreesToRadians(rx);
+
+
+    currentModel.userData.manualRY =
+        degreesToRadians(ry);
+
+
+    currentModel.userData.manualRZ =
+        degreesToRadians(rz);
+
+
+    /*
+     * If tracking is not running,
+     * still make the model visible
+     * and place it at the manual position.
+     */
+
+    if (!trackingRunning) {
+
+        currentModel.position.set(
+            x,
+            -y,
+            z
+        );
+
+
+        currentModel.rotation.set(
+            degreesToRadians(rx),
+            degreesToRadians(ry),
+            degreesToRadians(rz)
+        );
+    }
 
 
     currentModel.scale.setScalar(
@@ -1075,37 +1800,52 @@ function toggleCameraFlip() {
     );
 
 
-    currentModel.position.copy(
-        modelBasePosition
-    );
-
-
-    currentModel.rotation.copy(
-        modelBaseRotation
-    );
-
-
     updateSliderLabels();
 }
 
+
+/* =========================
+   SLIDER LABELS
+========================= */
 
 function updateSliderLabels() {
 
     const pairs = [
 
-        ["scaleSlider", "scaleValue"],
+        [
+            "scaleSlider",
+            "scaleValue"
+        ],
 
-        ["xSlider", "xValue"],
+        [
+            "xSlider",
+            "xValue"
+        ],
 
-        ["ySlider", "yValue"],
+        [
+            "ySlider",
+            "yValue"
+        ],
 
-        ["zSlider", "zValue"],
+        [
+            "zSlider",
+            "zValue"
+        ],
 
-        ["rotateXSlider", "rotateXValue"],
+        [
+            "rotateXSlider",
+            "rotateXValue"
+        ],
 
-        ["rotateYSlider", "rotateYValue"],
+        [
+            "rotateYSlider",
+            "rotateYValue"
+        ],
 
-        ["rotateZSlider", "rotateZValue"]
+        [
+            "rotateZSlider",
+            "rotateZValue"
+        ]
 
     ];
 
@@ -1116,8 +1856,10 @@ function updateSliderLabels() {
             const slider =
                 $(sliderId);
 
+
             const value =
                 $(valueId);
+
 
             if (
                 slider &&
@@ -1132,74 +1874,60 @@ function updateSliderLabels() {
 }
 
 
+/* =========================
+   RESET CONTROLS
+========================= */
+
 function resetModelControls() {
 
     const defaults = {
 
-        scaleSlider: "1",
+        scaleSlider:
+            "1",
 
-        xSlider: "0",
+        xSlider:
+            "0",
 
-        ySlider: "0",
+        ySlider:
+            "0",
 
-        zSlider: "0",
+        zSlider:
+            "0",
 
-        rotateXSlider: "0",
+        rotateXSlider:
+            "0",
 
-        rotateYSlider: "0",
+        rotateYSlider:
+            "0",
 
-        rotateZSlider: "0"
+        rotateZSlider:
+            "0"
 
     };
 
 
-    Object.entries(defaults)
-        .forEach(
-            ([id, value]) => {
+    Object.entries(
+        defaults
+    ).forEach(
+        ([id, value]) => {
 
-                const input =
-                    $(id);
+            const input =
+                $(id);
 
-                if (input) {
-                    input.value =
-                        value;
-                }
+
+            if (input) {
+
+                input.value =
+                    value;
             }
-        );
+        }
+    );
 
 
     applyModelControls();
-}
+        }function createFaceTracker() {
 
-
-function toggleControlsVisibility(
-    visible
-) {
-
-    if (
-        !el.appControls ||
-        !el.showControlsButton
-    ) {
-        return;
-    }
-
-
-    el.appControls.style.display =
-        visible
-            ? "block"
-            : "none";
-
-
-    el.showControlsButton.style.display =
-        visible
-            ? "none"
-            : "block";
-}
-
-
-async function createFaceTracker() {
-
-    if (faceLandmarker) {
+    if (trackingReady) {
         return true;
     }
 
@@ -1209,88 +1937,102 @@ async function createFaceTracker() {
     );
 
 
-    try {
+    return FilesetResolver
+        .forVisionTasks(
+            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm"
+        )
+        .then(
+            (vision) => {
 
-        const vision =
-            await FilesetResolver
-                .forVisionTasks(
+                return FaceLandmarker
+                    .createFromOptions(
+                        vision,
+                        {
 
-                    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm"
+                            baseOptions: {
 
+                                modelAssetPath:
+                                    "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+
+                                delegate:
+                                    "GPU"
+
+                            },
+
+                            runningMode:
+                                "VIDEO",
+
+                            numFaces:
+                                1,
+
+                            minFaceDetectionConfidence:
+                                0.5,
+
+                            minFacePresenceConfidence:
+                                0.5,
+
+                            minTrackingConfidence:
+                                0.5,
+
+                            outputFaceBlendshapes:
+                                false,
+
+                            outputFacialTransformationMatrixes:
+                                true
+
+                        }
+                    );
+            }
+        )
+        .then(
+            (tracker) => {
+
+                faceLandmarker =
+                    tracker;
+
+
+                trackingReady =
+                    true;
+
+
+                status(
+                    "Face tracking ready."
                 );
 
 
-        faceLandmarker =
-            await FaceLandmarker
-                .createFromOptions(
+                return true;
+            }
+        )
+        .catch(
+            (error) => {
 
-                    vision,
-
-                    {
-
-                        baseOptions: {
-
-                            modelAssetPath:
-                                "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-
-                            delegate:
-                                "GPU"
-
-                        },
-
-                        runningMode:
-                            "VIDEO",
-
-                        numFaces:
-                            1,
-
-                        minFaceDetectionConfidence:
-                            0.45,
-
-                        minFacePresenceConfidence:
-                            0.45,
-
-                        minTrackingConfidence:
-                            0.45
-
-                    }
-
+                console.error(
+                    "FACE TRACKER ERROR:",
+                    error
                 );
 
 
-        trackingReady = true;
+                trackingReady =
+                    false;
 
 
-        status(
-            "Face tracking ready."
+                status(
+                    "FACE MODEL ERROR: " +
+                    error.message
+                );
+
+
+                return false;
+            }
         );
-
-
-        return true;
-
-    } catch (error) {
-
-        console.error(
-            "FACE TRACKER ERROR:",
-            error
-        );
-
-
-        trackingReady = false;
-
-
-        status(
-            "FACE TRACKING ERROR: " +
-            error.message
-        );
-
-
-        return false;
-    }
 }
 
 
-function landmarkPoint(
+/* =========================
+   LANDMARK HELPERS
+========================= */
+
+function getLandmark(
     landmarks,
     index
 ) {
@@ -1312,224 +2054,220 @@ function calculateHeadValues(
     landmarks
 ) {
 
+    const left =
+        getLandmark(
+            landmarks,
+            234
+        );
+
+
+    const right =
+        getLandmark(
+            landmarks,
+            454
+        );
+
+
+    const top =
+        getLandmark(
+            landmarks,
+            10
+        );
+
+
+    const bottom =
+        getLandmark(
+            landmarks,
+            152
+        );
+
+
     const nose =
-        landmarkPoint(
+        getLandmark(
             landmarks,
             1
         );
 
 
     const leftEye =
-        landmarkPoint(
+        getLandmark(
             landmarks,
             33
         );
 
 
     const rightEye =
-        landmarkPoint(
+        getLandmark(
             landmarks,
             263
         );
 
 
-    const forehead =
-        landmarkPoint(
-            landmarks,
-            10
-        );
-
-
-    const chin =
-        landmarkPoint(
-            landmarks,
-            152
-        );
-
-
     if (
+        !left ||
+        !right ||
+        !top ||
+        !bottom ||
         !nose ||
         !leftEye ||
         !rightEye
     ) {
 
-        return null;
+        return false;
     }
 
 
-    const eyeCenterX =
-        (
-            leftEye.x +
-            rightEye.x
-        ) * 0.5;
-
-
-    const eyeCenterY =
-        (
-            leftEye.y +
-            rightEye.y
-        ) * 0.5;
-
-
-    const eyeDistance =
-        Math.hypot(
-
-            rightEye.x -
-            leftEye.x,
-
-            rightEye.y -
-            leftEye.y
-
-        );
-
-
-    if (
-        eyeDistance <
-        0.0001
-    ) {
-
-        return null;
-    }
-
+    /*
+     * Face center.
+     */
 
     const centerX =
         (
-            eyeCenterX * 0.55 +
-            nose.x * 0.45
-        );
+            left.x +
+            right.x
+        ) * 0.5;
 
 
     const centerY =
         (
-            eyeCenterY * 0.35 +
-            nose.y * 0.65
-        );
-
-
-    const roll =
-        Math.atan2(
-
-            rightEye.y -
-            leftEye.y,
-
-            rightEye.x -
-            leftEye.x
-
-        );
-
-
-    const eyeMidDepth =
-        (
-            leftEye.z +
-            rightEye.z
+            top.y +
+            bottom.y
         ) * 0.5;
 
 
-    const yawRaw =
-        (
-            nose.x -
-            eyeCenterX
-        ) / eyeDistance;
+    /*
+     * Face size.
+     */
 
-
-    const yaw =
-        THREE.MathUtils.clamp(
-            yawRaw * 1.15,
-            -1.25,
-            1.25
+    const faceWidth =
+        Math.max(
+            Math.abs(
+                right.x -
+                left.x
+            ),
+            0.01
         );
 
 
-    let pitch = 0;
+    const faceHeight =
+        Math.max(
+            Math.abs(
+                bottom.y -
+                top.y
+            ),
+            0.01
+        );
 
 
-    if (
-        forehead &&
-        chin
-    ) {
-
-        const faceHeight =
-            Math.max(
-                Math.abs(
-                    chin.y -
-                    forehead.y
-                ),
-                0.001
-            );
+    headX =
+        centerX;
 
 
-        const noseVertical =
+    headY =
+        centerY;
+
+
+    headFaceWidth =
+        faceWidth;
+
+
+    headFaceHeight =
+        faceHeight;
+
+
+    /*
+     * Estimate depth from face size.
+     */
+
+    headDepth =
+        THREE.MathUtils.clamp(
+            0.42 /
+            faceWidth,
+            0.65,
+            4.5
+        );
+
+
+    /*
+     * Horizontal head rotation.
+     */
+
+    const noseOffset =
+        nose.x -
+        centerX;
+
+
+    headYaw =
+        THREE.MathUtils.clamp(
+            noseOffset *
+            2.8,
+            -1.15,
+            1.15
+        );
+
+
+    /*
+     * Vertical head rotation.
+     */
+
+    const noseVertical =
+        nose.y -
+        centerY;
+
+
+    headPitch =
+        THREE.MathUtils.clamp(
             (
-                nose.y -
-                forehead.y
-            ) /
-            faceHeight;
-
-
-        pitch =
-            THREE.MathUtils.clamp(
-
-                (
-                    noseVertical -
-                    0.42
-                ) * 2.1,
-
-                -0.9,
-                0.9
-            );
-    }
-
-
-    const depth =
-        THREE.MathUtils.clamp(
-
-            0.95 /
-            eyeDistance,
-
-            2.0,
-            7.0
-
+                noseVertical /
+                faceHeight
+            ) * 1.8,
+            -0.75,
+            0.75
         );
 
 
-    return {
+    /*
+     * Head roll.
+     */
 
-        x: centerX,
-
-        y: centerY,
-
-        depth,
-
-        yaw,
-
-        pitch,
-
-        roll,
-
-        eyeDistance,
-
-        eyeMidDepth
-
-    };
-}function smoothTracking(
-    target
-) {
-
-    if (!target) {
-        return;
-    }
+    const eyeDX =
+        rightEye.x -
+        leftEye.x;
 
 
-    const positionSmooth = 0.42;
+    const eyeDY =
+        rightEye.y -
+        leftEye.y;
 
-    const rotationSmooth = 0.5;
 
-    const depthSmooth = 0.32;
+    headRoll =
+        Math.atan2(
+            eyeDY,
+            eyeDX
+        );
+
+
+    return true;
+}
+
+
+/* =========================
+   SMOOTH TRACKING
+========================= */
+
+function smoothTrackingValues() {
+
+    const positionSmooth =
+        0.30;
+
+
+    const rotationSmooth =
+        0.28;
 
 
     smoothX +=
         (
-            target.x -
+            headX -
             smoothX
         ) *
         positionSmooth;
@@ -1537,7 +2275,7 @@ function calculateHeadValues(
 
     smoothY +=
         (
-            target.y -
+            headY -
             smoothY
         ) *
         positionSmooth;
@@ -1545,15 +2283,15 @@ function calculateHeadValues(
 
     smoothDepth +=
         (
-            target.depth -
+            headDepth -
             smoothDepth
         ) *
-        depthSmooth;
+        positionSmooth;
 
 
     smoothYaw +=
         (
-            target.yaw -
+            headYaw -
             smoothYaw
         ) *
         rotationSmooth;
@@ -1561,7 +2299,7 @@ function calculateHeadValues(
 
     smoothPitch +=
         (
-            target.pitch -
+            headPitch -
             smoothPitch
         ) *
         rotationSmooth;
@@ -1569,12 +2307,160 @@ function calculateHeadValues(
 
     smoothRoll +=
         (
-            target.roll -
+            headRoll -
             smoothRoll
         ) *
         rotationSmooth;
 }
 
+
+/* =========================
+   HEAD WORLD POSITION
+========================= */
+
+function getHeadWorldPosition() {
+
+    if (!camera) {
+
+        return new THREE.Vector3();
+    }
+
+
+    const depth =
+        Math.max(
+            smoothDepth,
+            0.55
+        );
+
+
+    /*
+     * Convert camera coordinates
+     * to Three.js world coordinates.
+     */
+
+    const ndcX =
+        (
+            smoothX -
+            0.5
+        ) * 2;
+
+
+    const ndcY =
+        -(
+            smoothY -
+            0.5
+        ) * 2;
+
+
+    const point =
+        new THREE.Vector3(
+            ndcX,
+            ndcY,
+            0
+        );
+
+
+    point.unproject(
+        camera
+    );
+
+
+    const direction =
+        point
+            .sub(
+                camera.position
+            )
+            .normalize();
+
+
+    return camera.position
+        .clone()
+        .add(
+            direction.multiplyScalar(
+                depth
+            )
+        );
+}
+
+
+/* =========================
+   UPDATE INVISIBLE HEAD
+========================= */
+
+function updateHeadOccluder(
+    headPosition
+) {
+
+    if (!faceOccluder) {
+        return;
+    }
+
+
+    faceOccluder.position.copy(
+        headPosition
+    );
+
+
+    faceOccluder.rotation.set(
+        smoothPitch,
+        smoothYaw,
+        smoothRoll
+    );
+
+
+    /*
+     * The invisible sphere represents
+     * the physical head volume.
+     */
+
+    const width =
+        THREE.MathUtils.clamp(
+            headFaceWidth *
+            smoothDepth *
+            3.2,
+            0.28,
+            2.2
+        );
+
+
+    const height =
+        THREE.MathUtils.clamp(
+            headFaceHeight *
+            smoothDepth *
+            2.9,
+            0.38,
+            2.6
+        );
+
+
+    const depth =
+        THREE.MathUtils.clamp(
+            width *
+            0.95,
+            0.35,
+            2.0
+        );
+
+
+    faceOccluder.scale.set(
+        width,
+        height,
+        depth
+    );
+
+
+    faceOccluder.visible =
+        faceDetected;
+
+
+    faceOccluder.renderOrder =
+        0;
+}
+
+
+/* =========================
+   APPLY HEAD TRACKING
+========================= */
 
 function applyHeadTracking() {
 
@@ -1587,181 +2473,269 @@ function applyHeadTracking() {
     }
 
 
-    const aspect =
-        camera.aspect;
+    const headPosition =
+        getHeadWorldPosition();
 
 
-    const verticalFov =
-        THREE.MathUtils.degToRad(
-            camera.fov
+    const manualX =
+        Number(
+            el.xSlider
+                ? el.xSlider.value
+                : 0
         );
 
 
-    const halfHeight =
-        Math.tan(
-            verticalFov * 0.5
+    const manualY =
+        Number(
+            el.ySlider
+                ? el.ySlider.value
+                : 0
         );
 
 
-    const halfWidth =
-        halfHeight *
-        aspect;
-
-
-    /*
-     * Convert normalized face
-     * coordinates into real 3D
-     * camera coordinates.
-     */
-
-    const normalizedX =
-        smoothX - 0.5;
-
-
-    const normalizedY =
-        smoothY - 0.5;
-
-
-    /*
-     * The depth value is deliberately
-     * damped so the helmet does not
-     * jump toward and away from camera.
-     */
-
-    const trackingDepth =
-        THREE.MathUtils.clamp(
-
-            smoothDepth,
-
-            2.0,
-
-            7.0
-
-        );
-
-
-    const worldX =
-        normalizedX *
-        halfWidth *
-        trackingDepth *
-        2;
-
-
-    const worldY =
-        -normalizedY *
-        halfHeight *
-        trackingDepth *
-        2;
-
-
-    /*
-     * The model is placed in front of
-     * the camera using actual 3D depth,
-     * not just CSS/screen coordinates.
-     */
-
-    const worldZ =
-        camera.position.z -
-        trackingDepth;
-
-
-    const targetPosition =
-        new THREE.Vector3(
-            worldX,
-            worldY,
-            worldZ
+    const manualZ =
+        Number(
+            el.zSlider
+                ? el.zSlider.value
+                : 0
         );
 
 
     /*
-     * User manual offsets are added
-     * after the head position.
+     * Position:
+     *
+     * X = left/right
+     * Y = up/down
+     * Z = front/back
+     *
+     * Negative Z moves the model
+     * farther behind the head.
      */
 
-    targetPosition.x +=
-        modelBasePosition.x;
+    currentModel.position.set(
 
-    targetPosition.y +=
-        modelBasePosition.y;
+        headPosition.x +
+            manualX,
 
-    targetPosition.z +=
-        modelBasePosition.z;
+        headPosition.y -
+            manualY,
+
+        headPosition.z +
+            manualZ
+
+    );
+
+
+    const manualRX =
+        degreesToRadians(
+            Number(
+                el.rotateXSlider
+                    ? el.rotateXSlider.value
+                    : 0
+            )
+        );
+
+
+    const manualRY =
+        degreesToRadians(
+            Number(
+                el.rotateYSlider
+                    ? el.rotateYSlider.value
+                    : 0
+            )
+        );
+
+
+    const manualRZ =
+        degreesToRadians(
+            Number(
+                el.rotateZSlider
+                    ? el.rotateZSlider.value
+                    : 0
+            )
+        );
 
 
     /*
-     * Apply movement with a small amount
-     * of smoothing. This is much faster
-     * than the previous heavy smoothing.
+     * Head rotation + manual rotation.
      */
 
-    currentModel.position.lerp(
-        targetPosition,
-        0.55
+    currentModel.rotation.set(
+
+        smoothPitch +
+            manualRX,
+
+        smoothYaw +
+            manualRY,
+
+        smoothRoll +
+            manualRZ
+
+    );
+
+
+    const scale =
+        Number(
+            el.scaleSlider
+                ? el.scaleSlider.value
+                : 1
+        );
+
+
+    currentModel.scale.setScalar(
+        scale
     );
 
 
     /*
-     * Preserve user's manual rotation
-     * while adding head orientation.
+     * Model must render after
+     * the invisible head depth.
      */
 
-    const targetRotationX =
-        modelBaseRotation.x +
-        smoothPitch;
+    currentModel.renderOrder =
+        1;
 
 
-    const targetRotationY =
-        modelBaseRotation.y +
-        smoothYaw;
+    currentModel.traverse(
+        (child) => {
+
+            if (
+                child.isMesh &&
+                child.material
+            ) {
+
+                const materials =
+                    Array.isArray(
+                        child.material
+                    )
+                        ? child.material
+                        : [child.material];
 
 
-    const targetRotationZ =
-        modelBaseRotation.z -
-        smoothRoll;
+                materials.forEach(
+                    (material) => {
+
+                        material.depthTest =
+                            true;
+
+                        material.depthWrite =
+                            true;
+
+                        material.needsUpdate =
+                            true;
+                    }
+                );
+            }
+        }
+    );
 
 
-    currentModel.rotation.x +=
-        (
-            targetRotationX -
-            currentModel.rotation.x
-        ) *
-        0.55;
-
-
-    currentModel.rotation.y +=
-        (
-            targetRotationY -
-            currentModel.rotation.y
-        ) *
-        0.55;
-
-
-    currentModel.rotation.z +=
-        (
-            targetRotationZ -
-            currentModel.rotation.z
-        ) *
-        0.55;
-
-
-    /*
-     * Keep the manually selected model
-     * size while tracking.
-     */
-
-    currentModel.scale.setScalar(
-        modelBaseScale
+    updateHeadOccluder(
+        headPosition
     );
 }
 
 
-function updateFaceTracking(
-    now
+/* =========================
+   PROCESS FACE RESULT
+========================= */
+
+function processFaceResult(
+    result
 ) {
 
     if (
-        !trackingReady ||
+        !result ||
+        !result.faceLandmarks ||
+        result.faceLandmarks.length === 0
+    ) {
+
+        faceDetected =
+            false;
+
+
+        lastLandmarks =
+            null;
+
+
+        drawFaceLandmarks(
+            null
+        );
+
+
+        if (faceOccluder) {
+
+            faceOccluder.visible =
+                false;
+        }
+
+
+        return;
+    }
+
+
+    const landmarks =
+        result.faceLandmarks[0];
+
+
+    if (
+        !landmarks ||
+        landmarks.length < 468
+    ) {
+
+        faceDetected =
+            false;
+
+        return;
+    }
+
+
+    lastLandmarks =
+        landmarks;
+
+
+    faceDetected =
+        calculateHeadValues(
+            landmarks
+        );
+
+
+    if (!faceDetected) {
+
+        return;
+    }
+
+
+    smoothTrackingValues();
+
+
+    /*
+     * This is the green dots overlay.
+     */
+
+    drawFaceLandmarks(
+        landmarks
+    );
+
+
+    /*
+     * This moves the 3D model
+     * with the head.
+     */
+
+    applyHeadTracking();
+}
+
+
+/* =========================
+   DETECT CURRENT VIDEO FRAME
+========================= */
+
+function detectFaceFrame() {
+
+    if (
         !faceLandmarker ||
+        !trackingReady ||
         !el.video
     ) {
 
@@ -1771,106 +2745,48 @@ function updateFaceTracking(
 
     if (
         el.video.readyState <
-        HTMLMediaElement.HAVE_CURRENT_DATA
+        2
     ) {
 
         return;
     }
 
 
-    /*
-     * Do not run the expensive ML model
-     * on every render frame.
-     *
-     * Detection runs around 30 FPS,
-     * while Three.js still renders smoothly.
-     */
+    const currentTime =
+        el.video.currentTime;
+
 
     if (
-        now -
-        lastDetectionTime <
-        detectionInterval
+        currentTime ===
+        lastVideoTime
     ) {
 
         return;
     }
 
 
-    lastDetectionTime =
-        now;
+    lastVideoTime =
+        currentTime;
 
 
     try {
 
-        const result =
-            faceLandmarker
-                .detectForVideo(
-
-                    el.video,
-
-                    now
-
-                );
-
-
-        if (
-            !result ||
-            !result.faceLandmarks ||
-            result.faceLandmarks.length === 0
-        ) {
-
-            faceDetected = false;
-
-            return;
-        }
-
-
-        const landmarks =
-            result.faceLandmarks[0];
-
-
-        const values =
-            calculateHeadValues(
-                landmarks
+        const timestamp =
+            Math.round(
+                performance.now()
             );
 
 
-        if (!values) {
-
-            faceDetected = false;
-
-            return;
-        }
-
-
-        faceDetected = true;
+        const result =
+            faceLandmarker.detectForVideo(
+                el.video,
+                timestamp
+            );
 
 
-        headX =
-            values.x;
-
-        headY =
-            values.y;
-
-        headDepth =
-            values.depth;
-
-        headYaw =
-            values.yaw;
-
-        headPitch =
-            values.pitch;
-
-        headRoll =
-            values.roll;
-
-
-        smoothTracking(
-            values
+        processFaceResult(
+            result
         );
-
-
-        applyHeadTracking();
 
 
     } catch (error) {
@@ -1883,15 +2799,42 @@ function updateFaceTracking(
 }
 
 
+/* =========================
+   TRACKING LOOP
+========================= */
+
+function trackingLoop() {
+
+    if (
+        !trackingRunning
+    ) {
+
+        return;
+    }
+
+
+    detectFaceFrame();
+
+
+    trackingFrameId =
+        requestAnimationFrame(
+            trackingLoop
+        );
+}
+
+
+/* =========================
+   START TRACKING
+========================= */
+
 async function startTracking() {
 
     if (
-        !el.video ||
-        !el.video.srcObject
+        !el.video
     ) {
 
         status(
-            "Open camera first."
+            "Video element not found."
         );
 
         return;
@@ -1899,8 +2842,18 @@ async function startTracking() {
 
 
     if (
-        !(await createFaceTracker())
+        !cameraStream
     ) {
+
+        await startCamera();
+    }
+
+
+    const ready =
+        await createFaceTracker();
+
+
+    if (!ready) {
 
         return;
     }
@@ -1910,36 +2863,30 @@ async function startTracking() {
         true;
 
 
-    lastDetectionTime =
-        0;
+    lastVideoTime =
+        -1;
 
 
-    if (testCube) {
+    if (trackingFrameId) {
 
-        testCube.visible =
-            false;
+        cancelAnimationFrame(
+            trackingFrameId
+        );
     }
 
 
-    setButtonText(
-        el.startTrackingButton,
-        "TRACKING ON"
-    );
+    trackingLoop();
 
 
     status(
-        "Tracking active."
+        "Face tracking started. Green dots are active."
     );
-
-
-    if (!trackingFrameId) {
-        trackingFrameId =
-            requestAnimationFrame(
-                trackingLoop
-            );
-    }
 }
 
+
+/* =========================
+   STOP TRACKING
+========================= */
 
 function stopTracking() {
 
@@ -1953,15 +2900,9 @@ function stopTracking() {
             trackingFrameId
         );
 
+
         trackingFrameId =
             null;
-    }
-
-
-    if (testCube) {
-
-        testCube.visible =
-            true;
     }
 
 
@@ -1969,149 +2910,460 @@ function stopTracking() {
         false;
 
 
-    setButtonText(
-        el.startTrackingButton,
-        "START TRACKING"
+    lastLandmarks =
+        null;
+
+
+    drawFaceLandmarks(
+        null
     );
+
+
+    if (faceOccluder) {
+
+        faceOccluder.visible =
+            false;
+    }
 
 
     status(
-        "Tracking stopped."
+        "Face tracking stopped."
     );
+}/* =========================
+   RECORDING
+========================= */
+
+function getRecordingStream() {
+
+    if (!el.canvas) {
+        return null;
+    }
+
+    const canvasStream =
+        el.canvas.captureStream(30);
+
+    if (
+        cameraStream &&
+        cameraStream.getAudioTracks().length > 0
+    ) {
+
+        cameraStream
+            .getAudioTracks()
+            .forEach(
+                (track) => {
+
+                    canvasStream.addTrack(
+                        track
+                    );
+                }
+            );
+    }
+
+    return canvasStream;
 }
 
 
-function trackingLoop(now) {
+function startRecording() {
 
-    trackingFrameId =
-        requestAnimationFrame(
-            trackingLoop
+    if (recording) {
+        return;
+    }
+
+
+    const stream =
+        getRecordingStream();
+
+
+    if (!stream) {
+
+        status(
+            "Recording error: canvas stream unavailable."
+        );
+
+        return;
+    }
+
+
+    recordChunks =
+        [];
+
+
+    let mimeType =
+        "";
+
+
+    const types = [
+
+        "video/webm;codecs=vp9",
+
+        "video/webm;codecs=vp8",
+
+        "video/webm"
+
+    ];
+
+
+    for (
+        const type of types
+    ) {
+
+        if (
+            MediaRecorder.isTypeSupported(
+                type
+            )
+        ) {
+
+            mimeType =
+                type;
+
+            break;
+        }
+    }
+
+
+    try {
+
+        recorder =
+            mimeType
+                ? new MediaRecorder(
+                    stream,
+                    {
+                        mimeType
+                    }
+                )
+                : new MediaRecorder(
+                    stream
+                );
+
+
+        recorder.ondataavailable =
+            (event) => {
+
+                if (
+                    event.data &&
+                    event.data.size > 0
+                ) {
+
+                    recordChunks.push(
+                        event.data
+                    );
+                }
+            };
+
+
+        recorder.onstop =
+            saveRecording;
+
+
+        recorder.onerror =
+            (event) => {
+
+                console.error(
+                    "RECORDER ERROR:",
+                    event
+                );
+
+
+                recording =
+                    false;
+
+
+                setRecordButtonText(
+                    "START RECORDING"
+                );
+
+
+                status(
+                    "Recording error."
+                );
+            };
+
+
+        recorder.start(
+            200
         );
 
 
-    if (!trackingRunning) {
-        return;
+        recording =
+            true;
+
+
+        setRecordButtonText(
+            "STOP RECORDING"
+        );
+
+
+        status(
+            "Recording started."
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            error
+        );
+
+
+        status(
+            "Recording error: " +
+            error.message
+        );
     }
-
-
-    updateFaceTracking(
-        now
-    );
-
-
-    renderScene();
 }
 
 
-function bindSlider(
-    slider,
-    callback
-) {
-
-    if (!slider) {
-        return;
-    }
-
-
-    slider.addEventListener(
-        "input",
-        callback
-    );
-}
-
-
-function updateCameraButtonState() {
-
-    if (!el.openCameraButton) {
-        return;
-    }
-
-
-    setButtonText(
-        el.openCameraButton,
-        cameraStream
-            ? "CAMERA ON"
-            : "OPEN CAMERA"
-    );
-}
-
-
-async function capturePhoto() {
+function stopRecording() {
 
     if (
-        !el.video ||
-        !el.canvas
+        !recorder ||
+        !recording
     ) {
 
         return;
     }
 
 
-    const output =
+    recorder.stop();
+
+
+    recording =
+        false;
+
+
+    setRecordButtonText(
+        "START RECORDING"
+    );
+
+
+    status(
+        "Preparing recording..."
+    );
+}
+
+
+function saveRecording() {
+
+    if (
+        !recordChunks.length
+    ) {
+
+        status(
+            "No recording data."
+        );
+
+        return;
+    }
+
+
+    const blob =
+        new Blob(
+            recordChunks,
+            {
+                type:
+                    "video/webm"
+            }
+        );
+
+
+    const url =
+        URL.createObjectURL(
+            blob
+        );
+
+
+    const link =
+        document.createElement(
+            "a"
+        );
+
+
+    link.href =
+        url;
+
+
+    link.download =
+        "azeez-ar-recording.webm";
+
+
+    document.body.appendChild(
+        link
+    );
+
+
+    link.click();
+
+
+    link.remove();
+
+
+    setTimeout(
+        () => {
+
+            URL.revokeObjectURL(
+                url
+            );
+
+        },
+        1000
+    );
+
+
+    recordChunks =
+        [];
+
+
+    status(
+        "Recording saved."
+    );
+}
+
+
+function toggleRecording() {
+
+    if (recording) {
+
+        stopRecording();
+
+    } else {
+
+        startRecording();
+    }
+}
+
+
+/* =========================
+   PHOTO CAPTURE
+========================= */
+
+function capturePhoto() {
+
+    if (!el.video) {
+
+        status(
+            "Photo error: video unavailable."
+        );
+
+        return;
+    }
+
+
+    const width =
+        el.video.videoWidth ||
+        window.innerWidth;
+
+
+    const height =
+        el.video.videoHeight ||
+        window.innerHeight;
+
+
+    const photoCanvas =
         document.createElement(
             "canvas"
         );
 
 
-    output.width =
-        el.video.videoWidth ||
-        window.innerWidth;
+    photoCanvas.width =
+        width;
 
 
-    output.height =
-        el.video.videoHeight ||
-        window.innerHeight;
+    photoCanvas.height =
+        height;
 
 
     const context =
-        output.getContext(
+        photoCanvas.getContext(
             "2d"
         );
 
 
-    if (!context) {
-        return;
+    /*
+     * Draw camera image.
+     */
+
+    if (cameraFlipped) {
+
+        context.save();
+
+        context.translate(
+            width,
+            0
+        );
+
+        context.scale(
+            -1,
+            1
+        );
+
+        context.drawImage(
+            el.video,
+            0,
+            0,
+            width,
+            height
+        );
+
+        context.restore();
+
+    } else {
+
+        context.drawImage(
+            el.video,
+            0,
+            0,
+            width,
+            height
+        );
     }
 
 
-    context.drawImage(
+    /*
+     * Draw Three.js overlay.
+     */
 
-        el.video,
+    if (el.canvas) {
 
-        0,
-        0,
-
-        output.width,
-        output.height
-
-    );
+        context.drawImage(
+            el.canvas,
+            0,
+            0,
+            width,
+            height
+        );
+    }
 
 
     /*
-     * Render the current 3D scene
-     * on top of the camera image.
+     * Draw green landmarks.
+     * They are included in the photo
+     * while tracking is active.
      */
 
-    renderScene();
+    if (
+        landmarkCanvas &&
+        landmarkVisible
+    ) {
+
+        context.drawImage(
+            landmarkCanvas,
+            0,
+            0,
+            width,
+            height
+        );
+    }
 
 
-    context.drawImage(
-
-        el.canvas,
-
-        0,
-        0,
-
-        output.width,
-        output.height
-
-    );
-
-
-    output.toBlob(
+    photoCanvas.toBlob(
         (blob) => {
 
             if (!blob) {
+
+                status(
+                    "Photo capture failed."
+                );
+
                 return;
             }
 
@@ -2131,11 +3383,20 @@ async function capturePhoto() {
             link.href =
                 url;
 
+
             link.download =
                 "azeez-ar-photo.png";
 
 
+            document.body.appendChild(
+                link
+            );
+
+
             link.click();
+
+
+            link.remove();
 
 
             setTimeout(
@@ -2149,289 +3410,482 @@ async function capturePhoto() {
                 1000
             );
 
+
+            status(
+                "Photo captured."
+            );
+
         },
         "image/png"
     );
+}
+
+
+/* =========================
+   CONTROLS VISIBILITY
+========================= */
+
+function hideControls() {
+
+    if (
+        el.appControls
+    ) {
+
+        el.appControls.style.display =
+            "none";
+    }
+
+
+    if (
+        el.showControlsButton
+    ) {
+
+        el.showControlsButton.style.display =
+            "block";
+    }
 
 
     status(
-        "Photo captured."
+        "Controls hidden."
     );
-      }function startRecording() {
+}
+
+
+function showControls() {
 
     if (
-        !el.canvas ||
-        !el.video
+        el.appControls
     ) {
 
-        return;
+        el.appControls.style.display =
+            "";
     }
 
 
     if (
-        typeof MediaRecorder ===
-        "undefined"
+        el.showControlsButton
     ) {
 
-        status(
-            "Recording is not supported."
+        el.showControlsButton.style.display =
+            "";
+    }
+
+
+    status(
+        "Controls visible."
+    );
+}
+
+
+/* =========================
+   LANDMARK TOGGLE
+========================= */
+
+function toggleLandmarks() {
+
+    landmarkVisible =
+        !landmarkVisible;
+
+
+    if (!landmarkVisible) {
+
+        drawFaceLandmarks(
+            null
         );
 
+
+        status(
+            "Green face dots hidden."
+        );
+
+
         return;
     }
 
 
-    try {
+    if (
+        lastLandmarks
+    ) {
 
-        renderScene();
-
-
-        const canvasStream =
-            el.canvas.captureStream(
-                30
-            );
-
-
-        const tracks = [];
+        drawFaceLandmarks(
+            lastLandmarks
+        );
+    }
 
 
-        canvasStream
-            .getVideoTracks()
-            .forEach(
-                (track) =>
-                    tracks.push(track)
-            );
+    status(
+        "Green face dots visible."
+    );
+}
 
 
-        if (cameraStream) {
+/* =========================
+   SET BUTTON TEXT
+========================= */
 
-            const audioTracks =
-                cameraStream
-                    .getAudioTracks();
+function setRecordButtonText(
+    text
+) {
 
+    if (
+        el.recordButton
+    ) {
 
-            audioTracks.forEach(
-                (track) =>
-                    tracks.push(track)
-            );
-        }
-
-
-        const combinedStream =
-            new MediaStream(
-                tracks
-            );
+        el.recordButton.textContent =
+            text;
+    }
+}
 
 
-        let mimeType =
-            "video/webm;codecs=vp9";
+/* =========================
+   BUTTON EVENTS
+========================= */
+
+function setupEvents() {
+
+    if (
+        el.openCameraButton
+    ) {
+
+        el.openCameraButton.addEventListener(
+            "click",
+            async () => {
+
+                await startCamera();
+            }
+        );
+    }
 
 
-        if (
-            !MediaRecorder.isTypeSupported(
-                mimeType
-            )
-        ) {
+    if (
+        el.startTrackingButton
+    ) {
 
-            mimeType =
-                "video/webm;codecs=vp8";
-        }
-
-
-        if (
-            !MediaRecorder.isTypeSupported(
-                mimeType
-            )
-        ) {
-
-            mimeType =
-                "video/webm";
-        }
-
-
-        recorder =
-            new MediaRecorder(
-
-                combinedStream,
-
-                {
-                    mimeType,
-                    videoBitsPerSecond:
-                        6000000
-                }
-
-            );
-
-
-        recordChunks = [];
-
-
-        recorder.ondataavailable =
-            (event) => {
+        el.startTrackingButton.addEventListener(
+            "click",
+            async () => {
 
                 if (
-                    event.data &&
-                    event.data.size > 0
+                    trackingRunning
                 ) {
 
-                    recordChunks.push(
-                        event.data
-                    );
+                    stopTracking();
+
+                } else {
+
+                    await startTracking();
                 }
-            };
-
-
-        recorder.onstop =
-            () => {
-
-                const blob =
-                    new Blob(
-                        recordChunks,
-                        {
-                            type:
-                                recorder.mimeType
-                        }
-                    );
-
-
-                const url =
-                    URL.createObjectURL(
-                        blob
-                    );
-
-
-                const link =
-                    document.createElement(
-                        "a"
-                    );
-
-
-                link.href =
-                    url;
-
-                link.download =
-                    "azeez-ar-recording.webm";
-
-
-                link.click();
-
-
-                setTimeout(
-                    () => {
-
-                        URL.revokeObjectURL(
-                            url
-                        );
-
-                    },
-                    1500
-                );
-
-
-                status(
-                    "Recording saved."
-                );
-            };
-
-
-        recorder.start(
-            100
-        );
-
-
-        recording = true;
-
-
-        setButtonText(
-            el.recordButton,
-            "STOP RECORDING"
-        );
-
-
-        status(
-            "Recording..."
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            "RECORD ERROR:",
-            error
-        );
-
-        status(
-            "RECORD ERROR: " +
-            error.message
+            }
         );
     }
-}
 
-
-function stopRecording() {
 
     if (
-        !recorder ||
-        recorder.state ===
-        "inactive"
+        el.switchCameraButton
     ) {
 
-        recording = false;
+        el.switchCameraButton.addEventListener(
+            "click",
+            async () => {
 
-        return;
+                await switchCamera();
+            }
+        );
     }
 
 
-    recorder.stop();
+    if (
+        el.flipCameraButton
+    ) {
+
+        el.flipCameraButton.addEventListener(
+            "click",
+            () => {
+
+                toggleCameraFlip();
+            }
+        );
+    }
 
 
-    recording = false;
+    if (
+        el.recordButton
+    ) {
+
+        el.recordButton.addEventListener(
+            "click",
+            () => {
+
+                toggleRecording();
+            }
+        );
+    }
 
 
-    setButtonText(
-        el.recordButton,
-        "RECORD"
+    if (
+        el.captureButton
+    ) {
+
+        el.captureButton.addEventListener(
+            "click",
+            () => {
+
+                capturePhoto();
+            }
+        );
+    }
+
+
+    if (
+        el.modelFileInput
+    ) {
+
+        el.modelFileInput.addEventListener(
+            "change",
+            async (event) => {
+
+                const file =
+                    event.target.files &&
+                    event.target.files[0];
+
+
+                if (file) {
+
+                    await loadModelFile(
+                        file
+                    );
+                }
+            }
+        );
+    }
+
+
+    if (
+        el.resetControlsButton
+    ) {
+
+        el.resetControlsButton.addEventListener(
+            "click",
+            () => {
+
+                resetModelControls();
+            }
+        );
+    }
+
+
+    if (
+        el.hideControlsButton
+    ) {
+
+        el.hideControlsButton.addEventListener(
+            "click",
+            () => {
+
+                hideControls();
+            }
+        );
+    }
+
+
+    if (
+        el.showControlsButton
+    ) {
+
+        el.showControlsButton.addEventListener(
+            "click",
+            () => {
+
+                showControls();
+            }
+        );
+    }
+
+
+    const sliders = [
+
+        el.scaleSlider,
+
+        el.xSlider,
+
+        el.ySlider,
+
+        el.zSlider,
+
+        el.rotateXSlider,
+
+        el.rotateYSlider,
+
+        el.rotateZSlider
+
+    ];
+
+
+    sliders.forEach(
+        (slider) => {
+
+            if (!slider) {
+                return;
+            }
+
+
+            slider.addEventListener(
+                "input",
+                () => {
+
+                    applyModelControls();
+                }
+            );
+        }
     );
-}
 
 
-function toggleRecording() {
+    /*
+     * Double tap / click on the
+     * status area toggles green dots.
+     */
 
-    if (recording) {
+    if (
+        el.status
+    ) {
 
-        stopRecording();
+        el.status.addEventListener(
+            "dblclick",
+            () => {
 
-    } else {
-
-        startRecording();
-
+                toggleLandmarks();
+            }
+        );
     }
 }
 
 
-function exportGLB() {
+/* =========================
+   OPTIONAL KEYBOARD CONTROLS
+========================= */
+
+window.addEventListener(
+    "keydown",
+    (event) => {
+
+        if (
+            event.key === "r" ||
+            event.key === "R"
+        ) {
+
+            toggleRecording();
+        }
+
+
+        if (
+            event.key === "c" ||
+            event.key === "C"
+        ) {
+
+            capturePhoto();
+        }
+
+
+        if (
+            event.key === "l" ||
+            event.key === "L"
+        ) {
+
+            toggleLandmarks();
+        }
+    }
+);
+
+
+/* =========================
+   PAGE VISIBILITY
+========================= */
+
+document.addEventListener(
+    "visibilitychange",
+    () => {
+
+        if (
+            document.hidden &&
+            recording
+        ) {
+
+            /*
+             * Do not automatically stop
+             * recording. The browser decides
+             * how the media stream behaves.
+             */
+
+            return;
+        }
+    }
+);/* =========================
+   GLB EXPORT
+========================= */
+
+function exportCurrentModel() {
 
     if (!currentModel) {
 
         status(
-            "Load a 3D model first."
+            "Export error: no 3D model loaded."
         );
 
         return;
     }
 
 
-    try {
+    status(
+        "Preparing GLB export..."
+    );
 
-        const exporter =
-            new GLTFExporter();
+
+    const exporter =
+        new GLTFExporter();
 
 
-        exporter.parse(
+    /*
+     * Clone the model so the live
+     * tracking scene is not changed.
+     */
 
-            currentModel,
+    const exportRoot =
+        currentModel.clone(
+            true
+        );
 
-            (result) => {
+
+    /*
+     * Apply the current visual
+     * transformation to the clone.
+     */
+
+    exportRoot.position.set(
+        0,
+        0,
+        0
+    );
+
+
+    exportRoot.rotation.set(
+        0,
+        0,
+        0
+    );
+
+
+    exportRoot.scale.setScalar(
+        1
+    );
+
+
+    exporter.parse(
+
+        exportRoot,
+
+        (result) => {
+
+            try {
 
                 let blob;
 
@@ -2451,13 +3905,15 @@ function exportGLB() {
 
                 } else {
 
+                    const json =
+                        JSON.stringify(
+                            result
+                        );
+
+
                     blob =
                         new Blob(
-                            [
-                                JSON.stringify(
-                                    result
-                                )
-                            ],
+                            [json],
                             {
                                 type:
                                     "application/json"
@@ -2481,11 +3937,20 @@ function exportGLB() {
                 link.href =
                     url;
 
+
                 link.download =
                     "azeez-ar-model.glb";
 
 
+                document.body.appendChild(
+                    link
+                );
+
+
                 link.click();
+
+
+                link.remove();
 
 
                 setTimeout(
@@ -2496,283 +3961,93 @@ function exportGLB() {
                         );
 
                     },
-                    1500
+                    1000
                 );
 
 
                 status(
-                    "3D export complete."
+                    "3D model exported."
                 );
 
-            },
 
-            (error) => {
+            } catch (error) {
 
                 console.error(
-                    "EXPORT ERROR:",
+                    "EXPORT SAVE ERROR:",
                     error
                 );
 
+
                 status(
-                    "EXPORT ERROR."
+                    "EXPORT ERROR: " +
+                    error.message
                 );
-
-            },
-
-            {
-                binary: true
             }
+        },
 
-        );
 
-    } catch (error) {
+        (error) => {
 
-        console.error(
-            "EXPORT ERROR:",
-            error
-        );
+            console.error(
+                "EXPORT ERROR:",
+                error
+            );
 
-        status(
-            "EXPORT ERROR: " +
-            error.message
-        );
+
+            status(
+                "EXPORT ERROR: " +
+                (
+                    error &&
+                    error.message
+                        ? error.message
+                        : "Unable to export model."
+                )
+            );
+        },
+
+
+        {
+            binary:
+                true,
+
+            onlyVisible:
+                false,
+
+            trs:
+                false
+        }
+
+    );
+}
+
+
+/* =========================
+   EXPORT BUTTON
+========================= */
+
+function setupExport() {
+
+    if (
+        !el.exportButton
+    ) {
+
+        return;
     }
-}
 
-
-if (el.modelFileInput) {
-
-    el.modelFileInput.addEventListener(
-        "change",
-        async (event) => {
-
-            const file =
-                event.target.files &&
-                event.target.files[0];
-
-
-            if (file) {
-
-                await loadModelFile(
-                    file
-                );
-            }
-
-
-            event.target.value =
-                "";
-        }
-    );
-}
-
-
-if (el.openCameraButton) {
-
-    el.openCameraButton.addEventListener(
-        "click",
-        async () => {
-
-            await startCamera();
-
-            updateCameraButtonState();
-        }
-    );
-}
-
-
-if (el.startTrackingButton) {
-
-    el.startTrackingButton.addEventListener(
-        "click",
-        async () => {
-
-            if (trackingRunning) {
-
-                stopTracking();
-
-            } else {
-
-                await startTracking();
-
-            }
-        }
-    );
-}
-
-
-if (el.switchCameraButton) {
-
-    el.switchCameraButton.addEventListener(
-        "click",
-        async () => {
-
-            await switchCamera();
-
-            updateCameraButtonState();
-        }
-    );
-}
-
-
-if (el.flipCameraButton) {
-
-    el.flipCameraButton.addEventListener(
-        "click",
-        () => {
-
-            toggleCameraFlip();
-
-        }
-    );
-}
-
-
-if (el.recordButton) {
-
-    el.recordButton.addEventListener(
-        "click",
-        () => {
-
-            toggleRecording();
-
-        }
-    );
-}
-
-
-if (el.captureButton) {
-
-    el.captureButton.addEventListener(
-        "click",
-        () => {
-
-            capturePhoto();
-
-        }
-    );
-}
-
-
-if (el.exportButton) {
 
     el.exportButton.addEventListener(
         "click",
         () => {
 
-            exportGLB();
-
+            exportCurrentModel();
         }
     );
 }
 
 
-if (el.resetControlsButton) {
-
-    el.resetControlsButton.addEventListener(
-        "click",
-        () => {
-
-            resetModelControls();
-
-        }
-    );
-}
-
-
-if (el.hideControlsButton) {
-
-    el.hideControlsButton.addEventListener(
-        "click",
-        () => {
-
-            toggleControlsVisibility(
-                false
-            );
-
-        }
-    );
-}
-
-
-if (el.showControlsButton) {
-
-    el.showControlsButton.addEventListener(
-        "click",
-        () => {
-
-            toggleControlsVisibility(
-                true
-            );
-
-        }
-    );
-}
-
-
-bindSlider(
-    el.scaleSlider,
-    applyModelControls
-);
-
-bindSlider(
-    el.xSlider,
-    applyModelControls
-);
-
-bindSlider(
-    el.ySlider,
-    applyModelControls
-);
-
-bindSlider(
-    el.zSlider,
-    applyModelControls
-);
-
-bindSlider(
-    el.rotateXSlider,
-    applyModelControls
-);
-
-bindSlider(
-    el.rotateYSlider,
-    applyModelControls
-);
-
-bindSlider(
-    el.rotateZSlider,
-    applyModelControls
-);
-
-
-if (el.video) {
-
-    el.video.setAttribute(
-        "playsinline",
-        ""
-    );
-
-    el.video.setAttribute(
-        "autoplay",
-        ""
-    );
-
-    el.video.muted =
-        true;
-}
-
-
-toggleControlsVisibility(
-    true
-);
-
-
-updateSliderLabels();
-
-applyCameraOrientation();
-
-updateCameraButtonState();
-
+/* =========================
+   CAMERA CLEANUP
+========================= */
 
 window.addEventListener(
     "beforeunload",
@@ -2789,17 +4064,310 @@ window.addEventListener(
                 modelURL
             );
 
-            modelURL = null;
+            modelURL =
+                null;
         }
     }
 );
 
 
-status(
-    "Ready. Press OPEN CAMERA."
+/* =========================
+   MODEL DRAG SUPPORT
+========================= */
+
+let pointerDown =
+    false;
+
+let pointerStartX =
+    0;
+
+let pointerStartY =
+    0;
+
+
+function setupModelPointerControls() {
+
+    if (!el.canvas) {
+        return;
+    }
+
+
+    el.canvas.addEventListener(
+        "pointerdown",
+        (event) => {
+
+            if (!currentModel) {
+                return;
+            }
+
+
+            pointerDown =
+                true;
+
+
+            pointerStartX =
+                event.clientX;
+
+
+            pointerStartY =
+                event.clientY;
+
+
+            try {
+
+                el.canvas.setPointerCapture(
+                    event.pointerId
+                );
+
+            } catch (error) {
+                console.warn(error);
+            }
+        }
+    );
+
+
+    el.canvas.addEventListener(
+        "pointermove",
+        (event) => {
+
+            if (
+                !pointerDown ||
+                !currentModel
+            ) {
+
+                return;
+            }
+
+
+            const dx =
+                event.clientX -
+                pointerStartX;
+
+
+            const dy =
+                event.clientY -
+                pointerStartY;
+
+
+            pointerStartX =
+                event.clientX;
+
+
+            pointerStartY =
+                event.clientY;
+
+
+            /*
+             * Manual drag is only applied
+             * when face tracking is not active.
+             */
+
+            if (
+                !trackingRunning
+            ) {
+
+                const currentX =
+                    Number(
+                        el.xSlider
+                            ? el.xSlider.value
+                            : 0
+                    );
+
+
+                const currentY =
+                    Number(
+                        el.ySlider
+                            ? el.ySlider.value
+                            : 0
+                    );
+
+
+                if (
+                    el.xSlider
+                ) {
+
+                    el.xSlider.value =
+                        String(
+                            currentX +
+                            dx *
+                            0.005
+                        );
+                }
+
+
+                if (
+                    el.ySlider
+                ) {
+
+                    el.ySlider.value =
+                        String(
+                            currentY +
+                            dy *
+                            0.005
+                        );
+                }
+
+
+                applyModelControls();
+            }
+        }
+    );
+
+
+    el.canvas.addEventListener(
+        "pointerup",
+        (event) => {
+
+            pointerDown =
+                false;
+
+
+            try {
+
+                el.canvas.releasePointerCapture(
+                    event.pointerId
+                );
+
+            } catch (error) {
+                console.warn(error);
+            }
+        }
+    );
+
+
+    el.canvas.addEventListener(
+        "pointercancel",
+        () => {
+
+            pointerDown =
+                false;
+        }
+    );
+}
+
+
+/* =========================
+   TRACKING BUTTON TEXT
+========================= */
+
+function updateTrackingButtonText() {
+
+    if (
+        !el.startTrackingButton
+    ) {
+
+        return;
+    }
+
+
+    el.startTrackingButton.textContent =
+        trackingRunning
+            ? "STOP TRACKING"
+            : "START TRACKING";
+}
+
+
+/* =========================
+   OPEN CAMERA BUTTON TEXT
+========================= */
+
+function updateCameraButtonText() {
+
+    if (
+        !el.openCameraButton
+    ) {
+
+        return;
+    }
+
+
+    el.openCameraButton.textContent =
+        cameraStream
+            ? "CAMERA ON"
+            : "OPEN CAMERA";
+}
+
+
+/* =========================
+   MAIN UI UPDATE
+========================= */
+
+setInterval(
+    () => {
+
+        updateTrackingButtonText();
+
+        updateCameraButtonText();
+
+    },
+    500
 );
 
 
-console.log(
-    "Azeez AR Head Tracker loaded."
-);
+/* =========================
+   FINAL INITIALIZATION
+========================= */
+
+try {
+
+    setupEvents();
+
+    setupExport();
+
+    setupModelPointerControls();
+
+    updateSliderLabels();
+
+    updateTrackingButtonText();
+
+    updateCameraButtonText();
+
+
+    if (
+        el.showControlsButton
+    ) {
+
+        el.showControlsButton.style.display =
+            "none";
+    }
+
+
+    /*
+     * Keep green face dots available
+     * whenever tracking is active.
+     */
+
+    landmarkVisible =
+        true;
+
+
+    /*
+     * Initial test cube is visible
+     * until a real model is loaded.
+     */
+
+    if (testCube) {
+
+        testCube.visible =
+            true;
+    }
+
+
+    status(
+        "Azeez AR ready. Open camera to begin."
+    );
+
+
+} catch (error) {
+
+    console.error(
+        "INITIALIZATION ERROR:",
+        error
+    );
+
+
+    status(
+        "INIT ERROR: " +
+        error.message
+    );
+}
