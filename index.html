@@ -3,323 +3,452 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Azeez AR Head Tracker</title>
 
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
-  }
-}
-</script>
+<title>Azeez AR Head Tracker</title>
 
 <style>
 * {
-  box-sizing: border-box;
+    box-sizing: border-box;
 }
 
 html,
 body {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  background: #000;
-  font-family: Arial, sans-serif;
-  color: #fff;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+    font-family: Arial, sans-serif;
 }
 
 #app {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  background: #000;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
 }
 
-#camera {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transform: scaleX(1);
-  z-index: 1;
-  background: #000;
+#video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    background: #000;
+    z-index: 1;
 }
 
-#threeCanvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 2;
-  pointer-events: none;
-  transform: scaleX(1);
+#canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    pointer-events: none;
+    z-index: 2;
 }
 
 #status {
-  position: absolute;
-  left: 10px;
-  bottom: 10px;
-  z-index: 20;
-  max-width: calc(100% - 20px);
-  padding: 7px 10px;
-  border-radius: 8px;
-  background: rgba(0,0,0,0.65);
-  color: #fff;
-  font-size: 12px;
-  line-height: 1.3;
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+
+    max-width: 92%;
+    padding: 8px 14px;
+
+    border-radius: 20px;
+    background: rgba(0, 0, 0, 0.65);
+    color: #fff;
+
+    font-size: 13px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-#appControls {
-  position: absolute;
-  inset: 0;
-  z-index: 10;
-  pointer-events: none;
-}
+#topButtons {
+    position: absolute;
+    top: 52px;
+    left: 50%;
+    transform: translateX(-50%);
 
-.topControls {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  right: 10px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  pointer-events: auto;
+    width: 96%;
+    max-width: 520px;
+
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 7px;
+
+    z-index: 30;
 }
 
 button,
-select,
-input {
-  font: inherit;
+.fileButton {
+    border: none;
+    border-radius: 10px;
+
+    padding: 10px 12px;
+
+    background: rgba(20, 20, 20, 0.82);
+    color: #fff;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
-button,
-select {
-  min-height: 38px;
-  border: 0;
-  border-radius: 8px;
-  padding: 7px 10px;
-  background: rgba(20,20,20,0.86);
-  color: #fff;
-  font-size: 12px;
+button:active,
+.fileButton:active {
+    transform: scale(0.97);
 }
 
-button:active {
-  transform: scale(0.97);
+button:hover,
+.fileButton:hover {
+    background: rgba(50, 50, 50, 0.92);
 }
 
-.sideControls {
-  position: absolute;
-  top: 115px;
-  right: 8px;
-  width: 145px;
-  max-width: calc(100% - 16px);
-  padding: 9px;
-  border-radius: 10px;
-  background: rgba(0,0,0,0.68);
-  pointer-events: auto;
-}
-
-.sideControls h3 {
-  margin: 0 0 7px;
-  font-size: 12px;
-}
-
-.controlRow {
-  margin-bottom: 7px;
-}
-
-.controlRow label {
-  display: block;
-  margin-bottom: 2px;
-  font-size: 10px;
-}
-
-.controlRow input[type="range"] {
-  width: 100%;
-  height: 20px;
-  accent-color: #fff;
-}
-
-#showControlsButton {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 30;
-  display: none;
-  min-height: 36px;
-  padding: 7px 11px;
-  border-radius: 9px;
-  background: rgba(0,0,0,0.8);
-  color: #fff;
+.fileButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 #modelFileInput {
-  display: none;
+    display: none;
+}
+
+#appControls {
+    position: absolute;
+
+    left: 50%;
+    bottom: 12px;
+    transform: translateX(-50%);
+
+    width: 94%;
+    max-width: 520px;
+    max-height: 48vh;
+
+    padding: 12px;
+
+    overflow-y: auto;
+
+    background: rgba(0, 0, 0, 0.72);
+    backdrop-filter: blur(8px);
+
+    border-radius: 16px;
+
+    z-index: 30;
+}
+
+.controlRow {
+    margin-bottom: 10px;
+}
+
+.controlRow:last-child {
+    margin-bottom: 0;
+}
+
+.controlLabel {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    margin-bottom: 4px;
+
+    color: #fff;
+    font-size: 12px;
+}
+
+.controlValue {
+    opacity: 0.75;
+    font-size: 11px;
+}
+
+input[type="range"] {
+    width: 100%;
+    height: 28px;
+    margin: 0;
+
+    accent-color: #ffffff;
+}
+
+#controlsButtons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 10px;
+}
+
+#showControlsButton {
+    position: absolute;
+
+    right: 12px;
+    bottom: 12px;
+
+    z-index: 31;
+
+    display: none;
 }
 
 @media (max-width: 600px) {
-  .topControls {
-    right: 90px;
-  }
+    #topButtons {
+        top: 48px;
+        gap: 5px;
+    }
 
-  button,
-  select {
-    min-height: 34px;
-    padding: 6px 8px;
-    font-size: 11px;
-  }
+    button,
+    .fileButton {
+        padding: 8px 9px;
+        font-size: 12px;
+    }
 
-  .sideControls {
-    top: 105px;
-    width: 132px;
-  }
+    #appControls {
+        bottom: 8px;
+        width: 96%;
+        max-height: 45vh;
+    }
+
+    #status {
+        top: 8px;
+        font-size: 12px;
+    }
 }
 </style>
+
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+    }
+}
+</script>
 </head>
 
 <body>
 
 <div id="app">
 
-  <video
-    id="camera"
-    autoplay
-    playsinline
-    muted>
-  </video>
+    <video
+        id="video"
+        autoplay
+        playsinline
+        muted>
+    </video>
 
-  <canvas id="threeCanvas"></canvas>
+    <canvas id="canvas"></canvas>
 
-  <div id="status">Ready</div>
+    <div id="status">
+        Ready. Press OPEN CAMERA.
+    </div>
 
-  <div id="appControls">
+    <div id="topButtons">
 
-    <div class="topControls">
+        <button id="openCameraButton">
+            OPEN CAMERA
+        </button>
 
-      <button id="cameraButton" type="button">Open Camera</button>
-      <button id="switchCameraButton" type="button">Camera</button>
-      <button id="flipCameraButton" type="button">Flip</button>
-      <button id="photoButton" type="button">Photo</button>
-      <button id="recordButton" type="button">Record</button>
-      <button id="audioButton" type="button">Audio Off</button>
-      <button id="trackingButton" type="button">Tracking</button>
-      <button id="modelButton" type="button">3D Model</button>
-      <button id="import3DButton" type="button">Import 3D</button>
-      <button id="export3DButton" type="button">Export 3D</button>
+        <button id="startTrackingButton">
+            START TRACKING
+        </button>
 
-      <select id="exportFormat">
-        <option value="glb">GLB</option>
-        <option value="gltf">GLTF</option>
-        <option value="obj">OBJ</option>
-      </select>
+        <button id="switchCameraButton">
+            SWITCH CAMERA
+        </button>
 
-      <button id="resetButton" type="button">Reset</button>
-      <button id="hideControlsButton" type="button">Hide Controls</button>
+        <button id="flipCameraButton">
+            FLIP
+        </button>
 
-    </div>    <div id="sideControls" class="sideControls">
+        <button id="recordButton">
+            RECORD
+        </button>
 
-      <h3>3D Controls</h3>
+        <button id="captureButton">
+            PHOTO
+        </button>
 
-      <div class="controlRow">
-        <label for="scaleSlider">Scale</label>
+        <label
+            class="fileButton"
+            for="modelFileInput">
+            IMPORT 3D
+        </label>
+
         <input
-          id="scaleSlider"
-          type="range"
-          min="0.1"
-          max="5"
-          step="0.01"
-          value="1">
-      </div>
+            id="modelFileInput"
+            type="file"
+            accept=".glb,.gltf,.obj,.stl">
 
-      <div class="controlRow">
-        <label for="xSlider">Position X</label>
-        <input
-          id="xSlider"
-          type="range"
-          min="-3"
-          max="3"
-          step="0.01"
-          value="0">
-      </div>
-
-      <div class="controlRow">
-        <label for="ySlider">Position Y</label>
-        <input
-          id="ySlider"
-          type="range"
-          min="-3"
-          max="3"
-          step="0.01"
-          value="0">
-      </div>
-
-      <div class="controlRow">
-        <label for="zSlider">Position Z</label>
-        <input
-          id="zSlider"
-          type="range"
-          min="-5"
-          max="5"
-          step="0.01"
-          value="0">
-      </div>
-
-      <div class="controlRow">
-        <label for="rotateXSlider">Rotation X</label>
-        <input
-          id="rotateXSlider"
-          type="range"
-          min="-180"
-          max="180"
-          step="1"
-          value="0">
-      </div>
-
-      <div class="controlRow">
-        <label for="rotateYSlider">Rotation Y</label>
-        <input
-          id="rotateYSlider"
-          type="range"
-          min="-180"
-          max="180"
-          step="1"
-          value="0">
-      </div>
-
-      <div class="controlRow">
-        <label for="rotateZSlider">Rotation Z</label>
-        <input
-          id="rotateZSlider"
-          type="range"
-          min="-180"
-          max="180"
-          step="1"
-          value="0">
-      </div>
+        <button id="exportButton">
+            EXPORT GLB
+        </button>
 
     </div>
 
-  </div>
+    <div id="appControls">
 
-  <button id="showControlsButton" type="button">
-    Show Controls
-  </button>
+        <div class="controlRow">
+            <div class="controlLabel">
+                <span>Scale</span>
+                <span
+                    id="scaleValue"
+                    class="controlValue">
+                    1.00
+                </span>
+            </div>
 
-  <input
-    id="import3DInput"
-    type="file"
-    accept=".glb,.gltf,.obj,.stl"
-    style="display:none;">
+            <input
+                id="scaleSlider"
+                type="range"
+                min="0.05"
+                max="5"
+                step="0.01"
+                value="1">
+        </div>
 
-</div>
+        <div class="controlRow">
+            <div class="controlLabel">
+                <span>Position X</span>
+                <span
+                    id="xValue"
+                    class="controlValue">
+                    0
+                </span>
+            </div>
 
-<script type="module" src="./js/app.js?v=20260929"></script>
+            <input
+                id="xSlider"
+                type="range"
+                min="-3"
+                max="3"
+                step="0.01"
+                value="0">
+        </div>
+
+        <div class="controlRow">
+            <div class="controlLabel">
+                <span>Position Y</span>
+                <span
+                    id="yValue"
+                    class="controlValue">
+                    0
+                </span>
+            </div>
+
+            <input
+                id="ySlider"
+                type="range"
+                min="-3"
+                max="3"
+                step="0.01"
+                value="0">
+        </div>
+
+        <div class="controlRow">
+            <div class="controlLabel">
+                <span>Position Z</span>
+                <span
+                    id="zValue"
+                    class="controlValue">
+                    0
+                </span>
+            </div>
+
+            <input
+                id="zSlider"
+                type="range"
+                min="-3"
+                max="3"
+                step="0.01"
+                value="0">
+        </div>
+
+        <div class="controlRow">
+            <div class="controlLabel">
+                <span>Rotation X</span>
+                <span
+                    id="rotateXValue"
+                    class="controlValue">
+                    0
+                </span>
+            </div>
+
+            <input
+                id="rotateXSlider"
+                type="range"
+                min="-180"
+                max="180"
+                step="1"
+                value="0">
+        </div>
+
+        <div class="controlRow">
+            <div class="controlLabel">
+                <span>Rotation Y</span>
+                <span
+                    id="rotateYValue"
+                    class="controlValue">
+                    0
+                </span>
+            </div>
+
+            <input
+                id="rotateYSlider"
+                type="range"
+                min="-180"
+                max="180"
+                step="1"
+                value="0">
+        </div>
+
+        <div class="controlRow">
+            <div class="controlLabel">
+                <span>Rotation Z</span>
+                <span
+                    id="rotateZValue"
+                    class="controlValue">
+                    0
+                </span>
+            </div>
+
+            <input
+                id="rotateZSlider"
+                type="range"
+                min="-180"
+                max="180"
+                step="1"
+                value="0">
+        </div>
+
+        <div id="controlsButtons">
+
+            <button id="resetControlsButton">
+                RESET
+            </button>
+
+            <button id="hideControlsButton">
+                HIDE CONTROLS
+            </button>
+
+        </div>
+
+    </div>
+
+    <button id="showControlsButton">
+        SHOW CONTROLS
+    </button></div>
+
+<script type="module" src="./js/app.js"></script>
 
 </body>
 </html>
