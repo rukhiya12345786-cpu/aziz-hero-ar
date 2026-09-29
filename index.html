@@ -1,31 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+>
 
 <title>Azeez AR Head Tracker</title>
 
 <style>
+
 * {
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
 }
 
 html,
 body {
-    margin: 0;
-    padding: 0;
     width: 100%;
     height: 100%;
+    margin: 0;
     overflow: hidden;
     background: #000;
-    font-family: Arial, sans-serif;
+    color: #fff;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+body {
+    touch-action: manipulation;
 }
 
 #app {
-    position: relative;
-    width: 100%;
-    height: 100%;
+    position: fixed;
+    inset: 0;
     overflow: hidden;
     background: #000;
 }
@@ -36,9 +46,9 @@ body {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    display: block;
     background: #000;
     z-index: 1;
+    transform-origin: center center;
 }
 
 #canvas {
@@ -46,193 +56,252 @@ body {
     inset: 0;
     width: 100%;
     height: 100%;
-    display: block;
+    z-index: 5;
     pointer-events: none;
-    z-index: 2;
+    transform-origin: center center;
+}
+
+#faceLandmarkCanvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 20;
+    pointer-events: none;
+    transform-origin: center center;
+    display: none;
 }
 
 #status {
     position: absolute;
-    top: 12px;
+    top: 8px;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 20;
-
-    max-width: 92%;
-    padding: 8px 14px;
-
-    border-radius: 20px;
-    background: rgba(0, 0, 0, 0.65);
+    width: calc(100% - 20px);
+    max-width: 620px;
+    padding: 9px 12px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.72);
     color: #fff;
-
-    font-size: 13px;
     text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-size: 12px;
+    line-height: 1.35;
+    z-index: 100;
+    pointer-events: none;
 }
 
-#topButtons {
+#topBar {
     position: absolute;
-    top: 52px;
-    left: 50%;
-    transform: translateX(-50%);
-
-    width: 96%;
-    max-width: 520px;
-
+    top: 48px;
+    left: 8px;
+    right: 8px;
+    z-index: 90;
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 7px;
-
-    z-index: 30;
-}
-
-button,
-.fileButton {
-    border: none;
-    border-radius: 10px;
-
-    padding: 10px 12px;
-
-    background: rgba(20, 20, 20, 0.82);
-    color: #fff;
-
-    font-size: 13px;
-    font-weight: 600;
-
-    cursor: pointer;
-    user-select: none;
-    -webkit-tap-highlight-color: transparent;
-}
-
-button:active,
-.fileButton:active {
-    transform: scale(0.97);
-}
-
-button:hover,
-.fileButton:hover {
-    background: rgba(50, 50, 50, 0.92);
-}
-
-.fileButton {
-    display: inline-flex;
     align-items: center;
-    justify-content: center;
+    gap: 5px;
 }
 
-#modelFileInput {
+button {
+    border: 0;
+    outline: 0;
+    border-radius: 8px;
+    padding: 8px 10px;
+    min-height: 34px;
+    background: rgba(20, 20, 20, 0.9);
+    color: #fff;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+button:active {
+    transform: scale(0.96);
+}
+
+.primary {
+    background: #1769aa;
+}
+
+.greenButton {
+    background: #168a45;
+}
+
+.redButton {
+    background: #a52b2b;
+}
+
+.orangeButton {
+    background: #a96a18;
+}
+
+.blueButton {
+    background: #245f9e;
+}
+
+#controlPanel {
+    position: absolute;
+    left: 7px;
+    right: 7px;
+    bottom: 7px;
+    z-index: 80;
+    max-height: 48vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 10px;
+    border-radius: 14px;
+    background: rgba(0, 0, 0, 0.82);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+#controlPanel.hidden {
     display: none;
 }
 
-#appControls {
-    position: absolute;
-
-    left: 50%;
-    bottom: 12px;
-    transform: translateX(-50%);
-
-    width: 94%;
-    max-width: 520px;
-    max-height: 48vh;
-
-    padding: 12px;
-
-    overflow-y: auto;
-
-    background: rgba(0, 0, 0, 0.72);
-    backdrop-filter: blur(8px);
-
-    border-radius: 16px;
-
-    z-index: 30;
+.panelTitle {
+    margin: 0 0 8px;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 800;
 }
 
-.controlRow {
-    margin-bottom: 10px;
-}
-
-.controlRow:last-child {
-    margin-bottom: 0;
-}
-
-.controlLabel {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-
-    margin-bottom: 4px;
-
-    color: #fff;
-    font-size: 12px;
-}
-
-.controlValue {
-    opacity: 0.75;
+.sectionTitle {
+    margin: 9px 0 6px;
+    padding: 6px 8px;
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.11);
     font-size: 11px;
+    font-weight: 800;
+    text-align: center;
 }
 
-input[type="range"] {
+.controlGroup {
     width: 100%;
+}
+
+.sliderRow {
+    display: grid;
+    grid-template-columns: 82px minmax(80px, 1fr) 48px 46px;
+    align-items: center;
+    gap: 5px;
+    width: 100%;
+    min-height: 38px;
+    margin: 3px 0;
+    padding: 3px 4px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.035);
+}
+
+.sliderRow.hiddenRow {
+    display: none;
+}
+
+.sliderRow label {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.sliderRow input[type="range"] {
+    width: 100%;
+    min-width: 0;
     height: 28px;
     margin: 0;
-
-    accent-color: #ffffff;
+    accent-color: #35a7ff;
 }
 
-#controlsButtons {
+.sliderValue {
+    min-width: 44px;
+    text-align: center;
+    color: #7fcaff;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.hideRowButton {
+    min-width: 44px;
+    min-height: 28px;
+    padding: 4px;
+    border-radius: 6px;
+    background: #333;
+    font-size: 9px;
+}
+
+#modelFileInput {
+    width: 100%;
+    max-width: 100%;
+    padding: 7px;
+    border-radius: 8px;
+    background: rgba(30, 30, 30, 0.95);
+    color: #fff;
+    font-size: 10px;
+}
+
+#bottomActions {
     display: flex;
     flex-wrap: wrap;
-    gap: 7px;
-    margin-top: 10px;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+#bottomActions button {
+    flex: 1 1 105px;
 }
 
 #showControlsButton {
     position: absolute;
-
-    right: 12px;
-    bottom: 12px;
-
-    z-index: 31;
-
+    right: 10px;
+    bottom: 10px;
+    z-index: 110;
     display: none;
 }
 
-@media (max-width: 600px) {
-    #topButtons {
-        top: 48px;
-        gap: 5px;
+#showControlsButton.visible {
+    display: block;
+}
+
+@media (max-width: 520px) {
+
+    #topBar {
+        top: 47px;
     }
 
-    button,
-    .fileButton {
-        padding: 8px 9px;
-        font-size: 12px;
+    button {
+        min-height: 32px;
+        padding: 7px 8px;
+        font-size: 10px;
     }
 
-    #appControls {
-        bottom: 8px;
-        width: 96%;
-        max-height: 45vh;
+    #controlPanel {
+        max-height: 53vh;
     }
 
-    #status {
-        top: 8px;
-        font-size: 12px;
+    .sliderRow {
+        grid-template-columns: 72px minmax(65px, 1fr) 43px 43px;
+    }
+
+    .sliderRow label {
+        font-size: 9px;
+    }
+
+    .sliderValue {
+        font-size: 9px;
+    }
+
+    .hideRowButton {
+        font-size: 8px;
     }
 }
+
 </style>
 
-<script type="importmap">
-{
-    "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
-        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
-    }
-}
-</script>
 </head>
 
 <body>
@@ -248,207 +317,571 @@ input[type="range"] {
 
     <canvas id="canvas"></canvas>
 
+    <canvas id="faceLandmarkCanvas"></canvas>
+
     <div id="status">
-        Ready. Press OPEN CAMERA.
+        Azeez AR ready. Open camera to begin.
     </div>
 
-    <div id="topButtons">
+    <div id="topBar">
 
-        <button id="openCameraButton">
+        <button
+            id="openCameraButton"
+            class="primary">
             OPEN CAMERA
         </button>
 
-        <button id="startTrackingButton">
+        <button
+            id="frontCameraButton">
+            FRONT CAMERA
+        </button>
+
+        <button
+            id="backCameraButton">
+            BACK CAMERA
+        </button>
+
+        <button
+            id="flipCameraButton">
+            FLIP CAMERA
+        </button>
+
+        <button
+            id="startTrackingButton"
+            class="greenButton">
             START TRACKING
         </button>
 
-        <button id="switchCameraButton">
-            SWITCH CAMERA
+        <button
+            id="stopTrackingButton">
+            STOP TRACKING
         </button>
 
-        <button id="flipCameraButton">
-            FLIP
+        <button
+            id="greenDotsButton"
+            class="greenButton">
+            GREEN DOTS: OFF
         </button>
 
-        <button id="recordButton">
+        <button
+            id="faceMeshButton">
+            FACE MESH: OFF
+        </button>
+
+        <button
+            id="recordButton"
+            class="redButton">
             RECORD
         </button>
 
-        <button id="captureButton">
-            PHOTO
-        </button>
-
-        <label
-            class="fileButton"
-            for="modelFileInput">
-            IMPORT 3D
-        </label>
-
-        <input
-            id="modelFileInput"
-            type="file"
-            accept=".glb,.gltf,.obj,.stl">
-
-        <button id="exportButton">
-            EXPORT GLB
+        <button
+            id="captureButton">
+            CAPTURE
         </button>
 
     </div>
 
-    <div id="appControls">
+    <div id="controlPanel">
 
-        <div class="controlRow">
-            <div class="controlLabel">
-                <span>Scale</span>
+        <div class="panelTitle">
+            3D MODEL AND HEAD CONTROLS
+        </div>
+
+        <div class="sectionTitle">
+            MODEL POSITION
+        </div>
+
+        <div class="controlGroup">
+
+            <div
+                class="sliderRow"
+                id="modelScaleRow">
+
+                <label for="scaleSlider">
+                    MODEL SCALE
+                </label>
+
+                <input
+                    id="scaleSlider"
+                    type="range"
+                    min="0.05"
+                    max="10"
+                    step="0.01"
+                    value="1">
+
                 <span
                     id="scaleValue"
-                    class="controlValue">
+                    class="sliderValue">
                     1.00
                 </span>
+
+                <button
+                    class="hideRowButton"
+                    data-hide="modelScaleRow">
+                    HIDE
+                </button>
+
             </div>
 
-            <input
-                id="scaleSlider"
-                type="range"
-                min="0.05"
-                max="5"
-                step="0.01"
-                value="1">
-        </div>
+            <div
+                class="sliderRow"
+                id="modelXRow">
 
-        <div class="controlRow">
-            <div class="controlLabel">
-                <span>Position X</span>
+                <label for="xSlider">
+                    MODEL X
+                </label>
+
+                <input
+                    id="xSlider"
+                    type="range"
+                    min="-5"
+                    max="5"
+                    step="0.01"
+                    value="0">
+
                 <span
                     id="xValue"
-                    class="controlValue">
-                    0
+                    class="sliderValue">
+                    0.00
                 </span>
+
+                <button
+                    class="hideRowButton"
+                    data-hide="modelXRow">
+                    HIDE
+                </button>
+
             </div>
 
-            <input
-                id="xSlider"
-                type="range"
-                min="-3"
-                max="3"
-                step="0.01"
-                value="0">
-        </div>
+            <div
+                class="sliderRow"
+                id="modelYRow">
 
-        <div class="controlRow">
-            <div class="controlLabel">
-                <span>Position Y</span>
+                <label for="ySlider">
+                    MODEL Y
+                </label>
+
+                <input
+                    id="ySlider"
+                    type="range"
+                    min="-5"
+                    max="5"
+                    step="0.01"
+                    value="0">
+
                 <span
                     id="yValue"
-                    class="controlValue">
-                    0
+                    class="sliderValue">
+                    0.00
                 </span>
+
+                <button
+                    class="hideRowButton"
+                    data-hide="modelYRow">
+                    HIDE
+                </button>
+
             </div>
 
-            <input
-                id="ySlider"
-                type="range"
-                min="-3"
-                max="3"
-                step="0.01"
-                value="0">
-        </div>
+            <div
+                class="sliderRow"
+                id="modelZRow">
 
-        <div class="controlRow">
-            <div class="controlLabel">
-                <span>Position Z</span>
+                <label for="zSlider">
+                    MODEL Z
+                </label>
+
+                <input
+                    id="zSlider"
+                    type="range"
+                    min="-8"
+                    max="8"
+                    step="0.01"
+                    value="0">
+
                 <span
                     id="zValue"
-                    class="controlValue">
-                    0
+                    class="sliderValue">
+                    0.00
                 </span>
+
+                <button
+                    class="hideRowButton"
+                    data-hide="modelZRow">
+                    HIDE
+                </button>
+
             </div>
 
-            <input
-                id="zSlider"
-                type="range"
-                min="-3"
-                max="3"
-                step="0.01"
-                value="0">
-        </div>
+            <div
+                class="sliderRow"
+                id="modelRXRow">
 
-        <div class="controlRow">
-            <div class="controlLabel">
-                <span>Rotation X</span>
+                <label for="rotateXSlider">
+                    ROTATE X
+                </label>
+
+                <input
+                    id="rotateXSlider"
+                    type="range"
+                    min="-360"
+                    max="360"
+                    step="1"
+                    value="0">
+
                 <span
                     id="rotateXValue"
-                    class="controlValue">
-                    0
+                    class="sliderValue">
+                    0°
                 </span>
+
+                <button
+                    class="hideRowButton"
+                    data-hide="modelRXRow">
+                    HIDE
+                </button>
+
             </div>
 
-            <input
-                id="rotateXSlider"
-                type="range"
-                min="-180"
-                max="180"
-                step="1"
-                value="0">
-        </div>
+            <div
+                class="sliderRow"
+                id="modelRYRow">
 
-        <div class="controlRow">
-            <div class="controlLabel">
-                <span>Rotation Y</span>
+                <label for="rotateYSlider">
+                    ROTATE Y
+                </label>
+
+                <input
+                    id="rotateYSlider"
+                    type="range"
+                    min="-360"
+                    max="360"
+                    step="1"
+                    value="0">
+
                 <span
                     id="rotateYValue"
-                    class="controlValue">
-                    0
+                    class="sliderValue">
+                    0°
                 </span>
+
+                <button
+                    class="hideRowButton"
+                    data-hide="modelRYRow">
+                    HIDE
+                </button>
+
             </div>
 
-            <input
-                id="rotateYSlider"
-                type="range"
-                min="-180"
-                max="180"
-                step="1"
-                value="0">
-        </div>
+            <div
+                class="sliderRow"
+                id="modelRZRow">
 
-        <div class="controlRow">
-            <div class="controlLabel">
-                <span>Rotation Z</span>
+                <label for="rotateZSlider">
+                    ROTATE Z
+                </label>
+
+                <input
+                    id="rotateZSlider"
+                    type="range"
+                    min="-360"
+                    max="360"
+                    step="1"
+                    value="0">
+
                 <span
                     id="rotateZValue"
-                    class="controlValue">
-                    0
+                    class="sliderValue">
+                    0°
                 </span>
+
+                <button
+                    class="hideRowButton"
+                    data-hide="modelRZRow">
+                    HIDE
+                </button>
+
             </div>
 
-            <input
-                id="rotateZSlider"
-                type="range"
-                min="-180"
-                max="180"
-                step="1"
-                value="0">
         </div>
 
-        <div id="controlsButtons">
+        <div class="sectionTitle">
+            HEAD TRACKING
+        </div>
 
-            <button id="resetControlsButton">
-                RESET
+        <div class="controlGroup">
+
+            <div
+                class="sliderRow"
+                id="headXRow">
+
+                <label for="headXSlider">
+                    HEAD X
+                </label>
+
+                <input
+                    id="headXSlider"
+                    type="range"
+                    min="-5"
+                    max="5"
+                    step="0.01"
+                    value="0">
+
+                <span
+                    id="headXValue"
+                    class="sliderValue">
+                    0.00
+                </span>
+
+                <button
+                    class="hideRowButton"
+                    data-hide="headXRow">
+                    HIDE
+                </button>
+
+            </div>
+
+            <div
+                class="sliderRow"
+                id="headYRow">
+
+                <label for="headYSlider">
+                    HEAD Y
+                </label>
+
+                <input
+                    id="headYSlider"
+                    type="range"
+                    min="-5"
+                    max="5"
+                    step="0.01"
+                    value="0">
+
+                <span
+                    id="headYValue"
+                    class="sliderValue">
+                    0.00
+                </span>
+
+                <button
+                    class="hideRowButton"
+                    data-hide="headYRow">
+                    HIDE
+                </button>
+
+            </div>            <div
+                class="sliderRow"
+                id="headZRow">
+
+                <label for="headZSlider">
+                    HEAD Z
+                </label>
+
+                <input
+                    id="headZSlider"
+                    type="range"
+                    min="-8"
+                    max="8"
+                    step="0.01"
+                    value="0">
+
+                <span
+                    id="headZValue"
+                    class="sliderValue">
+                    0.00
+                </span>
+
+                <button
+                    class="hideRowButton"
+                    data-hide="headZRow">
+                    HIDE
+                </button>
+
+            </div>
+
+            <div
+                class="sliderRow"
+                id="headDepthRow">
+
+                <label for="headDepthSlider">
+                    HEAD DEPTH
+                </label>
+
+                <input
+                    id="headDepthSlider"
+                    type="range"
+                    min="0.1"
+                    max="8"
+                    step="0.01"
+                    value="1">
+
+                <span
+                    id="headDepthValue"
+                    class="sliderValue">
+                    1.00
+                </span>
+
+                <button
+                    class="hideRowButton"
+                    data-hide="headDepthRow">
+                    HIDE
+                </button>
+
+            </div>
+
+            <div
+                class="sliderRow"
+                id="headPitchRow">
+
+                <label for="headPitchSlider">
+                    HEAD PITCH
+                </label>
+
+                <input
+                    id="headPitchSlider"
+                    type="range"
+                    min="-180"
+                    max="180"
+                    step="1"
+                    value="0">
+
+                <span
+                    id="headPitchValue"
+                    class="sliderValue">
+                    0°
+                </span>
+
+                <button
+                    class="hideRowButton"
+                    data-hide="headPitchRow">
+                    HIDE
+                </button>
+
+            </div>
+
+            <div
+                class="sliderRow"
+                id="headYawRow">
+
+                <label for="headYawSlider">
+                    HEAD YAW
+                </label>
+
+                <input
+                    id="headYawSlider"
+                    type="range"
+                    min="-180"
+                    max="180"
+                    step="1"
+                    value="0">
+
+                <span
+                    id="headYawValue"
+                    class="sliderValue">
+                    0°
+                </span>
+
+                <button
+                    class="hideRowButton"
+                    data-hide="headYawRow">
+                    HIDE
+                </button>
+
+            </div>
+
+            <div
+                class="sliderRow"
+                id="headRollRow">
+
+                <label for="headRollSlider">
+                    HEAD ROLL
+                </label>
+
+                <input
+                    id="headRollSlider"
+                    type="range"
+                    min="-180"
+                    max="180"
+                    step="1"
+                    value="0">
+
+                <span
+                    id="headRollValue"
+                    class="sliderValue">
+                    0°
+                </span>
+
+                <button
+                    class="hideRowButton"
+                    data-hide="headRollRow">
+                    HIDE
+                </button>
+
+            </div>
+
+        </div>
+
+        <div class="sectionTitle">
+            3D MODEL FILE
+        </div>
+
+        <div id="bottomActions">
+
+            <input
+                id="modelFileInput"
+                type="file"
+                accept=".glb,.gltf,.obj,.stl">
+
+            <button
+                id="exportButton"
+                class="primary">
+                EXPORT GLB
             </button>
 
-            <button id="hideControlsButton">
-                HIDE CONTROLS
+            <button
+                id="resetControlsButton">
+                RESET MODEL
+            </button>
+
+            <button
+                id="hideAllButton"
+                class="orangeButton">
+                HIDE ALL CONTROLS
+            </button>
+
+            <button
+                id="showAllButton"
+                class="greenButton">
+                SHOW ALL CONTROLS
             </button>
 
         </div>
 
     </div>
 
-    <button id="showControlsButton">
+    <button
+        id="showControlsButton"
+        class="greenButton">
         SHOW CONTROLS
-    </button></div>
+    </button>
 
-<script type="module" src="./js/app.js"></script>
+</div>
+
+
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+    }
+}
+</script>
+
+
+<script
+    type="module"
+    src="./js/app.js">
+</script>
 
 </body>
 </html>
