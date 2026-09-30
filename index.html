@@ -60,9 +60,9 @@ html,body{
 
 #topBar{
     position:absolute;
-    top:10px;
-    left:10px;
-    right:10px;
+    top:8px;
+    left:8px;
+    right:8px;
     z-index:10;
     display:flex;
     gap:6px;
@@ -72,10 +72,10 @@ html,body{
 button{
     border:0;
     border-radius:8px;
-    padding:10px 12px;
-    background:rgba(20,20,20,.85);
+    padding:9px 11px;
+    background:rgba(15,15,15,.88);
     color:#fff;
-    font-size:13px;
+    font-size:12px;
     font-weight:bold;
 }
 
@@ -85,40 +85,46 @@ button:active{
 
 #status{
     position:absolute;
-    top:65px;
-    left:10px;
+    top:62px;
+    left:8px;
     z-index:10;
-    padding:8px 11px;
+    padding:7px 10px;
     border-radius:8px;
-    color:#fff;
     background:rgba(0,0,0,.65);
-    font-size:13px;
+    color:#fff;
+    font-size:12px;
 }
 
 #controls{
     position:absolute;
-    left:8px;
-    right:8px;
-    bottom:8px;
+    left:7px;
+    right:7px;
+    bottom:7px;
     z-index:20;
-    max-height:45vh;
+    max-height:43vh;
     overflow-y:auto;
-    padding:12px;
+    padding:10px;
     border-radius:14px;
-    background:rgba(0,0,0,.78);
+    background:rgba(0,0,0,.80);
     color:#fff;
+}
+
+.section{
+    margin:3px 0 5px;
+    font-size:13px;
+    font-weight:bold;
 }
 
 .controlRow{
     display:grid;
-    grid-template-columns:75px 1fr 55px;
-    gap:8px;
+    grid-template-columns:70px 1fr 52px;
+    gap:7px;
     align-items:center;
-    margin:8px 0;
+    margin:7px 0;
 }
 
 .controlRow label{
-    font-size:13px;
+    font-size:12px;
     font-weight:bold;
 }
 
@@ -128,25 +134,18 @@ button:active{
 
 .value{
     text-align:right;
-    font-size:12px;
+    font-size:11px;
 }
 
-.section{
-    margin-top:4px;
-    margin-bottom:5px;
-    font-size:14px;
-    font-weight:bold;
+#hint{
+    margin-top:7px;
+    color:#bbb;
+    font-size:10px;
+    line-height:1.35;
 }
 
 #fileInput{
     display:none;
-}
-
-#hint{
-    margin-top:8px;
-    font-size:11px;
-    line-height:1.4;
-    color:#ccc;
 }
 </style>
 
@@ -170,19 +169,19 @@ button:active{
 <canvas id="landmarkCanvas"></canvas>
 
 <div id="topBar">
-<button id="startCamera">START CAMERA</button>
-<button id="switchCamera">SWITCH CAMERA</button>
-<button id="mirrorButton">MIRROR: ON</button>
-<button id="trackingButton">TRACKING: ON</button>
-<button id="importButton">IMPORT GLB</button>
-<button id="resetButton">RESET</button>
+    <button id="startCamera">START CAMERA</button>
+    <button id="switchCamera">SWITCH CAMERA</button>
+    <button id="mirrorButton">MIRROR: ON</button>
+    <button id="trackingButton">TRACKING: ON</button>
+    <button id="importButton">IMPORT GLB</button>
+    <button id="resetButton">RESET</button>
 </div>
 
 <div id="status">Ready</div>
 
 <div id="controls">
 
-<div class="section">HEAD FIT / MODEL POSITION</div>
+<div class="section">MODEL POSITION</div>
 
 <div class="controlRow">
 <label>X</label>
@@ -198,7 +197,7 @@ button:active{
 
 <div class="controlRow">
 <label>Z DEPTH</label>
-<input id="zSlider" type="range" min="-250" max="250" value="0" step="1">
+<input id="zSlider" type="range" min="-500" max="500" value="0" step="1">
 <span class="value" id="zValue">0</span>
 </div>
 
@@ -206,7 +205,7 @@ button:active{
 
 <div class="controlRow">
 <label>SCALE</label>
-<input id="scaleSlider" type="range" min="0.1" max="4" value="1" step="0.01">
+<input id="scaleSlider" type="range" min="0.1" max="5" value="1" step="0.01">
 <span class="value" id="scaleValue">1.00</span>
 </div>
 
@@ -214,23 +213,23 @@ button:active{
 
 <div class="controlRow">
 <label>ROT X</label>
-<input id="rotXSlider" type="range" min="-180" max="180" value="0" step="1">
+<input id="rotXSlider" type="range" min="-180" max="180" value="0">
 <span class="value" id="rotXValue">0</span>
 </div>
 
 <div class="controlRow">
 <label>ROT Y</label>
-<input id="rotYSlider" type="range" min="-180" max="180" value="0" step="1">
+<input id="rotYSlider" type="range" min="-180" max="180" value="0">
 <span class="value" id="rotYValue">0</span>
 </div>
 
 <div class="controlRow">
 <label>ROT Z</label>
-<input id="rotZSlider" type="range" min="-180" max="180" value="0" step="1">
+<input id="rotZSlider" type="range" min="-180" max="180" value="0">
 <span class="value" id="rotZValue">0</span>
 </div>
 
-<div class="section">HEAD SIZE</div>
+<div class="section">HEAD FIT</div>
 
 <div class="controlRow">
 <label>HEAD X</label>
@@ -251,7 +250,7 @@ button:active{
 </div>
 
 <div id="hint">
-Z DEPTH moves the model through head-space. Negative values move deeper and positive values move forward.
+Use X/Y to fit the model. Use Z DEPTH to move the model forward or deeper in 3D space. SCALE changes the model size.
 </div>
 
 </div>
@@ -263,7 +262,7 @@ Z DEPTH moves the model through head-space. Negative values move deeper and posi
 <script type="module">
 
 import * as THREE from "three";
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import {GLTFLoader} from "three/addons/loaders/GLTFLoader.js";
 
 const video=document.getElementById("camera");
 const threeCanvas=document.getElementById("threeCanvas");
@@ -283,616 +282,881 @@ let dummyHead=null;
 const headAnchor=new THREE.Group();
 
 const settings={
-x:0,
-y:0,
-z:0,
-scale:1,
-rotX:0,
-rotY:0,
-rotZ:0,
-headX:1,
-headY:1,
-headZ:1
+    x:0,
+    y:0,
+    z:0,
+    scale:1,
+    rotX:0,
+    rotY:0,
+    rotZ:0,
+    headX:1,
+    headY:1,
+    headZ:1
 };
 
 const scene=new THREE.Scene();
 
 const renderer=new THREE.WebGLRenderer({
-canvas:threeCanvas,
-alpha:true,
-antialias:true
+    canvas:threeCanvas,
+    alpha:true,
+    antialias:true
 });
 
-renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
-renderer.setSize(window.innerWidth,window.innerHeight);
+renderer.setPixelRatio(
+    Math.min(window.devicePixelRatio,2)
+);
+
+renderer.setSize(
+    window.innerWidth,
+    window.innerHeight
+);
+
 renderer.setClearColor(0x000000,0);
 
 const camera3D=new THREE.OrthographicCamera(
-0,
-window.innerWidth,
-0,
-window.innerHeight,
--5000,
-5000
+    0,
+    window.innerWidth,
+    0,
+    window.innerHeight,
+    -5000,
+    5000
 );
 
 camera3D.position.z=1000;
 
 scene.add(headAnchor);
 
-scene.add(new THREE.AmbientLight(0xffffff,2.2));
+scene.add(
+    new THREE.AmbientLight(0xffffff,2.4)
+);
 
-const light1=new THREE.DirectionalLight(0xffffff,3);
+const light1=new THREE.DirectionalLight(
+    0xffffff,
+    3
+);
+
 light1.position.set(0,300,600);
 scene.add(light1);
 
-const light2=new THREE.DirectionalLight(0xffffff,2);
+const light2=new THREE.DirectionalLight(
+    0xffffff,
+    2
+);
+
 light2.position.set(-300,-200,300);
 scene.add(light2);
 
+
+/* =========================
+   MODEL TRANSFORM
+========================= */
+
 function updateModelTransform(){
 
-if(!modelRoot)return;
+    if(!modelRoot)return;
 
-modelRoot.position.set(
-settings.x,
-settings.y,
-settings.z
-);
+    modelRoot.position.set(
+        settings.x,
+        settings.y,
+        settings.z
+    );
 
-modelRoot.scale.setScalar(settings.scale);
+    modelRoot.scale.setScalar(
+        settings.scale
+    );
 
-modelRoot.rotation.set(
-THREE.MathUtils.degToRad(settings.rotX),
-THREE.MathUtils.degToRad(settings.rotY),
-THREE.MathUtils.degToRad(settings.rotZ)
-);
-
+    modelRoot.rotation.set(
+        THREE.MathUtils.degToRad(settings.rotX),
+        THREE.MathUtils.degToRad(settings.rotY),
+        THREE.MathUtils.degToRad(settings.rotZ)
+    );
 }
+
+
+/* =========================
+   DUMMY HEAD
+========================= */
 
 function createDummyHead(){
 
-if(dummyHead){
-headAnchor.remove(dummyHead);
-}
+    if(dummyHead){
+        headAnchor.remove(dummyHead);
+    }
 
-dummyHead=new THREE.Group();
+    dummyHead=new THREE.Group();
 
-const headMaterial=new THREE.MeshStandardMaterial({
-color:0xaaaaaa,
-roughness:.65,
-metalness:.05,
-transparent:true,
-opacity:.35
-});
+    const headMaterial=
+        new THREE.MeshStandardMaterial({
+            color:0xaaaaaa,
+            roughness:.65,
+            metalness:.05,
+            transparent:true,
+            opacity:.32,
+            depthWrite:false
+        });
 
-const head=new THREE.Mesh(
-new THREE.SphereGeometry(1,48,32),
-headMaterial
-);
+    const head=new THREE.Mesh(
+        new THREE.SphereGeometry(1,48,32),
+        headMaterial
+    );
 
-head.scale.set(
-105*settings.headX,
-125*settings.headY,
-100*settings.headZ
-);
+    head.scale.set(
+        105*settings.headX,
+        125*settings.headY,
+        100*settings.headZ
+    );
 
-dummyHead.add(head);
+    dummyHead.add(head);
 
-const eyeMaterial=new THREE.MeshStandardMaterial({
-color:0xffffff
-});
+    const white=
+        new THREE.MeshStandardMaterial({
+            color:0xffffff,
+            depthWrite:false
+        });
 
-const pupilMaterial=new THREE.MeshStandardMaterial({
-color:0x111111
-});
+    const black=
+        new THREE.MeshStandardMaterial({
+            color:0x111111,
+            depthWrite:false
+        });
 
-function makeEye(x){
+    function makeEye(x){
 
-const eye=new THREE.Mesh(
-new THREE.SphereGeometry(15,24,16),
-eyeMaterial
-);
+        const eye=new THREE.Mesh(
+            new THREE.SphereGeometry(15,24,16),
+            white
+        );
 
-eye.position.set(x,38,82);
+        eye.position.set(
+            x,
+            -38,
+            82
+        );
 
-const pupil=new THREE.Mesh(
-new THREE.SphereGeometry(6,20,12),
-pupilMaterial
-);
+        const pupil=new THREE.Mesh(
+            new THREE.SphereGeometry(6,20,12),
+            black
+        );
 
-pupil.position.set(x,38,94);
+        pupil.position.set(
+            x,
+            -38,
+            96
+        );
 
-dummyHead.add(eye);
-dummyHead.add(pupil);
-}
+        dummyHead.add(eye);
+        dummyHead.add(pupil);
+    }
 
-makeEye(-38);
-makeEye(38);
+    makeEye(-38);
+    makeEye(38);
 
-const nose=new THREE.Mesh(
-new THREE.ConeGeometry(14,42,24),
-new THREE.MeshStandardMaterial({
-color:0xaaaaaa
-})
-);
+    const nose=new THREE.Mesh(
+        new THREE.ConeGeometry(14,42,24),
+        new THREE.MeshStandardMaterial({
+            color:0xaaaaaa,
+            depthWrite:false
+        })
+    );
 
-nose.rotation.x=Math.PI/2;
-nose.position.set(0,0,108);
-dummyHead.add(nose);
+    nose.rotation.x=Math.PI/2;
+    nose.position.set(0,0,108);
 
-const mouth=new THREE.Mesh(
-new THREE.TorusGeometry(25,5,12,32,Math.PI),
-new THREE.MeshStandardMaterial({
-color:0x333333
-})
-);
+    dummyHead.add(nose);
 
-mouth.rotation.x=Math.PI;
-mouth.position.set(0,-48,92);
-dummyHead.add(mouth);
+    const mouth=new THREE.Mesh(
+        new THREE.TorusGeometry(
+            25,
+            5,
+            12,
+            32,
+            Math.PI
+        ),
+        new THREE.MeshStandardMaterial({
+            color:0x333333,
+            depthWrite:false
+        })
+    );
 
-const earMaterial=new THREE.MeshStandardMaterial({
-color:0x999999,
-transparent:true,
-opacity:.5
-});
+    mouth.rotation.x=Math.PI;
+    mouth.position.set(
+        0,
+        48,
+        92
+    );
 
-const leftEar=new THREE.Mesh(
-new THREE.SphereGeometry(25,24,16),
-earMaterial
-);
+    dummyHead.add(mouth);
 
-leftEar.scale.set(.55,1,.7);
-leftEar.position.set(-105,0,0);
+    const earMaterial=
+        new THREE.MeshStandardMaterial({
+            color:0x999999,
+            transparent:true,
+            opacity:.5,
+            depthWrite:false
+        });
 
-const rightEar=leftEar.clone();
-rightEar.position.x=105;
+    const leftEar=new THREE.Mesh(
+        new THREE.SphereGeometry(25,24,16),
+        earMaterial
+    );
 
-dummyHead.add(leftEar);
-dummyHead.add(rightEar);
+    leftEar.scale.set(.55,1,.7);
+    leftEar.position.set(-105,0,0);
 
-headAnchor.add(dummyHead);
+    const rightEar=leftEar.clone();
+    rightEar.position.x=105;
+
+    dummyHead.add(leftEar);
+    dummyHead.add(rightEar);
+
+    headAnchor.add(dummyHead);
 }
 
 createDummyHead();
 
+
+/* =========================
+   GLB LOADER
+========================= */
+
 const loader=new GLTFLoader();
+
+function prepareImportedModel(root){
+
+    const box=new THREE.Box3()
+        .setFromObject(root);
+
+    const size=new THREE.Vector3();
+
+    const center=new THREE.Vector3();
+
+    box.getSize(size);
+    box.getCenter(center);
+
+    /*
+       Center the imported model.
+       This fixes models that arrive far away
+       from their own origin.
+    */
+
+    root.position.set(
+        -center.x,
+        -center.y,
+        -center.z
+    );
+
+    /*
+       Normalize model size.
+       This prevents a GLB from being invisible
+       because it is extremely large or tiny.
+    */
+
+    const maxSize=Math.max(
+        size.x,
+        size.y,
+        size.z
+    );
+
+    if(
+        Number.isFinite(maxSize) &&
+        maxSize>0
+    ){
+
+        const targetSize=220;
+
+        const autoScale=
+            targetSize/maxSize;
+
+        root.scale.setScalar(
+            autoScale
+        );
+
+    }
+
+    root.traverse(function(obj){
+
+        if(obj.isMesh){
+
+            obj.frustumCulled=false;
+
+            if(obj.material){
+
+                obj.material.depthTest=true;
+                obj.material.depthWrite=true;
+
+            }
+
+        }
+
+    });
+
+    /*
+       Put the normalized model into
+       the user's calibration transform.
+    */
+
+    const holder=new THREE.Group();
+
+    holder.add(root);
+
+    return holder;
+}
+
 
 function importGLB(file){
 
-const objectURL=URL.createObjectURL(file);
+    if(!file)return;
 
-loader.load(
-objectURL,
-function(gltf){
+    statusBox.textContent="LOADING GLB...";
 
-if(modelRoot){
-headAnchor.remove(modelRoot);
+    const objectURL=
+        URL.createObjectURL(file);
+
+    loader.load(
+        objectURL,
+
+        function(gltf){
+
+            try{
+
+                if(modelRoot){
+                    headAnchor.remove(modelRoot);
+                }
+
+                modelRoot=
+                    prepareImportedModel(
+                        gltf.scene
+                    );
+
+                headAnchor.add(modelRoot);
+
+                /*
+                   Imported model starts at the
+                   center of the head.
+                */
+
+                modelRoot.position.x=
+                    settings.x;
+
+                modelRoot.position.y=
+                    settings.y;
+
+                modelRoot.position.z=
+                    settings.z;
+
+                /*
+                   Apply user scale on top of
+                   automatic normalization.
+                */
+
+                modelRoot.scale.multiplyScalar(
+                    settings.scale
+                );
+
+                modelRoot.rotation.set(
+                    THREE.MathUtils.degToRad(
+                        settings.rotX
+                    ),
+                    THREE.MathUtils.degToRad(
+                        settings.rotY
+                    ),
+                    THREE.MathUtils.degToRad(
+                        settings.rotZ
+                    )
+                );
+
+                dummyHead.visible=false;
+
+                statusBox.textContent=
+                    "GLB LOADED";
+
+            }catch(error){
+
+                console.error(error);
+
+                statusBox.textContent=
+                    "GLB SETUP ERROR";
+
+                if(dummyHead){
+                    dummyHead.visible=true;
+                }
+
+            }
+
+            URL.revokeObjectURL(
+                objectURL
+            );
+
+        },
+
+        undefined,
+
+        function(error){
+
+            console.error(error);
+
+            statusBox.textContent=
+                "GLB LOAD ERROR";
+
+            if(dummyHead){
+                dummyHead.visible=true;
+            }
+
+            URL.revokeObjectURL(
+                objectURL
+            );
+
+        }
+    );
 }
 
-modelRoot=gltf.scene;
 
-modelRoot.traverse(function(obj){
-
-if(obj.isMesh){
-
-obj.frustumCulled=false;
-
-if(obj.material){
-
-obj.material.depthWrite=true;
-obj.material.depthTest=true;
-
-}
-
-}
-
-});
-
-headAnchor.add(modelRoot);
-
-updateModelTransform();
-
-dummyHead.visible=false;
-
-statusBox.textContent="GLB LOADED";
-
-URL.revokeObjectURL(objectURL);
-
-},
-undefined,
-function(error){
-
-console.error(error);
-statusBox.textContent="GLB LOAD ERROR";
-
-URL.revokeObjectURL(objectURL);
-
-}
-);
-
-}
+/* =========================
+   CAMERA
+========================= */
 
 async function startCamera(){
 
-try{
+    try{
 
-if(stream){
+        if(stream){
 
-stream.getTracks().forEach(
-track=>track.stop()
-);
+            stream.getTracks().forEach(
+                track=>track.stop()
+            );
 
-stream=null;
+            stream=null;
+        }
 
+        stream=
+            await navigator.mediaDevices
+            .getUserMedia({
+
+                video:{
+                    facingMode:{
+                        ideal:currentFacing
+                    },
+
+                    width:{
+                        ideal:1280
+                    },
+
+                    height:{
+                        ideal:720
+                    }
+                },
+
+                audio:false
+            });
+
+        video.srcObject=stream;
+
+        await video.play();
+
+        statusBox.textContent=
+            "CAMERA ON";
+
+        resizeCanvas();
+
+        await setupFaceTracking();
+
+    }catch(error){
+
+        console.error(error);
+
+        statusBox.textContent=
+            "CAMERA ERROR";
+    }
 }
 
-stream=await navigator.mediaDevices.getUserMedia({
-video:{
-facingMode:{
-ideal:currentFacing
-},
-width:{
-ideal:1280
-},
-height:{
-ideal:720
-}
-},
-audio:false
-});
 
-video.srcObject=stream;
-
-await video.play();
-
-statusBox.textContent="CAMERA ON";
-
-resizeCanvas();
-
-await setupFaceTracking();
-
-}catch(error){
-
-console.error(error);
-statusBox.textContent="CAMERA ERROR";
-
-}
-
-}
+/* =========================
+   MEDIAPIPE
+========================= */
 
 async function setupFaceTracking(){
 
-try{
+    try{
 
-if(faceLandmarker)return;
+        if(faceLandmarker)return;
 
-statusBox.textContent="LOADING FACE TRACKER...";
+        statusBox.textContent=
+            "LOADING FACE TRACKER...";
 
-const visionModule=await import(
-"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs"
-);
+        const visionModule=
+            await import(
+                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs"
+            );
 
-const {
-FaceLandmarker,
-FilesetResolver
-}=visionModule;
+        const {
+            FaceLandmarker,
+            FilesetResolver
+        }=visionModule;
 
-const filesetResolver=
-await FilesetResolver.forVisionTasks(
-"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
-);
+        const filesetResolver=
+            await FilesetResolver.forVisionTasks(
+                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
+            );
 
-faceLandmarker=
-await FaceLandmarker.createFromOptions(
-filesetResolver,
-{
-baseOptions:{
-modelAssetPath:
-"https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-delegate:"GPU"
-},
+        faceLandmarker=
+            await FaceLandmarker.createFromOptions(
+                filesetResolver,
+                {
+                    baseOptions:{
+                        modelAssetPath:
+                        "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
 
-runningMode:"VIDEO",
+                        delegate:"GPU"
+                    },
 
-numFaces:1,
+                    runningMode:"VIDEO",
 
-minFaceDetectionConfidence:.5,
-minFacePresenceConfidence:.5,
-minTrackingConfidence:.5,
+                    numFaces:1,
 
-outputFaceBlendshapes:false,
-outputFacialTransformationMatrixes:true
+                    minFaceDetectionConfidence:.5,
+
+                    minFacePresenceConfidence:.5,
+
+                    minTrackingConfidence:.5,
+
+                    outputFaceBlendshapes:false,
+
+                    outputFacialTransformationMatrixes:true
+                }
+            );
+
+        statusBox.textContent=
+            "FACE TRACKER READY";
+
+        requestAnimationFrame(
+            trackFace
+        );
+
+    }catch(error){
+
+        console.error(error);
+
+        statusBox.textContent=
+            "FACE TRACKER ERROR";
+    }
 }
-);
 
-statusBox.textContent="FACE TRACKER READY";
 
-requestAnimationFrame(trackFace);
-
-}catch(error){
-
-console.error(error);
-statusBox.textContent="FACE TRACKER ERROR";
-
-}
-
-}
+/* =========================
+   FACE TRACKING
+========================= */
 
 function trackFace(){
 
-requestAnimationFrame(trackFace);
+    requestAnimationFrame(
+        trackFace
+    );
 
-if(!faceLandmarker)return;
+    if(!faceLandmarker)return;
 
-if(video.readyState<2)return;
+    if(video.readyState<2)return;
 
-if(video.currentTime===lastVideoTime)return;
+    if(video.currentTime===lastVideoTime)return;
 
-lastVideoTime=video.currentTime;
+    lastVideoTime=
+        video.currentTime;
 
-if(!trackingOn)return;
+    if(!trackingOn)return;
 
-const now=performance.now();
+    try{
 
-try{
+        const result=
+            faceLandmarker.detectForVideo(
+                video,
+                performance.now()
+            );
 
-const result=
-faceLandmarker.detectForVideo(
-video,
-now
-);
+        if(
+            result.faceLandmarks &&
+            result.faceLandmarks.length>0
+        ){
 
-if(
-result.faceLandmarks &&
-result.faceLandmarks.length>0
-){
+            updateHeadFromFace(
+                result.faceLandmarks[0],
+                result.facialTransformationMatrixes
+            );
 
-updateHeadFromFace(
-result.faceLandmarks[0],
-result.facialTransformationMatrixes
-);
+            drawLandmarks(
+                result.faceLandmarks[0]
+            );
 
-drawLandmarks(
-result.faceLandmarks[0]
-);
+            statusBox.textContent=
+                "FACE TRACKING ON";
 
-statusBox.textContent="FACE TRACKING ON";
+        }else{
 
-}else{
+            clearLandmarks();
 
-statusBox.textContent="SEARCHING FACE";
+            statusBox.textContent=
+                "SEARCHING FACE";
+        }
 
-clearLandmarks();
+    }catch(error){
 
+        console.error(error);
+    }
 }
 
-}catch(error){
 
-console.error(error);
-
-}
-
-}
+/* =========================
+   HEAD ANCHOR
+========================= */
 
 function updateHeadFromFace(
-landmarks,
-matrices
+    landmarks,
+    matrices
 ){
 
-if(!landmarks||landmarks.length<264)return;
+    if(
+        !landmarks ||
+        landmarks.length<264
+    )return;
 
-const leftEye=landmarks[33];
-const rightEye=landmarks[263];
+    const leftEye=
+        landmarks[33];
 
-const centerX=
-(leftEye.x+rightEye.x)*.5;
+    const rightEye=
+        landmarks[263];
 
-const centerY=
-(leftEye.y+rightEye.y)*.5;
+    const centerX=
+        (leftEye.x+rightEye.x)*.5;
 
-const eyeDistance=Math.sqrt(
-Math.pow(rightEye.x-leftEye.x,2)+
-Math.pow(rightEye.y-leftEye.y,2)
-);
+    const centerY=
+        (leftEye.y+rightEye.y)*.5;
 
-const faceScale=
-THREE.MathUtils.clamp(
-eyeDistance*2600,
-70,
-220
-);
+    const eyeDistance=
+        Math.sqrt(
+            Math.pow(
+                rightEye.x-leftEye.x,
+                2
+            )+
+            Math.pow(
+                rightEye.y-leftEye.y,
+                2
+            )
+        );
 
-const screenX=
-centerX*window.innerWidth;
+    const faceScale=
+        THREE.MathUtils.clamp(
+            eyeDistance*2600,
+            70,
+            220
+        );
 
-const screenY=
-centerY*window.innerHeight;
+    /*
+       IMPORTANT:
+       Only the head anchor receives
+       the face position.
 
-headAnchor.position.x=
-screenX+settings.x;
+       X/Y model calibration is applied
+       only to modelRoot.
+       This prevents double movement.
+    */
 
-headAnchor.position.y=
-screenY+settings.y;
+    headAnchor.position.x=
+        centerX*
+        window.innerWidth;
 
-headAnchor.position.z=
-settings.z;
+    headAnchor.position.y=
+        centerY*
+        window.innerHeight;
 
-const baseScale=
-faceScale/120;
+    headAnchor.position.z=0;
 
-headAnchor.scale.set(
-baseScale*settings.headX,
-baseScale*settings.headY,
-baseScale*settings.headZ
-);
+    const baseScale=
+        faceScale/120;
 
-if(
-matrices&&
-matrices.length>0
-){
+    headAnchor.scale.set(
+        baseScale*settings.headX,
+        baseScale*settings.headY,
+        baseScale*settings.headZ
+    );
 
-try{
+    if(
+        matrices &&
+        matrices.length>0 &&
+        matrices[0].data
+    ){
 
-const matrixData=matrices[0].data;
+        try{
 
-if(matrixData&&matrixData.length===16){
+            const m=
+                new THREE.Matrix4();
 
-const m=new THREE.Matrix4();
+            m.fromArray(
+                matrices[0].data
+            );
 
-m.fromArray(matrixData);
+            const rotationMatrix=
+                new THREE.Matrix4();
 
-const rotationMatrix=new THREE.Matrix4();
+            rotationMatrix.extractRotation(
+                m
+            );
 
-rotationMatrix.extractRotation(m);
+            const euler=
+                new THREE.Euler()
+                .setFromRotationMatrix(
+                    rotationMatrix,
+                    "XYZ"
+                );
 
-const euler=
-new THREE.Euler()
-.setFromRotationMatrix(
-rotationMatrix,
-"XYZ"
-);
+            headAnchor.rotation.x=
+                euler.x;
 
-headAnchor.rotation.x=
-euler.x+
-THREE.MathUtils.degToRad(
-settings.rotX
-);
+            headAnchor.rotation.y=
+                -euler.y;
 
-headAnchor.rotation.y=
--euler.y+
-THREE.MathUtils.degToRad(
-settings.rotY
-);
+            headAnchor.rotation.z=
+                -euler.z;
 
-headAnchor.rotation.z=
--euler.z+
-THREE.MathUtils.degToRad(
-settings.rotZ
-);
+        }catch(error){
 
+            console.warn(
+                "Head rotation fallback",
+                error
+            );
+
+            headAnchor.rotation.set(
+                0,
+                0,
+                0
+            );
+        }
+
+    }else{
+
+        headAnchor.rotation.set(
+            0,
+            0,
+            0
+        );
+    }
+
+    updateModelTransform();
 }
 
-}catch(error){
 
-console.warn(
-"Matrix rotation fallback",
-error
-);
-
-}
-
-}
-
-if(!matrices||matrices.length===0){
-
-headAnchor.rotation.set(
-0,
-0,
-0
-);
-
-}
-
-if(modelRoot){
-
-modelRoot.position.set(
-settings.x,
-settings.y,
-settings.z
-);
-
-modelRoot.scale.setScalar(
-settings.scale
-);
-
-}
-
-}
+/* =========================
+   GREEN FACE DOTS
+========================= */
 
 function drawLandmarks(landmarks){
 
-resizeCanvas();
+    resizeCanvas();
 
-landmarkCtx.clearRect(
-0,
-0,
-landmarkCanvas.width,
-landmarkCanvas.height
-);
+    landmarkCtx.clearRect(
+        0,
+        0,
+        landmarkCanvas.width,
+        landmarkCanvas.height
+    );
 
-landmarkCtx.fillStyle="#00ff55";
+    landmarkCtx.fillStyle=
+        "#00ff55";
 
-const points=[
-1,
-33,
-133,
-263,
-362,
-61,
-291,
-199,
-10,
-152
-];
+    /*
+       Forehead,
+      eyebrows,
+       eyes,
+       nose,
+       mouth,
+       chin
+    */
 
-for(const index of points){
+    const points=[
 
-const p=landmarks[index];
+        10,151,9,8,
 
-if(!p)continue;
+        70,63,105,107,
 
-const x=p.x*landmarkCanvas.width;
-const y=p.y*landmarkCanvas.height;
+        33,133,159,145,
 
-landmarkCtx.beginPath();
+        263,362,386,374,
 
-landmarkCtx.arc(
-x,
-y,
-6,
-0,
-Math.PI*2
-);
+        1,2,4,
 
-landmarkCtx.fill();
+        61,291,13,14,
 
-}
+        199,152
+    ];
 
+    for(
+        const index of points
+    ){
+
+        const p=landmarks[index];
+
+        if(!p)continue;
+
+        const x=
+            p.x*
+            landmarkCanvas.width;
+
+        const y=
+            p.y*
+            landmarkCanvas.height;
+
+        landmarkCtx.beginPath();
+
+        landmarkCtx.arc(
+            x,
+            y,
+            5,
+            0,
+            Math.PI*2
+        );
+
+        landmarkCtx.fill();
+    }
 }
 
 function clearLandmarks(){
 
-landmarkCtx.clearRect(
-0,
-0,
-landmarkCanvas.width,
-landmarkCanvas.height
-);
-
+    landmarkCtx.clearRect(
+        0,
+        0,
+        landmarkCanvas.width,
+        landmarkCanvas.height
+    );
 }
+
+
+/* =========================
+   RESIZE
+========================= */
 
 function resizeCanvas(){
 
-const w=window.innerWidth;
-const h=window.innerHeight;
+    const w=
+        window.innerWidth;
 
-threeCanvas.width=w;
-threeCanvas.height=h;
+    const h=
+        window.innerHeight;
 
-landmarkCanvas.width=w;
-landmarkCanvas.height=h;
+    threeCanvas.width=w;
+    threeCanvas.height=h;
 
-renderer.setSize(w,h,false);
+    landmarkCanvas.width=w;
+    landmarkCanvas.height=h;
 
-camera3D.left=0;
-camera3D.right=w;
-camera3D.top=0;
-camera3D.bottom=h;
+    renderer.setSize(
+        w,
+        h,
+        false
+    );
 
-camera3D.updateProjectionMatrix();
+    camera3D.left=0;
+    camera3D.right=w;
+    camera3D.top=0;
+    camera3D.bottom=h;
 
+    camera3D.updateProjectionMatrix();
 }function bindSlider(
     sliderId,
     valueId,
@@ -900,38 +1164,33 @@ camera3D.updateProjectionMatrix();
     decimals=0
 ){
 
-    const slider=document.getElementById(sliderId);
-    const value=document.getElementById(valueId);
+    const slider=
+        document.getElementById(sliderId);
+
+    const value=
+        document.getElementById(valueId);
 
     slider.addEventListener(
         "input",
         function(){
 
-            settings[property]=Number(this.value);
+            settings[property]=
+                Number(this.value);
 
             value.textContent=
                 decimals>0
                 ? settings[property].toFixed(decimals)
                 : settings[property];
 
-            if(
-                property==="headX" ||
-                property==="headY" ||
-                property==="headZ"
-            ){
-
-                createDummyHead();
-
-            }
-
             updateModelTransform();
+
         }
     );
 }
 
 
 /* =========================
-   SLIDERS
+   MODEL CONTROLS
 ========================= */
 
 bindSlider(
@@ -1018,34 +1277,90 @@ function resetAll(){
     settings.headY=1;
     settings.headZ=1;
 
-    document.getElementById("xSlider").value=0;
-    document.getElementById("ySlider").value=0;
-    document.getElementById("zSlider").value=0;
-    document.getElementById("scaleSlider").value=1;
+    document.getElementById(
+        "xSlider"
+    ).value=0;
 
-    document.getElementById("rotXSlider").value=0;
-    document.getElementById("rotYSlider").value=0;
-    document.getElementById("rotZSlider").value=0;
+    document.getElementById(
+        "ySlider"
+    ).value=0;
 
-    document.getElementById("headXSlider").value=1;
-    document.getElementById("headYSlider").value=1;
-    document.getElementById("headZSlider").value=1;
+    document.getElementById(
+        "zSlider"
+    ).value=0;
 
-    document.getElementById("xValue").textContent="0";
-    document.getElementById("yValue").textContent="0";
-    document.getElementById("zValue").textContent="0";
+    document.getElementById(
+        "scaleSlider"
+    ).value=1;
 
-    document.getElementById("scaleValue").textContent="1.00";
+    document.getElementById(
+        "rotXSlider"
+    ).value=0;
 
-    document.getElementById("rotXValue").textContent="0";
-    document.getElementById("rotYValue").textContent="0";
-    document.getElementById("rotZValue").textContent="0";
+    document.getElementById(
+        "rotYSlider"
+    ).value=0;
 
-    document.getElementById("headXValue").textContent="1.00";
-    document.getElementById("headYValue").textContent="1.00";
-    document.getElementById("headZValue").textContent="1.00";
+    document.getElementById(
+        "rotZSlider"
+    ).value=0;
+
+    document.getElementById(
+        "headXSlider"
+    ).value=1;
+
+    document.getElementById(
+        "headYSlider"
+    ).value=1;
+
+    document.getElementById(
+        "headZSlider"
+    ).value=1;
+
+
+    document.getElementById(
+        "xValue"
+    ).textContent="0";
+
+    document.getElementById(
+        "yValue"
+    ).textContent="0";
+
+    document.getElementById(
+        "zValue"
+    ).textContent="0";
+
+    document.getElementById(
+        "scaleValue"
+    ).textContent="1.00";
+
+    document.getElementById(
+        "rotXValue"
+    ).textContent="0";
+
+    document.getElementById(
+        "rotYValue"
+    ).textContent="0";
+
+    document.getElementById(
+        "rotZValue"
+    ).textContent="0";
+
+    document.getElementById(
+        "headXValue"
+    ).textContent="1.00";
+
+    document.getElementById(
+        "headYValue"
+    ).textContent="1.00";
+
+    document.getElementById(
+        "headZValue"
+    ).textContent="1.00";
+
 
     createDummyHead();
+
 
     if(modelRoot){
 
@@ -1055,7 +1370,9 @@ function resetAll(){
             0
         );
 
-        modelRoot.scale.setScalar(1);
+        modelRoot.scale.setScalar(
+            1
+        );
 
         modelRoot.rotation.set(
             0,
@@ -1065,12 +1382,14 @@ function resetAll(){
 
     }
 
-    statusBox.textContent="RESET COMPLETE";
+
+    statusBox.textContent=
+        "RESET COMPLETE";
 }
 
 
 /* =========================
-   CAMERA BUTTON
+   START CAMERA
 ========================= */
 
 document
@@ -1103,7 +1422,7 @@ document
 
 
 /* =========================
-   MIRROR
+   MIRROR BUTTON
 ========================= */
 
 document
@@ -1135,7 +1454,6 @@ document
 
             this.textContent=
                 "MIRROR: OFF";
-
         }
 
     }
@@ -1143,7 +1461,7 @@ document
 
 
 /* =========================
-   TRACKING
+   TRACKING BUTTON
 ========================= */
 
 document
@@ -1182,7 +1500,7 @@ document
 
 
 /* =========================
-   IMPORT BUTTON
+   IMPORT GLB BUTTON
 ========================= */
 
 document
@@ -1200,7 +1518,7 @@ document
 
 
 /* =========================
-   FILE INPUT
+   GLB FILE
 ========================= */
 
 document
@@ -1220,18 +1538,19 @@ document
 
 
 /* =========================
-   RENDER LOOP
+   RENDER
 ========================= */
 
 function render(){
 
-    requestAnimationFrame(render);
+    requestAnimationFrame(
+        render
+    );
 
     renderer.render(
         scene,
         camera3D
     );
-
 }
 
 render();
