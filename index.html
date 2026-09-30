@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Azeez AR Studio - Head Tracking Test</title>
+<title>Azeez AR Studio</title>
 
 <script type="importmap">
 {
@@ -20,12 +20,14 @@
   box-sizing: border-box;
 }
 
-body {
+html, body {
   margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
   background: #080d18;
   color: white;
   font-family: Arial, sans-serif;
-  overflow: hidden;
 }
 
 #stage {
@@ -37,6 +39,7 @@ body {
 
 #camera {
   position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -51,28 +54,31 @@ body {
   pointer-events: none;
 }
 
-#topPanel {
+#panel {
   position: absolute;
+  z-index: 10;
   top: 12px;
   left: 12px;
   right: 12px;
-  z-index: 5;
   padding: 14px;
-  background: rgba(5, 12, 25, 0.82);
-  border: 1px solid #34445d;
+  border: 1px solid #35445e;
   border-radius: 14px;
+  background: rgba(5, 12, 25, 0.88);
 }
 
 h2 {
   margin: 0 0 10px;
   font-size: 18px;
+  letter-spacing: 1px;
 }
 
 #status {
   font-size: 13px;
+  line-height: 1.6;
   color: #80ffb0;
   margin-bottom: 12px;
-  line-height: 1.5;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
 }
 
 .controls {
@@ -82,13 +88,17 @@ h2 {
 }
 
 button {
-  background: #1767d2;
   border: 0;
-  color: white;
   border-radius: 8px;
-  padding: 11px 13px;
-  font-weight: bold;
+  padding: 11px 12px;
+  color: white;
+  background: #1767d2;
   font-size: 12px;
+  font-weight: bold;
+}
+
+button:active {
+  opacity: 0.7;
 }
 
 button:disabled {
@@ -97,19 +107,30 @@ button:disabled {
 
 #bottomInfo {
   position: absolute;
-  bottom: 15px;
+  z-index: 10;
+  bottom: 12px;
   left: 12px;
   right: 12px;
-  z-index: 5;
   padding: 12px;
   border-radius: 10px;
-  background: rgba(5, 12, 25, 0.8);
+  background: rgba(5, 12, 25, 0.88);
   font-size: 12px;
   line-height: 1.6;
 }
 
+#modelLabel {
+  position: absolute;
+  z-index: 5;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #80ffb0;
+  font-size: 12px;
+  pointer-events: none;
+}
+
 .hidden {
-  display: none;
+  display: none !important;
 }
 </style>
 </head>
@@ -119,38 +140,48 @@ button:disabled {
 <div id="stage">
   <video id="camera" autoplay playsinline muted></video>
   <canvas id="threeCanvas"></canvas>
+  <div id="modelLabel">3D DUMMY HEAD</div>
 </div>
 
-<div id="topPanel">
+<div id="panel">
   <h2>AZEEZ AR STUDIO</h2>
 
-  <div id="status">Ready. Start camera.</div>
+  <div id="status">Model: Loading
+Camera: Not started
+Tracking: Waiting</div>
 
   <div class="controls">
     <button id="startButton">START CAMERA</button>
     <button id="switchButton">SWITCH CAMERA</button>
     <button id="trackingButton">TRACKING ON</button>
-    <button id="headButton">DUMMY HEAD ON</button>
+    <button id="headButton">HEAD ON</button>
+    <button id="resetButton">RESET HEAD</button>
   </div>
 </div>
 
 <div id="bottomInfo">
-  Move your head left, right, up and down.<br>
-  The 3D dummy head should follow your face.
+  The 3D Dummy Head remains visible before face detection.
+  Start the camera and move your head slowly.
 </div>
 
 <script type="module">
 
 import * as THREE from "three";
 
+// =====================================
+// ELEMENTS
+// =====================================
+
 const video = document.getElementById("camera");
 const canvas = document.getElementById("threeCanvas");
 const statusBox = document.getElementById("status");
+const modelLabel = document.getElementById("modelLabel");
 
 const startButton = document.getElementById("startButton");
 const switchButton = document.getElementById("switchButton");
 const trackingButton = document.getElementById("trackingButton");
 const headButton = document.getElementById("headButton");
+const resetButton = document.getElementById("resetButton");
 
 let stream = null;
 let faceLandmarker = null;
@@ -159,21 +190,36 @@ let cameraFacing = "user";
 let trackingEnabled = true;
 let headVisible = true;
 let cameraStarted = false;
+let modelReady = false;
 
+let trackingStatus = "Waiting";
 let lastVideoTime = -1;
+let cameraRequest = 0;
 
-function setStatus(message) {
-  statusBox.textContent = message;
+// =====================================
+// STATUS
+// =====================================
+
+function updateStatus() {
+  statusBox.textContent =
+    "Model: " + (modelReady ? "3D Head Ready" : "Loading") +
+    "\nCamera: " + (cameraStarted ? "Running" : "Not started") +
+    "\nTracking: " + trackingStatus;
 }
 
+// =====================================
 // THREE.JS SCENE
+// =====================================
 
 const scene = new THREE.Scene();
 
 const camera3D = new THREE.OrthographicCamera(
-  0, window.innerWidth,
-  0, window.innerHeight,
-  0.1, 2000
+  0,
+  window.innerWidth,
+  0,
+  window.innerHeight,
+  0.1,
+  2000
 );
 
 camera3D.position.z = 1000;
@@ -195,31 +241,53 @@ renderer.setSize(
 
 renderer.setClearColor(0x000000, 0);
 
-// LIGHTS
+// =====================================
+// LIGHTING
+// =====================================
 
-scene.add(new THREE.AmbientLight(0xffffff, 2));
+scene.add(
+  new THREE.AmbientLight(0xffffff, 2)
+);
 
-const light = new THREE.DirectionalLight(0xffffff, 3);
-light.position.set(-200, -300, 800);
-scene.add(light);
+const keyLight = new THREE.DirectionalLight(
+  0xffffff,
+  3
+);
 
-// DUMMY HEAD GROUP
+keyLight.position.set(-200, -300, 800);
+scene.add(keyLight);
+
+// =====================================
+// DUMMY HEAD
+// =====================================
 
 const headGroup = new THREE.Group();
 scene.add(headGroup);
 
-// Head shape
-
-const headMaterial = new THREE.MeshStandardMaterial({
-  color: 0xd7a17e,
+const skinMaterial = new THREE.MeshStandardMaterial({
+  color: 0xd9a17e,
   roughness: 0.72
 });
 
-const headGeometry = new THREE.SphereGeometry(1, 48, 48);
+const earMaterial = new THREE.MeshStandardMaterial({
+  color: 0xc68e70,
+  roughness: 0.8
+});
+
+const eyeMaterial = new THREE.MeshStandardMaterial({
+  color: 0x24212a,
+  roughness: 0.4
+});
+
+const mouthMaterial = new THREE.MeshStandardMaterial({
+  color: 0x743d3d
+});
+
+// Main head
 
 const headMesh = new THREE.Mesh(
-  headGeometry,
-  headMaterial
+  new THREE.SphereGeometry(1, 48, 48),
+  skinMaterial
 );
 
 headMesh.scale.set(0.78, 1.0, 0.68);
@@ -227,16 +295,15 @@ headGroup.add(headMesh);
 
 // Ears
 
-const earGeometry = new THREE.SphereGeometry(0.22, 24, 24);
-
-const earMaterial = new THREE.MeshStandardMaterial({
-  color: 0xc68e70
-});
-
 function createEar(x) {
-  const ear = new THREE.Mesh(earGeometry, earMaterial);
+  const ear = new THREE.Mesh(
+    new THREE.SphereGeometry(0.22, 24, 24),
+    earMaterial
+  );
+
   ear.position.set(x, 0.02, 0);
   ear.scale.set(0.55, 1.0, 0.45);
+
   headGroup.add(ear);
 }
 
@@ -245,17 +312,15 @@ createEar(0.78);
 
 // Eyes
 
-const eyeGeometry = new THREE.SphereGeometry(0.105, 24, 24);
-
-const eyeMaterial = new THREE.MeshStandardMaterial({
-  color: 0x20212b,
-  roughness: 0.3
-});
-
 function createEye(x) {
-  const eye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+  const eye = new THREE.Mesh(
+    new THREE.SphereGeometry(0.105, 24, 24),
+    eyeMaterial
+  );
+
   eye.position.set(x, 0.18, 0.62);
   eye.scale.set(1.0, 0.65, 0.45);
+
   headGroup.add(eye);
 }
 
@@ -264,13 +329,11 @@ createEye(0.29);
 
 // Nose
 
-const noseGeometry = new THREE.ConeGeometry(0.13, 0.38, 24);
+const nose = new THREE.Mesh(
+  new THREE.ConeGeometry(0.13, 0.38, 24),
+  skinMaterial
+);
 
-const noseMaterial = new THREE.MeshStandardMaterial({
-  color: 0xc68e70
-});
-
-const nose = new THREE.Mesh(noseGeometry, noseMaterial);
 nose.position.set(0, -0.03, 0.73);
 nose.rotation.x = Math.PI / 2;
 headGroup.add(nose);
@@ -279,18 +342,37 @@ headGroup.add(nose);
 
 const mouth = new THREE.Mesh(
   new THREE.SphereGeometry(0.16, 24, 12),
-  new THREE.MeshStandardMaterial({ color: 0x743d3d })
+  mouthMaterial
 );
 
 mouth.position.set(0, -0.43, 0.58);
-mouth.scale.set(1.0, 0.18, 0.25);
+mouth.scale.set(1, 0.18, 0.25);
 headGroup.add(mouth);
 
-// Initially hide until face detected
+// =====================================
+// INITIAL DUMMY HEAD POSITION
+// =====================================
 
-headGroup.visible = false;
+function resetHead() {
+  headGroup.position.set(
+    window.innerWidth / 2,
+    window.innerHeight / 2,
+    0
+  );
 
+  headGroup.rotation.set(0, 0, 0);
+  headGroup.scale.set(120, 120, 120);
+  headGroup.visible = headVisible;
+}
+
+resetHead();
+
+modelReady = true;
+updateStatus();
+
+// =====================================
 // RESIZE
+// =====================================
 
 function resizeScene() {
   const width = window.innerWidth;
@@ -304,27 +386,40 @@ function resizeScene() {
   camera3D.bottom = height;
 
   camera3D.updateProjectionMatrix();
+
+  if (!cameraStarted) {
+    resetHead();
+  }
 }
 
 window.addEventListener("resize", resizeScene);
+
 window.addEventListener("orientationchange", () => {
   setTimeout(resizeScene, 300);
 });
 
-// CAMERA DISPLAY
+// =====================================
+// CAMERA MIRROR
+// =====================================
 
 function updateMirror() {
-  const transform = cameraFacing === "user"
+  const mirror = cameraFacing === "user"
     ? "scaleX(-1)"
     : "none";
 
-  video.style.transform = transform;
-  canvas.style.transform = transform;
+  video.style.transform = mirror;
+  canvas.style.transform = mirror;
 }
 
-// CAMERA START
+// =====================================
+// START CAMERA
+// =====================================
 
 async function startCamera() {
+  const requestId = ++cameraRequest;
+
+  startButton.disabled = true;
+
   try {
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
@@ -332,6 +427,10 @@ async function startCamera() {
     }
 
     video.srcObject = null;
+    cameraStarted = false;
+    lastVideoTime = -1;
+
+    updateStatus();
 
     stream = await navigator.mediaDevices.getUserMedia({
       audio: false,
@@ -342,65 +441,95 @@ async function startCamera() {
       }
     });
 
-    video.srcObject = stream;
+    if (requestId !== cameraRequest) {
+      stream.getTracks().forEach(track => track.stop());
+      return;
+    }
 
+    video.srcObject = stream;
     await video.play();
 
     cameraStarted = true;
     updateMirror();
 
-    setStatus("Camera running. Loading face tracking...");
+    trackingStatus = "Loading face model";
+    updateStatus();
 
     await initializeFaceTracking();
 
   } catch (error) {
-    console.error(error);
-    setStatus("Camera error: " + error.message);
+    console.error("Camera error:", error);
+
+    cameraStarted = false;
+    trackingStatus = "Camera error: " + error.message;
+
+    updateStatus();
+
+  } finally {
+    if (requestId === cameraRequest) {
+      startButton.disabled = false;
+    }
   }
 }
 
-// MEDIAPIPE FACE TRACKING
+// =====================================
+// MEDIAPIPE INITIALIZATION
+// =====================================
 
 async function initializeFaceTracking() {
   try {
     if (faceLandmarker) {
-      setStatus("Face tracking ready.");
+      trackingStatus = "Looking for face";
+      updateStatus();
       return;
     }
+
+    trackingStatus = "Downloading MediaPipe";
+    updateStatus();
 
     const vision = await import(
       "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs"
     );
 
-    const fileset = await vision.FilesetResolver.forVisionTasks(
-      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
-    );
+    const fileset =
+      await vision.FilesetResolver.forVisionTasks(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
+      );
 
-    faceLandmarker = await vision.FaceLandmarker.createFromOptions(
-      fileset,
-      {
-        baseOptions: {
-          modelAssetPath:
-            "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-          delegate: "GPU"
-        },
+    trackingStatus = "Loading face model";
+    updateStatus();
 
-        runningMode: "VIDEO",
-        numFaces: 1,
-        outputFaceBlendshapes: false,
-        outputFacialTransformationMatrixes: true
-      }
-    );
+    faceLandmarker =
+      await vision.FaceLandmarker.createFromOptions(
+        fileset,
+        {
+          baseOptions: {
+            modelAssetPath:
+              "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+            delegate: "CPU"
+          },
 
-    setStatus("Face tracking ready. Looking for face...");
+          runningMode: "VIDEO",
+          numFaces: 1,
+          outputFaceBlendshapes: false,
+          outputFacialTransformationMatrixes: true
+        }
+      );
+
+    trackingStatus = "Looking for face";
+    updateStatus();
 
   } catch (error) {
-    console.error("Face tracking error:", error);
-    setStatus("Tracking load error: " + error.message);
+    console.error("Face model error:", error);
+
+    trackingStatus = "Model error: " + error.message;
+    updateStatus();
   }
 }
 
-// VIDEO COVER COORDINATES
+// =====================================
+// VIDEO COORDINATES
+// =====================================
 
 function getVideoCoordinates(point) {
   const width = window.innerWidth;
@@ -426,25 +555,33 @@ function getVideoCoordinates(point) {
   };
 }
 
+// =====================================
 // FACE TRACKING UPDATE
+// =====================================
 
 function updateHead(landmarks) {
-  if (!landmarks || !landmarks.length) {
+  if (!headVisible) {
     headGroup.visible = false;
-    setStatus("Camera running. No face detected.");
     return;
   }
 
+  headGroup.visible = true;
+
   if (!trackingEnabled) {
-    setStatus("Face detected. Tracking paused.");
+    trackingStatus = "Paused - Dummy Head visible";
+    updateStatus();
+    return;
+  }
+
+  if (!landmarks || landmarks.length < 264) {
+    trackingStatus = "No face - Dummy Head visible";
+    updateStatus();
     return;
   }
 
   const nosePoint = landmarks[1];
   const leftEye = landmarks[33];
   const rightEye = landmarks[263];
-  const forehead = landmarks[10];
-  const chin = landmarks[152];
 
   const nosePosition = getVideoCoordinates(nosePoint);
   const leftPosition = getVideoCoordinates(leftEye);
@@ -455,10 +592,11 @@ function updateHead(landmarks) {
     rightPosition.y - leftPosition.y
   );
 
-  const eyeCenterX = (leftPosition.x + rightPosition.x) / 2;
-  const eyeCenterY = (leftPosition.y + rightPosition.y) / 2;
+  const eyeCenterX =
+    (leftPosition.x + rightPosition.x) / 2;
 
-  // Approximate head rotation from facial landmarks
+  const eyeCenterY =
+    (leftPosition.y + rightPosition.y) / 2;
 
   const yawAmount =
     (nosePosition.x - eyeCenterX) /
@@ -473,46 +611,62 @@ function updateHead(landmarks) {
     rightPosition.x - leftPosition.x
   );
 
-  // Position
+  // Smooth position
 
-  headGroup.position.x = nosePosition.x;
-  headGroup.position.y = nosePosition.y;
+  headGroup.position.x +=
+    (nosePosition.x - headGroup.position.x) * 0.35;
 
-  // Size follows face distance
+  headGroup.position.y +=
+    (nosePosition.y - headGroup.position.y) * 0.35;
 
-  const headScale = Math.max(
-    20,
-    Math.min(eyeDistance * 2.5, 500)
+  // Smooth scale
+
+  const targetScale = THREE.MathUtils.clamp(
+    eyeDistance * 2.5,
+    70,
+    350
   );
+
+  const smoothScale =
+    headGroup.scale.x +
+    (targetScale - headGroup.scale.x) * 0.25;
 
   headGroup.scale.set(
-    headScale,
-    headScale,
-    headScale
+    smoothScale,
+    smoothScale,
+    smoothScale
   );
 
-  // Approximate rotation
+  // Approximate rotation from face landmarks
 
-  headGroup.rotation.y = THREE.MathUtils.clamp(
+  const targetYaw = THREE.MathUtils.clamp(
     yawAmount * 1.8,
     -0.9,
     0.9
   );
 
-  headGroup.rotation.x = THREE.MathUtils.clamp(
+  const targetPitch = THREE.MathUtils.clamp(
     pitchAmount * 1.2,
     -0.7,
     0.7
   );
 
-  headGroup.rotation.z = -rollAmount;
+  headGroup.rotation.y +=
+    (targetYaw - headGroup.rotation.y) * 0.25;
 
-  headGroup.visible = headVisible;
+  headGroup.rotation.x +=
+    (targetPitch - headGroup.rotation.x) * 0.25;
 
-  setStatus("FACE DETECTED | Tracking active");
+  headGroup.rotation.z +=
+    (-rollAmount - headGroup.rotation.z) * 0.25;
+
+  trackingStatus = "FACE DETECTED - Tracking active";
+  updateStatus();
 }
 
+// =====================================
 // TRACKING LOOP
+// =====================================
 
 function trackingLoop() {
   requestAnimationFrame(trackingLoop);
@@ -520,6 +674,7 @@ function trackingLoop() {
   if (
     cameraStarted &&
     faceLandmarker &&
+    trackingEnabled &&
     video.readyState >= 2 &&
     video.currentTime !== lastVideoTime
   ) {
@@ -537,28 +692,38 @@ function trackingLoop() {
       ) {
         updateHead(result.faceLandmarks[0]);
       } else {
-        headGroup.visible = false;
-        setStatus("Camera running. Looking for face...");
+        headGroup.visible = headVisible;
+
+        trackingStatus =
+          "Looking for face - Dummy Head visible";
+
+        updateStatus();
       }
 
     } catch (error) {
-      console.error("Tracking frame error:", error);
+      console.error("Tracking error:", error);
+
+      trackingStatus = "Tracking error";
+      updateStatus();
     }
   }
 
   renderer.render(scene, camera3D);
 }
 
-// BUTTONS
+// =====================================
+// BUTTON CONTROLS
+// =====================================
 
 startButton.addEventListener("click", async () => {
   await startCamera();
 });
 
 switchButton.addEventListener("click", async () => {
-  cameraFacing = cameraFacing === "user"
-    ? "environment"
-    : "user";
+  cameraFacing =
+    cameraFacing === "user"
+      ? "environment"
+      : "user";
 
   await startCamera();
 });
@@ -570,28 +735,42 @@ trackingButton.addEventListener("click", () => {
     ? "TRACKING ON"
     : "TRACKING OFF";
 
-  if (!trackingEnabled) {
-    headGroup.visible = false;
-    setStatus("Tracking paused.");
-  } else {
-    setStatus("Tracking enabled. Looking for face...");
-  }
+  trackingStatus = trackingEnabled
+    ? "Looking for face"
+    : "Tracking paused - Dummy Head visible";
+
+  updateStatus();
 });
 
 headButton.addEventListener("click", () => {
   headVisible = !headVisible;
 
-  headButton.textContent = headVisible
-    ? "DUMMY HEAD ON"
-    : "DUMMY HEAD OFF";
+  headGroup.visible = headVisible;
 
-  headGroup.visible = headVisible && trackingEnabled;
+  headButton.textContent = headVisible
+    ? "HEAD ON"
+    : "HEAD OFF";
+
+  modelLabel.classList.toggle(
+    "hidden",
+    !headVisible
+  );
 });
 
-// INITIALIZE
+resetButton.addEventListener("click", () => {
+  resetHead();
+
+  trackingStatus = "Head position reset";
+  updateStatus();
+});
+
+// =====================================
+// START APPLICATION
+// =====================================
 
 resizeScene();
 trackingLoop();
+updateStatus();
 
 </script>
 </body>
