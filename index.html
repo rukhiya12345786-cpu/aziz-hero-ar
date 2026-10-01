@@ -1,1325 +1,282 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
-<title>Azeez AR Head Tracker</title>
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
+
+<title>Azeez AR Face Test</title>
 
 <style>
-* {
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
-}
 
 html,
 body {
-    width: 100%;
-    height: 100%;
     margin: 0;
-    padding: 0;
-    overflow: hidden;
-    background: #000;
-    font-family: Arial, sans-serif;
-}
-
-#app {
-    position: fixed;
-    inset: 0;
     width: 100%;
     height: 100%;
     overflow: hidden;
     background: #000;
 }
 
-#arContainer {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
+#container {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
     overflow: hidden;
-    background: #000;
-}
-
-/*
-Do not force MindAR video/canvas dimensions here.
-MindAR controls its camera layers.
-*/
-
-#arContainer video {
-    position: absolute;
-    pointer-events: none;
-}
-
-#arContainer canvas {
-    position: absolute;
-    pointer-events: none;
-}
-
-#ui {
-    position: absolute;
-    inset: 0;
-    z-index: 20;
-    pointer-events: none;
-}
-
-.topBar {
-    position: absolute;
-    top: env(safe-area-inset-top, 10px);
-    left: 10px;
-    right: 10px;
-    display: flex;
-    gap: 7px;
-    flex-wrap: wrap;
-    pointer-events: auto;
 }
 
 button {
-    border: 1px solid rgba(255,255,255,0.35);
-    border-radius: 9px;
-    background: rgba(0,0,0,0.68);
-    color: #fff;
-    min-height: 38px;
-    padding: 0 12px;
-    font-size: 11px;
-    font-weight: 700;
-    touch-action: manipulation;
-}
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 9999;
 
-button:active {
-    transform: scale(0.96);
-}
+    padding: 14px 20px;
 
-button.active {
-    background: rgba(0,180,80,0.85);
+    border: 0;
+    border-radius: 10px;
+
+    background: rgba(0,0,0,0.75);
+    color: white;
+
+    font-size: 14px;
+    font-weight: bold;
 }
 
 #status {
-    position: absolute;
-    top: 105px;
-    left: 50%;
-    transform: translateX(-50%);
-    min-width: 220px;
-    max-width: 90%;
-    padding: 8px 14px;
-    border-radius: 20px;
+    position: fixed;
+    top: 75px;
+    left: 20px;
+    z-index: 9999;
+
+    padding: 8px 12px;
+
+    border-radius: 8px;
+
     background: rgba(0,0,0,0.65);
-    color: #fff;
-    text-align: center;
-    font-size: 12px;
-    pointer-events: none;
-}
-
-#expression {
-    position: absolute;
-    top: 142px;
-    left: 50%;
-    transform: translateX(-50%);
     color: #00ff66;
-    font-size: 11px;
-    font-weight: 700;
-    text-align: center;
-    pointer-events: none;
-}
 
-#bottomBar {
-    position: absolute;
-    left: 8px;
-    right: 8px;
-    bottom: calc(env(safe-area-inset-bottom, 8px) + 8px);
-    display: flex;
-    gap: 7px;
-    overflow-x: auto;
-    padding: 5px;
-    pointer-events: auto;
-    scrollbar-width: none;
-}
-
-#bottomBar::-webkit-scrollbar {
-    display: none;
-}
-
-#faceMeshButton {
-    border-color: rgba(0,255,100,0.6);
-}
-
-.hiddenInput {
-    display: none;
-}
-
-#loading {
-    position: absolute;
-    inset: 0;
-    z-index: 100;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #000;
-    color: #fff;
-    font-size: 14px;
-    text-align: center;
-    padding: 30px;
-    pointer-events: none;
-}
-
-#loading.hidden {
-    display: none;
-}
-
-#errorBox {
-    position: absolute;
-    left: 15px;
-    right: 15px;
-    bottom: 100px;
-    z-index: 200;
-    display: none;
-    padding: 12px;
-    border-radius: 10px;
-    background: rgba(150,0,0,0.9);
-    color: #fff;
+    font-family: Arial, sans-serif;
     font-size: 12px;
-    line-height: 1.4;
-    pointer-events: none;
 }
 
-@media (orientation: landscape) {
-    #status {
-        top: 80px;
-    }
-
-    #expression {
-        top: 116px;
-    }
-}
 </style>
 
 <script type="importmap">
 {
     "imports": {
-        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
-        "mindar-face-three": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-three.prod.js"
+        "three":
+            "https://unpkg.com/three@0.160.0/build/three.module.js",
+
+        "three/addons/":
+            "https://unpkg.com/three@0.160.0/examples/jsm/",
+
+        "mindar-face-three":
+            "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-three.prod.js"
     }
 }
 </script>
+
 </head>
 
 <body>
 
-<div id="app">
+<div id="container"></div>
 
-    <div id="arContainer"></div>
+<button id="startButton">
+START CAMERA
+</button>
 
-    <div id="loading">
-        Press START CAMERA
-    </div>
-
-    <div id="errorBox"></div>
-
-    <div id="ui">
-
-        <div class="topBar">
-
-            <button id="cameraButton">
-                START CAMERA
-            </button>
-
-            <button id="switchCameraButton">
-                SWITCH CAMERA
-            </button>
-
-            <button id="mirrorButton">
-                MIRROR: OFF
-            </button>
-
-            <button id="trackingButton">
-                TRACKING: ON
-            </button>
-
-            <button id="faceMeshButton">
-                FACE MESH: ON
-            </button>
-
-        </div>
-
-        <div id="status">
-            Loading...
-        </div>
-
-        <div id="expression">
-            Face tracking: waiting
-        </div>
-
-        <div id="bottomBar">
-
-            <button id="portraitButton">
-                PORTRAIT
-            </button>
-
-            <button id="resetButton">
-                RESET
-            </button>
-
-            <button id="recordingButton">
-                START RECORDING
-            </button>
-
-            <button id="glbButton">
-                IMPORT GLB
-            </button>
-
-            <button id="objButton">
-                IMPORT OBJ
-            </button>
-
-            <button id="fbxButton">
-                IMPORT FBX
-            </button>
-
-            <button id="settingsButton">
-                IMPORT SETTINGS
-            </button>
-
-            <button id="exportSettingsButton">
-                EXPORT SETTINGS
-            </button>
-
-        </div>
-
-    </div>
-
-    <input
-        id="glbInput"
-        class="hiddenInput"
-        type="file"
-        accept=".glb,.gltf,model/gltf-binary,model/gltf+json"
-    >
-
-    <input
-        id="objInput"
-        class="hiddenInput"
-        type="file"
-        accept=".obj,text/plain"
-    >
-
-    <input
-        id="fbxInput"
-        class="hiddenInput"
-        type="file"
-        accept=".fbx,application/octet-stream"
-    >
-
-    <input
-        id="settingsInput"
-        class="hiddenInput"
-        type="file"
-        accept=".json,application/json"
-    >
-
+<div id="status">
+Loading...
 </div>
 
 <script type="module">
 
 import * as THREE from "three";
 
-import { MindARThree }
-    from "mindar-face-three";
-
-import { GLTFLoader }
-    from "three/addons/loaders/GLTFLoader.js";
-
-import { OBJLoader }
-    from "three/addons/loaders/OBJLoader.js";
-
-import { FBXLoader }
-    from "three/addons/loaders/FBXLoader.js";
+import {
+    MindARThree
+} from "mindar-face-three";
 
 
-const arContainer =
-    document.getElementById("arContainer");
+const container =
+    document.querySelector("#container");
 
-const loading =
-    document.getElementById("loading");
-
-const errorBox =
-    document.getElementById("errorBox");
+const startButton =
+    document.querySelector("#startButton");
 
 const status =
-    document.getElementById("status");
-
-const expression =
-    document.getElementById("expression");
-
-const cameraButton =
-    document.getElementById("cameraButton");
-
-const switchCameraButton =
-    document.getElementById("switchCameraButton");
-
-const mirrorButton =
-    document.getElementById("mirrorButton");
-
-const trackingButton =
-    document.getElementById("trackingButton");
-
-const faceMeshButton =
-    document.getElementById("faceMeshButton");
-
-const portraitButton =
-    document.getElementById("portraitButton");
-
-const resetButton =
-    document.getElementById("resetButton");
-
-const recordingButton =
-    document.getElementById("recordingButton");
-
-const glbButton =
-    document.getElementById("glbButton");
-
-const objButton =
-    document.getElementById("objButton");
-
-const fbxButton =
-    document.getElementById("fbxButton");
-
-const settingsButton =
-    document.getElementById("settingsButton");
-
-const exportSettingsButton =
-    document.getElementById(
-        "exportSettingsButton"
-    );
-
-const glbInput =
-    document.getElementById("glbInput");
-
-const objInput =
-    document.getElementById("objInput");
-
-const fbxInput =
-    document.getElementById("fbxInput");
-
-const settingsInput =
-    document.getElementById(
-        "settingsInput"
-    );
+    document.querySelector("#status");
 
 
 let mindarThree = null;
 
-let renderer = null;
-
-let scene = null;
-
-let camera = null;
-
 let faceMesh = null;
 
-let modelRoot = null;
 
-let loadedModel = null;
+function setStatus(text) {
 
-
-let cameraStarted = false;
-
-let trackingEnabled = true;
-
-let mirrorEnabled = false;
-
-let faceMeshVisible = true;
-
-let currentCameraMode = "front";
-
-
-let recorder = null;
-
-let recordingActive = false;
-
-let recordedChunks = [];
-
-let recordCanvas = null;
-
-let recordContext = null;
-
-let recordingFrameId = null;
-
-
-const modelState = {
-
-    x: 0,
-
-    y: 0,
-
-    z: 0,
-
-    scale: 1,
-
-    rotX: 0,
-
-    rotY: 0,
-
-    rotZ: 0,
-
-    fit: 1
-
-};
-
-
-function setStatus(message) {
-
-    status.textContent =
-        message;
+    status.textContent = text;
 
 }
 
 
-function setExpression(message) {
-
-    expression.textContent =
-        message;
-
-}
-
-
-function showError(message) {
-
-    errorBox.textContent =
-        message;
-
-    errorBox.style.display =
-        "block";
-
-}
-
-
-function clearError() {
-
-    errorBox.textContent =
-        "";
-
-    errorBox.style.display =
-        "none";
-
-}
-
-
-function clamp(value, min, max) {
-
-    return Math.max(
-        min,
-        Math.min(max, value)
-    );
-
-}
-
-
-function degToRad(value) {
-
-    return THREE.MathUtils.degToRad(
-        value
-    );
-
-}
-
-
-function resetModel() {
-
-    modelState.x = 0;
-
-    modelState.y = 0;
-
-    modelState.z = 0;
-
-    modelState.scale = 1;
-
-    modelState.rotX = 0;
-
-    modelState.rotY = 0;
-
-    modelState.rotZ = 0;
-
-    modelState.fit = 1;
-
-    applyModelTransform();
-
-}
-
-
-function applyModelTransform() {
-
-    if (!loadedModel) {
-        return;
-    }
-
-    loadedModel.position.set(
-        modelState.x,
-        modelState.y,
-        modelState.z
-    );
-
-    loadedModel.scale.setScalar(
-        modelState.scale *
-        modelState.fit
-    );
-
-    loadedModel.rotation.set(
-        degToRad(modelState.rotX),
-        degToRad(modelState.rotY),
-        degToRad(modelState.rotZ)
-    );
-
-}
-
-
-function updateFaceExpression() {
-
-    if (!mindarThree) {
-        return;
-    }
-
-    if (!trackingEnabled) {
-
-        setExpression(
-            "Tracking paused"
-        );
-
-        return;
-    }
+async function setup() {
 
     try {
-
-        const estimate =
-            mindarThree.getLatestEstimate();
-
-        if (!estimate ||
-            !estimate.blendshapes ||
-            !estimate.blendshapes.categories) {
-
-            setExpression(
-                "Looking for face..."
-            );
-
-            return;
-        }
-
-        const categories =
-            estimate.blendshapes.categories;
-
-        if (!categories.length) {
-
-            setExpression(
-                "Face detected"
-            );
-
-            return;
-        }
-
-        let strongest =
-            categories[0];
-
-        for (
-            let i = 1;
-            i < categories.length;
-            i++
-        ) {
-
-            if (
-                categories[i].score >
-                strongest.score
-            ) {
-
-                strongest =
-                    categories[i];
-
-            }
-
-        }
-
-        const name =
-            strongest.categoryName ||
-            "Face";
-
-        const score =
-            Math.round(
-                strongest.score * 100
-            );
-
-        setExpression(
-            name + " " + score + "%"
-        );
-
-    } catch (error) {
-
-        setExpression(
-            "Face tracking active"
-        );
-
-    }
-
-}
-
-
-function createScene() {
-
-    mindarThree =
-        new MindARThree({
-
-            container:
-                arContainer,
-
-            uiLoading:
-                "no",
-
-            uiScanning:
-                "no",
-
-            uiError:
-                "no",
-
-            filterMinCF:
-                0.001,
-
-            filterBeta:
-                0.7
-
-        });
-
-
-    renderer =
-        mindarThree.renderer;
-
-    scene =
-        mindarThree.scene;
-
-    camera =
-        mindarThree.camera;
-
-
-    renderer.setPixelRatio(
-        Math.min(
-            window.devicePixelRatio || 1,
-            1.5
-        )
-    );
-
-
-    renderer.setClearColor(
-        0x000000,
-        0
-    );
-
-
-    scene.add(
-        new THREE.HemisphereLight(
-            0xffffff,
-            0x444444,
-            1.5
-        )
-    );
-
-
-    const light =
-        new THREE.DirectionalLight(
-            0xffffff,
-            1.5
-        );
-
-    light.position.set(
-        0,
-        1,
-        2
-    );
-
-    scene.add(light);
-
-
-    faceMesh =
-        mindarThree.addFaceMesh();
-
-
-    faceMesh.material.transparent =
-        true;
-
-    faceMesh.material.opacity =
-        0.28;
-
-    faceMesh.material.color.set(
-        0x00ff66
-    );
-
-
-    faceMesh.visible =
-        true;
-
-
-    scene.add(faceMesh);
-
-
-    modelRoot =
-        new THREE.Group();
-
-
-    faceMesh.add(
-        modelRoot
-    );
-
-
-    setStatus(
-        "MindAR ready"
-    );
-
-}
-
-
-function resizeAR() {
-
-    if (!renderer) {
-        return;
-    }
-
-    renderer.setPixelRatio(
-        Math.min(
-            window.devicePixelRatio || 1,
-            1.5
-        )
-    );
-
-    renderer.setSize(
-        window.innerWidth,
-        window.innerHeight,
-        false
-    );
-
-}
-
-
-function getCameraVideo() {
-
-    return arContainer.querySelector(
-        "video"
-    );
-
-}
-
-
-async function startCamera() {
-
-    if (cameraStarted) {
 
         setStatus(
-            "Camera already running"
+            "Creating Face Tracker..."
         );
 
-        return;
 
-    }
+        mindarThree =
+            new MindARThree({
+
+                container:
+                    container,
+
+                uiLoading:
+                    "no",
+
+                uiScanning:
+                    "no",
+
+                uiError:
+                    "no"
+
+            });
 
 
-    clearError();
+        const renderer =
+            mindarThree.renderer;
 
-    setStatus(
-        "Starting camera..."
-    );
+        const scene =
+            mindarThree.scene;
 
-
-    try {
-
-        await mindarThree.start();
+        const camera =
+            mindarThree.camera;
 
 
-        cameraStarted =
+        const light =
+            new THREE.HemisphereLight(
+                0xffffff,
+                0xbbbbff,
+                1
+            );
+
+        scene.add(light);
+
+
+        faceMesh =
+            mindarThree.addFaceMesh();
+
+
+        faceMesh.material.transparent =
             true;
 
+        faceMesh.material.opacity =
+            0.35;
 
-        const video =
-            getCameraVideo();
-
-
-        if (video) {
-
-            video.setAttribute(
-                "playsinline",
-                ""
-            );
-
-            video.setAttribute(
-                "autoplay",
-                ""
-            );
-
-            video.muted =
-                true;
-
-            video.style.pointerEvents =
-                "none";
-
-        }
-
-
-        resizeAR();
-
-
-        renderer.setAnimationLoop(
-            renderLoop
+        faceMesh.material.color.set(
+            0x00ff66
         );
 
 
-        loading.classList.add(
-            "hidden"
-        );
+        scene.add(faceMesh);
 
 
-        cameraButton.textContent =
-            "CAMERA ON";
+        startButton.addEventListener(
+            "click",
+            async () => {
 
-        cameraButton.classList.add(
-            "active"
-        );
+                try {
 
+                    startButton.disabled =
+                        true;
 
-        setStatus(
-            "Camera ON - looking for face"
-        );
+                    startButton.textContent =
+                        "STARTING...";
 
 
-    } catch (error) {
+                    setStatus(
+                        "Requesting camera..."
+                    );
 
-        console.error(
-            "MindAR start error:",
-            error
-        );
 
-        cameraStarted =
-            false;
+                    await mindarThree.start();
 
 
-        showError(
-            "Camera could not start. Check browser camera permission and HTTPS."
-        );
+                    setStatus(
+                        "CAMERA ON - LOOK AT CAMERA"
+                    );
 
 
-        setStatus(
-            "Camera start failed"
-        );
+                    startButton.textContent =
+                        "CAMERA ON";
 
-    }
 
-}
+                    renderer.setAnimationLoop(
+                        () => {
 
+                            renderer.render(
+                                scene,
+                                camera
+                            );
 
-function renderLoop() {
+                        }
+                    );
 
-    if (!renderer ||
-        !scene ||
-        !camera) {
 
-        return;
+                } catch (error) {
 
-    }
+                    console.error(
+                        error
+                    );
 
+                    setStatus(
+                        "CAMERA ERROR"
+                    );
 
-    if (trackingEnabled) {
+                    startButton.disabled =
+                        false;
 
-        updateFaceExpression();
+                    startButton.textContent =
+                        "START CAMERA";
 
-    }
-
-
-    if (loadedModel) {
-
-        loadedModel.visible =
-            trackingEnabled &&
-            cameraStarted;
-
-    }
-
-
-    renderer.render(
-        scene,
-        camera
-    );
-
-}
-
-
-function toggleFaceMesh() {
-
-    faceMeshVisible =
-        !faceMeshVisible;
-
-
-    if (faceMesh) {
-
-        faceMesh.visible =
-            faceMeshVisible;
-
-    }
-
-
-    faceMeshButton.textContent =
-        faceMeshVisible
-            ? "FACE MESH: ON"
-            : "FACE MESH: OFF";
-
-
-    setStatus(
-        faceMeshVisible
-            ? "Face mesh ON"
-            : "Face mesh OFF"
-    );
-
-}
-
-
-function toggleTracking() {
-
-    trackingEnabled =
-        !trackingEnabled;
-
-
-    trackingButton.textContent =
-        trackingEnabled
-            ? "TRACKING: ON"
-            : "TRACKING: OFF";
-
-
-    if (!trackingEnabled) {
-
-        setExpression(
-            "Tracking paused"
-        );
-
-        setStatus(
-            "Tracking paused"
-        );
-
-    } else {
-
-        setStatus(
-            "Tracking ON"
-        );
-
-    }
-
-}
-
-
-function toggleMirror() {
-
-    mirrorEnabled =
-        !mirrorEnabled;
-
-
-    const video =
-        getCameraVideo();
-
-    const canvas =
-        arContainer.querySelector(
-            "canvas"
-        );
-
-
-    const transform =
-        mirrorEnabled
-            ? "scaleX(-1)"
-            : "scaleX(1)";
-
-
-    if (video) {
-
-        video.style.transform =
-            transform;
-
-        video.style.transformOrigin =
-            "center center";
-
-    }
-
-
-    if (canvas) {
-
-        canvas.style.transform =
-            transform;
-
-        canvas.style.transformOrigin =
-            "center center";
-
-    }
-
-
-    mirrorButton.textContent =
-        mirrorEnabled
-            ? "MIRROR: ON"
-            : "MIRROR: OFF";
-
-
-    setStatus(
-        mirrorEnabled
-            ? "Mirror ON"
-            : "Mirror OFF"
-    );
-
-}
-
-
-async function switchCamera() {
-
-    if (!cameraStarted) {
-
-        setStatus(
-            "Start camera first"
-        );
-
-        return;
-
-    }
-
-
-    try {
-
-        setStatus(
-            "Switching camera..."
-        );
-
-
-        await mindarThree.switchCamera();
-
-
-        currentCameraMode =
-            currentCameraMode ===
-            "front"
-                ? "environment"
-                : "front";
-
-
-        setStatus(
-            currentCameraMode ===
-            "front"
-                ? "Front camera"
-                : "Back camera"
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            "Camera switch error:",
-            error
-        );
-
-        setStatus(
-            "Camera switch failed"
-        );
-
-    }
-
-}
-
-
-function setupEvents() {
-
-    cameraButton.addEventListener(
-        "click",
-        startCamera
-    );
-
-
-    switchCameraButton.addEventListener(
-        "click",
-        switchCamera
-    );
-
-
-    mirrorButton.addEventListener(
-        "click",
-        toggleMirror
-    );
-
-
-    trackingButton.addEventListener(
-        "click",
-        toggleTracking
-    );
-
-
-    faceMeshButton.addEventListener(
-        "click",
-        toggleFaceMesh
-    );
-
-
-    resetButton.addEventListener(
-        "click",
-        () => {
-
-            resetModel();
-
-            setStatus(
-                "Model reset"
-            );
-
-        }
-    );
-
-
-    portraitButton.addEventListener(
-        "click",
-        async () => {
-
-            try {
-
-                if (
-                    screen.orientation &&
-                    screen.orientation.lock
-                ) {
-
-                    await screen.orientation.lock(
-                        "portrait"
+                    alert(
+                        "Camera could not start. Allow camera permission in Chrome and reload the page."
                     );
 
                 }
 
-                setStatus(
-                    "Portrait mode"
-                );
-
-            } catch (error) {
-
-                setStatus(
-                    "Turn phone vertically"
-                );
-
             }
+        );
 
-        }
-    );
-
-
-    glbButton.addEventListener(
-        "click",
-        () => {
-
-            setStatus(
-                "GLB import will be enabled next"
-            );
-
-        }
-    );
-
-
-    objButton.addEventListener(
-        "click",
-        () => {
-
-            setStatus(
-                "OBJ import will be enabled next"
-            );
-
-        }
-    );
-
-
-    fbxButton.addEventListener(
-        "click",
-        () => {
-
-            setStatus(
-                "FBX import will be enabled next"
-            );
-
-        }
-    );
-
-
-    recordingButton.addEventListener(
-        "click",
-        () => {
-
-            setStatus(
-                "Recording will be enabled next"
-            );
-
-        }
-    );
-
-
-    settingsButton.addEventListener(
-        "click",
-        () => {
-
-            setStatus(
-                "Settings import will be enabled next"
-            );
-
-        }
-    );
-
-
-    exportSettingsButton.addEventListener(
-        "click",
-        () => {
-
-            setStatus(
-                "Settings export will be enabled next"
-            );
-
-        }
-    );
-
-
-    window.addEventListener(
-        "resize",
-        resizeAR
-    );
-
-
-    window.addEventListener(
-        "orientationchange",
-        () => {
-
-            setTimeout(
-                resizeAR,
-                200
-            );
-
-        }
-    );
-
-}
-
-
-function initialize() {
-
-    try {
-
-        createScene();
-
-        setupEvents();
-
-        resizeAR();
 
         setStatus(
             "Ready - press START CAMERA"
         );
 
-        console.log(
-            "Azeez AR clean P1 loaded"
-        );
 
     } catch (error) {
 
         console.error(
-            "Initialization error:",
             error
         );
 
-        showError(
-            "Initialization failed. Open browser console for details."
+        setStatus(
+            "MINDAR LOAD ERROR"
         );
 
-        setStatus(
-            "Initialization failed"
+        alert(
+            "MindAR failed to load. Check internet connection."
         );
 
     }
@@ -1327,9 +284,10 @@ function initialize() {
 }
 
 
-initialize();
+setup();
 
 </script>
 
 </body>
+
 </html>
