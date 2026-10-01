@@ -1,29 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
->
-
-<title>Azeez AR Head Filter</title>
+<title>Azeez AR MindAR Face Tracker</title>
 
 <style>
-
 * {
     box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
 }
 
 html,
 body {
-    width: 100%;
-    height: 100%;
     margin: 0;
     padding: 0;
+    width: 100%;
+    height: 100%;
     overflow: hidden;
     background: #000;
     font-family: Arial, sans-serif;
@@ -32,397 +25,216 @@ body {
 #app {
     position: fixed;
     inset: 0;
+    width: 100%;
+    height: 100%;
     overflow: hidden;
     background: #000;
 }
 
-/* Camera */
-
 #camera {
     position: absolute;
     inset: 0;
-
     width: 100%;
     height: 100%;
-
     object-fit: cover;
-
     background: #000;
-
-    transform: scaleX(-1);
+    z-index: 1;
 }
-
-/* 3D layer */
 
 #threeCanvas {
     position: absolute;
     inset: 0;
-
     width: 100%;
     height: 100%;
-
+    z-index: 2;
     pointer-events: none;
 }
 
-/* Face landmark layer */
-
-#landmarkCanvas {
+#statusBar {
     position: absolute;
-    inset: 0;
-
-    width: 100%;
-    height: 100%;
-
-    pointer-events: none;
-
-    transform: scaleX(-1);
-}
-
-/* Top status */
-
-#topBar {
-    position: absolute;
-
-    top: env(safe-area-inset-top, 8px);
+    top: 12px;
     left: 12px;
     right: 12px;
-
-    z-index: 20;
-
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-
-    padding: 9px 12px;
-
+    min-height: 42px;
+    padding: 10px 14px;
     border-radius: 14px;
-
-    background: rgba(0,0,0,0.42);
-
+    background: rgba(0, 0, 0, 0.55);
     color: #fff;
-
+    font-size: 13px;
+    z-index: 20;
     backdrop-filter: blur(10px);
-}
-
-#appName {
-    font-size: 14px;
-    font-weight: 700;
+    -webkit-backdrop-filter: blur(10px);
 }
 
 #status {
-    font-size: 11px;
-    color: #00ff66;
+    color: #66ff88;
+    font-weight: 700;
 }
 
-/* Bottom filter panel */
+#faceInfo {
+    margin-top: 3px;
+    color: #ddd;
+    font-size: 11px;
+}
 
 #bottomPanel {
     position: absolute;
-
     left: 0;
     right: 0;
     bottom: 0;
-
     z-index: 30;
-
-    padding:
-        10px
-        12px
-        calc(12px + env(safe-area-inset-bottom));
-
+    max-height: 62vh;
+    overflow-y: auto;
+    padding: 14px 14px 22px;
     border-radius: 24px 24px 0 0;
-
-    background: rgba(12,12,12,0.90);
-
+    background: rgba(12, 12, 12, 0.88);
     backdrop-filter: blur(18px);
-
-    color: #fff;
+    -webkit-backdrop-filter: blur(18px);
+    transform: translateY(0);
+    transition: transform 0.25s ease;
 }
-
-/* Drag handle */
 
 #panelHandle {
-    width: 42px;
+    width: 52px;
     height: 5px;
-
-    margin: 0 auto 10px;
-
+    margin: 0 auto 12px;
     border-radius: 10px;
-
-    background: rgba(255,255,255,0.45);
+    background: rgba(255,255,255,0.55);
+    cursor: pointer;
 }
 
-/* Filter title */
-
-#filterTitle {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-
-    margin-bottom: 8px;
-}
-
-#filterTitle strong {
-    font-size: 14px;
-}
-
-#filterState {
-    font-size: 10px;
-    color: #00ff66;
-}
-
-/* Main buttons */
-
-.buttonRow {
-    display: grid;
-
-    grid-template-columns:
-        repeat(4, 1fr);
-
-    gap: 6px;
-
-    margin-bottom: 8px;
-}
-
-.arButton {
-    min-height: 38px;
-
-    border: 0;
-    border-radius: 10px;
-
-    background: #252525;
-
+.panelTitle {
     color: #fff;
-
-    font-size: 10px;
+    font-size: 15px;
     font-weight: 700;
-
-    touch-action: manipulation;
+    margin-bottom: 12px;
 }
 
-.arButton:active {
-    transform: scale(0.96);
-}
-
-/* Active button */
-
-.arButton.active {
-    background: #00d95f;
-    color: #000;
-}
-
-/* Slider section */
-
-#controls {
+.buttonGrid {
     display: grid;
-
-    grid-template-columns:
-        1fr 1fr;
-
-    gap: 7px;
-
-    max-height: 220px;
-
-    overflow-y: auto;
-
-    padding-right: 2px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
 }
 
-/* Individual control */
+button {
+    min-height: 42px;
+    border: 0;
+    border-radius: 12px;
+    background: #242424;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+button:active {
+    transform: scale(0.97);
+}
+
+.primary {
+    background: #1fa94c;
+}
+
+.danger {
+    background: #a83232;
+}
+
+.controlGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 12px;
+    margin-top: 14px;
+}
 
 .control {
-    padding: 7px 8px;
-
+    padding: 8px 10px;
     border-radius: 12px;
-
-    background: rgba(255,255,255,0.055);
+    background: rgba(255,255,255,0.06);
 }
 
-.controlTop {
+.control label {
     display: flex;
-
     justify-content: space-between;
     align-items: center;
-
-    margin-bottom: 5px;
-}
-
-.controlName {
-    font-size: 10px;
-    font-weight: 700;
-    color: #ddd;
-}
-
-.controlValue {
-    min-width: 38px;
-
-    text-align: right;
-
-    font-size: 10px;
-
-    color: #00ff66;
-}
-
-/* Real slider */
-
-.control input[type="range"] {
-    display: block;
-
-    width: 100%;
-    height: 24px;
-
-    margin: 0;
-
-    appearance: none;
-    -webkit-appearance: none;
-
-    background: transparent;
-
-    touch-action: pan-x;
-}
-
-/* Track */
-
-.control input[type="range"]::-webkit-slider-runnable-track {
-    height: 5px;
-
-    border-radius: 10px;
-
-    background: #555;
-}
-
-/* Slider thumb */
-
-.control input[type="range"]::-webkit-slider-thumb {
-    appearance: none;
-    -webkit-appearance: none;
-
-    width: 20px;
-    height: 20px;
-
-    margin-top: -7.5px;
-
-    border-radius: 50%;
-
-    border: 2px solid #fff;
-
-    background: #00ff66;
-
-    box-shadow:
-        0 0 0 3px rgba(0,255,102,0.18);
-
-}
-
-/* Firefox */
-
-.control input[type="range"]::-moz-range-track {
-    height: 5px;
-
-    border-radius: 10px;
-
-    background: #555;
-}
-
-.control input[type="range"]::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
-
-    border-radius: 50%;
-
-    border: 2px solid #fff;
-
-    background: #00ff66;
-}
-
-/* Import */
-
-#importFile {
-    display: none;
-}
-
-/* Bottom action row */
-
-#actionRow {
-    display: grid;
-
-    grid-template-columns:
-        1fr 1fr 1fr;
-
-    gap: 6px;
-
-    margin-top: 8px;
-}
-
-.actionButton {
-    min-height: 38px;
-
-    border: 0;
-    border-radius: 10px;
-
-    background: #303030;
-
+    margin-bottom: 7px;
     color: #fff;
-
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
 }
 
-/* Mobile */
-
-@media (max-width: 500px) {
-
-    #controls {
-        grid-template-columns: 1fr 1fr;
-        max-height: 205px;
-    }
-
-    .buttonRow {
-        grid-template-columns:
-            repeat(4, 1fr);
-    }
-
+.control label span {
+    color: #66ff88;
 }
 
-/* Very small screens */
-
-@media (max-height: 650px) {
-
-    #controls {
-        max-height: 150px;
-    }
-
-    #bottomPanel {
-        padding-top: 7px;
-    }
-
-    .control {
-        padding: 5px 7px;
-    }
-
+input[type="range"] {
+    width: 100%;
+    height: 20px;
+    margin: 0;
+    padding: 0;
+    accent-color: #35e66a;
 }
 
-/* Landscape */
+input[type="range"]::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 10px;
+    background: #555;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    margin-top: -8px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    background: #35e66a;
+}
+
+input[type="range"]::-moz-range-track {
+    height: 4px;
+    border-radius: 10px;
+    background: #555;
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    background: #35e66a;
+}
+
+.sectionTitle {
+    margin-top: 15px;
+    margin-bottom: 7px;
+    color: #aaa;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.hidden {
+    display: none !important;
+}
 
 @media (orientation: landscape) {
-
     #bottomPanel {
         left: auto;
-        width: 330px;
-
-        max-height: 100vh;
-
+        width: 360px;
+        max-height: 100%;
         border-radius: 20px 0 0 20px;
-
-        overflow-y: auto;
     }
-
-    #controls {
-        grid-template-columns: 1fr;
-        max-height: none;
-    }
-
 }
 
+@media (max-width: 380px) {
+    .buttonGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    #bottomPanel {
+        max-height: 68vh;
+    }
+}
 </style>
 
 <script type="importmap">
@@ -433,7 +245,6 @@ body {
     }
 }
 </script>
-
 </head>
 
 <body>
@@ -444,357 +255,184 @@ body {
         id="camera"
         autoplay
         playsinline
-        muted
-    ></video>
+        muted>
+    </video>
 
     <canvas id="threeCanvas"></canvas>
 
-    <canvas id="landmarkCanvas"></canvas>
-
-
-    <!-- Top status -->
-
-    <div id="topBar">
-
-        <div id="appName">
-            AZEEZ AR
-        </div>
-
-        <div id="status">
-            READY
-        </div>
-
+    <div id="statusBar">
+        <div id="status">READY</div>
+        <div id="faceInfo">MindAR FaceMesh waiting</div>
     </div>
-
-
-    <!-- Bottom TikTok-style control panel -->
 
     <div id="bottomPanel">
 
         <div id="panelHandle"></div>
 
-
-        <div id="filterTitle">
-
-            <strong>
-                HEAD FILTER
-            </strong>
-
-            <span id="filterState">
-                TRACKING
-            </span>
-
+        <div class="panelTitle">
+            Azeez AR Head Tracker
         </div>
 
-
-        <!-- Main controls -->
-
-        <div class="buttonRow">
+        <div class="buttonGrid">
 
             <button
                 id="cameraButton"
-                class="arButton active"
-            >
-                CAMERA
+                class="primary">
+                START CAMERA
             </button>
 
             <button
-                id="switchButton"
-                class="arButton"
-            >
-                FLIP
+                id="switchCameraButton">
+                SWITCH CAMERA
             </button>
 
             <button
-                id="mirrorButton"
-                class="arButton active"
-            >
-                MIRROR
+                id="mirrorButton">
+                MIRROR: ON
             </button>
 
             <button
-                id="trackingButton"
-                class="arButton active"
-            >
-                TRACK
+                id="trackingButton">
+                TRACKING: ON
+            </button>
+
+            <button
+                id="importButton">
+                IMPORT GLB
+            </button>
+
+            <button
+                id="resetButton">
+                RESET
             </button>
 
         </div>
 
+        <input
+            id="glbInput"
+            class="hidden"
+            type="file"
+            accept=".glb,.gltf">
 
-        <!-- Sliders -->
+        <div class="sectionTitle">
+            HEAD / MODEL CONTROLS
+        </div>
 
-        <div id="controls">
-
+        <div class="controlGrid">
 
             <div class="control">
-
-                <div class="controlTop">
-
-                    <span class="controlName">
-                        X
-                    </span>
-
-                    <span
-                        id="xValue"
-                        class="controlValue"
-                    >
-                        0
-                    </span>
-
-                </div>
-
+                <label>
+                    X
+                    <span id="xValue">0</span>
+                </label>
                 <input
                     id="xSlider"
                     type="range"
-                    min="-250"
-                    max="250"
-                    step="1"
+                    min="-300"
+                    max="300"
                     value="0"
-                >
-
+                    step="1">
             </div>
 
-
             <div class="control">
-
-                <div class="controlTop">
-
-                    <span class="controlName">
-                        Y
-                    </span>
-
-                    <span
-                        id="yValue"
-                        class="controlValue"
-                    >
-                        0
-                    </span>
-
-                </div>
-
+                <label>
+                    Y
+                    <span id="yValue">0</span>
+                </label>
                 <input
                     id="ySlider"
                     type="range"
-                    min="-250"
-                    max="250"
-                    step="1"
+                    min="-300"
+                    max="300"
                     value="0"
-                >
-
+                    step="1">
             </div>
 
-
             <div class="control">
-
-                <div class="controlTop">
-
-                    <span class="controlName">
-                        DEPTH
-                    </span>
-
-                    <span
-                        id="zValue"
-                        class="controlValue"
-                    >
-                        0
-                    </span>
-
-                </div>
-
+                <label>
+                    DEPTH
+                    <span id="zValue">0</span>
+                </label>
                 <input
                     id="zSlider"
                     type="range"
-                    min="-300"
-                    max="300"
-                    step="1"
+                    min="-500"
+                    max="500"
                     value="0"
-                >
-
+                    step="1">
             </div>
 
-
             <div class="control">
-
-                <div class="controlTop">
-
-                    <span class="controlName">
-                        SCALE
-                    </span>
-
-                    <span
-                        id="scaleValue"
-                        class="controlValue"
-                    >
-                        1.00
-                    </span>
-
-                </div>
-
+                <label>
+                    SCALE
+                    <span id="scaleValue">1.00</span>
+                </label>
                 <input
                     id="scaleSlider"
                     type="range"
-                    min="0.2"
-                    max="3"
-                    step="0.01"
+                    min="0.10"
+                    max="3.00"
                     value="1"
-                >
-
+                    step="0.01">
             </div>
 
-
             <div class="control">
-
-                <div class="controlTop">
-
-                    <span class="controlName">
-                        ROT X
-                    </span>
-
-                    <span
-                        id="rotXValue"
-                        class="controlValue"
-                    >
-                        0
-                    </span>
-
-                </div>
-
+                <label>
+                    ROT X
+                    <span id="rotXValue">0</span>
+                </label>
                 <input
                     id="rotXSlider"
                     type="range"
                     min="-180"
                     max="180"
-                    step="1"
                     value="0"
-                >
-
+                    step="1">
             </div>
 
-
             <div class="control">
-
-                <div class="controlTop">
-
-                    <span class="controlName">
-                        ROT Y
-                    </span>
-
-                    <span
-                        id="rotYValue"
-                        class="controlValue"
-                    >
-                        0
-                    </span>
-
-                </div>
-
+                <label>
+                    ROT Y
+                    <span id="rotYValue">0</span>
+                </label>
                 <input
                     id="rotYSlider"
                     type="range"
                     min="-180"
                     max="180"
-                    step="1"
                     value="0"
-                >
-
+                    step="1">
             </div>
 
-
             <div class="control">
-
-                <div class="controlTop">
-
-                    <span class="controlName">
-                        ROT Z
-                    </span>
-
-                    <span
-                        id="rotZValue"
-                        class="controlValue"
-                    >
-                        0
-                    </span>
-
-                </div>
-
+                <label>
+                    ROT Z
+                    <span id="rotZValue">0</span>
+                </label>
                 <input
                     id="rotZSlider"
                     type="range"
                     min="-180"
                     max="180"
-                    step="1"
                     value="0"
-                >
-
+                    step="1">
             </div>
 
-
             <div class="control">
-
-                <div class="controlTop">
-
-                    <span class="controlName">
-                        HEAD FIT
-                    </span>
-
-                    <span
-                        id="fitValue"
-                        class="controlValue"
-                    >
-                        1.00
-                    </span>
-
-                </div>
-
+                <label>
+                    HEAD FIT
+                    <span id="fitValue">1.00</span>
+                </label>
                 <input
                     id="fitSlider"
                     type="range"
-                    min="0.5"
-                    max="2"
-                    step="0.01"
+                    min="0.50"
+                    max="2.00"
                     value="1"
-                >
-
+                    step="0.01">
             </div>
 
-
         </div>
-
-
-        <!-- Bottom actions -->
-
-        <div id="actionRow">
-
-            <button
-                id="importButton"
-                class="actionButton"
-            >
-                IMPORT GLB
-            </button>
-
-            <button
-                id="resetButton"
-                class="actionButton"
-            >
-                RESET
-            </button>
-
-            <button
-                id="hidePanelButton"
-                class="actionButton"
-            >
-                HIDE
-            </button>
-
-        </div>
-
-
-        <input
-            id="importFile"
-            type="file"
-            accept=".glb"
-        >
 
     </div>
 
@@ -804,9 +442,11 @@ body {
 
 import * as THREE from "three";
 
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+
 import {
-    GLTFLoader
-} from "three/addons/loaders/GLTFLoader.js";
+    MindARThree
+} from "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-three.prod.js";
 
 
 const video =
@@ -815,25 +455,17 @@ const video =
 const threeCanvas =
     document.getElementById("threeCanvas");
 
-const landmarkCanvas =
-    document.getElementById("landmarkCanvas");
-
-const landmarkCtx =
-    landmarkCanvas.getContext("2d");
-
-
-const status =
+const statusElement =
     document.getElementById("status");
 
-const filterState =
-    document.getElementById("filterState");
-
+const faceInfoElement =
+    document.getElementById("faceInfo");
 
 const cameraButton =
     document.getElementById("cameraButton");
 
-const switchButton =
-    document.getElementById("switchButton");
+const switchCameraButton =
+    document.getElementById("switchCameraButton");
 
 const mirrorButton =
     document.getElementById("mirrorButton");
@@ -847,11 +479,11 @@ const importButton =
 const resetButton =
     document.getElementById("resetButton");
 
-const hidePanelButton =
-    document.getElementById("hidePanelButton");
+const glbInput =
+    document.getElementById("glbInput");
 
-const importFile =
-    document.getElementById("importFile");
+const panelHandle =
+    document.getElementById("panelHandle");
 
 
 const xSlider =
@@ -904,42 +536,31 @@ const fitValue =
     document.getElementById("fitValue");
 
 
-let renderer = null;
+let mindar = null;
 
 let scene = null;
 
 let camera3D = null;
 
-let headAnchor = null;
+let renderer = null;
+
+let faceAnchor = null;
+
+let faceMesh = null;
 
 let modelRoot = null;
 
-let dummyHead = null;
+let modelScene = null;
 
-let occlusionHead = null;
+let glbLoader = null;
 
-let faceLandmarker = null;
+let mindarStarted = false;
 
-let stream = null;
+let trackingEnabled = true;
 
-let currentFacing =
-    "user";
+let mirrorEnabled = true;
 
-let trackingEnabled =
-    true;
-
-let mirrorEnabled =
-    true;
-
-let lastVideoTime =
-    -1;
-
-let faceDetected =
-    false;
-
-
-const loader =
-    new GLTFLoader();
+let panelHidden = false;
 
 
 const settings = {
@@ -963,1131 +584,972 @@ const settings = {
 };
 
 
-function setStatus(text) {
+function setStatus(message) {
 
-    status.textContent =
-        text;
+    statusElement.textContent =
+        message;
+
+}
+
+
+function setFaceInfo(message) {
+
+    faceInfoElement.textContent =
+        message;
+
+}
+
+
+function createRenderer() {
+
+    renderer =
+        new THREE.WebGLRenderer({
+            canvas: threeCanvas,
+            alpha: true,
+            antialias: true,
+            powerPreference: "high-performance"
+        });
+
+    renderer.setPixelRatio(
+        Math.min(
+            window.devicePixelRatio || 1,
+            2
+        )
+    );
+
+    renderer.setSize(
+        window.innerWidth,
+        window.innerHeight,
+        false
+    );
+
+    renderer.outputColorSpace =
+        THREE.SRGBColorSpace;
 
 }
 
 
 function createScene() {
 
-    renderer =
-        new THREE.WebGLRenderer({
-
-            canvas:
-                threeCanvas,
-
-            alpha:
-                true,
-
-            antialias:
-                true,
-
-            preserveDrawingBuffer:
-                true
-
-        });
-
-
-    renderer.setPixelRatio(
-        Math.min(
-            window.devicePixelRatio,
-            2
-        )
-    );
-
-
-    renderer.setSize(
-        window.innerWidth,
-        window.innerHeight
-    );
-
-
-    renderer.outputColorSpace =
-        THREE.SRGBColorSpace;
-
-
     scene =
         new THREE.Scene();
 
-
     camera3D =
-        new THREE.OrthographicCamera(
-            0,
-            window.innerWidth,
-            0,
+        new THREE.PerspectiveCamera(
+            45,
+            window.innerWidth /
             window.innerHeight,
-            -5000,
-            5000
+            0.01,
+            1000
         );
 
+    camera3D.position.set(
+        0,
+        0,
+        2
+    );
 
-    camera3D.position.z =
-        1000;
-
+    scene.add(camera3D);
 
     const ambient =
         new THREE.AmbientLight(
             0xffffff,
-            2.5
+            1.5
         );
 
+    scene.add(ambient);
 
-    scene.add(
-        ambient
-    );
-
-
-    const light =
+    const directional =
         new THREE.DirectionalLight(
             0xffffff,
-            3
+            2
         );
 
-
-    light.position.set(
+    directional.position.set(
         0,
-        300,
-        500
+        1,
+        2
     );
 
+    scene.add(directional);
 
-    scene.add(
-        light
-    );
-
-
-    headAnchor =
-        new THREE.Group();
-
-
-    scene.add(
-        headAnchor
-    );
-
-
-    createDummyHead();
-
-    createOcclusionHead();
-
-    resizeScene();
+    glbLoader =
+        new GLTFLoader();
 
 }
 
 
-function createDummyHead() {
+function createMindAR() {
 
-    if (dummyHead) {
-
-        headAnchor.remove(
-            dummyHead
-        );
-
-    }
-
-
-    dummyHead =
-        new THREE.Group();
-
-
-    const material =
-        new THREE.MeshStandardMaterial({
-
-            color:
-                0x4da6ff,
-
-            transparent:
-                true,
-
-            opacity:
-                0.22,
-
-            depthWrite:
-                false
-
+    mindar =
+        new MindARThree({
+            container: document.getElementById("app"),
+            uiLoading: "no",
+            uiScanning: "no",
+            uiError: "no"
         });
 
+    scene =
+        mindar.scene;
 
-    const head =
-        new THREE.Mesh(
+    camera3D =
+        mindar.camera;
 
-            new THREE.SphereGeometry(
-                105,
-                48,
-                48
-            ),
+    renderer =
+        mindar.renderer;
 
-            material
+    renderer.setPixelRatio(
+        Math.min(
+            window.devicePixelRatio || 1,
+            2
+        )
+    );
 
+    renderer.outputColorSpace =
+        THREE.SRGBColorSpace;
+
+    faceAnchor =
+        mindar.addAnchor(1);
+
+}
+
+
+function createLights() {
+
+    const ambient =
+        new THREE.HemisphereLight(
+            0xffffff,
+            0x444444,
+            2
         );
 
+    scene.add(ambient);
 
-    head.scale.set(
+    const keyLight =
+        new THREE.DirectionalLight(
+            0xffffff,
+            2
+        );
+
+    keyLight.position.set(
+        0,
         1,
-        1.18,
-        0.9
+        2
     );
 
-
-    dummyHead.add(
-        head
-    );
-
-
-    headAnchor.add(
-        dummyHead
-    );
-
-
-    dummyHead.visible =
-        modelRoot === null;
+    scene.add(keyLight);
 
 }
 
 
-function createOcclusionHead() {
+createMindAR();
 
-    if (occlusionHead) {
+createLights();
 
-        headAnchor.remove(
-            occlusionHead
-        );
+setStatus("MINDAR READY");
 
-    }
+setFaceInfo(
+    "FaceMesh anchor ready"
+);const faceMeshMaterial =
+    new THREE.MeshBasicMaterial({
+        color: 0x00ff66,
+        transparent: true,
+        opacity: 0.18,
+        side: THREE.DoubleSide,
+        depthWrite: false
+    });
 
 
-    const material =
-        new THREE.MeshBasicMaterial({
+function createFaceMesh() {
 
-            color:
-                0xffffff,
-
-            colorWrite:
-                false,
-
-            depthWrite:
-                true,
-
-            depthTest:
-                true
-
-        });
-
-
-    occlusionHead =
-        new THREE.Mesh(
-
-            new THREE.SphereGeometry(
-                105,
-                48,
-                48
-            ),
-
-            material
-
-        );
-
-
-    occlusionHead.scale.set(
-        1,
-        1.18,
-        0.9
-    );
-
-
-    occlusionHead.renderOrder =
-        1;
-
-
-    headAnchor.add(
-        occlusionHead
-    );
-
-}function resizeScene() {
-
-    const width =
-        window.innerWidth;
-
-    const height =
-        window.innerHeight;
-
-
-    renderer.setSize(
-        width,
-        height
-    );
-
-
-    threeCanvas.width =
-        width;
-
-    threeCanvas.height =
-        height;
-
-
-    landmarkCanvas.width =
-        width;
-
-    landmarkCanvas.height =
-        height;
-
-
-    camera3D.left =
-        0;
-
-    camera3D.right =
-        width;
-
-    camera3D.top =
-        0;
-
-    camera3D.bottom =
-        height;
-
-
-    camera3D.near =
-        -5000;
-
-    camera3D.far =
-        5000;
-
-
-    camera3D.updateProjectionMatrix();
-
-}
-
-
-/* Camera */
-
-async function startCamera() {
-
-    try {
-
-        if (
-            !navigator.mediaDevices ||
-            !navigator.mediaDevices.getUserMedia
-        ) {
-
-            setStatus(
-                "CAMERA NOT SUPPORTED"
-            );
-
-            return;
-
-        }
-
-
-        if (stream) {
-
-            stream
-                .getTracks()
-                .forEach(
-                    track =>
-                        track.stop()
-                );
-
-        }
-
-
-        setStatus(
-            "STARTING CAMERA..."
-        );
-
-
-        stream =
-            await navigator
-                .mediaDevices
-                .getUserMedia({
-
-                    video: {
-
-                        facingMode: {
-                            ideal:
-                                currentFacing
-                        },
-
-                        width: {
-                            ideal:
-                                1280
-                        },
-
-                        height: {
-                            ideal:
-                                720
-                        }
-
-                    },
-
-                    audio:
-                        false
-
-                });
-
-
-        video.srcObject =
-            stream;
-
-
-        await video.play();
-
-
-        resizeScene();
-
-
-        cameraButton.classList.add(
-            "active"
-        );
-
-
-        setStatus(
-            "CAMERA ON"
-        );
-
-
-        if (!faceLandmarker) {
-
-            await setupFaceTracking();
-
-        }
-
-    } catch (error) {
-
-        console.error(error);
-
-
-        setStatus(
-            "CAMERA ERROR"
-        );
-
-    }
-
-}
-
-
-/* Camera switch */
-
-async function switchCamera() {
-
-    currentFacing =
-        currentFacing === "user"
-            ? "environment"
-            : "user";
-
-
-    await startCamera();
-
-}
-
-
-/* Mirror */
-
-function updateMirror() {
-
-    const transform =
-        mirrorEnabled
-            ? "scaleX(-1)"
-            : "scaleX(1)";
-
-
-    video.style.transform =
-        transform;
-
-
-    landmarkCanvas.style.transform =
-        transform;
-
-
-    mirrorButton.textContent =
-        mirrorEnabled
-            ? "MIRROR"
-            : "NORMAL";
-
-
-    mirrorButton.classList.toggle(
-        "active",
-        mirrorEnabled
-    );
-
-}
-
-
-/* Face tracking setup */
-
-async function setupFaceTracking() {
-
-    try {
-
-        setStatus(
-            "LOADING FACE TRACKER..."
-        );
-
-
-        const vision =
-            await import(
-                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs"
-            );
-
-
-        const {
-            FaceLandmarker,
-            FilesetResolver
-        } = vision;
-
-
-        const fileset =
-            await FilesetResolver
-                .forVisionTasks(
-                    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
-                );
-
-
-        faceLandmarker =
-            await FaceLandmarker
-                .createFromOptions(
-
-                    fileset,
-
-                    {
-
-                        baseOptions: {
-
-                            modelAssetPath:
-                                "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-
-                            delegate:
-                                "GPU"
-
-                        },
-
-
-                        runningMode:
-                            "VIDEO",
-
-
-                        numFaces:
-                            1,
-
-
-                        minFaceDetectionConfidence:
-                            0.5,
-
-
-                        minFacePresenceConfidence:
-                            0.5,
-
-
-                        minTrackingConfidence:
-                            0.5,
-
-
-                        outputFaceBlendshapes:
-                            false,
-
-
-                        outputFacialTransformationMatrixes:
-                            true
-
-                    }
-
-                );
-
-
-        setStatus(
-            "FACE TRACKER READY"
-        );
-
-
-        requestAnimationFrame(
-            trackFace
-        );
-
-
-    } catch (error) {
-
-        console.error(error);
-
-
-        setStatus(
-            "TRACKER ERROR"
-        );
-
-    }
-
-}
-
-
-/* Face tracking */
-
-function trackFace() {
-
-    requestAnimationFrame(
-        trackFace
-    );
-
-
-    if (
-        !trackingEnabled ||
-        !faceLandmarker ||
-        video.readyState < 2
-    ) {
-
+    if (!faceAnchor) {
         return;
-
     }
 
+    faceMesh =
+        mindar.createFaceMesh(
+            faceAnchor
+        );
 
-    if (
-        video.currentTime ===
-        lastVideoTime
-    ) {
-
+    if (!faceMesh) {
+        setStatus("FACE MESH ERROR");
         return;
-
     }
 
+    faceMesh.material =
+        faceMeshMaterial;
 
-    lastVideoTime =
-        video.currentTime;
+    faceMesh.renderOrder = 1;
 
+    faceAnchor.group.add(
+        faceMesh
+    );
 
-    try {
+    setStatus("FACE MESH READY");
 
-        const result =
-            faceLandmarker
-                .detectForVideo(
-                    video,
-                    performance.now()
-                );
-
-
-        if (
-            result.faceLandmarks &&
-            result.faceLandmarks.length > 0
-        ) {
-
-            const landmarks =
-                result.faceLandmarks[0];
-
-
-            updateHead(
-                landmarks,
-                result
-            );
-
-
-            drawLandmarks(
-                landmarks
-            );
-
-
-            faceDetected =
-                true;
-
-
-            filterState.textContent =
-                "FACE LOCKED";
-
-
-            setStatus(
-                "FACE TRACKING"
-            );
-
-
-        } else {
-
-            faceDetected =
-                false;
-
-
-            clearLandmarks();
-
-
-            filterState.textContent =
-                "SEARCHING";
-
-
-            setStatus(
-                "LOOK AT CAMERA"
-            );
-
-        }
-
-    } catch (error) {
-
-        console.error(error);
-
-    }
+    setFaceInfo(
+        "Face mesh attached"
+    );
 
 }
 
 
-/* Head movement */
-
-function updateHead(
-    landmarks,
-    result
+function updateExpressionData(
+    blendshapes
 ) {
 
-    if (
-        !landmarks ||
-        landmarks.length < 264
-    ) {
-
+    if (!blendshapes) {
         return;
+    }
 
+    let jawOpen = 0;
+
+    let eyeBlinkLeft = 0;
+
+    let eyeBlinkRight = 0;
+
+    let mouthSmileLeft = 0;
+
+    let mouthSmileRight = 0;
+
+
+    if (
+        blendshapes.jawOpen !== undefined
+    ) {
+        jawOpen =
+            blendshapes.jawOpen;
+    }
+
+    if (
+        blendshapes.eyeBlinkLeft !== undefined
+    ) {
+        eyeBlinkLeft =
+            blendshapes.eyeBlinkLeft;
+    }
+
+    if (
+        blendshapes.eyeBlinkRight !== undefined
+    ) {
+        eyeBlinkRight =
+            blendshapes.eyeBlinkRight;
+    }
+
+    if (
+        blendshapes.mouthSmileLeft !== undefined
+    ) {
+        mouthSmileLeft =
+            blendshapes.mouthSmileLeft;
+    }
+
+    if (
+        blendshapes.mouthSmileRight !== undefined
+    ) {
+        mouthSmileRight =
+            blendshapes.mouthSmileRight;
     }
 
 
-    const leftEye =
-        landmarks[33];
-
-    const rightEye =
-        landmarks[263];
-
-    const forehead =
-        landmarks[10];
-
-    const chin =
-        landmarks[152];
+    setFaceInfo(
+        "Face tracked | " +
+        "Jaw " +
+        jawOpen.toFixed(2) +
+        " | Eye L " +
+        eyeBlinkLeft.toFixed(2) +
+        " | Eye R " +
+        eyeBlinkRight.toFixed(2)
+    );
 
 
-    const centerX =
-        (
-            leftEye.x +
-            rightEye.x
-        ) *
-        0.5;
+    if (modelScene) {
 
-
-    const centerY =
-        (
-            forehead.y +
-            chin.y
-        ) *
-        0.5;
-
-
-    const screenX =
-        centerX *
-        window.innerWidth;
-
-
-    const screenY =
-        centerY *
-        window.innerHeight;
-
-
-    headAnchor.position.x =
-        screenX;
-
-
-    headAnchor.position.y =
-        screenY;
-
-
-    headAnchor.position.z =
-        0;
-
-
-    const faceHeight =
-        Math.sqrt(
-
-            Math.pow(
-                forehead.x -
-                chin.x,
-                2
-            )
-
-            +
-
-            Math.pow(
-                forehead.y -
-                chin.y,
-                2
-            )
-
-        ) *
-        window.innerHeight;
-
-
-    const safeHeight =
-        Math.max(
-            80,
-            Math.min(
-                faceHeight,
-                900
-            )
+        applyBlendshapes(
+            modelScene,
+            blendshapes
         );
 
+    }
 
-    const automaticScale =
-        (
-            safeHeight /
-            220
-        ) *
+}
+
+
+function applyBlendshapes(
+    root,
+    blendshapes
+) {
+
+    if (!root) {
+        return;
+    }
+
+    root.traverse(
+        function(object) {
+
+            if (
+                !object.isMesh ||
+                !object.morphTargetDictionary ||
+                !object.morphTargetInfluences
+            ) {
+                return;
+            }
+
+
+            const dictionary =
+                object.morphTargetDictionary;
+
+            const influences =
+                object.morphTargetInfluences;
+
+
+            for (
+                const name in dictionary
+            ) {
+
+                const index =
+                    dictionary[name];
+
+                if (
+                    blendshapes[name] !==
+                    undefined
+                ) {
+
+                    influences[index] =
+                        THREE.MathUtils.clamp(
+                            blendshapes[name],
+                            0,
+                            1
+                        );
+
+                    continue;
+
+                }
+
+
+                const normalizedName =
+                    name
+                        .toLowerCase()
+                        .replace(
+                            /[^a-z0-9]/g,
+                            ""
+                        );
+
+
+                let value = null;
+
+
+                if (
+                    normalizedName.includes(
+                        "jawopen"
+                    )
+                ) {
+
+                    value =
+                        blendshapes.jawOpen;
+
+                } else if (
+                    normalizedName.includes(
+                        "eyeblinkleft"
+                    )
+                ) {
+
+                    value =
+                        blendshapes.eyeBlinkLeft;
+
+                } else if (
+                    normalizedName.includes(
+                        "eyeblinkright"
+                    )
+                ) {
+
+                    value =
+                        blendshapes.eyeBlinkRight;
+
+                } else if (
+                    normalizedName.includes(
+                        "mouthsmileleft"
+                    )
+                ) {
+
+                    value =
+                        blendshapes.mouthSmileLeft;
+
+                } else if (
+                    normalizedName.includes(
+                        "mouthsmileright"
+                    )
+                ) {
+
+                    value =
+                        blendshapes.mouthSmileRight;
+
+                }
+
+
+                if (
+                    value !== null
+                ) {
+
+                    influences[index] =
+                        THREE.MathUtils.clamp(
+                            value,
+                            0,
+                            1
+                        );
+
+                }
+
+            }
+
+        }
+    );
+
+}
+
+
+function setupMindAREvents() {
+
+    if (!mindar) {
+        return;
+    }
+
+
+    faceAnchor.onTargetFound =
+        function() {
+
+            setStatus(
+                "FACE DETECTED"
+            );
+
+            setFaceInfo(
+                "Head tracking active"
+            );
+
+        };
+
+
+    faceAnchor.onTargetLost =
+        function() {
+
+            setStatus(
+                "FACE LOST"
+            );
+
+            setFaceInfo(
+                "Move face into camera view"
+            );
+
+        };
+
+}
+
+
+function applyModelTransform() {
+
+    if (!modelRoot) {
+        return;
+    }
+
+
+    modelRoot.position.set(
+        settings.x,
+        settings.y,
+        settings.z
+    );
+
+
+    modelRoot.rotation.set(
+        THREE.MathUtils.degToRad(
+            settings.rotX
+        ),
+        THREE.MathUtils.degToRad(
+            settings.rotY
+        ),
+        THREE.MathUtils.degToRad(
+            settings.rotZ
+        )
+    );
+
+
+    const finalScale =
+        settings.scale *
         settings.fit;
 
 
-    headAnchor.scale.set(
-        automaticScale,
-        automaticScale,
-        automaticScale
+    modelRoot.scale.setScalar(
+        finalScale
     );
-
-
-    /* Head rotation */
-
-    if (
-        result
-            .facialTransformationMatrixes &&
-        result
-            .facialTransformationMatrixes
-            .length > 0
-    ) {
-
-        const matrixData =
-            result
-                .facialTransformationMatrixes[0]
-                .data;
-
-
-        if (
-            matrixData &&
-            matrixData.length === 16
-        ) {
-
-            const matrix =
-                new THREE.Matrix4();
-
-
-            matrix.fromArray(
-                matrixData
-            );
-
-
-            const position =
-                new THREE.Vector3();
-
-
-            const quaternion =
-                new THREE.Quaternion();
-
-
-            const scale =
-                new THREE.Vector3();
-
-
-            matrix.decompose(
-                position,
-                quaternion,
-                scale
-            );
-
-
-            /*
-             * Keep the MediaPipe
-             * head rotation.
-             */
-
-            headAnchor.quaternion.copy(
-                quaternion
-            );
-
-        }
-
-    }
-
-
-    updateModelTransform();
 
 }
 
 
-/* Green face dots */
+function updateSliderValues() {
 
-function drawLandmarks(
-    landmarks
+    xValue.textContent =
+        settings.x;
+
+    yValue.textContent =
+        settings.y;
+
+    zValue.textContent =
+        settings.z;
+
+    scaleValue.textContent =
+        settings.scale.toFixed(2);
+
+    rotXValue.textContent =
+        settings.rotX;
+
+    rotYValue.textContent =
+        settings.rotY;
+
+    rotZValue.textContent =
+        settings.rotZ;
+
+    fitValue.textContent =
+        settings.fit.toFixed(2);
+
+}
+
+
+function connectSlider(
+    slider,
+    valueName,
+    formatter
 ) {
 
-    landmarkCtx.clearRect(
-        0,
-        0,
-        landmarkCanvas.width,
-        landmarkCanvas.height
+    slider.addEventListener(
+        "input",
+        function() {
+
+            settings[valueName] =
+                Number(
+                    slider.value
+                );
+
+
+            if (
+                formatter
+            ) {
+
+                formatter();
+
+            }
+
+
+            updateSliderValues();
+
+            applyModelTransform();
+
+        }
     );
 
-
-    const points = [
-
-        10,
-        151,
-        9,
-        8,
-
-        70,
-        63,
-        105,
-        107,
-
-        33,
-        133,
-        159,
-        145,
-
-        263,
-        362,
-        386,
-        374,
-
-        1,
-        2,
-        4,
-
-        61,
-        291,
-
-        13,
-        14,
-
-        199,
-        152
-
-    ];
+}
 
 
-    landmarkCtx.fillStyle =
-        "#00ff55";
+connectSlider(
+    xSlider,
+    "x"
+);
+
+connectSlider(
+    ySlider,
+    "y"
+);
+
+connectSlider(
+    zSlider,
+    "z"
+);
+
+connectSlider(
+    scaleSlider,
+    "scale"
+);
+
+connectSlider(
+    rotXSlider,
+    "rotX"
+);
+
+connectSlider(
+    rotYSlider,
+    "rotY"
+);
+
+connectSlider(
+    rotZSlider,
+    "rotZ"
+);
+
+connectSlider(
+    fitSlider,
+    "fit"
+);
 
 
-    for (
-        const index of points
-    ) {
+function resetSettings() {
 
-        const point =
-            landmarks[index];
+    settings.x = 0;
 
+    settings.y = 0;
 
-        if (!point) {
-            continue;
-        }
+    settings.z = 0;
 
+    settings.scale = 1;
 
-        const x =
-            point.x *
-            landmarkCanvas.width;
+    settings.rotX = 0;
 
+    settings.rotY = 0;
 
-        const y =
-            point.y *
-            landmarkCanvas.height;
+    settings.rotZ = 0;
+
+    settings.fit = 1;
 
 
-        landmarkCtx.beginPath();
+    xSlider.value =
+        settings.x;
+
+    ySlider.value =
+        settings.y;
+
+    zSlider.value =
+        settings.z;
+
+    scaleSlider.value =
+        settings.scale;
+
+    rotXSlider.value =
+        settings.rotX;
+
+    rotYSlider.value =
+        settings.rotY;
+
+    rotZSlider.value =
+        settings.rotZ;
+
+    fitSlider.value =
+        settings.fit;
 
 
-        landmarkCtx.arc(
-            x,
-            y,
-            5,
-            0,
-            Math.PI * 2
-        );
+    updateSliderValues();
+
+    applyModelTransform();
+
+}
 
 
-        landmarkCtx.fill();
+function updateMirror() {
+
+    if (mirrorEnabled) {
+
+        video.style.transform =
+            "scaleX(-1)";
+
+        threeCanvas.style.transform =
+            "scaleX(-1)";
+
+        mirrorButton.textContent =
+            "MIRROR: ON";
+
+    } else {
+
+        video.style.transform =
+            "scaleX(1)";
+
+        threeCanvas.style.transform =
+            "scaleX(1)";
+
+        mirrorButton.textContent =
+            "MIRROR: OFF";
 
     }
 
 }
 
 
-/* Clear dots */
+function setTrackingEnabled(
+    enabled
+) {
 
-function clearLandmarks() {
+    trackingEnabled =
+        enabled;
 
-    landmarkCtx.clearRect(
-        0,
-        0,
-        landmarkCanvas.width,
-        landmarkCanvas.height
+    trackingButton.textContent =
+        trackingEnabled
+            ? "TRACKING: ON"
+            : "TRACKING: OFF";
+
+}
+
+
+function togglePanel() {
+
+    panelHidden =
+        !panelHidden;
+
+
+    if (panelHidden) {
+
+        document
+            .getElementById(
+                "bottomPanel"
+            )
+            .style.transform =
+            "translateY(calc(100% - 48px))";
+
+    } else {
+
+        document
+            .getElementById(
+                "bottomPanel"
+            )
+            .style.transform =
+            "translateY(0)";
+
+    }
+
+}
+
+
+function startMindAR() {
+
+    if (mindarStarted) {
+        return;
+    }
+
+
+    setStatus(
+        "STARTING CAMERA..."
+    );
+
+
+    createFaceMesh();
+
+    setupMindAREvents();
+
+
+    mindar.start()
+        .then(
+            function() {
+
+                mindarStarted =
+                    true;
+
+                setStatus(
+                    "CAMERA + MINDAR ON"
+                );
+
+                setFaceInfo(
+                    "Looking for face..."
+                );
+
+                cameraButton.textContent =
+                    "CAMERA ON";
+
+
+                renderLoop();
+
+            }
+        )
+        .catch(
+            function(error) {
+
+                console.error(
+                    error
+                );
+
+                setStatus(
+                    "CAMERA ERROR"
+                );
+
+                setFaceInfo(
+                    error.message ||
+                    "Unable to start MindAR"
+                );
+
+            }
+        );
+
+}
+
+
+function renderLoop() {
+
+    if (!mindarStarted) {
+        return;
+    }
+
+
+    requestAnimationFrame(
+        renderLoop
+    );
+
+
+    if (
+        !trackingEnabled
+    ) {
+
+        renderer.render(
+            scene,
+            camera3D
+        );
+
+        return;
+
+    }
+
+
+    renderer.render(
+        scene,
+        camera3D
     );
 
 }
 
 
-/* Resize */
-
-window.addEventListener(
-    "resize",
+cameraButton.addEventListener(
+    "click",
     function() {
 
-        resizeScene();
+        startMindAR();
 
     }
 );
 
 
-/* Initial setup */
+mirrorButton.addEventListener(
+    "click",
+    function() {
 
-createScene();
+        mirrorEnabled =
+            !mirrorEnabled;
+
+        updateMirror();
+
+    }
+);
+
+
+trackingButton.addEventListener(
+    "click",
+    function() {
+
+        setTrackingEnabled(
+            !trackingEnabled
+        );
+
+    }
+);
+
+
+resetButton.addEventListener(
+    "click",
+    function() {
+
+        resetSettings();
+
+    }
+);
+
+
+panelHandle.addEventListener(
+    "click",
+    function() {
+
+        togglePanel();
+
+    }
+);
+
+
+updateSliderValues();
 
 updateMirror();
 
 setStatus(
     "READY"
+);
+
+setFaceInfo(
+    "Press START CAMERA"
 );function prepareModel(root) {
 
-    root.updateMatrixWorld(true);
-
-
-    const box =
-        new THREE.Box3();
-
-
-    box.setFromObject(
-        root
-    );
-
-
-    if (box.isEmpty()) {
-
-        throw new Error(
-            "MODEL HAS NO MESH"
-        );
-
+    if (!root) {
+        return;
     }
 
+    const box =
+        new THREE.Box3().setFromObject(
+            root
+        );
 
     const center =
         new THREE.Vector3();
 
-
     const size =
         new THREE.Vector3();
 
+    box.getCenter(center);
 
-    box.getCenter(
-        center
-    );
+    box.getSize(size);
 
+    root.position.sub(center);
 
-    box.getSize(
-        size
-    );
-
-
-    const maxSize =
+    const maxDimension =
         Math.max(
             size.x,
             size.y,
             size.z
         );
 
-
     if (
-        !isFinite(maxSize) ||
-        maxSize <= 0
+        maxDimension > 0
     ) {
 
-        throw new Error(
-            "INVALID MODEL SIZE"
+        const normalization =
+            1 / maxDimension;
+
+        root.scale.setScalar(
+            normalization
         );
 
     }
 
 
-    /*
-     * Move model center
-     * to local origin.
-     */
-
-    root.position.x -=
-        center.x;
-
-    root.position.y -=
-        center.y;
-
-    root.position.z -=
-        center.z;
-
-
-    /*
-     * Normalize model size.
-     */
-
-    const targetSize =
-        220;
-
-
-    const normalize =
-        targetSize /
-        maxSize;
-
-
-    root.scale.multiplyScalar(
-        normalize
-    );
-
-
     root.traverse(
         function(object) {
 
-            if (!object.isMesh) {
-                return;
-            }
+            if (
+                object.isMesh
+            ) {
 
+                object.frustumCulled =
+                    false;
 
-            object.frustumCulled =
-                false;
+                object.castShadow =
+                    false;
 
+                object.receiveShadow =
+                    false;
 
-            object.renderOrder =
-                2;
+                if (
+                    object.material
+                ) {
 
+                    object.material
+                        .side =
+                        THREE.DoubleSide;
 
-            if (object.material) {
-
-                const materials =
-                    Array.isArray(
-                        object.material
-                    )
-                        ? object.material
-                        : [object.material];
-
-
-                materials.forEach(
-                    function(material) {
-
-                        material.depthTest =
-                            true;
-
-                        material.depthWrite =
-                            true;
-
-                        material.needsUpdate =
-                            true;
-
-                    }
-                );
+                }
 
             }
 
         }
     );
 
-
-    return root;
-
 }
 
 
-/* GLB import */
-
-function importGLB(
-    file
-) {
+function importGLB(file) {
 
     if (!file) {
         return;
@@ -2095,7 +1557,7 @@ function importGLB(
 
 
     setStatus(
-        "LOADING MODEL..."
+        "LOADING 3D MODEL..."
     );
 
 
@@ -2106,119 +1568,83 @@ function importGLB(
     reader.onload =
         function(event) {
 
-            const buffer =
+            const arrayBuffer =
                 event.target.result;
 
 
-            loader.parse(
-
-                buffer,
-
+            glbLoader.parse(
+                arrayBuffer,
                 "",
-
                 function(gltf) {
 
-                    try {
+                    if (
+                        modelRoot
+                    ) {
 
-                        /*
-                         * Remove old model.
-                         */
+                        if (
+                            modelRoot.parent
+                        ) {
 
-                        if (modelRoot) {
-
-                            headAnchor.remove(
-                                modelRoot
-                            );
-
-                            modelRoot =
-                                null;
+                            modelRoot.parent
+                                .remove(
+                                    modelRoot
+                                );
 
                         }
-
-
-                        /*
-                         * Prepare new model.
-                         */
-
-                        modelRoot =
-                            prepareModel(
-                                gltf.scene
-                            );
-
-
-                        /*
-                         * Add to head.
-                         */
-
-                        headAnchor.add(
-                            modelRoot
-                        );
-
-
-                        /*
-                         * Apply controls.
-                         */
-
-                        updateModelTransform();
-
-
-                        /*
-                         * Hide dummy.
-                         */
-
-                        if (dummyHead) {
-
-                            dummyHead.visible =
-                                false;
-
-                        }
-
-
-                        setStatus(
-                            "GLB LOADED"
-                        );
-
-
-                    } catch (error) {
-
-                        console.error(
-                            error
-                        );
-
-
-                        modelRoot =
-                            null;
-
-
-                        if (dummyHead) {
-
-                            dummyHead.visible =
-                                true;
-
-                        }
-
-
-                        setStatus(
-                            "MODEL ERROR"
-                        );
 
                     }
 
-                },
 
+                    modelScene =
+                        gltf.scene;
+
+
+                    modelRoot =
+                        new THREE.Group();
+
+
+                    prepareModel(
+                        modelScene
+                    );
+
+
+                    modelRoot.add(
+                        modelScene
+                    );
+
+
+                    faceAnchor.group.add(
+                        modelRoot
+                    );
+
+
+                    applyModelTransform();
+
+
+                    setStatus(
+                        "3D MODEL READY"
+                    );
+
+                    setFaceInfo(
+                        "Model attached to face"
+                    );
+
+                },
                 function(error) {
 
                     console.error(
                         error
                     );
 
-
                     setStatus(
-                        "GLB LOAD ERROR"
+                        "MODEL ERROR"
+                    );
+
+                    setFaceInfo(
+                        "Could not load GLB"
                     );
 
                 }
-
             );
 
         };
@@ -2228,7 +1654,11 @@ function importGLB(
         function() {
 
             setStatus(
-                "FILE READ ERROR"
+                "FILE ERROR"
+            );
+
+            setFaceInfo(
+                "Could not read model file"
             );
 
         };
@@ -2241,526 +1671,214 @@ function importGLB(
 }
 
 
-/* Model transform */
-
-function updateModelTransform() {
-
-    if (!modelRoot) {
-        return;
-    }
-
-
-    modelRoot.position.set(
-
-        settings.x,
-
-        settings.y,
-
-        settings.z
-
-    );
-
-
-    modelRoot.rotation.set(
-
-        THREE.MathUtils.degToRad(
-            settings.rotX
-        ),
-
-        THREE.MathUtils.degToRad(
-            settings.rotY
-        ),
-
-        THREE.MathUtils.degToRad(
-            settings.rotZ
-        )
-
-    );
-
-
-    modelRoot.scale.setScalar(
-        settings.scale
-    );
-
-
-    modelRoot.updateMatrixWorld(
-        true
-    );
-
-}
-
-
-/* Slider helper */
-
-function connectSlider(
-    slider,
-    valueElement,
-    property,
-    decimals
-) {
-
-    slider.addEventListener(
-        "input",
-        function() {
-
-            settings[property] =
-                Number(
-                    slider.value
-                );
-
-
-            if (decimals) {
-
-                valueElement.textContent =
-                    settings[property]
-                        .toFixed(2);
-
-            } else {
-
-                valueElement.textContent =
-                    settings[property];
-
-            }
-
-
-            if (
-                property === "fit"
-            ) {
-
-                return;
-
-            }
-
-
-            updateModelTransform();
-
-        }
-    );
-
-}
-
-
-/* Connect sliders */
-
-connectSlider(
-    xSlider,
-    xValue,
-    "x",
-    false
-);
-
-
-connectSlider(
-    ySlider,
-    yValue,
-    "y",
-    false
-);
-
-
-connectSlider(
-    zSlider,
-    zValue,
-    "z",
-    false
-);
-
-
-connectSlider(
-    scaleSlider,
-    scaleValue,
-    "scale",
-    true
-);
-
-
-connectSlider(
-    rotXSlider,
-    rotXValue,
-    "rotX",
-    false
-);
-
-
-connectSlider(
-    rotYSlider,
-    rotYValue,
-    "rotY",
-    false
-);
-
-
-connectSlider(
-    rotZSlider,
-    rotZValue,
-    "rotZ",
-    false
-);
-
-
-connectSlider(
-    fitSlider,
-    fitValue,
-    "fit",
-    true
-);
-
-
-/* Camera */
-
-cameraButton.addEventListener(
-    "click",
-    function() {
-
-        startCamera();
-
-    }
-);
-
-
-/* Camera switch */
-
-switchButton.addEventListener(
-    "click",
-    function() {
-
-        switchCamera();
-
-    }
-);
-
-
-/* Mirror */
-
-mirrorButton.addEventListener(
-    "click",
-    function() {
-
-        mirrorEnabled =
-            !mirrorEnabled;
-
-
-        updateMirror();
-
-    }
-);
-
-
-/* Tracking */
-
-trackingButton.addEventListener(
-    "click",
-    function() {
-
-        trackingEnabled =
-            !trackingEnabled;
-
-
-        trackingButton.classList.toggle(
-            "active",
-            trackingEnabled
-        );
-
-
-        if (
-            trackingEnabled
-        ) {
-
-            filterState.textContent =
-                "TRACKING";
-
-            setStatus(
-                "TRACKING ON"
-            );
-
-        } else {
-
-            filterState.textContent =
-                "PAUSED";
-
-            clearLandmarks();
-
-            setStatus(
-                "TRACKING PAUSED"
-            );
-
-        }
-
-    }
-);
-
-
-/* Import */
-
 importButton.addEventListener(
     "click",
     function() {
 
-        importFile.value =
-            "";
-
-        importFile.click();
+        glbInput.click();
 
     }
 );
 
 
-importFile.addEventListener(
+glbInput.addEventListener(
     "change",
     function(event) {
 
         const file =
+            event.target.files &&
             event.target.files[0];
 
 
-        if (!file) {
-            return;
-        }
-
-
         if (
-            !file.name
-                .toLowerCase()
-                .endsWith(".glb")
+            file
         ) {
 
-            setStatus(
-                "SELECT A GLB FILE"
+            importGLB(
+                file
             );
 
-            return;
-
         }
-
-
-        importGLB(
-            file
-        );
 
     }
 );
 
 
-/* Reset */
-
-resetButton.addEventListener(
+switchCameraButton.addEventListener(
     "click",
-    function() {
+    async function() {
 
-        settings.x =
-            0;
+        if (!mindarStarted) {
 
-        settings.y =
-            0;
+            setStatus(
+                "START CAMERA FIRST"
+            );
 
-        settings.z =
-            0;
+            return;
 
-        settings.scale =
-            1;
-
-        settings.rotX =
-            0;
-
-        settings.rotY =
-            0;
-
-        settings.rotZ =
-            0;
-
-        settings.fit =
-            1;
-
-
-        xSlider.value =
-            0;
-
-        ySlider.value =
-            0;
-
-        zSlider.value =
-            0;
-
-        scaleSlider.value =
-            1;
-
-        rotXSlider.value =
-            0;
-
-        rotYSlider.value =
-            0;
-
-        rotZSlider.value =
-            0;
-
-        fitSlider.value =
-            1;
-
-
-        xValue.textContent =
-            "0";
-
-        yValue.textContent =
-            "0";
-
-        zValue.textContent =
-            "0";
-
-        scaleValue.textContent =
-            "1.00";
-
-        rotXValue.textContent =
-            "0";
-
-        rotYValue.textContent =
-            "0";
-
-        rotZValue.textContent =
-            "0";
-
-        fitValue.textContent =
-            "1.00";
-
-
-        updateModelTransform();
+        }
 
 
         setStatus(
-            "RESET COMPLETE"
+            "SWITCHING CAMERA..."
+        );
+
+
+        try {
+
+            await mindar.stop();
+
+            mindarStarted =
+                false;
+
+
+            if (
+                faceAnchor
+            ) {
+
+                faceAnchor.group
+                    .visible =
+                    false;
+
+            }
+
+
+            const oldCamera =
+                mindar;
+
+            if (
+                oldCamera
+            ) {
+
+                try {
+
+                    await oldCamera.stop();
+
+                } catch (error) {
+
+                    console.log(
+                        error
+                    );
+
+                }
+
+            }
+
+
+            setStatus(
+                "RESTARTING CAMERA"
+            );
+
+
+            await startMindAR();
+
+        } catch (error) {
+
+            console.error(
+                error
+            );
+
+            setStatus(
+                "CAMERA SWITCH ERROR"
+            );
+
+            setFaceInfo(
+                error.message ||
+                "Could not switch camera"
+            );
+
+        }
+
+    }
+);
+
+
+window.addEventListener(
+    "resize",
+    function() {
+
+        if (
+            renderer
+        ) {
+
+            renderer.setSize(
+                window.innerWidth,
+                window.innerHeight,
+                false
+            );
+
+            renderer.setPixelRatio(
+                Math.min(
+                    window.devicePixelRatio || 1,
+                    2
+                )
+            );
+
+        }
+
+    }
+);
+
+
+document.addEventListener(
+    "visibilitychange",
+    function() {
+
+        if (
+            document.hidden
+        ) {
+
+            return;
+
+        }
+
+        if (
+            mindarStarted
+        ) {
+
+            setStatus(
+                "MINDAR ACTIVE"
+            );
+
+        }
+
+    }
+);
+
+
+window.addEventListener(
+    "error",
+    function(event) {
+
+        console.error(
+            event.error ||
+            event.message
         );
 
     }
 );
 
 
-/* Hide panel */
+window.addEventListener(
+    "unhandledrejection",
+    function(event) {
 
-let panelHidden =
-    false;
-
-
-hidePanelButton.addEventListener(
-    "click",
-    function() {
-
-        const panel =
-            document.getElementById(
-                "bottomPanel"
-            );
-
-
-        panelHidden =
-            !panelHidden;
-
-
-        if (panelHidden) {
-
-            panel.style.transform =
-                "translateY(calc(100% - 45px))";
-
-
-            hidePanelButton.textContent =
-                "SHOW";
-
-        } else {
-
-            panel.style.transform =
-                "translateY(0)";
-
-
-            hidePanelButton.textContent =
-                "HIDE";
-
-        }
+        console.error(
+            event.reason
+        );
 
     }
 );
 
 
-/* Panel drag/touch visual */
-
-const panelHandle =
-    document.getElementById(
-        "panelHandle"
-    );
-
-
-panelHandle.addEventListener(
-    "click",
-    function() {
-
-        const panel =
-            document.getElementById(
-                "bottomPanel"
-            );
-
-
-        panelHidden =
-            !panelHidden;
-
-
-        if (panelHidden) {
-
-            panel.style.transform =
-                "translateY(calc(100% - 45px))";
-
-            hidePanelButton.textContent =
-                "SHOW";
-
-        } else {
-
-            panel.style.transform =
-                "translateY(0)";
-
-            hidePanelButton.textContent =
-                "HIDE";
-
-        }
-
-    }
-);
-
-
-/* Start */
+updateSliderValues();
 
 updateMirror();
 
-
-/* Render loop */
-
-function render() {
-
-    requestAnimationFrame(
-        render
-    );
-
-
-    if (
-        renderer &&
-        scene &&
-        camera3D
-    ) {
-
-        renderer.render(
-            scene,
-            camera3D
-        );
-
-    }
-
-}
-
-
-render();
-
-
-/* Initial message */
-
 setStatus(
-    "READY - TAP CAMERA"
+    "READY"
 );
 
-</script>
-
-</body>
-</html>
+setFaceInfo(
+    "Press START CAMERA"
+);
