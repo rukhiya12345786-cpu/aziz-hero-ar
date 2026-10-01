@@ -3,132 +3,196 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+
 <title>Azeez AR Head Tracker</title>
 
 <style>
-*{box-sizing:border-box}
+*{
+    box-sizing:border-box;
+}
+
 html,body{
-margin:0;
-width:100%;
-height:100%;
-overflow:hidden;
-background:#000;
-font-family:Arial,sans-serif
+    margin:0;
+    padding:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#000;
+    font-family:Arial,sans-serif;
 }
+
 #container{
-position:fixed;
-inset:0;
-width:100%;
-height:100%;
-overflow:hidden;
-background:#000
+    position:fixed;
+    inset:0;
+    overflow:hidden;
+    background:#000;
 }
+
+#container video,
 #container canvas{
-position:absolute!important;
-inset:0!important;
-width:100%!important;
-height:100%!important;
-display:block
+    position:absolute !important;
+    inset:0 !important;
+    width:100% !important;
+    height:100% !important;
+    object-fit:cover !important;
 }
-#top{
-position:fixed;
-top:8px;
-left:8px;
-right:8px;
-z-index:50;
-display:flex;
-flex-wrap:wrap;
-gap:6px
+
+#container canvas{
+    pointer-events:none;
 }
+
+#ui{
+    position:fixed;
+    left:0;
+    right:0;
+    top:0;
+    z-index:20;
+    padding:8px;
+    pointer-events:none;
+}
+
+#topBar{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    pointer-events:auto;
+}
+
 button{
-border:1px solid rgba(255,255,255,.3);
-border-radius:8px;
-background:rgba(0,0,0,.78);
-color:#fff;
-padding:9px 11px;
-font-size:12px;
-font-weight:bold
+    border:0;
+    border-radius:8px;
+    padding:10px 12px;
+    background:#151515;
+    color:#fff;
+    font-size:12px;
+    font-weight:bold;
 }
+
 button:active{
-transform:scale(.96)
+    transform:scale(.97);
 }
+
+button.active{
+    background:#0a8f45;
+}
+
+button.recording{
+    background:#c40000;
+}
+
 #status{
-position:fixed;
-top:58px;
-left:8px;
-z-index:50;
-padding:7px 10px;
-border-radius:8px;
-background:rgba(0,0,0,.72);
-color:#00ff66;
-font-size:12px
+    margin-top:6px;
+    display:inline-block;
+    padding:7px 10px;
+    border-radius:8px;
+    background:rgba(0,0,0,.65);
+    color:#fff;
+    font-size:11px;
 }
-#panel{
-position:fixed;
-left:8px;
-right:8px;
-bottom:8px;
-z-index:60;
-max-height:48vh;
-overflow-y:auto;
-background:rgba(0,0,0,.84);
-border:1px solid rgba(255,255,255,.2);
-border-radius:12px;
-padding:10px
+
+#controlToggle{
+    margin-top:6px;
+    pointer-events:auto;
+    background:#222;
 }
-#panel.hidden{
-display:none
+
+#controls{
+    display:none;
+    position:fixed;
+    left:8px;
+    right:8px;
+    bottom:8px;
+    max-height:58vh;
+    overflow-y:auto;
+    padding:10px;
+    border-radius:12px;
+    background:rgba(0,0,0,.88);
+    color:#fff;
+    pointer-events:auto;
+    -webkit-overflow-scrolling:touch;
 }
-.title{
-color:#fff;
-font-size:13px;
-font-weight:bold;
-margin-bottom:7px
+
+#controls.open{
+    display:block;
 }
-.line{
-display:grid;
-grid-template-columns:50px 1fr 55px;
-align-items:center;
-gap:7px;
-margin-bottom:7px
+
+.sectionButton{
+    width:100%;
+    margin-top:6px;
+    text-align:left;
+    background:#252525;
 }
-.line span{
-color:#fff;
-font-size:11px
+
+.section{
+    display:none;
+    padding:8px 4px 4px;
 }
-input[type=range]{
-width:100%
+
+.section.open{
+    display:block;
 }
-output{
-color:#00ff66;
-text-align:right;
-font-size:11px
+
+.row{
+    display:grid;
+    grid-template-columns:55px 1fr 52px;
+    gap:7px;
+    align-items:center;
+    margin:6px 0;
 }
-.arrows{
-display:grid;
-grid-template-columns:repeat(5,1fr);
-gap:5px;
-margin:5px 0 9px
+
+.row label{
+    font-size:11px;
 }
-.arrows button{
-padding:8px 2px;
-font-size:14px
+
+.row output{
+    text-align:right;
+    font-size:10px;
 }
-#fileModel,#fileSettings{
-display:none
+
+input[type="range"]{
+    width:100%;
 }
-#meshButton{
-color:#00ff66
+
+.quick{
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:5px;
+    margin:5px 0 9px;
+}
+
+.quick button{
+    padding:8px 3px;
+    font-size:10px;
+}
+
+.smallTitle{
+    font-size:10px;
+    color:#aaa;
+    margin:7px 0 3px;
+}
+
+#recordStatus{
+    font-size:11px;
+    color:#fff;
+    margin-top:6px;
+}
+
+#recorderCanvas{
+    display:none;
+}
+
+.hiddenInput{
+    display:none;
 }
 </style>
 
 <script type="importmap">
 {
-"imports":{
-"three":"https://unpkg.com/three@0.160.0/build/three.module.js",
-"three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/",
-"mindar-face-three":"https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-three.prod.js"
-}
+    "imports":{
+        "three":"https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/",
+        "mindar-face-three":"https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-three.prod.js"
+    }
 }
 </script>
 </head>
@@ -137,794 +201,2541 @@ color:#00ff66
 
 <div id="container"></div>
 
-<div id="top">
-<button id="start">START CAMERA</button>
-<button id="switch">SWITCH CAMERA</button>
-<button id="mirror">MIRROR OFF</button>
-<button id="model">IMPORT GLB</button>
-<button id="meshButton">GREEN FACE ON</button>
-<button id="panelButton">HIDE CONTROLS</button>
-<button id="reset">RESET</button>
+<canvas id="recorderCanvas"></canvas>
+
+<div id="ui">
+
+<div id="topBar">
+<button id="startButton">START CAMERA</button>
+<button id="switchButton">SWITCH CAMERA</button>
+<button id="mirrorButton">MIRROR OFF</button>
+<button id="greenButton">GREEN FACE OFF</button>
+<button id="importButton">IMPORT GLB</button>
+<button id="recordButton">START RECORDING</button>
 </div>
 
 <div id="status">Ready</div>
 
-<div id="panel">
+<button id="controlToggle">OPEN CONTROLS</button>
 
-<div class="title">POSITION</div>
-
-<div class="line">
-<span>X</span>
-<input id="x" type="range" min="-1" max="1" step="0.001" value="0">
-<output id="xv">0</output>
 </div>
 
-<div class="arrows">
-<button data-action="xminus">←</button>
-<button data-action="xplus">→</button>
-<button data-action="yplus">↑</button>
-<button data-action="yminus">↓</button>
-<button data-action="resetpos">●</button>
+<div id="controls">
+
+<button class="sectionButton" data-section="positionSection">
+MODEL POSITION
+</button>
+
+<div id="positionSection" class="section">
+
+<div class="smallTitle">MODEL POSITION</div>
+
+<div class="row">
+<label>X</label>
+<input id="posX" type="range" min="-3" max="3" step="0.005" value="0">
+<output id="posXValue">0</output>
 </div>
 
-<div class="line">
-<span>Y</span>
-<input id="y" type="range" min="-1" max="1" step="0.001" value="0">
-<output id="yv">0</output>
+<div class="row">
+<label>Y</label>
+<input id="posY" type="range" min="-3" max="3" step="0.005" value="0">
+<output id="posYValue">0</output>
 </div>
 
-<div class="line">
-<span>Z</span>
-<input id="z" type="range" min="-1" max="1" step="0.001" value="0">
-<output id="zv">0</output>
+<div class="row">
+<label>Z</label>
+<input id="posZ" type="range" min="-3" max="3" step="0.005" value="0">
+<output id="posZValue">0</output>
 </div>
 
-<div class="arrows">
-<button data-action="zback">Z−</button>
-<button data-action="zfront">Z+</button>
-<button data-action="scaleDown">−</button>
-<button data-action="scaleUp">+</button>
-<button data-action="resetScale">S</button>
+<div class="quick">
+<button data-action="left">LEFT</button>
+<button data-action="right">RIGHT</button>
+<button data-action="up">UP</button>
+<button data-action="down">DOWN</button>
+<button data-action="resetPos">RESET</button>
 </div>
 
-<div class="line">
-<span>SCALE</span>
-<input id="scale" type="range" min="0.05" max="5" step="0.01" value="1">
-<output id="scalev">1</output>
+<div class="smallTitle">MODEL SCALE</div>
+
+<div class="row">
+<label>SCALE</label>
+<input id="scale" type="range" min="0.02" max="4" step="0.005" value="1">
+<output id="scaleValue">1</output>
 </div>
 
-<div class="title">ROTATION</div>
-
-<div class="line">
-<span>RX</span>
-<input id="rx" type="range" min="-180" max="180" step="1" value="0">
-<output id="rxv">0</output>
-</div>
-
-<div class="line">
-<span>RY</span>
-<input id="ry" type="range" min="-180" max="180" step="1" value="0">
-<output id="ryv">0</output>
-</div>
-
-<div class="arrows">
-<button data-action="ryminus">↶</button>
-<button data-action="ryplus">↷</button>
-<button data-action="rxminus">X−</button>
-<button data-action="rxplus">X+</button>
-<button data-action="resetrot">R</button>
-</div>
-
-<div class="line">
-<span>RZ</span>
-<input id="rz" type="range" min="-180" max="180" step="1" value="0">
-<output id="rzv">0</output>
-</div>
-
-<div class="arrows">
-<button data-action="rzminus">↺</button>
-<button data-action="rzplus">↻</button>
-<button data-action="rxminus">X−</button>
-<button data-action="rxplus">X+</button>
-<button data-action="resetrot">0</button>
-</div>
-
-<div class="arrows">
-<button id="importSettings">IMPORT SETTINGS</button>
-<button id="exportSettings">EXPORT SETTINGS</button>
+<div class="quick">
+<button data-action="scaleDown">SCALE -</button>
+<button data-action="scaleUp">SCALE +</button>
+<button data-action="resetScale">RESET</button>
 </div>
 
 </div>
 
-<input id="fileModel" type="file" accept=".glb,.gltf">
-<input id="fileSettings" type="file" accept=".json">
 
-<script type="module">import * as THREE from "three";
-import {GLTFLoader} from "three/addons/loaders/GLTFLoader.js";
-import {MindARThree} from "mindar-face-three";
+<button class="sectionButton" data-section="rotationSection">
+MODEL 360 ROTATION
+</button>
 
-const container=document.getElementById("container");
-const status=document.getElementById("status");
-const panel=document.getElementById("panel");
+<div id="rotationSection" class="section">
 
-const startButton=document.getElementById("start");
-const switchButton=document.getElementById("switch");
-const mirrorButton=document.getElementById("mirror");
-const modelButton=document.getElementById("model");
-const meshButton=document.getElementById("meshButton");
-const panelButton=document.getElementById("panelButton");
-const resetButton=document.getElementById("reset");
+<div class="row">
+<label>RX</label>
+<input id="rotX" type="range" min="-180" max="180" step="0.5" value="0">
+<output id="rotXValue">0</output>
+</div>
 
-const fileModel=document.getElementById("fileModel");
-const fileSettings=document.getElementById("fileSettings");
+<div class="row">
+<label>RY</label>
+<input id="rotY" type="range" min="-180" max="180" step="0.5" value="0">
+<output id="rotYValue">0</output>
+</div>
 
-const x=document.getElementById("x");
-const y=document.getElementById("y");
-const z=document.getElementById("z");
-const scale=document.getElementById("scale");
-const rx=document.getElementById("rx");
-const ry=document.getElementById("ry");
-const rz=document.getElementById("rz");
+<div class="row">
+<label>RZ</label>
+<input id="rotZ" type="range" min="-180" max="180" step="0.5" value="0">
+<output id="rotZValue">0</output>
+</div>
 
-const xv=document.getElementById("xv");
-const yv=document.getElementById("yv");
-const zv=document.getElementById("zv");
-const scalev=document.getElementById("scalev");
-const rxv=document.getElementById("rxv");
-const ryv=document.getElementById("ryv");
-const rzv=document.getElementById("rzv");
+<div class="quick">
+<button data-action="rxMinus">RX -</button>
+<button data-action="rxPlus">RX +</button>
+<button data-action="ryMinus">RY -</button>
+<button data-action="ryPlus">RY +</button>
+<button data-action="resetRot">RESET</button>
+</div>
 
-let mindar=null;
-let faceAnchor=null;
-let faceMesh=null;
-let occlusionMesh=null;
+<div class="quick">
+<button data-action="rzMinus">RZ -</button>
+<button data-action="rzPlus">RZ +</button>
+<button data-action="turnLeft">360 L</button>
+<button data-action="turnRight">360 R</button>
+<button data-action="resetAllRot">RESET</button>
+</div>
 
-let modelRoot=new THREE.Group();
-let currentModel=null;
+</div><button class="sectionButton" data-section="meshSection">
+MESH ADJUSTMENT
+</button>
 
-let running=false;
-let mirrored=false;
-let greenFace=true;
+<div id="meshSection" class="section">
 
-const loader=new GLTFLoader();
+<div class="smallTitle">MESH POSITION</div>
+
+<div class="row">
+<label>MX</label>
+<input id="meshX" type="range" min="-3" max="3" step="0.005" value="0">
+<output id="meshXValue">0</output>
+</div>
+
+<div class="row">
+<label>MY</label>
+<input id="meshY" type="range" min="-3" max="3" step="0.005" value="0">
+<output id="meshYValue">0</output>
+</div>
+
+<div class="row">
+<label>MZ</label>
+<input id="meshZ" type="range" min="-3" max="3" step="0.005" value="0">
+<output id="meshZValue">0</output>
+</div>
+
+<div class="quick">
+<button data-action="meshLeft">LEFT</button>
+<button data-action="meshRight">RIGHT</button>
+<button data-action="meshUp">UP</button>
+<button data-action="meshDown">DOWN</button>
+<button data-action="meshResetPos">RESET</button>
+</div>
+
+<div class="smallTitle">MESH SIZE</div>
+
+<div class="row">
+<label>SIZE</label>
+<input id="meshScale" type="range" min="0.02" max="4" step="0.005" value="1">
+<output id="meshScaleValue">1</output>
+</div>
+
+<div class="row">
+<label>MSX</label>
+<input id="meshScaleX" type="range" min="0.02" max="4" step="0.005" value="1">
+<output id="meshScaleXValue">1</output>
+</div>
+
+<div class="row">
+<label>MSY</label>
+<input id="meshScaleY" type="range" min="0.02" max="4" step="0.005" value="1">
+<output id="meshScaleYValue">1</output>
+</div>
+
+<div class="row">
+<label>MSZ</label>
+<input id="meshScaleZ" type="range" min="0.02" max="4" step="0.005" value="1">
+<output id="meshScaleZValue">1</output>
+</div>
+
+<div class="quick">
+<button data-action="meshScaleDown">SIZE -</button>
+<button data-action="meshScaleUp">SIZE +</button>
+<button data-action="meshResetScale">RESET</button>
+</div>
+
+<div class="smallTitle">MESH 360 ROTATION</div>
+
+<div class="row">
+<label>MRX</label>
+<input id="meshRotX" type="range" min="-180" max="180" step="0.5" value="0">
+<output id="meshRotXValue">0</output>
+</div>
+
+<div class="row">
+<label>MRY</label>
+<input id="meshRotY" type="range" min="-180" max="180" step="0.5" value="0">
+<output id="meshRotYValue">0</output>
+</div>
+
+<div class="row">
+<label>MRZ</label>
+<input id="meshRotZ" type="range" min="-180" max="180" step="0.5" value="0">
+<output id="meshRotZValue">0</output>
+</div>
+
+<div class="quick">
+<button data-action="meshRotXMinus">RX -</button>
+<button data-action="meshRotXPlus">RX +</button>
+<button data-action="meshRotYMinus">RY -</button>
+<button data-action="meshRotYPlus">RY +</button>
+<button data-action="meshResetRot">RESET</button>
+</div>
+
+<div class="quick">
+<button data-action="meshRotZMinus">RZ -</button>
+<button data-action="meshRotZPlus">RZ +</button>
+<button data-action="meshTurnLeft">TURN L</button>
+<button data-action="meshTurnRight">TURN R</button>
+<button data-action="meshResetAll">RESET</button>
+</div>
+
+</div>
+
+
+<button class="sectionButton" data-section="depthSection">
+HEAD DEPTH / FIT
+</button>
+
+<div id="depthSection" class="section">
+
+<div class="smallTitle">HEAD FIT</div>
+
+<div class="row">
+<label>DEPTH</label>
+<input id="headDepth" type="range" min="-2" max="2" step="0.005" value="0">
+<output id="headDepthValue">0</output>
+</div>
+
+<div class="row">
+<label>WIDTH</label>
+<input id="headWidth" type="range" min="0.5" max="2" step="0.005" value="1">
+<output id="headWidthValue">1</output>
+</div>
+
+<div class="row">
+<label>HEIGHT</label>
+<input id="headHeight" type="range" min="0.5" max="2" step="0.005" value="1">
+<output id="headHeightValue">1</output>
+</div>
+
+<div class="row">
+<label>DEPTH S</label>
+<input id="headSizeDepth" type="range" min="0.5" max="2" step="0.005" value="1">
+<output id="headSizeDepthValue">1</output>
+</div>
+
+<div class="quick">
+<button data-action="headForward">FRONT</button>
+<button data-action="headBackward">BACK</button>
+<button data-action="headReset">RESET</button>
+</div>
+
+</div>
+
+
+<button class="sectionButton" data-section="recordSection">
+RECORDING
+</button>
+
+<div id="recordSection" class="section">
+
+<button id="recordButton2">
+START VIDEO + AUDIO
+</button>
+
+<div id="recordStatus">
+Recording ready
+</div>
+
+</div>
+
+
+<button class="sectionButton" data-section="settingsSection">
+SETTINGS
+</button>
+
+<div id="settingsSection" class="section">
+
+<button id="resetButton">
+RESET ALL MODEL
+</button>
+
+<button id="exportButton">
+EXPORT SETTINGS
+</button>
+
+<button id="importSettingsButton">
+IMPORT SETTINGS
+</button>
+
+</div>
+
+</div>
+
+<input
+id="modelInput"
+class="hiddenInput"
+type="file"
+accept=".glb,.gltf,model/gltf-binary,model/gltf+json"
+>
+
+<input
+id="settingsInput"
+class="hiddenInput"
+type="file"
+accept=".json"
+>
+
+<canvas id="recordCanvas"></canvas>
+
+<script type="module">
+
+import * as THREE from "three";
+
+import {GLTFLoader}
+from "three/addons/loaders/GLTFLoader.js";
+
+import {MindARThree}
+from "mindar-face-three";
+
+
+const container =
+document.getElementById("container");
+
+const status =
+document.getElementById("status");
+
+const controls =
+document.getElementById("controls");
+
+const controlToggle =
+document.getElementById("controlToggle");
+
+const startButton =
+document.getElementById("startButton");
+
+const switchButton =
+document.getElementById("switchButton");
+
+const mirrorButton =
+document.getElementById("mirrorButton");
+
+const greenButton =
+document.getElementById("greenButton");
+
+const importButton =
+document.getElementById("importButton");
+
+const modelInput =
+document.getElementById("modelInput");
+
+const resetButton =
+document.getElementById("resetButton");
+
+const exportButton =
+document.getElementById("exportButton");
+
+const importSettingsButton =
+document.getElementById("importSettingsButton");
+
+const settingsInput =
+document.getElementById("settingsInput");
+
+const recordButton =
+document.getElementById("recordButton");
+
+const recordButton2 =
+document.getElementById("recordButton2");
+
+const recordStatus =
+document.getElementById("recordStatus");
+
+const recordCanvas =
+document.getElementById("recordCanvas");
+
+
+let mindar = null;
+
+let faceAnchor = null;
+
+let faceMesh = null;
+
+let occlusionMesh = null;
+
+let modelRoot = null;
+
+let meshAdjust = null;
+
+let currentModel = null;
+
+let running = false;
+
+let mirrored = false;
+
+let greenFace = false;
+
+let recorder = null;
+
+let recorderStream = null;
+
+let microphoneStream = null;
+
+let recording = false;
+
+let recordingFrame = null;
+
+let recordingChunks = [];
+
+let recordContext = null;
+
+let recordWidth = 1280;
+
+let recordHeight = 720;
+
+
+const loader =
+new GLTFLoader();
+
 
 function setStatus(text){
-    status.textContent=text;
+
+status.textContent =
+text;
+
 }
 
-function updateLabels(){
-    xv.textContent=Number(x.value).toFixed(2);
-    yv.textContent=Number(y.value).toFixed(2);
-    zv.textContent=Number(z.value).toFixed(2);
-    scalev.textContent=Number(scale.value).toFixed(2);
-    rxv.textContent=rx.value;
-    ryv.textContent=ry.value;
-    rzv.textContent=rz.value;
+
+function value(id){
+
+return parseFloat(
+document.getElementById(id).value
+);
+
 }
 
-function applyTransform(){
-    if(!currentModel)return;
 
-    currentModel.position.set(
-        Number(x.value),
-        Number(y.value),
-        Number(z.value)
-    );
+function setValue(id,val){
 
-    currentModel.scale.setScalar(
-        Number(scale.value)
-    );
+document.getElementById(id).value =
+val;
 
-    currentModel.rotation.set(
-        THREE.MathUtils.degToRad(Number(rx.value)),
-        THREE.MathUtils.degToRad(Number(ry.value)),
-        THREE.MathUtils.degToRad(Number(rz.value))
-    );
 }
+
+
+function showValue(id,val){
+
+document.getElementById(id).textContent =
+Number(val).toFixed(3);
+
+}
+
+
+function radians(value){
+
+return THREE.MathUtils.degToRad(
+Number(value)
+);
+
+}
+
 
 function setupMindAR(){
-    if(mindar)return;
 
-    mindar=new MindARThree({
-        container:container,
-        resolution:"720p",
-        uiLoading:"no",
-        uiScanning:"no",
-        uiError:"yes",
-        filterMinCF:0.001,
-        filterBeta:0.001,
-        filterDCutOff:0.001
-    });
-
-    const scene=mindar.scene;
-    const renderer=mindar.renderer;
-
-    renderer.setPixelRatio(
-        Math.min(window.devicePixelRatio,2)
-    );
-
-    const ambient=new THREE.HemisphereLight(
-        0xffffff,
-        0x777777,
-        2
-    );
-
-    scene.add(ambient);
-
-    const light=new THREE.DirectionalLight(
-        0xffffff,
-        1.5
-    );
-
-    light.position.set(0,2,2);
-    scene.add(light);
-
-    faceAnchor=mindar.addAnchor(168);
-
-    faceAnchor.group.add(modelRoot);
-
-    modelRoot.visible=false;
-
-    faceMesh=mindar.addFaceMesh();
-
-    faceMesh.material.color.set(0x00ff44);
-    faceMesh.material.transparent=true;
-    faceMesh.material.opacity=0.3;
-    faceMesh.material.depthWrite=false;
-    faceMesh.renderOrder=3;
-    faceMesh.visible=greenFace;
-
-    scene.add(faceMesh);
-
-    occlusionMesh=mindar.addFaceMesh();
-
-    occlusionMesh.material=new THREE.MeshBasicMaterial({
-        colorWrite:false,
-        depthWrite:true,
-        depthTest:true,
-        side:THREE.DoubleSide
-    });
-
-    occlusionMesh.renderOrder=0;
-
-    scene.add(occlusionMesh);
-
-    modelRoot.renderOrder=1;
-
-    faceAnchor.onTargetFound=()=>{
-        if(currentModel){
-            modelRoot.visible=true;
-        }
-    };
-
-    faceAnchor.onTargetLost=()=>{
-        modelRoot.visible=false;
-    };
-
-    setStatus("Face tracker ready");
+if(mindar){
+return;
 }
+
+mindar =
+new MindARThree({
+
+container:container,
+
+resolution:"720p",
+
+uiLoading:"no",
+
+uiScanning:"no",
+
+uiError:"yes",
+
+filterMinCF:0.001,
+
+filterBeta:0.001,
+
+filterDCutOff:0.001
+
+});
+
+
+const renderer =
+mindar.renderer;
+
+renderer.setPixelRatio(
+Math.min(
+window.devicePixelRatio || 1,
+2
+)
+);
+
+renderer.setClearColor(
+0x000000,
+0
+);
+
+
+const scene =
+mindar.scene;
+
+
+scene.add(
+new THREE.HemisphereLight(
+0xffffff,
+0x444444,
+1.5
+)
+);
+
+
+const light =
+new THREE.DirectionalLight(
+0xffffff,
+2
+);
+
+light.position.set(
+0,
+2,
+3
+);
+
+scene.add(
+light
+);
+
+
+faceAnchor =
+mindar.addAnchor(168);
+
+
+modelRoot =
+new THREE.Group();
+
+faceAnchor.group.add(
+modelRoot
+);
+
+
+meshAdjust =
+new THREE.Group();
+
+modelRoot.add(
+meshAdjust
+);
+
+
+faceMesh =
+mindar.addFaceMesh();
+
+
+faceMesh.material =
+new THREE.MeshBasicMaterial({
+
+color:0x00ff44,
+
+transparent:true,
+
+opacity:0.25,
+
+depthWrite:false,
+
+depthTest:true,
+
+side:THREE.DoubleSide
+
+});
+
+
+faceMesh.visible =
+false;
+
+
+faceMesh.renderOrder =
+10;
+
+
+occlusionMesh =
+mindar.addFaceMesh();
+
+
+occlusionMesh.material =
+new THREE.MeshBasicMaterial({
+
+colorWrite:false,
+
+depthWrite:true,
+
+depthTest:true,
+
+side:THREE.DoubleSide
+
+});
+
+
+occlusionMesh.renderOrder =
+0;
+
+
+faceAnchor.onTargetFound =
+()=>{
+modelRoot.visible =
+true;
+};
+
+
+faceAnchor.onTargetLost =
+()=>{
+modelRoot.visible =
+false;
+};
+
+
+modelRoot.visible =
+true;
+
+}
+
 
 async function startAR(){
-    try{
-        setupMindAR();
 
-        if(running){
-            setStatus("Camera already ON");
-            return;
-        }
+try{
 
-        await mindar.start();
+setupMindAR();
 
-        running=true;
-
-        mindar.renderer.setAnimationLoop(()=>{
-            mindar.renderer.render(
-                mindar.scene,
-                mindar.camera
-            );
-        });
-
-        startButton.textContent="CAMERA ON";
-        setStatus("Camera ON - Face tracking ON");
-
-    }catch(error){
-        console.error(error);
-        setStatus("CAMERA ERROR");
-    }
+if(running){
+return;
 }
 
-async function switchCamera(){
-    try{
-        if(!mindar){
-            setupMindAR();
-        }
+setStatus(
+"Starting camera..."
+);
 
-        if(!running){
-            await mindar.start();
-            running=true;
+await mindar.start();
 
-            mindar.renderer.setAnimationLoop(()=>{
-                mindar.renderer.render(
-                    mindar.scene,
-                    mindar.camera
-                );
-            });
-        }
+running =
+true;
 
-        await mindar.switchCamera();
+mindar.renderer.setAnimationLoop(
+()=>{
+mindar.renderer.render(
+mindar.scene,
+mindar.camera
+);
+}
+);
 
-        setStatus("Camera switched");
+startButton.textContent =
+"CAMERA ON";
 
-    }catch(error){
-        console.error(error);
-        setStatus("CAMERA SWITCH ERROR");
-    }
+startButton.classList.add(
+"active"
+);
+
+setStatus(
+"Face tracking ready"
+);
+
+}catch(error){
+
+console.error(error);
+
+setStatus(
+"CAMERA ERROR"
+);
+
 }
 
-function toggleMirror(){
-    mirrored=!mirrored;
-
-    container.style.transform=
-        mirrored?"scaleX(-1)":"scaleX(1)";
-
-    mirrorButton.textContent=
-        mirrored?"MIRROR ON":"MIRROR OFF";
 }
 
-function toggleGreenFace(){
-    greenFace=!greenFace;
-
-    if(faceMesh){
-        faceMesh.visible=greenFace;
-    }
-
-    meshButton.textContent=
-        greenFace?"GREEN FACE ON":"GREEN FACE OFF";
-}
-
-function resetAll(){
-    x.value=0;
-    y.value=0;
-    z.value=0;
-    scale.value=1;
-    rx.value=0;
-    ry.value=0;
-    rz.value=0;
-
-    applyTransform();
-    updateLabels();
-
-    setStatus("Controls reset");
-}
-
-function disposeMaterial(material){
-    if(!material)return;
-
-    if(material.map)material.map.dispose();
-    if(material.normalMap)material.normalMap.dispose();
-    if(material.roughnessMap)material.roughnessMap.dispose();
-    if(material.metalnessMap)material.metalnessMap.dispose();
-    if(material.emissiveMap)material.emissiveMap.dispose();
-
-    material.dispose();
-}
-
-function removeModel(){
-    if(!currentModel)return;
-
-    modelRoot.remove(currentModel);
-
-    currentModel.traverse(object=>{
-        if(object.geometry){
-            object.geometry.dispose();
-        }
-
-        if(object.material){
-            const materials=Array.isArray(object.material)
-                ?object.material
-                :[object.material];
-
-            materials.forEach(disposeMaterial);
-        }
-    });
-
-    currentModel=null;
-    modelRoot.visible=false;
-}
-
-function fitModel(object){
-    const box=new THREE.Box3().setFromObject(object);
-    const center=box.getCenter(new THREE.Vector3());
-    const size=box.getSize(new THREE.Vector3());
-
-    object.position.sub(center);
-
-    const maxSize=Math.max(
-        size.x,
-        size.y,
-        size.z
-    );
-
-    if(maxSize>0){
-        object.scale.setScalar(1/maxSize);
-    }
-}
-
-function loadModel(file){
-    if(!file)return;
-
-    const url=URL.createObjectURL(file);
-
-    setStatus("Loading GLB...");
-
-    loader.load(
-        url,
-        gltf=>{
-            URL.revokeObjectURL(url);
-
-            removeModel();
-
-            currentModel=gltf.scene;
-
-            fitModel(currentModel);
-
-            currentModel.traverse(object=>{
-                if(object.isMesh){
-                    object.frustumCulled=false;
-
-                    if(object.material){
-                        object.material.side=THREE.DoubleSide;
-                    }
-                }
-            });
-
-            modelRoot.add(currentModel);
-
-            resetAll();
-
-            modelRoot.visible=true;
-
-            setStatus("GLB loaded");
-        },
-        undefined,
-        error=>{
-            URL.revokeObjectURL(url);
-            console.error(error);
-            setStatus("GLB LOAD ERROR");
-        }
-    );
-}
-
-function changeValue(id,amount){
-    const input=document.getElementById(id);
-
-    if(!input)return;
-
-    let value=Number(input.value)+amount;
-
-    const min=Number(input.min);
-    const max=Number(input.max);
-
-    value=Math.max(
-        min,
-        Math.min(max,value)
-    );
-
-    input.value=value;
-
-    applyTransform();
-    updateLabels();
-}
-
-function saveSettings(){
-    const data={
-        x:Number(x.value),
-        y:Number(y.value),
-        z:Number(z.value),
-        scale:Number(scale.value),
-        rx:Number(rx.value),
-        ry:Number(ry.value),
-        rz:Number(rz.value),
-        mirrored:mirrored,
-        greenFace:greenFace
-    };
-
-    const blob=new Blob(
-        [JSON.stringify(data,null,2)],
-        {type:"application/json"}
-    );
-
-    const url=URL.createObjectURL(blob);
-
-    const a=document.createElement("a");
-
-    a.href=url;
-    a.download="azezz-ar-settings.json";
-
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-
-    setTimeout(()=>{
-        URL.revokeObjectURL(url);
-    },1000);
-
-    setStatus("Settings exported");
-}
-
-function loadSettings(file){
-    if(!file)return;
-
-    const reader=new FileReader();
-
-    reader.onload=()=>{
-        try{
-            const data=JSON.parse(reader.result);
-
-            if(typeof data.x==="number")x.value=data.x;
-            if(typeof data.y==="number")y.value=data.y;
-            if(typeof data.z==="number")z.value=data.z;
-            if(typeof data.scale==="number")scale.value=data.scale;
-            if(typeof data.rx==="number")rx.value=data.rx;
-            if(typeof data.ry==="number")ry.value=data.ry;
-            if(typeof data.rz==="number")rz.value=data.rz;
-
-            if(typeof data.mirrored==="boolean"){
-                mirrored=data.mirrored;
-
-                container.style.transform=
-                    mirrored?"scaleX(-1)":"scaleX(1)";
-
-                mirrorButton.textContent=
-                    mirrored?"MIRROR ON":"MIRROR OFF";
-            }
-
-            if(typeof data.greenFace==="boolean"){
-                greenFace=data.greenFace;
-
-                if(faceMesh){
-                    faceMesh.visible=greenFace;
-                }
-
-                meshButton.textContent=
-                    greenFace
-                    ?"GREEN FACE ON"
-                    :"GREEN FACE OFF";
-            }
-
-            applyTransform();
-            updateLabels();
-
-            setStatus("Settings imported");
-
-        }catch(error){
-            console.error(error);
-            setStatus("SETTINGS ERROR");
-        }
-    };
-
-    reader.readAsText(file);
-}
 
 startButton.addEventListener(
-    "click",
-    startAR
+"click",
+startAR
 );
 
-switchButton.addEventListener(
-    "click",
-    switchCamera
+
+controlToggle.addEventListener(
+"click",
+()=>{
+
+controls.classList.toggle(
+"open"
 );
+
+controlToggle.textContent =
+controls.classList.contains("open")
+? "HIDE CONTROLS"
+: "OPEN CONTROLS";
+
+}
+);
+
+
+document
+.querySelectorAll(".sectionButton")
+.forEach(
+button=>{
+
+button.addEventListener(
+"click",
+()=>{
+
+const section =
+document.getElementById(
+button.dataset.section
+);
+
+section.classList.toggle(
+"open"
+);
+
+}
+);
+
+}
+);switchButton.addEventListener(
+"click",
+()=>{
+
+if(!mindar || !running){
+setStatus(
+"Start camera first"
+);
+return;
+}
+
+try{
+
+mindar.switchCamera();
+
+setStatus(
+"Camera switched"
+);
+
+}catch(error){
+
+console.error(error);
+
+setStatus(
+"Camera switch error"
+);
+
+}
+
+}
+);
+
 
 mirrorButton.addEventListener(
-    "click",
-    toggleMirror
+"click",
+()=>{
+
+mirrored =
+!mirrored;
+
+container.style.transform =
+mirrored
+? "scaleX(-1)"
+: "scaleX(1)";
+
+mirrorButton.textContent =
+mirrored
+? "MIRROR ON"
+: "MIRROR OFF";
+
+mirrorButton.classList.toggle(
+"active",
+mirrored
 );
 
-meshButton.addEventListener(
-    "click",
-    toggleGreenFace
+}
 );
 
-modelButton.addEventListener(
-    "click",
-    ()=>{
-        fileModel.value="";
-        fileModel.click();
-    }
+
+greenButton.addEventListener(
+"click",
+()=>{
+
+greenFace =
+!greenFace;
+
+if(faceMesh){
+faceMesh.visible =
+greenFace;
+}
+
+greenButton.textContent =
+greenFace
+? "GREEN FACE ON"
+: "GREEN FACE OFF";
+
+greenButton.classList.toggle(
+"active",
+greenFace
 );
 
-fileModel.addEventListener(
-    "change",
-    ()=>{
-        loadModel(fileModel.files[0]);
-    }
+}
 );
 
-panelButton.addEventListener(
-    "click",
-    ()=>{
-        panel.classList.toggle("hidden");
 
-        panelButton.textContent=
-            panel.classList.contains("hidden")
-            ?"SHOW CONTROLS"
-            :"HIDE CONTROLS";
-    }
+function fitModel(object){
+
+const box =
+new THREE.Box3()
+.setFromObject(object);
+
+const center =
+box.getCenter(
+new THREE.Vector3()
 );
+
+object.position.sub(
+center
+);
+
+const size =
+box.getSize(
+new THREE.Vector3()
+);
+
+const maxSize =
+Math.max(
+size.x,
+size.y,
+size.z
+);
+
+if(maxSize > 0){
+
+object.scale.setScalar(
+1 / maxSize
+);
+
+}
+
+}
+
+
+function prepareModel(object){
+
+object.traverse(
+child=>{
+
+if(child.isMesh){
+
+child.frustumCulled =
+false;
+
+child.renderOrder =
+1;
+
+if(child.material){
+
+child.material.depthTest =
+true;
+
+child.material.depthWrite =
+true;
+
+}
+
+}
+
+}
+);
+
+}
+
+
+function removeModel(){
+
+if(!currentModel){
+return;
+}
+
+meshAdjust.remove(
+currentModel
+);
+
+currentModel.traverse(
+child=>{
+
+if(child.geometry){
+child.geometry.dispose();
+}
+
+if(child.material){
+
+if(
+Array.isArray(
+child.material
+)
+){
+
+child.material.forEach(
+material=>{
+material.dispose();
+}
+);
+
+}else{
+
+child.material.dispose();
+
+}
+
+}
+
+}
+);
+
+currentModel =
+null;
+
+}
+
+
+function loadModel(file){
+
+const url =
+URL.createObjectURL(file);
+
+setStatus(
+"Loading 3D model..."
+);
+
+
+loader.load(
+
+url,
+
+gltf=>{
+
+URL.revokeObjectURL(
+url
+);
+
+removeModel();
+
+currentModel =
+gltf.scene;
+
+fitModel(
+currentModel
+);
+
+prepareModel(
+currentModel
+);
+
+meshAdjust.add(
+currentModel
+);
+
+currentModel.visible =
+true;
+
+resetControls();
+
+setStatus(
+"3D model loaded"
+);
+
+},
+
+undefined,
+
+error=>{
+
+URL.revokeObjectURL(
+url
+);
+
+console.error(error);
+
+setStatus(
+"MODEL ERROR"
+);
+
+}
+
+);
+
+}
+
+
+importButton.addEventListener(
+"click",
+()=>{
+modelInput.click();
+}
+);
+
+
+modelInput.addEventListener(
+"change",
+()=>{
+
+const file =
+modelInput.files[0];
+
+if(file){
+loadModel(file);
+}
+
+modelInput.value =
+"";
+
+}
+);
+
+
+function applyMain(){
+
+if(!modelRoot){
+return;
+}
+
+modelRoot.position.set(
+value("posX"),
+value("posY"),
+value("posZ")
+);
+
+modelRoot.scale.setScalar(
+value("scale")
+);
+
+modelRoot.rotation.set(
+radians(value("rotX")),
+radians(value("rotY")),
+radians(value("rotZ"))
+);
+
+}
+
+
+function applyMesh(){
+
+if(!meshAdjust){
+return;
+}
+
+meshAdjust.position.set(
+value("meshX"),
+value("meshY"),
+value("meshZ")
+);
+
+const s =
+value("meshScale");
+
+meshAdjust.scale.set(
+s * value("meshScaleX"),
+s * value("meshScaleY"),
+s * value("meshScaleZ")
+);
+
+meshAdjust.rotation.set(
+radians(value("meshRotX")),
+radians(value("meshRotY")),
+radians(value("meshRotZ"))
+);
+
+}
+
+
+function applyHeadFit(){
+
+if(!meshAdjust){
+return;
+}
+
+meshAdjust.position.z =
+value("meshZ") +
+value("headDepth");
+
+meshAdjust.scale.x =
+value("meshScale") *
+value("meshScaleX") *
+value("headWidth");
+
+meshAdjust.scale.y =
+value("meshScale") *
+value("meshScaleY") *
+value("headHeight");
+
+meshAdjust.scale.z =
+value("meshScale") *
+value("meshScaleZ") *
+value("headSizeDepth");
+
+}
+
+
+const mainSliderIds = [
+"posX",
+"posY",
+"posZ",
+"scale",
+"rotX",
+"rotY",
+"rotZ"
+];
+
+
+mainSliderIds.forEach(
+id=>{
+
+const input =
+document.getElementById(id);
+
+input.addEventListener(
+"input",
+()=>{
+
+showValue(
+id+"Value",
+input.value
+);
+
+applyMain();
+
+}
+);
+
+showValue(
+id+"Value",
+input.value
+);
+
+}
+);
+
+
+const meshSliderIds = [
+"meshX",
+"meshY",
+"meshZ",
+"meshScale",
+"meshScaleX",
+"meshScaleY",
+"meshScaleZ",
+"meshRotX",
+"meshRotY",
+"meshRotZ"
+];
+
+
+meshSliderIds.forEach(
+id=>{
+
+const input =
+document.getElementById(id);
+
+input.addEventListener(
+"input",
+()=>{
+
+showValue(
+id+"Value",
+input.value
+);
+
+applyMesh();
+
+applyHeadFit();
+
+}
+);
+
+showValue(
+id+"Value",
+input.value
+);
+
+}
+);
+
+
+const headSliderIds = [
+"headDepth",
+"headWidth",
+"headHeight",
+"headSizeDepth"
+];
+
+
+headSliderIds.forEach(
+id=>{
+
+const input =
+document.getElementById(id);
+
+input.addEventListener(
+"input",
+()=>{
+
+showValue(
+id+"Value",
+input.value
+);
+
+applyHeadFit();
+
+}
+);
+
+showValue(
+id+"Value",
+input.value
+);
+
+}
+);
+
+
+function changeSlider(
+id,
+amount
+){
+
+const input =
+document.getElementById(id);
+
+let next =
+parseFloat(input.value)
++
+amount;
+
+const min =
+parseFloat(input.min);
+
+const max =
+parseFloat(input.max);
+
+next =
+Math.max(
+min,
+Math.min(
+max,
+next
+)
+);
+
+input.value =
+next;
+
+input.dispatchEvent(
+new Event("input")
+);
+
+}
+
+
+function resetControls(){
+
+const values = {
+
+posX:0,
+posY:0,
+posZ:0,
+
+scale:1,
+
+rotX:0,
+rotY:0,
+rotZ:0,
+
+meshX:0,
+meshY:0,
+meshZ:0,
+
+meshScale:1,
+
+meshScaleX:1,
+meshScaleY:1,
+meshScaleZ:1,
+
+meshRotX:0,
+meshRotY:0,
+meshRotZ:0,
+
+headDepth:0,
+headWidth:1,
+headHeight:1,
+headSizeDepth:1
+
+};
+
+
+Object.entries(values)
+.forEach(
+([id,val])=>{
+
+setValue(
+id,
+val
+);
+
+showValue(
+id+"Value",
+val
+);
+
+}
+);
+
+
+applyMain();
+
+applyMesh();
+
+applyHeadFit();
+
+}
+
+
+document
+.querySelectorAll("[data-action]")
+.forEach(
+button=>{
+
+button.addEventListener(
+"click",
+()=>{
+
+const a =
+button.dataset.action;
+
+
+if(a==="left")
+changeSlider("posX",-0.02);
+
+if(a==="right")
+changeSlider("posX",0.02);
+
+if(a==="up")
+changeSlider("posY",0.02);
+
+if(a==="down")
+changeSlider("posY",-0.02);
+
+if(a==="resetPos"){
+
+setValue("posX",0);
+setValue("posY",0);
+setValue("posZ",0);
+
+document
+.getElementById("posX")
+.dispatchEvent(new Event("input"));
+
+}
+
+
+if(a==="scaleDown")
+changeSlider("scale",-0.02);
+
+if(a==="scaleUp")
+changeSlider("scale",0.02);
+
+if(a==="resetScale")
+changeSlider(
+"scale",
+1-value("scale")
+);
+
+
+if(a==="rxMinus")
+changeSlider("rotX",-5);
+
+if(a==="rxPlus")
+changeSlider("rotX",5);
+
+if(a==="ryMinus")
+changeSlider("rotY",-5);
+
+if(a==="ryPlus")
+changeSlider("rotY",5);
+
+if(a==="rzMinus")
+changeSlider("rotZ",-5);
+
+if(a==="rzPlus")
+changeSlider("rotZ",5);
+
+if(a==="turnLeft")
+changeSlider("rotY",-15);
+
+if(a==="turnRight")
+changeSlider("rotY",15);
+
+
+if(
+a==="resetRot" ||
+a==="resetAllRot"
+){
+
+setValue("rotX",0);
+setValue("rotY",0);
+setValue("rotZ",0);
+
+document
+.getElementById("rotX")
+.dispatchEvent(new Event("input"));
+
+}
+
+
+if(a==="meshLeft")
+changeSlider("meshX",-0.02);
+
+if(a==="meshRight")
+changeSlider("meshX",0.02);
+
+if(a==="meshUp")
+changeSlider("meshY",0.02);
+
+if(a==="meshDown")
+changeSlider("meshY",-0.02);
+
+
+if(a==="meshResetPos"){
+
+setValue("meshX",0);
+setValue("meshY",0);
+setValue("meshZ",0);
+
+document
+.getElementById("meshX")
+.dispatchEvent(new Event("input"));
+
+}
+
+
+if(a==="meshScaleDown")
+changeSlider("meshScale",-0.02);
+
+if(a==="meshScaleUp")
+changeSlider("meshScale",0.02);
+
+if(a==="meshResetScale"){
+
+setValue("meshScale",1);
+setValue("meshScaleX",1);
+setValue("meshScaleY",1);
+setValue("meshScaleZ",1);
+
+document
+.getElementById("meshScale")
+.dispatchEvent(new Event("input"));
+
+}
+
+
+if(a==="meshRotXMinus")
+changeSlider("meshRotX",-5);
+
+if(a==="meshRotXPlus")
+changeSlider("meshRotX",5);
+
+if(a==="meshRotYMinus")
+changeSlider("meshRotY",-5);
+
+if(a==="meshRotYPlus")
+changeSlider("meshRotY",5);
+
+if(a==="meshRotZMinus")
+changeSlider("meshRotZ",-5);
+
+if(a==="meshRotZPlus")
+changeSlider("meshRotZ",5);
+
+if(a==="meshTurnLeft")
+changeSlider("meshRotY",-15);
+
+if(a==="meshTurnRight")
+changeSlider("meshRotY",15);
+
+
+if(
+a==="meshResetRot" ||
+a==="meshResetAll"
+){
+
+setValue("meshRotX",0);
+setValue("meshRotY",0);
+setValue("meshRotZ",0);
+
+document
+.getElementById("meshRotX")
+.dispatchEvent(new Event("input"));
+
+}
+
+
+if(a==="headForward")
+changeSlider("headDepth",0.02);
+
+if(a==="headBackward")
+changeSlider("headDepth",-0.02);
+
+if(a==="headReset"){
+
+setValue("headDepth",0);
+setValue("headWidth",1);
+setValue("headHeight",1);
+setValue("headSizeDepth",1);
+
+document
+.getElementById("headDepth")
+.dispatchEvent(new Event("input"));
+
+}
+
+}
+);
+
+}
+);
+
 
 resetButton.addEventListener(
-    "click",
-    resetAll
+"click",
+()=>{
+
+resetControls();
+
+setStatus(
+"All model controls reset"
 );
 
-document.querySelectorAll(
-    "#panel input[type=range]"
-).forEach(input=>{
-    input.addEventListener(
-        "input",
-        ()=>{
-            applyTransform();
-            updateLabels();
-        }
-    );
-});
+}
+);function getSettings(){
 
-document.querySelectorAll(
-    "[data-action]"
-).forEach(button=>{
-    button.addEventListener(
-        "click",
-        ()=>{
-            const action=button.dataset.action;
+return {
 
-            if(action==="xminus")changeValue("x",-0.02);
-            if(action==="xplus")changeValue("x",0.02);
+main:{
+x:value("posX"),
+y:value("posY"),
+z:value("posZ"),
+scale:value("scale"),
+rx:value("rotX"),
+ry:value("rotY"),
+rz:value("rotZ")
+},
 
-            if(action==="yplus")changeValue("y",0.02);
-            if(action==="yminus")changeValue("y",-0.02);
+mesh:{
+x:value("meshX"),
+y:value("meshY"),
+z:value("meshZ"),
+scale:value("meshScale"),
+sx:value("meshScaleX"),
+sy:value("meshScaleY"),
+sz:value("meshScaleZ"),
+rx:value("meshRotX"),
+ry:value("meshRotY"),
+rz:value("meshRotZ")
+},
 
-            if(action==="zfront")changeValue("z",0.02);
-            if(action==="zback")changeValue("z",-0.02);
+head:{
+depth:value("headDepth"),
+width:value("headWidth"),
+height:value("headHeight"),
+depthScale:value("headSizeDepth")
+},
 
-            if(action==="scaleUp")changeValue("scale",0.05);
-            if(action==="scaleDown")changeValue("scale",-0.05);
+mirror:mirrored,
 
-            if(action==="resetScale"){
-                scale.value=1;
-                applyTransform();
-                updateLabels();
-            }
+greenFace:greenFace
 
-            if(action==="ryplus")changeValue("ry",5);
-            if(action==="ryminus")changeValue("ry",-5);
+};
 
-            if(action==="rxplus")changeValue("rx",5);
-            if(action==="rxminus")changeValue("rx",-5);
+}
 
-            if(action==="rzplus")changeValue("rz",5);
-            if(action==="rzminus")changeValue("rz",-5);
 
-            if(action==="resetpos"){
-                x.value=0;
-                y.value=0;
-                z.value=0;
-                applyTransform();
-                updateLabels();
-            }
+function applySettings(data){
 
-            if(action==="resetrot"){
-                rx.value=0;
-                ry.value=0;
-                rz.value=0;
-                applyTransform();
-                updateLabels();
-            }
-        }
-    );
-});
+if(data.main){
 
-document.getElementById("importSettings")
-.addEventListener(
-    "click",
-    ()=>{
-        fileSettings.value="";
-        fileSettings.click();
-    }
+setValue("posX",data.main.x ?? 0);
+setValue("posY",data.main.y ?? 0);
+setValue("posZ",data.main.z ?? 0);
+setValue("scale",data.main.scale ?? 1);
+setValue("rotX",data.main.rx ?? 0);
+setValue("rotY",data.main.ry ?? 0);
+setValue("rotZ",data.main.rz ?? 0);
+
+}
+
+
+if(data.mesh){
+
+setValue("meshX",data.mesh.x ?? 0);
+setValue("meshY",data.mesh.y ?? 0);
+setValue("meshZ",data.mesh.z ?? 0);
+setValue("meshScale",data.mesh.scale ?? 1);
+setValue("meshScaleX",data.mesh.sx ?? 1);
+setValue("meshScaleY",data.mesh.sy ?? 1);
+setValue("meshScaleZ",data.mesh.sz ?? 1);
+setValue("meshRotX",data.mesh.rx ?? 0);
+setValue("meshRotY",data.mesh.ry ?? 0);
+setValue("meshRotZ",data.mesh.rz ?? 0);
+
+}
+
+
+if(data.head){
+
+setValue(
+"headDepth",
+data.head.depth ?? 0
 );
 
-document.getElementById("exportSettings")
-.addEventListener(
-    "click",
-    saveSettings
+setValue(
+"headWidth",
+data.head.width ?? 1
 );
 
-fileSettings.addEventListener(
-    "change",
-    ()=>{
-        loadSettings(fileSettings.files[0]);
-    }
+setValue(
+"headHeight",
+data.head.height ?? 1
 );
 
-updateLabels();window.addEventListener(
-    "resize",
-    ()=>{
-        if(mindar){
-            mindar.renderer.setPixelRatio(
-                Math.min(window.devicePixelRatio,2)
-            );
-        }
-    }
+setValue(
+"headSizeDepth",
+data.head.depthScale ?? 1
 );
+
+}
+
+
+[
+"posX","posY","posZ","scale",
+"rotX","rotY","rotZ",
+"meshX","meshY","meshZ",
+"meshScale","meshScaleX",
+"meshScaleY","meshScaleZ",
+"meshRotX","meshRotY","meshRotZ",
+"headDepth","headWidth",
+"headHeight","headSizeDepth"
+].forEach(
+id=>{
+
+showValue(
+id+"Value",
+value(id)
+);
+
+}
+);
+
+
+applyMain();
+applyMesh();
+applyHeadFit();
+
+
+if(typeof data.mirror==="boolean"){
+
+mirrored =
+data.mirror;
+
+container.style.transform =
+mirrored
+? "scaleX(-1)"
+: "scaleX(1)";
+
+mirrorButton.textContent =
+mirrored
+? "MIRROR ON"
+: "MIRROR OFF";
+
+}
+
+
+if(typeof data.greenFace==="boolean"){
+
+greenFace =
+data.greenFace;
+
+if(faceMesh){
+
+faceMesh.visible =
+greenFace;
+
+}
+
+greenButton.textContent =
+greenFace
+? "GREEN FACE ON"
+: "GREEN FACE OFF";
+
+}
+
+}
+
+
+exportButton.addEventListener(
+"click",
+()=>{
+
+const blob =
+new Blob(
+[
+JSON.stringify(
+getSettings(),
+null,
+2
+)
+],
+{
+type:"application/json"
+}
+);
+
+const url =
+URL.createObjectURL(
+blob
+);
+
+const link =
+document.createElement("a");
+
+link.href =
+url;
+
+link.download =
+"aziz-ar-settings.json";
+
+link.click();
+
+URL.revokeObjectURL(
+url
+);
+
+}
+);
+
+
+importSettingsButton.addEventListener(
+"click",
+()=>{
+settingsInput.click();
+}
+);
+
+
+settingsInput.addEventListener(
+"change",
+()=>{
+
+const file =
+settingsInput.files[0];
+
+if(!file){
+return;
+}
+
+const reader =
+new FileReader();
+
+reader.onload =
+()=>{
+
+try{
+
+applySettings(
+JSON.parse(
+reader.result
+)
+);
+
+setStatus(
+"Settings imported"
+);
+
+}catch(error){
+
+console.error(error);
+
+setStatus(
+"SETTINGS ERROR"
+);
+
+}
+
+};
+
+reader.readAsText(file);
+
+settingsInput.value =
+"";
+
+}
+);
+
+
+function getVideo(){
+
+return container.querySelector(
+"video"
+);
+
+}
+
+
+function getMime(){
+
+const types = [
+
+"video/webm;codecs=vp9,opus",
+
+"video/webm;codecs=vp8,opus",
+
+"video/webm"
+
+];
+
+for(const type of types){
+
+if(
+MediaRecorder.isTypeSupported(
+type
+)
+){
+
+return type;
+
+}
+
+}
+
+return "";
+
+}
+
+
+async function startRecording(){
+
+if(!running){
+
+setStatus(
+"Start camera first"
+);
+
+return;
+
+}
+
+
+if(recording){
+
+stopRecording();
+
+return;
+
+}
+
+
+try{
+
+const video =
+getVideo();
+
+if(!video){
+
+setStatus(
+"Camera video not found"
+);
+
+return;
+
+}
+
+
+recordWidth =
+Math.min(
+video.videoWidth || 1280,
+1920
+);
+
+recordHeight =
+Math.min(
+video.videoHeight || 720,
+1080
+);
+
+
+recordCanvas.width =
+recordWidth;
+
+recordCanvas.height =
+recordHeight;
+
+
+recordContext =
+recordCanvas.getContext(
+"2d"
+);
+
+
+const videoStream =
+recordCanvas.captureStream(
+30
+);
+
+
+microphoneStream =
+await navigator.mediaDevices.getUserMedia(
+{
+audio:{
+echoCancellation:true,
+noiseSuppression:true,
+autoGainControl:true
+}
+}
+);
+
+
+recorderStream =
+new MediaStream();
+
+
+videoStream
+.getVideoTracks()
+.forEach(
+track=>{
+recorderStream.addTrack(
+track
+);
+}
+);
+
+
+microphoneStream
+.getAudioTracks()
+.forEach(
+track=>{
+recorderStream.addTrack(
+track
+);
+}
+);
+
+
+recordingChunks =
+[];
+
+
+const mime =
+getMime();
+
+
+recorder =
+mime
+? new MediaRecorder(
+recorderStream,
+{
+mimeType:mime,
+videoBitsPerSecond:12000000,
+audioBitsPerSecond:128000
+}
+)
+: new MediaRecorder(
+recorderStream
+);
+
+
+recorder.ondataavailable =
+event=>{
+
+if(
+event.data &&
+event.data.size
+){
+
+recordingChunks.push(
+event.data
+);
+
+}
+
+};
+
+
+recorder.onstop =
+saveRecording;
+
+
+recorder.start(
+1000
+);
+
+
+recording =
+true;
+
+
+recordButton.textContent =
+"STOP RECORDING";
+
+recordButton2.textContent =
+"STOP VIDEO + AUDIO";
+
+recordButton.classList.add(
+"recording"
+);
+
+recordButton2.classList.add(
+"recording"
+);
+
+recordStatus.textContent =
+"Recording video + audio";
+
+setStatus(
+"Recording started"
+);
+
+
+drawRecording();
+
+}catch(error){
+
+console.error(error);
+
+setStatus(
+"RECORDING ERROR"
+);
+
+cleanupRecording();
+
+}
+
+}
+
+
+function drawRecording(){
+
+if(!recording){
+return;
+}
+
+
+const video =
+getVideo();
+
+
+if(
+video &&
+recordContext
+){
+
+recordContext.save();
+
+recordContext.clearRect(
+0,
+0,
+recordWidth,
+recordHeight
+);
+
+
+const vw =
+video.videoWidth ||
+recordWidth;
+
+const vh =
+video.videoHeight ||
+recordHeight;
+
+
+const sourceRatio =
+vw / vh;
+
+const targetRatio =
+recordWidth /
+recordHeight;
+
+
+let dw =
+recordWidth;
+
+let dh =
+recordHeight;
+
+let dx =
+0;
+
+let dy =
+0;
+
+
+if(
+sourceRatio >
+targetRatio
+){
+
+dh =
+recordHeight;
+
+dw =
+dh *
+sourceRatio;
+
+dx =
+(
+recordWidth -
+dw
+) / 2;
+
+}else{
+
+dw =
+recordWidth;
+
+dh =
+dw /
+sourceRatio;
+
+dy =
+(
+recordHeight -
+dh
+) / 2;
+
+}
+
+
+if(mirrored){
+
+recordContext.translate(
+recordWidth,
+0
+);
+
+recordContext.scale(
+-1,
+1
+);
+
+}
+
+
+recordContext.drawImage(
+video,
+dx,
+dy,
+dw,
+dh
+);
+
+
+const arCanvas =
+mindar &&
+mindar.renderer &&
+mindar.renderer.domElement;
+
+
+if(arCanvas){
+
+recordContext.drawImage(
+arCanvas,
+0,
+0,
+recordWidth,
+recordHeight
+);
+
+}
+
+
+recordContext.restore();
+
+}
+
+
+recordingFrame =
+requestAnimationFrame(
+drawRecording
+);
+
+}
+
+
+function stopRecording(){
+
+if(!recording){
+return;
+}
+
+
+recording =
+false;
+
+
+if(recordingFrame){
+
+cancelAnimationFrame(
+recordingFrame
+);
+
+recordingFrame =
+null;
+
+}
+
+
+if(
+recorder &&
+recorder.state !==
+"inactive"
+){
+
+recorder.stop();
+
+}else{
+
+cleanupRecording();
+
+}
+
+
+recordButton.textContent =
+"START RECORDING";
+
+recordButton2.textContent =
+"START VIDEO + AUDIO";
+
+recordButton.classList.remove(
+"recording"
+);
+
+recordButton2.classList.remove(
+"recording"
+);
+
+recordStatus.textContent =
+"Saving recording...";
+
+}
+
+
+function saveRecording(){
+
+if(
+recordingChunks.length === 0
+){
+
+cleanupRecording();
+
+return;
+
+}
+
+
+const blob =
+new Blob(
+recordingChunks,
+{
+type:
+recorder &&
+recorder.mimeType
+? recorder.mimeType
+: "video/webm"
+}
+);
+
+
+const url =
+URL.createObjectURL(
+blob
+);
+
+
+const link =
+document.createElement("a");
+
+link.href =
+url;
+
+link.download =
+"aziz-ar-recording.webm";
+
+document.body.appendChild(
+link
+);
+
+link.click();
+
+link.remove();
+
+
+setTimeout(
+()=>{
+URL.revokeObjectURL(
+url
+);
+},
+2000
+);
+
+
+recordStatus.textContent =
+"Recording saved";
+
+setStatus(
+"Recording saved"
+);
+
+
+cleanupRecording();
+
+}
+
+
+function cleanupRecording(){
+
+if(microphoneStream){
+
+microphoneStream
+.getTracks()
+.forEach(
+track=>{
+track.stop();
+}
+);
+
+}
+
+
+if(recorderStream){
+
+recorderStream
+.getTracks()
+.forEach(
+track=>{
+track.stop();
+}
+);
+
+}
+
+
+microphoneStream =
+null;
+
+recorderStream =
+null;
+
+recorder =
+null;
+
+}
+
+
+recordButton.addEventListener(
+"click",
+startRecording
+);
+
+
+recordButton2.addEventListener(
+"click",
+startRecording
+);
+
 
 window.addEventListener(
-    "error",
-    event=>{
-        console.error(
-            "AR ERROR:",
-            event.error || event.message
-        );
+"resize",
+()=>{
 
-        if(!running){
-            setStatus("ERROR: "+event.message);
-        }
-    }
+if(mindar){
+
+try{
+
+mindar.renderer.setPixelRatio(
+Math.min(
+window.devicePixelRatio || 1,
+2
+)
 );
+
+}catch(error){
+
+console.error(error);
+
+}
+
+}
+
+}
+);
+
 
 window.addEventListener(
-    "unhandledrejection",
-    event=>{
-        console.error(
-            "AR PROMISE ERROR:",
-            event.reason
-        );
+"error",
+event=>{
 
-        if(!running){
-            setStatus("AR LOAD ERROR");
-        }
-    }
+console.error(
+"AR ERROR:",
+event.error ||
+event.message
 );
+
+if(!running){
+
+setStatus(
+"ERROR: "+
+(
+event.message ||
+"Unknown error"
+)
+);
+
+}
+
+}
+);
+
+
+window.addEventListener(
+"unhandledrejection",
+event=>{
+
+console.error(
+"AR PROMISE ERROR:",
+event.reason
+);
+
+if(!running){
+
+setStatus(
+"AR LOAD ERROR"
+);
+
+}
+
+}
+);
+
 
 document.addEventListener(
-    "visibilitychange",
-    ()=>{
-        if(
-            !document.hidden &&
-            running &&
-            mindar
-        ){
-            try{
-                mindar.renderer.setAnimationLoop(
-                    ()=>{
-                        mindar.renderer.render(
-                            mindar.scene,
-                            mindar.camera
-                        );
-                    }
-                );
-            }catch(error){
-                console.error(error);
-            }
-        }
-    }
+"visibilitychange",
+()=>{
+
+if(
+!document.hidden &&
+running &&
+mindar
+){
+
+try{
+
+mindar.renderer.setAnimationLoop(
+()=>{
+mindar.renderer.render(
+mindar.scene,
+mindar.camera
 );
+}
+);
+
+}catch(error){
+
+console.error(error);
+
+}
+
+}
+
+}
+);
+
 
 window.addEventListener(
-    "beforeunload",
-    ()=>{
-        try{
-            if(
-                mindar &&
-                running
-            ){
-                mindar.stop();
-            }
-        }catch(error){}
-    }
+"beforeunload",
+()=>{
+
+try{
+
+if(recording){
+
+stopRecording();
+
+}
+
+}catch(error){}
+
+
+try{
+
+if(
+mindar &&
+running
+){
+
+mindar.stop();
+
+}
+
+}catch(error){}
+
+
+try{
+
+cleanupRecording();
+
+}catch(error){}
+
+}
 );
 
-setStatus("Ready - press START CAMERA");
+
+resetControls();
+
+setStatus(
+"Ready - press START CAMERA"
+);
 
 </script>
+
 </body>
 </html>
