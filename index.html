@@ -1,273 +1,279 @@
 <!DOCTYPE html><html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"><title>Azeez AR Head Tracker</title><script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-three.prod.js"></script><style>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>Azeez AR Head Tracker</title><style>
 *{
-box-sizing:border-box;
--webkit-tap-highlight-color:transparent;
+  box-sizing:border-box;
 }
 
 html,body{
-margin:0;
-width:100%;
-height:100%;
-overflow:hidden;
-background:#000;
-font-family:Arial,sans-serif;
+  margin:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  background:#000;
+  font-family:Arial,sans-serif;
 }
 
 #app{
-position:fixed;
-inset:0;
-overflow:hidden;
-background:#000;
+  position:fixed;
+  inset:0;
+  overflow:hidden;
+  background:#000;
 }
 
 #camera{
-position:absolute;
-inset:0;
-z-index:1;
-overflow:hidden;
-background:#000;
-}
-
-#three{
-position:absolute;
-inset:0;
-z-index:5;
-pointer-events:none;
-}
-
-#ui{
-position:absolute;
-inset:0;
-z-index:20;
-pointer-events:none;
-}
-
-button,input{
-pointer-events:auto;
-}
-
-#top{
-position:absolute;
-top:12px;
-left:12px;
-right:12px;
-display:flex;
-justify-content:space-between;
-align-items:center;
-}
-
-#title{
-color:#fff;
-background:rgba(0,0,0,.65);
-padding:9px 12px;
-border-radius:12px;
-font-size:14px;
-font-weight:bold;
-}
-
-#menu{
-border:0;
-background:rgba(0,0,0,.7);
-color:#fff;
-padding:10px 14px;
-border-radius:12px;
-font-weight:bold;
-}
-
-#status{
-position:absolute;
-top:62px;
-left:50%;
-transform:translateX(-50%);
-color:#fff;
-background:rgba(0,0,0,.65);
-padding:7px 13px;
-border-radius:20px;
-font-size:12px;
-white-space:nowrap;
-}
-
-#start{
-position:absolute;
-bottom:28px;
-left:50%;
-transform:translateX(-50%);
-border:0;
-border-radius:28px;
-padding:14px 28px;
-background:#fff;
-color:#000;
-font-size:15px;
-font-weight:bold;
-}
-
-#panel{
-position:absolute;
-top:105px;
-right:10px;
-width:235px;
-max-height:calc(100vh - 125px);
-overflow-y:auto;
-display:none;
-padding:12px;
-border-radius:16px;
-background:rgba(10,10,10,.9);
-border:1px solid rgba(255,255,255,.2);
-pointer-events:auto;
-}
-
-#panel.open{
-display:block;
-}
-
-.action{
-width:100%;
-margin:4px 0;
-padding:10px;
-border:0;
-border-radius:10px;
-background:#222;
-color:#fff;
-font-size:12px;
-font-weight:bold;
-}
-
-.action.on{
-background:#087b3c;
-}
-
-.control{
-margin:10px 0;
-}
-
-.control label{
-display:flex;
-justify-content:space-between;
-color:#fff;
-font-size:12px;
-margin-bottom:5px;
-}
-
-.control input{
-width:100%;
-}
-
-#loading{
-position:absolute;
-inset:0;
-z-index:100;
-display:flex;
-align-items:center;
-justify-content:center;
-background:#000;
-color:#fff;
-font-size:16px;
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  background:#000;
+  z-index:1;
 }
 
 #camera video{
-position:absolute!important;
-left:0!important;
-top:0!important;
-width:100%!important;
-height:100%!important;
-object-fit:cover!important;
-z-index:1!important;
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
 }
 
-#camera canvas{
-position:absolute!important;
-left:0!important;
-top:0!important;
-width:100%!important;
-height:100%!important;
-z-index:2!important;
+#three{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  z-index:5;
+  pointer-events:none;
 }
 
 #three canvas{
-position:absolute!important;
-left:0!important;
-top:0!important;
-width:100%!important;
-height:100%!important;
-pointer-events:none!important;
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
 }
 
-.hidden{
-display:none;
+#topBar{
+  position:absolute;
+  top:0;
+  left:0;
+  right:0;
+  z-index:20;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:12px;
+  background:linear-gradient(
+    to bottom,
+    rgba(0,0,0,.75),
+    rgba(0,0,0,0)
+  );
 }
-</style></head><body><div id="app"><div id="camera"></div>
-<div id="three"></div><div id="loading">Ready</div><div id="ui"><div id="top">
-<div id="title">Azeez AR Head Tracker</div>
-<button id="menu">MENU</button>
-</div><div id="status">Camera Off</div><button id="start">START CAMERA</button>
 
-<div id="panel"><button id="switchCamera" class="action">
-SWITCH CAMERA
-</button><button id="mirror" class="action">
-MIRROR: OFF
-</button><button id="mesh" class="action on">
-FACE MESH: ON
-</button><button id="fit" class="action">
-FIT TO FACE
-</button><button id="reset" class="action">
-RESET MODEL
-</button><button id="importModel" class="action">
-IMPORT GLB / GLTF
-</button><button id="record" class="action">
-START RECORDING
-</button><button id="exportSettings" class="action">
-EXPORT SETTINGS
-</button><button id="importSettings" class="action">
-IMPORT SETTINGS
-</button><div class="control">
-<label>
-<span>X Position</span>
-<span id="xValue">0</span>
-</label>
-<input id="x" type="range" min="-2" max="2" step=".01" value="0">
-</div><div class="control">
-<label>
-<span>Y Position</span>
-<span id="yValue">0</span>
-</label>
-<input id="y" type="range" min="-2" max="2" step=".01" value="0">
-</div><div class="control">
-<label>
-<span>Z Position</span>
-<span id="zValue">0</span>
-</label>
-<input id="z" type="range" min="-3" max="3" step=".01" value="0">
-</div><div class="control">
-<label>
-<span>Scale</span>
-<span id="scaleValue">1</span>
-</label>
-<input id="scale" type="range" min=".1" max="3" step=".01" value="1">
-</div><div class="control">
-<label>
-<span>Rotation X</span>
-<span id="rxValue">0</span>
-</label>
-<input id="rx" type="range" min="-180" max="180" value="0">
-</div><div class="control">
-<label>
-<span>Rotation Y</span>
-<span id="ryValue">0</span>
-</label>
-<input id="ry" type="range" min="-180" max="180" value="0">
-</div><div class="control">
-<label>
-<span>Rotation Z</span>
-<span id="rzValue">0</span>
-</label>
-<input id="rz" type="range" min="-180" max="180" value="0">
-</div></div>
-</div><input
+#title{
+  color:#fff;
+  font-size:16px;
+  font-weight:bold;
+}
+
+#status{
+  color:#00ff88;
+  font-size:12px;
+  margin-top:3px;
+}
+
+button{
+  border:0;
+  border-radius:10px;
+  padding:11px 14px;
+  background:#111;
+  color:#fff;
+  font-weight:bold;
+  font-size:12px;
+}
+
+button:active{
+  transform:scale(.97);
+}
+
+#startButton{
+  background:#00a86b;
+}
+
+#menuButton{
+  position:absolute;
+  right:12px;
+  top:62px;
+  z-index:30;
+  width:48px;
+  height:48px;
+  border-radius:50%;
+  font-size:22px;
+  padding:0;
+}
+
+#panel{
+  position:absolute;
+  right:10px;
+  top:118px;
+  width:245px;
+  max-height:calc(100vh - 130px);
+  overflow:auto;
+  z-index:30;
+  display:none;
+  padding:12px;
+  border-radius:16px;
+  background:rgba(15,15,15,.94);
+  border:1px solid rgba(255,255,255,.15);
+}
+
+#panel.open{
+  display:block;
+}
+
+.panelButton{
+  width:100%;
+  margin-bottom:8px;
+}
+
+.sliderRow{
+  margin:10px 0;
+}
+
+.sliderRow label{
+  display:flex;
+  justify-content:space-between;
+  color:#fff;
+  font-size:11px;
+  margin-bottom:5px;
+}
+
+.sliderRow input{
+  width:100%;
+}
+
+#loading{
+  position:absolute;
+  inset:0;
+  z-index:50;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  color:#fff;
+  background:rgba(0,0,0,.7);
+  font-size:16px;
+}
+
+#modelFile,
+#settingsFile{
+  display:none;
+}
+</style></head><body><div id="app">  <div id="camera"></div>  <div id="three"></div>  <div id="topBar">
+    <div>
+      <div id="title">Azeez AR Head Tracker</div>
+      <div id="status">Camera Off</div>
+    </div><button id="startButton">START CAMERA</button>
+
+  </div><button id="menuButton">☰</button>
+
+  <div id="panel"><button id="switchCamera" class="panelButton">
+  SWITCH CAMERA
+</button>
+
+<button id="mirrorButton" class="panelButton">
+  MIRROR: OFF
+</button>
+
+<button id="meshButton" class="panelButton">
+  FACE MESH: ON
+</button>
+
+<button id="fitButton" class="panelButton">
+  FIT TO FACE
+</button>
+
+<button id="resetButton" class="panelButton">
+  RESET MODEL
+</button>
+
+<button id="importButton" class="panelButton">
+  IMPORT GLB / GLTF
+</button>
+
+<button id="recordButton" class="panelButton">
+  START RECORDING
+</button>
+
+<button id="exportButton" class="panelButton">
+  EXPORT SETTINGS
+</button>
+
+<button id="settingsButton" class="panelButton">
+  IMPORT SETTINGS
+</button>
+
+<div class="sliderRow">
+  <label>
+    <span>X Position</span>
+    <span id="xValue">0</span>
+  </label>
+  <input id="xSlider" type="range" min="-2" max="2" step="0.01" value="0">
+</div>
+
+<div class="sliderRow">
+  <label>
+    <span>Y Position</span>
+    <span id="yValue">0</span>
+  </label>
+  <input id="ySlider" type="range" min="-2" max="2" step="0.01" value="0">
+</div>
+
+<div class="sliderRow">
+  <label>
+    <span>Z Position</span>
+    <span id="zValue">0</span>
+  </label>
+  <input id="zSlider" type="range" min="-2" max="2" step="0.01" value="0">
+</div>
+
+<div class="sliderRow">
+  <label>
+    <span>Scale</span>
+    <span id="scaleValue">1</span>
+  </label>
+  <input id="scaleSlider" type="range" min="0.1" max="4" step="0.01" value="1">
+</div>
+
+<div class="sliderRow">
+  <label>
+    <span>Rotation X</span>
+    <span id="rotXValue">0</span>
+  </label>
+  <input id="rotXSlider" type="range" min="-180" max="180" step="1" value="0">
+</div>
+
+<div class="sliderRow">
+  <label>
+    <span>Rotation Y</span>
+    <span id="rotYValue">0</span>
+  </label>
+  <input id="rotYSlider" type="range" min="-180" max="180" step="1" value="0">
+</div>
+
+<div class="sliderRow">
+  <label>
+    <span>Rotation Z</span>
+    <span id="rotZValue">0</span>
+  </label>
+  <input id="rotZSlider" type="range" min="-180" max="180" step="1" value="0">
+</div>
+
+  </div><input
 id="modelFile"
-class="hidden"
 type="file"
 accept=".glb,.gltf"
 
@@ -275,118 +281,62 @@ accept=".glb,.gltf"
 
 <input
 id="settingsFile"
-class="hidden"
 type="file"
 accept=".json"
 
 «»
 
-</div><script type="module">
+  <div id="loading">Loading...</div></div><script type="module">
 
 import * as THREE from
 "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
 
-import {GLTFLoader} from
+import { GLTFLoader } from
 "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
 
-const app =
-document.getElementById("app");
+import { MindARThree } from
+"https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-three.prod.js";
 
-const cameraBox =
-document.getElementById("camera");
+const app = document.getElementById("app");
+const cameraBox = document.getElementById("camera");
+const threeBox = document.getElementById("three");
 
-const threeBox =
-document.getElementById("three");
+const startButton = document.getElementById("startButton");
+const switchButton = document.getElementById("switchCamera");
+const menuButton = document.getElementById("menuButton");
+const panel = document.getElementById("panel");
 
-const loading =
-document.getElementById("loading");
+const mirrorButton = document.getElementById("mirrorButton");
+const meshButton = document.getElementById("meshButton");
+const fitButton = document.getElementById("fitButton");
+const resetButton = document.getElementById("resetButton");
 
-const status =
-document.getElementById("status");
+const importButton = document.getElementById("importButton");
+const recordButton = document.getElementById("recordButton");
+const exportButton = document.getElementById("exportButton");
+const settingsButton = document.getElementById("settingsButton");
 
-const startButton =
-document.getElementById("start");
+const modelFile = document.getElementById("modelFile");
+const settingsFile = document.getElementById("settingsFile");
 
-const menuButton =
-document.getElementById("menu");
+const loading = document.getElementById("loading");
+const status = document.getElementById("status");
 
-const panel =
-document.getElementById("panel");
+const xSlider = document.getElementById("xSlider");
+const ySlider = document.getElementById("ySlider");
+const zSlider = document.getElementById("zSlider");
+const scaleSlider = document.getElementById("scaleSlider");
+const rotXSlider = document.getElementById("rotXSlider");
+const rotYSlider = document.getElementById("rotYSlider");
+const rotZSlider = document.getElementById("rotZSlider");
 
-const switchButton =
-document.getElementById("switchCamera");
-
-const mirrorButton =
-document.getElementById("mirror");
-
-const meshButton =
-document.getElementById("mesh");
-
-const fitButton =
-document.getElementById("fit");
-
-const resetButton =
-document.getElementById("reset");
-
-const importModelButton =
-document.getElementById("importModel");
-
-const recordButton =
-document.getElementById("record");
-
-const exportSettingsButton =
-document.getElementById("exportSettings");
-
-const importSettingsButton =
-document.getElementById("importSettings");
-
-const modelFile =
-document.getElementById("modelFile");
-
-const settingsFile =
-document.getElementById("settingsFile");
-
-const xSlider =
-document.getElementById("x");
-
-const ySlider =
-document.getElementById("y");
-
-const zSlider =
-document.getElementById("z");
-
-const scaleSlider =
-document.getElementById("scale");
-
-const rxSlider =
-document.getElementById("rx");
-
-const rySlider =
-document.getElementById("ry");
-
-const rzSlider =
-document.getElementById("rz");
-
-const xValue =
-document.getElementById("xValue");
-
-const yValue =
-document.getElementById("yValue");
-
-const zValue =
-document.getElementById("zValue");
-
-const scaleValue =
-document.getElementById("scaleValue");
-
-const rxValue =
-document.getElementById("rxValue");
-
-const ryValue =
-document.getElementById("ryValue");
-
-const rzValue =
-document.getElementById("rzValue");
+const xValue = document.getElementById("xValue");
+const yValue = document.getElementById("yValue");
+const zValue = document.getElementById("zValue");
+const scaleValue = document.getElementById("scaleValue");
+const rotXValue = document.getElementById("rotXValue");
+const rotYValue = document.getElementById("rotYValue");
+const rotZValue = document.getElementById("rotZValue");
 
 let mindar = null;
 let renderer = null;
@@ -406,142 +356,117 @@ let meshVisible = true;
 let recorder = null;
 let recordedChunks = [];
 
-const loader =
-new GLTFLoader();
+const loader = new GLTFLoader();
 
 const state = {
-x:0,
-y:0,
-z:0,
-scale:1,
-rx:0,
-ry:0,
-rz:0
+  x: 0,
+  y: 0,
+  z: 0,
+  scale: 1,
+  rotX: 0,
+  rotY: 0,
+  rotZ: 0
 };
 
-function statusText(value){
-status.textContent = value;
+function setStatus(text) {
+  status.textContent = text;
 }
 
-function loadingState(value,text){
-loading.style.display =
-value ? "flex" : "none";
-
-if(text){
-loading.textContent = text;
-}
+function setLoading(show) {
+  loading.style.display = show ? "flex" : "none";
 }
 
-function rad(value){
-return value * Math.PI / 180;
+function degrees(value) {
+  return value * Math.PI / 180;
 }
 
-function updateLabels(){
-xValue.textContent =
-state.x.toFixed(2);
+function updateLabels() {
+  xValue.textContent = state.x.toFixed(2);
+  yValue.textContent = state.y.toFixed(2);
+  zValue.textContent = state.z.toFixed(2);
 
-yValue.textContent =
-state.y.toFixed(2);
+  scaleValue.textContent = state.scale.toFixed(2);
 
-zValue.textContent =
-state.z.toFixed(2);
-
-scaleValue.textContent =
-state.scale.toFixed(2);
-
-rxValue.textContent =
-Math.round(state.rx);
-
-ryValue.textContent =
-Math.round(state.ry);
-
-rzValue.textContent =
-Math.round(state.rz);
+  rotXValue.textContent = Math.round(state.rotX);
+  rotYValue.textContent = Math.round(state.rotY);
+  rotZValue.textContent = Math.round(state.rotZ);
 }
 
-function updateModelTransform(){
+function updateModelTransform() {
 
-if(!modelRoot){
-return;
+  if (!modelRoot) return;
+
+  modelRoot.position.set(
+    state.x,
+    state.y,
+    state.z
+  );
+
+  modelRoot.scale.setScalar(
+    state.scale
+  );
+
+  modelRoot.rotation.set(
+    degrees(state.rotX),
+    degrees(state.rotY),
+    degrees(state.rotZ)
+  );
+
+  updateLabels();
 }
 
-modelRoot.position.set(
-state.x,
-state.y,
-state.z
-);
+function resetModelState() {
 
-modelRoot.scale.setScalar(
-state.scale
-);
+  state.x = 0;
+  state.y = 0;
+  state.z = 0;
+  state.scale = 1;
+  state.rotX = 0;
+  state.rotY = 0;
+  state.rotZ = 0;
 
-modelRoot.rotation.set(
-rad(state.rx),
-rad(state.ry),
-rad(state.rz)
-);
+  xSlider.value = state.x;
+  ySlider.value = state.y;
+  zSlider.value = state.z;
+  scaleSlider.value = state.scale;
+  rotXSlider.value = state.rotX;
+  rotYSlider.value = state.rotY;
+  rotZSlider.value = state.rotZ;
 
+  updateModelTransform();
+}
+
+function resize() {
+
+  if (!renderer || !camera) return;
+
+  const width = threeBox.clientWidth || window.innerWidth;
+  const height = threeBox.clientHeight || window.innerHeight;
+
+  renderer.setSize(
+    width,
+    height,
+    false
+  );
+}
+
+setLoading(false);
 updateLabels();
-}
+</script></body>
+</html>/
 
-function resetModelState(){
+async function setupAR() {
 
-state.x = 0;
-state.y = 0;
-state.z = 0;
-state.scale = 1;
-state.rx = 0;
-state.ry = 0;
-state.rz = 0;
+if (mindar) return;
 
-xSlider.value = 0;
-ySlider.value = 0;
-zSlider.value = 0;
-scaleSlider.value = 1;
-rxSlider.value = 0;
-rySlider.value = 0;
-rzSlider.value = 0;
-
-updateModelTransform();
-}
-
-function resize(){
-
-if(!renderer){
-return;
-}
-
-renderer.setPixelRatio(
-Math.min(
-window.devicePixelRatio || 1,
-2
-)
-);
-
-renderer.setSize(
-window.innerWidth,
-window.innerHeight,
-false
-);
-
-}
-
-window.addEventListener(
-"resize",
-resize
-);
-
-loadingState(false);
-
-function setupAR(){
-
-try{
+setLoading(true);
+setStatus("Starting AR...");
 
 mindar = new MindARThree({
-  container: app,
-  uiLoading: "no",
-  uiScanning: "no",
-  uiError: "no"
+container: app,
+uiLoading: "no",
+uiScanning: "no",
+uiError: "no"
 });
 
 renderer = mindar.renderer;
@@ -549,157 +474,112 @@ scene = mindar.scene;
 camera = mindar.camera;
 
 renderer.setPixelRatio(
-  Math.min(
-    window.devicePixelRatio || 1,
-    2
-  )
-);
-
-renderer.setSize(
-  window.innerWidth,
-  window.innerHeight,
-  false
+Math.min(window.devicePixelRatio || 1, 2)
 );
 
 renderer.setClearColor(
-  0x000000,
-  0
+0x000000,
+0
 );
 
-if(
-  renderer.domElement.parentElement !==
-  threeBox
-){
+resize();
 
-  threeBox.appendChild(
-    renderer.domElement
-  );
+const light1 = new THREE.HemisphereLight(
+0xffffff,
+0x444444,
+2
+);
 
-}
+scene.add(light1);
+
+const light2 = new THREE.DirectionalLight(
+0xffffff,
+2
+);
+
+light2.position.set(
+0,
+2,
+3
+);
+
+scene.add(light2);
+
+faceAnchor = mindar.addFaceAnchor(168);
+
+faceMesh = mindar.addFaceMesh();
+
+faceMesh.material.transparent = true;
+faceMesh.material.opacity = 0.3;
+faceMesh.material.color.set(0x00ff66);
+
+faceMesh.material.depthWrite = false;
+
+scene.add(faceMesh);
+
+modelRoot = new THREE.Group();
+
+faceAnchor.group.add(
+modelRoot
+);
+
+modelRoot.position.set(
+0,
+0,
+0
+);
+
+modelRoot.scale.set(
+1,
+1,
+1
+);
+
+modelRoot.rotation.set(
+0,
+0,
+0
+);
 
 renderer.domElement.style.position =
-  "absolute";
+"absolute";
 
 renderer.domElement.style.left =
-  "0";
+"0";
 
 renderer.domElement.style.top =
-  "0";
+"0";
 
 renderer.domElement.style.width =
-  "100%";
+"100%";
 
 renderer.domElement.style.height =
-  "100%";
+"100%";
 
 renderer.domElement.style.zIndex =
-  "5";
+"5";
 
-const light =
-  new THREE.HemisphereLight(
-    0xffffff,
-    0x444444,
-    1.8
-  );
-
-scene.add(light);
-
-const directional =
-  new THREE.DirectionalLight(
-    0xffffff,
-    1.5
-  );
-
-directional.position.set(
-  0,
-  2,
-  3
-);
-
-scene.add(directional);
-
-faceAnchor =
-  mindar.addFaceAnchor(168);
-
-faceMesh =
-  mindar.addFaceMesh();
-
-faceMesh.material.transparent =
-  true;
-
-faceMesh.material.opacity =
-  0.3;
-
-faceMesh.material.color.set(
-  0x00ff55
-);
-
-faceAnchor.group.add(
-  faceMesh
-);
-
-modelRoot =
-  new THREE.Group();
-
-faceAnchor.group.add(
-  modelRoot
-);
-
-faceMesh.visible =
-  meshVisible;
-
-return true;
-
-}catch(error){
-
-console.error(
-  error
-);
-
-statusText(
-  "AR Setup Error"
-);
-
-return false;
-
+renderer.domElement.style.pointerEvents =
+"none";
 }
 
-}
-
-function getVideo(){
+function getVideo() {
 
 const videos =
-document.querySelectorAll(
-"video"
-);
+document.querySelectorAll("video");
 
-if(!videos.length){
+if (!videos.length) {
 return null;
 }
 
 return videos[0];
-
 }
 
-function showCamera(){
+function showMindARVideo() {
 
-const video =
-getVideo();
+const video = getVideo();
 
-if(!video){
-return false;
-}
-
-if(
-video.parentElement !==
-cameraBox
-){
-
-cameraBox.appendChild(
-  video
-);
-
-}
+if (!video) return;
 
 video.setAttribute(
 "playsinline",
@@ -707,10 +587,11 @@ video.setAttribute(
 );
 
 video.setAttribute(
-"autoplay",
+"webkit-playsinline",
 ""
 );
 
+video.autoplay = true;
 video.muted = true;
 
 video.style.position =
@@ -731,192 +612,161 @@ video.style.height =
 video.style.objectFit =
 "cover";
 
-video.style.display =
-"block";
-
-video.style.visibility =
-"visible";
-
-video.style.opacity =
-"1";
-
 video.style.zIndex =
 "1";
 
+video.style.pointerEvents =
+"none";
+
+cameraBox.appendChild(video);
+
 applyMirror();
-
-return true;
-
 }
 
-async function startCamera(){
+function applyMirror() {
 
-if(running){
-return;
+const video = getVideo();
+
+if (!video) return;
+
+video.style.transform =
+mirrored
+? "scaleX(-1)"
+: "scaleX(1)";
 }
 
-loadingState(
-true,
-"Starting Camera..."
-);
+async function startCamera() {
 
-statusText(
-"Starting Camera..."
-);
+try {
 
-try{
+await setupAR();
 
-if(!mindar){
-
-  const ready =
-    setupAR();
-
-  if(!ready){
-    throw new Error(
-      "AR setup failed"
-    );
-  }
-
-}
+setLoading(true);
+setStatus("Opening Camera...");
 
 await mindar.start();
 
 running = true;
 
 await new Promise(
-  resolve =>
-    setTimeout(
-      resolve,
-      300
-    )
+  resolve => setTimeout(resolve, 300)
 );
 
-showCamera();
+showMindARVideo();
 
-setTimeout(
-  showCamera,
-  500
+await new Promise(
+  resolve => setTimeout(resolve, 300)
 );
 
-setTimeout(
-  showCamera,
-  1000
-);
+showMindARVideo();
 
 resize();
-
-loadingState(false);
 
 startButton.style.display =
   "none";
 
-statusText(
+setStatus(
   "Face Tracking Active"
 );
+
+setLoading(false);
 
 animate();
 
-}catch(error){
+} catch (error) {
 
-console.error(
-  error
-);
+console.error(error);
 
-loadingState(
-  false
-);
+running = false;
 
-statusText(
+setLoading(false);
+
+setStatus(
   "Camera Error"
 );
 
-}
+startButton.style.display =
+  "block";
 
 }
+}
 
-async function switchCamera(){
+async function stopCamera() {
 
-if(!running){
+if (!mindar) return;
+
+try {
+await mindar.stop();
+} catch (error) {
+console.error(error);
+}
+
+running = false;
+
+const video = getVideo();
+
+if (video) {
+video.pause();
+video.srcObject = null;
+}
+
+startButton.style.display =
+"block";
+
+setStatus(
+"Camera Off"
+);
+}
+
+async function switchCamera() {
+
+if (!running) {
+setStatus(
+"Start Camera First"
+);
 return;
 }
 
-statusText(
+setStatus(
 "Switching Camera..."
 );
 
-try{
+await stopCamera();
 
-await mindar.stop();
+if (mindar) {
 
-await new Promise(
-  resolve =>
-    setTimeout(
-      resolve,
-      300
-    )
-);
+try {
+  await mindar.stop();
+} catch (error) {
+  console.error(error);
+}
 
-await mindar.start();
-
-await new Promise(
-  resolve =>
-    setTimeout(
-      resolve,
-      400
-    )
-);
-
-showCamera();
-
-statusText(
-  "Face Tracking Active"
-);
-
-}catch(error){
-
-console.error(
-  error
-);
-
-statusText(
-  "Camera Switch Error"
-);
+mindar = null;
+renderer = null;
+scene = null;
+camera = null;
+faceAnchor = null;
+faceMesh = null;
+modelRoot = null;
 
 }
 
+await startCamera();
 }
 
-function applyMirror(){
+function animate() {
 
-const video =
-getVideo();
-
-if(!video){
-return;
-}
-
-video.style.transform =
-mirrored
-? "scaleX(-1)"
-: "scaleX(1)";
-
-}
-
-function animate(){
-
-if(!running){
-return;
-}
+if (!running) return;
 
 requestAnimationFrame(
 animate
 );
 
-if(
+if (
 renderer &&
 scene &&
 camera
-){
+) {
 
 renderer.render(
   scene,
@@ -924,8 +774,18 @@ renderer.render(
 );
 
 }
+}
+
+menuButton.addEventListener(
+"click",
+() => {
+
+panel.classList.toggle(
+  "open"
+);
 
 }
+);
 
 startButton.addEventListener(
 "click",
@@ -937,26 +797,15 @@ switchButton.addEventListener(
 switchCamera
 );
 
-menuButton.addEventListener(
-"click",
-()=>{
-panel.classList.toggle(
-"open"
-);
-}
-);
-
 mirrorButton.addEventListener(
 "click",
-()=>{
+() => {
 
-mirrored =
-  !mirrored;
+mirrored = !mirrored;
 
 mirrorButton.textContent =
-  mirrored
-    ? "MIRROR: ON"
-    : "MIRROR: OFF";
+  "MIRROR: " +
+  (mirrored ? "ON" : "OFF");
 
 applyMirror();
 
@@ -965,26 +814,32 @@ applyMirror();
 
 meshButton.addEventListener(
 "click",
-()=>{
+() => {
 
 meshVisible =
   !meshVisible;
 
-if(faceMesh){
+if (faceMesh) {
 
   faceMesh.visible =
     meshVisible;
-
 }
 
 meshButton.textContent =
-  meshVisible
-    ? "FACE MESH: ON"
-    : "FACE MESH: OFF";
+  "FACE MESH: " +
+  (meshVisible ? "ON" : "OFF");
 
-meshButton.classList.toggle(
-  "on",
-  meshVisible
+}
+);
+
+resetButton.addEventListener(
+"click",
+() => {
+
+resetModelState();
+
+setStatus(
+  "Model Reset"
 );
 
 }
@@ -992,22 +847,22 @@ meshButton.classList.toggle(
 
 fitButton.addEventListener(
 "click",
-()=>{
+() => {
 
-if(!currentModel){
+if (!currentModel) {
 
-  statusText(
-    "Import Model First"
+  setStatus(
+    "Load Model First"
   );
 
   return;
-
 }
 
 const box =
-  new THREE.Box3().setFromObject(
-    currentModel
-  );
+  new THREE.Box3()
+    .setFromObject(
+      currentModel
+    );
 
 const size =
   new THREE.Vector3();
@@ -1021,577 +876,1000 @@ const largest =
     size.z
   );
 
-if(largest > 0){
+if (
+  largest > 0 &&
+  Number.isFinite(largest)
+) {
 
   currentModel.scale.setScalar(
-    1.5 / largest
+    1 / largest
   );
-
 }
 
 resetModelState();
 
-statusText(
+setStatus(
   "Model Fitted"
 );
 
 }
 );
 
-resetButton.addEventListener(
-"click",
-()=>{
-
-resetModelState();
-
-statusText(
-  "Model Reset"
-);
-
-}
-);
-
-function bindSlider(
+function connectSlider(
 slider,
-key
-){
+key,
+transform
+) {
 
 slider.addEventListener(
 "input",
-()=>{
+() => {
 
   state[key] =
-    Number(
-      slider.value
-    );
+    Number(slider.value);
 
   updateModelTransform();
 
+  if (transform) {
+    transform();
+  }
 }
 
 );
-
 }
 
-bindSlider(
+connectSlider(
 xSlider,
 "x"
 );
 
-bindSlider(
+connectSlider(
 ySlider,
 "y"
 );
 
-bindSlider(
+connectSlider(
 zSlider,
 "z"
 );
 
-bindSlider(
+connectSlider(
 scaleSlider,
 "scale"
 );
 
-bindSlider(
-rxSlider,
-"rx"
+connectSlider(
+rotXSlider,
+"rotX"
 );
 
-bindSlider(
-rySlider,
-"ry"
+connectSlider(
+rotYSlider,
+"rotY"
 );
 
-bindSlider(
-rzSlider,
-"rz"
+connectSlider(
+rotZSlider,
+"rotZ"
+);
+
+window.addEventListener(
+"resize",
+resize
+);
+
+window.addEventListener(
+"orientationchange",
+() => {
+
+setTimeout(
+  resize,
+  400
+);
+
+}
 );
 
 updateLabels();
 
-loadingState(false);
-
+setLoading(false);
 /* =========================
-P3 - MODEL, RECORDING, SETTINGS
+P3 - MODEL + OCCLUSION + RECORDING + SETTINGS
 ========================= */
 
-function clearModel() {
-while (modelRoot.children.length) {
-const child = modelRoot.children[0];
-modelRoot.remove(child);
+let occlusionMesh = null;
 
-child.traverse((obj) => {
-  if (obj.geometry) obj.geometry.dispose();
+function createHeadOcclusion() {
 
-  if (obj.material) {
-    const materials = Array.isArray(obj.material)
-      ? obj.material
-      : [obj.material];
+if (!faceMesh || !faceMesh.geometry) {
+return;
+}
 
-    materials.forEach((mat) => {
-      if (mat.map) mat.map.dispose();
-      if (mat.normalMap) mat.normalMap.dispose();
-      if (mat.roughnessMap) mat.roughnessMap.dispose();
-      if (mat.metalnessMap) mat.metalnessMap.dispose();
-      mat.dispose();
-    });
-  }
+if (occlusionMesh) {
+
+scene.remove(
+  occlusionMesh
+);
+
+occlusionMesh.geometry = null;
+occlusionMesh.material.dispose();
+occlusionMesh = null;
+
+}
+
+const geometry =
+faceMesh.geometry.clone();
+
+const material =
+new THREE.MeshBasicMaterial({
+colorWrite: false,
+depthWrite: true,
+depthTest: true,
+side: THREE.DoubleSide
 });
+
+occlusionMesh =
+new THREE.Mesh(
+geometry,
+material
+);
+
+occlusionMesh.renderOrder = 0;
+
+scene.add(
+occlusionMesh
+);
+}
+
+function prepareModel(object) {
+
+object.traverse(
+(child) => {
+
+  if (!child.isMesh) {
+    return;
+  }
+
+  child.frustumCulled = false;
+
+  child.renderOrder = 1;
+
+  if (child.material) {
+
+    const materials =
+      Array.isArray(child.material)
+        ? child.material
+        : [child.material];
+
+    materials.forEach(
+      (material) => {
+
+        material.side =
+          THREE.DoubleSide;
+
+        material.depthTest =
+          true;
+
+        material.depthWrite =
+          true;
+      }
+    );
+  }
+}
+
+);
+
+return object;
+}
+
+function clearModel() {
+
+if (!modelRoot) {
+return;
+}
+
+while (
+modelRoot.children.length
+) {
+
+const object =
+  modelRoot.children[0];
+
+modelRoot.remove(
+  object
+);
+
+object.traverse(
+  (child) => {
+
+    if (child.geometry) {
+      child.geometry.dispose();
+    }
+
+    if (child.material) {
+
+      const materials =
+        Array.isArray(child.material)
+          ? child.material
+          : [child.material];
+
+      materials.forEach(
+        (material) => {
+
+          if (material.map) {
+            material.map.dispose();
+          }
+
+          if (material.normalMap) {
+            material.normalMap.dispose();
+          }
+
+          if (material.roughnessMap) {
+            material.roughnessMap.dispose();
+          }
+
+          if (material.metalnessMap) {
+            material.metalnessMap.dispose();
+          }
+
+          material.dispose();
+        }
+      );
+    }
+  }
+);
 
 }
 
 currentModel = null;
 }
 
-function prepareModel(object) {
-object.traverse((child) => {
-if (!child.isMesh) return;
+function loadModelFile(file) {
 
-child.frustumCulled = false;
-
-if (child.material) {
-  const materials = Array.isArray(child.material)
-    ? child.material
-    : [child.material];
-
-  materials.forEach((material) => {
-    material.side = THREE.DoubleSide;
-    material.depthTest = true;
-    material.depthWrite = true;
-  });
+if (!file) {
+return;
 }
 
-});
+const fileName =
+file.name.toLowerCase();
 
-return object;
+if (
+!fileName.endsWith(".glb") &&
+!fileName.endsWith(".gltf")
+) {
+
+setStatus(
+  "Use GLB or GLTF"
+);
+
+return;
+
 }
 
-function loadGLTFFile(file) {
-const url = URL.createObjectURL(file);
+setLoading(true);
+setStatus(
+"Loading 3D Model..."
+);
 
-loadingState(true);
+const url =
+URL.createObjectURL(
+file
+);
 
 loader.load(
 url,
+
 (gltf) => {
-clearModel();
 
-  currentModel = prepareModel(gltf.scene);
-  modelRoot.add(currentModel);
+  clearModel();
 
-  currentModel.position.set(0, 0, 0);
-  currentModel.rotation.set(0, 0, 0);
-  currentModel.scale.set(1, 1, 1);
+  currentModel =
+    prepareModel(
+      gltf.scene
+    );
 
-  URL.revokeObjectURL(url);
+  modelRoot.add(
+    currentModel
+  );
+
+  currentModel.position.set(
+    0,
+    0,
+    0
+  );
+
+  currentModel.rotation.set(
+    0,
+    0,
+    0
+  );
+
+  currentModel.scale.set(
+    1,
+    1,
+    1
+  );
 
   updateModelTransform();
-  statusText("3D Model Loaded");
-  loadingState(false);
+
+  URL.revokeObjectURL(
+    url
+  );
+
+  setLoading(false);
+
+  setStatus(
+    "3D Model Loaded"
+  );
 },
+
 undefined,
-() => {
-  URL.revokeObjectURL(url);
-  statusText("Model Load Error");
-  loadingState(false);
+
+(error) => {
+
+  console.error(error);
+
+  URL.revokeObjectURL(
+    url
+  );
+
+  setLoading(false);
+
+  setStatus(
+    "Model Load Error"
+  );
 }
 
 );
 }
 
-modelFile.addEventListener("change", (event) => {
-const file = event.target.files && event.target.files[0];
+importButton.addEventListener(
+"click",
+() => {
 
-if (!file) return;
+modelFile.click();
 
-const name = file.name.toLowerCase();
+}
+);
 
-if (name.endsWith(".glb") || name.endsWith(".gltf")) {
-loadGLTFFile(file);
-} else {
-statusText("Use GLB or GLTF");
+modelFile.addEventListener(
+"change",
+(event) => {
+
+const file =
+  event.target.files &&
+  event.target.files[0];
+
+if (file) {
+  loadModelFile(file);
 }
 
 event.target.value = "";
-});
 
-function saveSettings() {
-const data = {
-version: 1,
-model: {
-x: state.x,
-y: state.y,
-z: state.z,
-scale: state.scale,
-rotX: state.rotX,
-rotY: state.rotY,
-rotZ: state.rotZ
-},
-mirror: mirrored,
-faceMesh: meshVisible
-};
-
-const blob = new Blob(
-[JSON.stringify(data, null, 2)],
-{ type: "application/json" }
+}
 );
 
-const url = URL.createObjectURL(blob);
-const link = document.createElement("a");
+function exportSettings() {
+
+const settings = {
+
+version: 1,
+
+model: {
+  x: state.x,
+  y: state.y,
+  z: state.z,
+  scale: state.scale,
+  rotX: state.rotX,
+  rotY: state.rotY,
+  rotZ: state.rotZ
+},
+
+mirror: mirrored,
+
+faceMesh: meshVisible
+
+};
+
+const blob =
+new Blob(
+[
+JSON.stringify(
+settings,
+null,
+2
+)
+],
+{
+type:
+"application/json"
+}
+);
+
+const url =
+URL.createObjectURL(
+blob
+);
+
+const link =
+document.createElement(
+"a"
+);
 
 link.href = url;
-link.download = "aziz-ar-settings.json";
+
+link.download =
+"aziz-ar-settings.json";
+
+document.body.appendChild(
+link
+);
+
 link.click();
 
-URL.revokeObjectURL(url);
+link.remove();
 
-statusText("Settings Exported");
+setTimeout(
+() => {
+URL.revokeObjectURL(
+url
+);
+},
+1000
+);
+
+setStatus(
+"Settings Exported"
+);
 }
 
-function loadSettings(file) {
-const reader = new FileReader();
+function importSettings(file) {
 
-reader.onload = () => {
-try {
-const data = JSON.parse(reader.result);
+const reader =
+new FileReader();
 
-  if (data.model) {
-    state.x = Number(data.model.x) || 0;
-    state.y = Number(data.model.y) || 0;
-    state.z = Number(data.model.z) || 0;
-    state.scale = Number(data.model.scale) || 1;
-    state.rotX = Number(data.model.rotX) || 0;
-    state.rotY = Number(data.model.rotY) || 0;
-    state.rotZ = Number(data.model.rotZ) || 0;
-  }
+reader.onload =
+() => {
 
-  if (typeof data.mirror === "boolean") {
-    mirrored = data.mirror;
-    mirrorButton.textContent = "MIRROR: " + (mirrored ? "ON" : "OFF");
-    applyMirror();
-  }
+  try {
 
-  if (typeof data.faceMesh === "boolean") {
-    meshVisible = data.faceMesh;
+    const data =
+      JSON.parse(
+        reader.result
+      );
 
-    if (faceMesh && faceMesh.material) {
-      faceMesh.material.opacity = meshVisible ? 0.3 : 0;
+    if (data.model) {
+
+      state.x =
+        Number(data.model.x) || 0;
+
+      state.y =
+        Number(data.model.y) || 0;
+
+      state.z =
+        Number(data.model.z) || 0;
+
+      state.scale =
+        Number(data.model.scale) || 1;
+
+      state.rotX =
+        Number(data.model.rotX) || 0;
+
+      state.rotY =
+        Number(data.model.rotY) || 0;
+
+      state.rotZ =
+        Number(data.model.rotZ) || 0;
     }
 
-    meshButton.textContent =
-      "FACE MESH: " + (meshVisible ? "ON" : "OFF");
+    xSlider.value =
+      state.x;
+
+    ySlider.value =
+      state.y;
+
+    zSlider.value =
+      state.z;
+
+    scaleSlider.value =
+      state.scale;
+
+    rotXSlider.value =
+      state.rotX;
+
+    rotYSlider.value =
+      state.rotY;
+
+    rotZSlider.value =
+      state.rotZ;
+
+    if (
+      typeof data.mirror ===
+      "boolean"
+    ) {
+
+      mirrored =
+        data.mirror;
+
+      mirrorButton.textContent =
+        "MIRROR: " +
+        (
+          mirrored
+            ? "ON"
+            : "OFF"
+        );
+
+      applyMirror();
+    }
+
+    if (
+      typeof data.faceMesh ===
+      "boolean"
+    ) {
+
+      meshVisible =
+        data.faceMesh;
+
+      meshButton.textContent =
+        "FACE MESH: " +
+        (
+          meshVisible
+            ? "ON"
+            : "OFF"
+        );
+
+      if (faceMesh) {
+
+        faceMesh.visible =
+          meshVisible;
+      }
+    }
+
+    updateModelTransform();
+
+    setStatus(
+      "Settings Imported"
+    );
+
+  } catch (error) {
+
+    console.error(error);
+
+    setStatus(
+      "Invalid Settings"
+    );
   }
-
-  updateLabels();
-  updateModelTransform();
-
-  statusText("Settings Imported");
-} catch (error) {
-  statusText("Invalid Settings");
-}
-
 };
 
-reader.readAsText(file);
+reader.readAsText(
+file
+);
 }
 
-settingsFile.addEventListener("change", (event) => {
-const file = event.target.files && event.target.files[0];
+settingsButton.addEventListener(
+"click",
+() => {
 
-if (!file) return;
+settingsFile.click();
 
-loadSettings(file);
+}
+);
+
+settingsFile.addEventListener(
+"change",
+(event) => {
+
+const file =
+  event.target.files &&
+  event.target.files[0];
+
+if (file) {
+  importSettings(file);
+}
+
 event.target.value = "";
-});
+
+}
+);
+
+exportButton.addEventListener(
+"click",
+exportSettings
+);
+
+function toggleMesh() {
+
+meshVisible =
+!meshVisible;
+
+if (faceMesh) {
+
+faceMesh.visible =
+  meshVisible;
+
+}
+
+meshButton.textContent =
+"FACE MESH: " +
+(
+meshVisible
+? "ON"
+: "OFF"
+);
+}
+
+meshButton.onclick =
+toggleMesh;
 
 function startRecording() {
+
 if (!running) {
-statusText("Start Camera First");
+
+setStatus(
+  "Start Camera First"
+);
+
 return;
+
 }
 
-if (recorder && recorder.state === "recording") {
+if (
+recorder &&
+recorder.state ===
+"recording"
+) {
+
 recorder.stop();
-recordButton.textContent = "START RECORDING";
+
+recordButton.textContent =
+  "START RECORDING";
+
 return;
+
 }
 
-const recordCanvas = document.createElement("canvas");
-const recordContext = recordCanvas.getContext("2d");
+const canvas =
+document.createElement(
+"canvas"
+);
 
-const width = Math.max(
+canvas.width =
+Math.max(
 320,
-Math.floor(window.innerWidth * Math.min(window.devicePixelRatio || 1, 2))
+window.innerWidth *
+Math.min(
+window.devicePixelRatio || 1,
+2
+)
 );
 
-const height = Math.max(
+canvas.height =
+Math.max(
 240,
-Math.floor(window.innerHeight * Math.min(window.devicePixelRatio || 1, 2))
+window.innerHeight *
+Math.min(
+window.devicePixelRatio || 1,
+2
+)
 );
 
-recordCanvas.width = width;
-recordCanvas.height = height;
+const context =
+canvas.getContext(
+"2d"
+);
 
-const stream = recordCanvas.captureStream(30);
+const stream =
+canvas.captureStream(
+30
+);
+
+let mimeType =
+"video/webm;codecs=vp9";
+
+if (
+!MediaRecorder.isTypeSupported(
+mimeType
+)
+) {
+
+mimeType =
+  "video/webm;codecs=vp8";
+
+}
+
+if (
+!MediaRecorder.isTypeSupported(
+mimeType
+)
+) {
+
+mimeType =
+  "video/webm";
+
+}
 
 recordedChunks = [];
 
-let mimeType = "video/webm;codecs=vp9";
-
-if (!MediaRecorder.isTypeSupported(mimeType)) {
-mimeType = "video/webm;codecs=vp8";
-}
-
-if (!MediaRecorder.isTypeSupported(mimeType)) {
-mimeType = "video/webm";
-}
-
-recorder = new MediaRecorder(stream, {
+recorder =
+new MediaRecorder(
+stream,
+{
 mimeType
-});
-
-recorder.ondataavailable = (event) => {
-if (event.data && event.data.size > 0) {
-recordedChunks.push(event.data);
 }
-};
-
-recorder.onstop = () => {
-const blob = new Blob(
-recordedChunks,
-{ type: mimeType }
 );
 
-const url = URL.createObjectURL(blob);
-const link = document.createElement("a");
+recorder.ondataavailable =
+(event) => {
 
-link.href = url;
-link.download = "aziz-ar-recording.webm";
-link.click();
+  if (
+    event.data &&
+    event.data.size > 0
+  ) {
 
-setTimeout(() => {
-  URL.revokeObjectURL(url);
-}, 1000);
+    recordedChunks.push(
+      event.data
+    );
+  }
+};
 
-statusText("Recording Saved");
+recorder.onstop =
+() => {
 
+  const blob =
+    new Blob(
+      recordedChunks,
+      {
+        type: mimeType
+      }
+    );
+
+  const url =
+    URL.createObjectURL(
+      blob
+    );
+
+  const link =
+    document.createElement(
+      "a"
+    );
+
+  link.href = url;
+
+  link.download =
+    "aziz-ar-recording.webm";
+
+  document.body.appendChild(
+    link
+  );
+
+  link.click();
+
+  link.remove();
+
+  setTimeout(
+    () => {
+      URL.revokeObjectURL(
+        url
+      );
+    },
+    1000
+  );
+
+  setStatus(
+    "Recording Saved"
+  );
 };
 
 recorder.start();
-recordButton.textContent = "STOP RECORDING";
-statusText("Recording");
 
-const drawRecording = () => {
-if (!recorder || recorder.state !== "recording") return;
+recordButton.textContent =
+"STOP RECORDING";
 
-const video = getVideo();
-
-recordContext.clearRect(
-  0,
-  0,
-  recordCanvas.width,
-  recordCanvas.height
+setStatus(
+"Recording..."
 );
 
-if (video && video.readyState >= 2) {
-  const vw = video.videoWidth || window.innerWidth;
-  const vh = video.videoHeight || window.innerHeight;
+function drawRecording() {
 
-  const videoRatio = vw / vh;
-  const canvasRatio = recordCanvas.width / recordCanvas.height;
+if (
+  !recorder ||
+  recorder.state !==
+  "recording"
+) {
 
-  let dw;
-  let dh;
-  let dx;
-  let dy;
-
-  if (videoRatio > canvasRatio) {
-    dh = recordCanvas.height;
-    dw = dh * videoRatio;
-    dx = (recordCanvas.width - dw) / 2;
-    dy = 0;
-  } else {
-    dw = recordCanvas.width;
-    dh = dw / videoRatio;
-    dx = 0;
-    dy = (recordCanvas.height - dh) / 2;
-  }
-
-  recordContext.save();
-
-  if (mirrored) {
-    recordContext.translate(recordCanvas.width, 0);
-    recordContext.scale(-1, 1);
-  }
-
-  recordContext.drawImage(
-    video,
-    dx,
-    dy,
-    dw,
-    dh
-  );
-
-  recordContext.restore();
+  return;
 }
 
-if (renderer && renderer.domElement) {
-  recordContext.drawImage(
+const video =
+  getVideo();
+
+context.clearRect(
+  0,
+  0,
+  canvas.width,
+  canvas.height
+);
+
+if (
+  video &&
+  video.readyState >= 2
+) {
+
+  const vw =
+    video.videoWidth ||
+    window.innerWidth;
+
+  const vh =
+    video.videoHeight ||
+    window.innerHeight;
+
+  const videoRatio =
+    vw / vh;
+
+  const canvasRatio =
+    canvas.width /
+    canvas.height;
+
+  let width;
+  let height;
+  let x;
+  let y;
+
+  if (
+    videoRatio >
+    canvasRatio
+  ) {
+
+    height =
+      canvas.height;
+
+    width =
+      height *
+      videoRatio;
+
+    x =
+      (
+        canvas.width -
+        width
+      ) / 2;
+
+    y = 0;
+
+  } else {
+
+    width =
+      canvas.width;
+
+    height =
+      width /
+      videoRatio;
+
+    x = 0;
+
+    y =
+      (
+        canvas.height -
+        height
+      ) / 2;
+  }
+
+  context.save();
+
+  if (mirrored) {
+
+    context.translate(
+      canvas.width,
+      0
+    );
+
+    context.scale(
+      -1,
+      1
+    );
+  }
+
+  context.drawImage(
+    video,
+    x,
+    y,
+    width,
+    height
+  );
+
+  context.restore();
+}
+
+if (
+  renderer &&
+  renderer.domElement
+) {
+
+  context.drawImage(
     renderer.domElement,
     0,
     0,
-    recordCanvas.width,
-    recordCanvas.height
+    canvas.width,
+    canvas.height
   );
 }
 
-requestAnimationFrame(drawRecording);
+requestAnimationFrame(
+  drawRecording
+);
 
-};
+}
 
 drawRecording();
 }
 
-recordButton.addEventListener("click", startRecording);
-
-function downloadCurrentSettings() {
-saveSettings();
-}
-
-exportButton.addEventListener(
+recordButton.addEventListener(
 "click",
-downloadCurrentSettings
+startRecording
 );
 
-function updateFaceMeshVisibility() {
-if (!faceMesh || !faceMesh.material) return;
+const oldSetupAR =
+setupAR;
 
-faceMesh.material.transparent = true;
-faceMesh.material.opacity = meshVisible ? 0.3 : 0;
-faceMesh.visible = true;
-}
+setupAR = async function() {
 
-function toggleFaceMesh() {
-meshVisible = !meshVisible;
+await oldSetupAR();
 
-updateFaceMeshVisibility();
+createHeadOcclusion();
 
-meshButton.textContent =
-"FACE MESH: " + (meshVisible ? "ON" : "OFF");
-
-statusText(
-meshVisible
-? "Face Mesh On"
-: "Face Mesh Off"
-);
-}
-
-meshButton.addEventListener(
-"click",
-toggleFaceMesh
-);
-
-function updateTrackingStatus() {
-if (!running) return;
-
-if (faceAnchor && faceAnchor.group) {
-const visible =
-faceAnchor.group.visible !== false;
-
-if (visible) {
-  statusText("Face Tracking Active");
-} else {
-  statusText("Searching Face");
-}
-
-}
-}
-
-function applyModelVisibility() {
-if (!modelRoot) return;
-
-modelRoot.visible = true;
-}
-
-function animateFrame() {
-if (!running) return;
-
-requestAnimationFrame(animateFrame);
-
-applyModelVisibility();
-updateFaceMeshVisibility();
-updateTrackingStatus();
-
-if (renderer && scene && camera) {
-renderer.render(scene, camera);
-}
-}
-
-function startRenderLoop() {
-animateFrame();
-}
-
-function fixVideoLayer() {
-const video = getVideo();
-
-if (!video) return;
-
-video.style.position = "absolute";
-video.style.left = "0";
-video.style.top = "0";
-video.style.width = "100%";
-video.style.height = "100%";
-video.style.objectFit = "cover";
-video.style.zIndex = "1";
-video.style.pointerEvents = "none";
-
-applyMirror();
-}
-
-function finalResize() {
-resize();
-fixVideoLayer();
-
-if (renderer) {
-renderer.setPixelRatio(
-Math.min(window.devicePixelRatio || 1, 2)
-);
-}
-}
-
-window.addEventListener(
-"orientationchange",
-() => {
-setTimeout(finalResize, 400);
-}
-);
+updateModelTransform();
+};
 
 window.addEventListener(
 "resize",
-finalResize
-);
+() => {
 
-importButton.addEventListener(
-"click",
-() => modelFile.click()
-);
-
-settingsButton.addEventListener(
-"click",
-() => settingsFile.click()
-);
-
-setInterval(() => {
-if (running) {
-fixVideoLayer();
-updateFaceMeshVisibility();
+if (renderer) {
+  resize();
 }
-}, 1000);
+
+}
+);
+
+setInterval(
+() => {
+
+if (!running) {
+  return;
+}
+
+const video =
+  getVideo();
+
+if (video) {
+
+  video.style.position =
+    "absolute";
+
+  video.style.left = "0";
+  video.style.top = "0";
+  video.style.width = "100%";
+  video.style.height = "100%";
+  video.style.objectFit = "cover";
+  video.style.zIndex = "1";
+
+  applyMirror();
+}
+
+if (occlusionMesh) {
+  occlusionMesh.visible = true;
+}
+
+},
+1000
+);
 
 updateLabels();
-loadingState(false);
-statusText("Camera Off");
+
+setStatus(
+"Camera Off"
+);
+
+setLoading(false);
 
 </script>
 </body>
