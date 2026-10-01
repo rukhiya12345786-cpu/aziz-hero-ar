@@ -1,293 +1,1598 @@
-<!DOCTYPE html>
-<html lang="en">
-
+<!DOCTYPE html><html lang="en">
 <head>
-
 <meta charset="UTF-8">
-
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
->
-
-<title>Azeez AR Face Test</title>
-
-<style>
-
-html,
-body {
-    margin: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    background: #000;
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"><title>Azeez AR Head Tracker</title><script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-three.prod.js"></script><style>
+*{
+box-sizing:border-box;
+-webkit-tap-highlight-color:transparent;
 }
 
-#container {
-    width: 100vw;
-    height: 100vh;
-    position: relative;
-    overflow: hidden;
+html,body{
+margin:0;
+width:100%;
+height:100%;
+overflow:hidden;
+background:#000;
+font-family:Arial,sans-serif;
 }
 
-button {
-    position: fixed;
-    top: 20px;
-    left: 20px;
-    z-index: 9999;
-
-    padding: 14px 20px;
-
-    border: 0;
-    border-radius: 10px;
-
-    background: rgba(0,0,0,0.75);
-    color: white;
-
-    font-size: 14px;
-    font-weight: bold;
+#app{
+position:fixed;
+inset:0;
+overflow:hidden;
+background:#000;
 }
 
-#status {
-    position: fixed;
-    top: 75px;
-    left: 20px;
-    z-index: 9999;
-
-    padding: 8px 12px;
-
-    border-radius: 8px;
-
-    background: rgba(0,0,0,0.65);
-    color: #00ff66;
-
-    font-family: Arial, sans-serif;
-    font-size: 12px;
+#camera{
+position:absolute;
+inset:0;
+z-index:1;
+overflow:hidden;
+background:#000;
 }
 
-</style>
-
-<script type="importmap">
-{
-    "imports": {
-        "three":
-            "https://unpkg.com/three@0.160.0/build/three.module.js",
-
-        "three/addons/":
-            "https://unpkg.com/three@0.160.0/examples/jsm/",
-
-        "mindar-face-three":
-            "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-three.prod.js"
-    }
+#three{
+position:absolute;
+inset:0;
+z-index:5;
+pointer-events:none;
 }
-</script>
 
-</head>
+#ui{
+position:absolute;
+inset:0;
+z-index:20;
+pointer-events:none;
+}
 
-<body>
+button,input{
+pointer-events:auto;
+}
 
-<div id="container"></div>
+#top{
+position:absolute;
+top:12px;
+left:12px;
+right:12px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
 
-<button id="startButton">
-START CAMERA
-</button>
+#title{
+color:#fff;
+background:rgba(0,0,0,.65);
+padding:9px 12px;
+border-radius:12px;
+font-size:14px;
+font-weight:bold;
+}
 
-<div id="status">
-Loading...
-</div>
+#menu{
+border:0;
+background:rgba(0,0,0,.7);
+color:#fff;
+padding:10px 14px;
+border-radius:12px;
+font-weight:bold;
+}
 
-<script type="module">
+#status{
+position:absolute;
+top:62px;
+left:50%;
+transform:translateX(-50%);
+color:#fff;
+background:rgba(0,0,0,.65);
+padding:7px 13px;
+border-radius:20px;
+font-size:12px;
+white-space:nowrap;
+}
 
-import * as THREE from "three";
+#start{
+position:absolute;
+bottom:28px;
+left:50%;
+transform:translateX(-50%);
+border:0;
+border-radius:28px;
+padding:14px 28px;
+background:#fff;
+color:#000;
+font-size:15px;
+font-weight:bold;
+}
 
-import {
-    MindARThree
-} from "mindar-face-three";
+#panel{
+position:absolute;
+top:105px;
+right:10px;
+width:235px;
+max-height:calc(100vh - 125px);
+overflow-y:auto;
+display:none;
+padding:12px;
+border-radius:16px;
+background:rgba(10,10,10,.9);
+border:1px solid rgba(255,255,255,.2);
+pointer-events:auto;
+}
 
+#panel.open{
+display:block;
+}
 
-const container =
-    document.querySelector("#container");
+.action{
+width:100%;
+margin:4px 0;
+padding:10px;
+border:0;
+border-radius:10px;
+background:#222;
+color:#fff;
+font-size:12px;
+font-weight:bold;
+}
 
-const startButton =
-    document.querySelector("#startButton");
+.action.on{
+background:#087b3c;
+}
+
+.control{
+margin:10px 0;
+}
+
+.control label{
+display:flex;
+justify-content:space-between;
+color:#fff;
+font-size:12px;
+margin-bottom:5px;
+}
+
+.control input{
+width:100%;
+}
+
+#loading{
+position:absolute;
+inset:0;
+z-index:100;
+display:flex;
+align-items:center;
+justify-content:center;
+background:#000;
+color:#fff;
+font-size:16px;
+}
+
+#camera video{
+position:absolute!important;
+left:0!important;
+top:0!important;
+width:100%!important;
+height:100%!important;
+object-fit:cover!important;
+z-index:1!important;
+}
+
+#camera canvas{
+position:absolute!important;
+left:0!important;
+top:0!important;
+width:100%!important;
+height:100%!important;
+z-index:2!important;
+}
+
+#three canvas{
+position:absolute!important;
+left:0!important;
+top:0!important;
+width:100%!important;
+height:100%!important;
+pointer-events:none!important;
+}
+
+.hidden{
+display:none;
+}
+</style></head><body><div id="app"><div id="camera"></div>
+<div id="three"></div><div id="loading">Ready</div><div id="ui"><div id="top">
+<div id="title">Azeez AR Head Tracker</div>
+<button id="menu">MENU</button>
+</div><div id="status">Camera Off</div><button id="start">START CAMERA</button>
+
+<div id="panel"><button id="switchCamera" class="action">
+SWITCH CAMERA
+</button><button id="mirror" class="action">
+MIRROR: OFF
+</button><button id="mesh" class="action on">
+FACE MESH: ON
+</button><button id="fit" class="action">
+FIT TO FACE
+</button><button id="reset" class="action">
+RESET MODEL
+</button><button id="importModel" class="action">
+IMPORT GLB / GLTF
+</button><button id="record" class="action">
+START RECORDING
+</button><button id="exportSettings" class="action">
+EXPORT SETTINGS
+</button><button id="importSettings" class="action">
+IMPORT SETTINGS
+</button><div class="control">
+<label>
+<span>X Position</span>
+<span id="xValue">0</span>
+</label>
+<input id="x" type="range" min="-2" max="2" step=".01" value="0">
+</div><div class="control">
+<label>
+<span>Y Position</span>
+<span id="yValue">0</span>
+</label>
+<input id="y" type="range" min="-2" max="2" step=".01" value="0">
+</div><div class="control">
+<label>
+<span>Z Position</span>
+<span id="zValue">0</span>
+</label>
+<input id="z" type="range" min="-3" max="3" step=".01" value="0">
+</div><div class="control">
+<label>
+<span>Scale</span>
+<span id="scaleValue">1</span>
+</label>
+<input id="scale" type="range" min=".1" max="3" step=".01" value="1">
+</div><div class="control">
+<label>
+<span>Rotation X</span>
+<span id="rxValue">0</span>
+</label>
+<input id="rx" type="range" min="-180" max="180" value="0">
+</div><div class="control">
+<label>
+<span>Rotation Y</span>
+<span id="ryValue">0</span>
+</label>
+<input id="ry" type="range" min="-180" max="180" value="0">
+</div><div class="control">
+<label>
+<span>Rotation Z</span>
+<span id="rzValue">0</span>
+</label>
+<input id="rz" type="range" min="-180" max="180" value="0">
+</div></div>
+</div><input
+id="modelFile"
+class="hidden"
+type="file"
+accept=".glb,.gltf"
+
+«»
+
+<input
+id="settingsFile"
+class="hidden"
+type="file"
+accept=".json"
+
+«»
+
+</div><script type="module">
+
+import * as THREE from
+"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+
+import {GLTFLoader} from
+"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
+
+const app =
+document.getElementById("app");
+
+const cameraBox =
+document.getElementById("camera");
+
+const threeBox =
+document.getElementById("three");
+
+const loading =
+document.getElementById("loading");
 
 const status =
-    document.querySelector("#status");
+document.getElementById("status");
 
+const startButton =
+document.getElementById("start");
 
-let mindarThree = null;
+const menuButton =
+document.getElementById("menu");
 
+const panel =
+document.getElementById("panel");
+
+const switchButton =
+document.getElementById("switchCamera");
+
+const mirrorButton =
+document.getElementById("mirror");
+
+const meshButton =
+document.getElementById("mesh");
+
+const fitButton =
+document.getElementById("fit");
+
+const resetButton =
+document.getElementById("reset");
+
+const importModelButton =
+document.getElementById("importModel");
+
+const recordButton =
+document.getElementById("record");
+
+const exportSettingsButton =
+document.getElementById("exportSettings");
+
+const importSettingsButton =
+document.getElementById("importSettings");
+
+const modelFile =
+document.getElementById("modelFile");
+
+const settingsFile =
+document.getElementById("settingsFile");
+
+const xSlider =
+document.getElementById("x");
+
+const ySlider =
+document.getElementById("y");
+
+const zSlider =
+document.getElementById("z");
+
+const scaleSlider =
+document.getElementById("scale");
+
+const rxSlider =
+document.getElementById("rx");
+
+const rySlider =
+document.getElementById("ry");
+
+const rzSlider =
+document.getElementById("rz");
+
+const xValue =
+document.getElementById("xValue");
+
+const yValue =
+document.getElementById("yValue");
+
+const zValue =
+document.getElementById("zValue");
+
+const scaleValue =
+document.getElementById("scaleValue");
+
+const rxValue =
+document.getElementById("rxValue");
+
+const ryValue =
+document.getElementById("ryValue");
+
+const rzValue =
+document.getElementById("rzValue");
+
+let mindar = null;
+let renderer = null;
+let scene = null;
+let camera = null;
+
+let faceAnchor = null;
 let faceMesh = null;
 
+let modelRoot = null;
+let currentModel = null;
 
-function setStatus(text) {
+let running = false;
+let mirrored = false;
+let meshVisible = true;
 
-    status.textContent = text;
+let recorder = null;
+let recordedChunks = [];
+
+const loader =
+new GLTFLoader();
+
+const state = {
+x:0,
+y:0,
+z:0,
+scale:1,
+rx:0,
+ry:0,
+rz:0
+};
+
+function statusText(value){
+status.textContent = value;
+}
+
+function loadingState(value,text){
+loading.style.display =
+value ? "flex" : "none";
+
+if(text){
+loading.textContent = text;
+}
+}
+
+function rad(value){
+return value * Math.PI / 180;
+}
+
+function updateLabels(){
+xValue.textContent =
+state.x.toFixed(2);
+
+yValue.textContent =
+state.y.toFixed(2);
+
+zValue.textContent =
+state.z.toFixed(2);
+
+scaleValue.textContent =
+state.scale.toFixed(2);
+
+rxValue.textContent =
+Math.round(state.rx);
+
+ryValue.textContent =
+Math.round(state.ry);
+
+rzValue.textContent =
+Math.round(state.rz);
+}
+
+function updateModelTransform(){
+
+if(!modelRoot){
+return;
+}
+
+modelRoot.position.set(
+state.x,
+state.y,
+state.z
+);
+
+modelRoot.scale.setScalar(
+state.scale
+);
+
+modelRoot.rotation.set(
+rad(state.rx),
+rad(state.ry),
+rad(state.rz)
+);
+
+updateLabels();
+}
+
+function resetModelState(){
+
+state.x = 0;
+state.y = 0;
+state.z = 0;
+state.scale = 1;
+state.rx = 0;
+state.ry = 0;
+state.rz = 0;
+
+xSlider.value = 0;
+ySlider.value = 0;
+zSlider.value = 0;
+scaleSlider.value = 1;
+rxSlider.value = 0;
+rySlider.value = 0;
+rzSlider.value = 0;
+
+updateModelTransform();
+}
+
+function resize(){
+
+if(!renderer){
+return;
+}
+
+renderer.setPixelRatio(
+Math.min(
+window.devicePixelRatio || 1,
+2
+)
+);
+
+renderer.setSize(
+window.innerWidth,
+window.innerHeight,
+false
+);
 
 }
 
+window.addEventListener(
+"resize",
+resize
+);
 
-async function setup() {
+loadingState(false);
 
-    try {
+function setupAR(){
 
-        setStatus(
-            "Creating Face Tracker..."
-        );
+try{
 
+mindar = new MindARThree({
+  container: app,
+  uiLoading: "no",
+  uiScanning: "no",
+  uiError: "no"
+});
 
-        mindarThree =
-            new MindARThree({
+renderer = mindar.renderer;
+scene = mindar.scene;
+camera = mindar.camera;
 
-                container:
-                    container,
+renderer.setPixelRatio(
+  Math.min(
+    window.devicePixelRatio || 1,
+    2
+  )
+);
 
-                uiLoading:
-                    "no",
+renderer.setSize(
+  window.innerWidth,
+  window.innerHeight,
+  false
+);
 
-                uiScanning:
-                    "no",
+renderer.setClearColor(
+  0x000000,
+  0
+);
 
-                uiError:
-                    "no"
+if(
+  renderer.domElement.parentElement !==
+  threeBox
+){
 
-            });
+  threeBox.appendChild(
+    renderer.domElement
+  );
 
+}
 
-        const renderer =
-            mindarThree.renderer;
+renderer.domElement.style.position =
+  "absolute";
 
-        const scene =
-            mindarThree.scene;
+renderer.domElement.style.left =
+  "0";
 
-        const camera =
-            mindarThree.camera;
+renderer.domElement.style.top =
+  "0";
 
+renderer.domElement.style.width =
+  "100%";
 
-        const light =
-            new THREE.HemisphereLight(
-                0xffffff,
-                0xbbbbff,
-                1
-            );
+renderer.domElement.style.height =
+  "100%";
 
-        scene.add(light);
+renderer.domElement.style.zIndex =
+  "5";
 
+const light =
+  new THREE.HemisphereLight(
+    0xffffff,
+    0x444444,
+    1.8
+  );
 
-        faceMesh =
-            mindarThree.addFaceMesh();
+scene.add(light);
 
+const directional =
+  new THREE.DirectionalLight(
+    0xffffff,
+    1.5
+  );
 
-        faceMesh.material.transparent =
-            true;
+directional.position.set(
+  0,
+  2,
+  3
+);
 
-        faceMesh.material.opacity =
-            0.35;
+scene.add(directional);
 
-        faceMesh.material.color.set(
-            0x00ff66
-        );
+faceAnchor =
+  mindar.addFaceAnchor(168);
 
+faceMesh =
+  mindar.addFaceMesh();
 
-        scene.add(faceMesh);
+faceMesh.material.transparent =
+  true;
 
+faceMesh.material.opacity =
+  0.3;
 
-        startButton.addEventListener(
-            "click",
-            async () => {
+faceMesh.material.color.set(
+  0x00ff55
+);
 
-                try {
+faceAnchor.group.add(
+  faceMesh
+);
 
-                    startButton.disabled =
-                        true;
+modelRoot =
+  new THREE.Group();
 
-                    startButton.textContent =
-                        "STARTING...";
+faceAnchor.group.add(
+  modelRoot
+);
 
+faceMesh.visible =
+  meshVisible;
 
-                    setStatus(
-                        "Requesting camera..."
-                    );
+return true;
 
+}catch(error){
 
-                    await mindarThree.start();
+console.error(
+  error
+);
 
+statusText(
+  "AR Setup Error"
+);
 
-                    setStatus(
-                        "CAMERA ON - LOOK AT CAMERA"
-                    );
+return false;
 
+}
 
-                    startButton.textContent =
-                        "CAMERA ON";
+}
 
+function getVideo(){
 
-                    renderer.setAnimationLoop(
-                        () => {
+const videos =
+document.querySelectorAll(
+"video"
+);
 
-                            renderer.render(
-                                scene,
-                                camera
-                            );
+if(!videos.length){
+return null;
+}
 
-                        }
-                    );
+return videos[0];
 
+}
 
-                } catch (error) {
+function showCamera(){
 
-                    console.error(
-                        error
-                    );
+const video =
+getVideo();
 
-                    setStatus(
-                        "CAMERA ERROR"
-                    );
+if(!video){
+return false;
+}
 
-                    startButton.disabled =
-                        false;
+if(
+video.parentElement !==
+cameraBox
+){
 
-                    startButton.textContent =
-                        "START CAMERA";
+cameraBox.appendChild(
+  video
+);
 
-                    alert(
-                        "Camera could not start. Allow camera permission in Chrome and reload the page."
-                    );
+}
 
-                }
+video.setAttribute(
+"playsinline",
+""
+);
 
-            }
-        );
+video.setAttribute(
+"autoplay",
+""
+);
 
+video.muted = true;
 
-        setStatus(
-            "Ready - press START CAMERA"
-        );
+video.style.position =
+"absolute";
 
+video.style.left =
+"0";
 
-    } catch (error) {
+video.style.top =
+"0";
 
-        console.error(
-            error
-        );
+video.style.width =
+"100%";
 
-        setStatus(
-            "MINDAR LOAD ERROR"
-        );
+video.style.height =
+"100%";
 
-        alert(
-            "MindAR failed to load. Check internet connection."
-        );
+video.style.objectFit =
+"cover";
 
+video.style.display =
+"block";
+
+video.style.visibility =
+"visible";
+
+video.style.opacity =
+"1";
+
+video.style.zIndex =
+"1";
+
+applyMirror();
+
+return true;
+
+}
+
+async function startCamera(){
+
+if(running){
+return;
+}
+
+loadingState(
+true,
+"Starting Camera..."
+);
+
+statusText(
+"Starting Camera..."
+);
+
+try{
+
+if(!mindar){
+
+  const ready =
+    setupAR();
+
+  if(!ready){
+    throw new Error(
+      "AR setup failed"
+    );
+  }
+
+}
+
+await mindar.start();
+
+running = true;
+
+await new Promise(
+  resolve =>
+    setTimeout(
+      resolve,
+      300
+    )
+);
+
+showCamera();
+
+setTimeout(
+  showCamera,
+  500
+);
+
+setTimeout(
+  showCamera,
+  1000
+);
+
+resize();
+
+loadingState(false);
+
+startButton.style.display =
+  "none";
+
+statusText(
+  "Face Tracking Active"
+);
+
+animate();
+
+}catch(error){
+
+console.error(
+  error
+);
+
+loadingState(
+  false
+);
+
+statusText(
+  "Camera Error"
+);
+
+}
+
+}
+
+async function switchCamera(){
+
+if(!running){
+return;
+}
+
+statusText(
+"Switching Camera..."
+);
+
+try{
+
+await mindar.stop();
+
+await new Promise(
+  resolve =>
+    setTimeout(
+      resolve,
+      300
+    )
+);
+
+await mindar.start();
+
+await new Promise(
+  resolve =>
+    setTimeout(
+      resolve,
+      400
+    )
+);
+
+showCamera();
+
+statusText(
+  "Face Tracking Active"
+);
+
+}catch(error){
+
+console.error(
+  error
+);
+
+statusText(
+  "Camera Switch Error"
+);
+
+}
+
+}
+
+function applyMirror(){
+
+const video =
+getVideo();
+
+if(!video){
+return;
+}
+
+video.style.transform =
+mirrored
+? "scaleX(-1)"
+: "scaleX(1)";
+
+}
+
+function animate(){
+
+if(!running){
+return;
+}
+
+requestAnimationFrame(
+animate
+);
+
+if(
+renderer &&
+scene &&
+camera
+){
+
+renderer.render(
+  scene,
+  camera
+);
+
+}
+
+}
+
+startButton.addEventListener(
+"click",
+startCamera
+);
+
+switchButton.addEventListener(
+"click",
+switchCamera
+);
+
+menuButton.addEventListener(
+"click",
+()=>{
+panel.classList.toggle(
+"open"
+);
+}
+);
+
+mirrorButton.addEventListener(
+"click",
+()=>{
+
+mirrored =
+  !mirrored;
+
+mirrorButton.textContent =
+  mirrored
+    ? "MIRROR: ON"
+    : "MIRROR: OFF";
+
+applyMirror();
+
+}
+);
+
+meshButton.addEventListener(
+"click",
+()=>{
+
+meshVisible =
+  !meshVisible;
+
+if(faceMesh){
+
+  faceMesh.visible =
+    meshVisible;
+
+}
+
+meshButton.textContent =
+  meshVisible
+    ? "FACE MESH: ON"
+    : "FACE MESH: OFF";
+
+meshButton.classList.toggle(
+  "on",
+  meshVisible
+);
+
+}
+);
+
+fitButton.addEventListener(
+"click",
+()=>{
+
+if(!currentModel){
+
+  statusText(
+    "Import Model First"
+  );
+
+  return;
+
+}
+
+const box =
+  new THREE.Box3().setFromObject(
+    currentModel
+  );
+
+const size =
+  new THREE.Vector3();
+
+box.getSize(size);
+
+const largest =
+  Math.max(
+    size.x,
+    size.y,
+    size.z
+  );
+
+if(largest > 0){
+
+  currentModel.scale.setScalar(
+    1.5 / largest
+  );
+
+}
+
+resetModelState();
+
+statusText(
+  "Model Fitted"
+);
+
+}
+);
+
+resetButton.addEventListener(
+"click",
+()=>{
+
+resetModelState();
+
+statusText(
+  "Model Reset"
+);
+
+}
+);
+
+function bindSlider(
+slider,
+key
+){
+
+slider.addEventListener(
+"input",
+()=>{
+
+  state[key] =
+    Number(
+      slider.value
+    );
+
+  updateModelTransform();
+
+}
+
+);
+
+}
+
+bindSlider(
+xSlider,
+"x"
+);
+
+bindSlider(
+ySlider,
+"y"
+);
+
+bindSlider(
+zSlider,
+"z"
+);
+
+bindSlider(
+scaleSlider,
+"scale"
+);
+
+bindSlider(
+rxSlider,
+"rx"
+);
+
+bindSlider(
+rySlider,
+"ry"
+);
+
+bindSlider(
+rzSlider,
+"rz"
+);
+
+updateLabels();
+
+loadingState(false);
+
+/* =========================
+P3 - MODEL, RECORDING, SETTINGS
+========================= */
+
+function clearModel() {
+while (modelRoot.children.length) {
+const child = modelRoot.children[0];
+modelRoot.remove(child);
+
+child.traverse((obj) => {
+  if (obj.geometry) obj.geometry.dispose();
+
+  if (obj.material) {
+    const materials = Array.isArray(obj.material)
+      ? obj.material
+      : [obj.material];
+
+    materials.forEach((mat) => {
+      if (mat.map) mat.map.dispose();
+      if (mat.normalMap) mat.normalMap.dispose();
+      if (mat.roughnessMap) mat.roughnessMap.dispose();
+      if (mat.metalnessMap) mat.metalnessMap.dispose();
+      mat.dispose();
+    });
+  }
+});
+
+}
+
+currentModel = null;
+}
+
+function prepareModel(object) {
+object.traverse((child) => {
+if (!child.isMesh) return;
+
+child.frustumCulled = false;
+
+if (child.material) {
+  const materials = Array.isArray(child.material)
+    ? child.material
+    : [child.material];
+
+  materials.forEach((material) => {
+    material.side = THREE.DoubleSide;
+    material.depthTest = true;
+    material.depthWrite = true;
+  });
+}
+
+});
+
+return object;
+}
+
+function loadGLTFFile(file) {
+const url = URL.createObjectURL(file);
+
+loadingState(true);
+
+loader.load(
+url,
+(gltf) => {
+clearModel();
+
+  currentModel = prepareModel(gltf.scene);
+  modelRoot.add(currentModel);
+
+  currentModel.position.set(0, 0, 0);
+  currentModel.rotation.set(0, 0, 0);
+  currentModel.scale.set(1, 1, 1);
+
+  URL.revokeObjectURL(url);
+
+  updateModelTransform();
+  statusText("3D Model Loaded");
+  loadingState(false);
+},
+undefined,
+() => {
+  URL.revokeObjectURL(url);
+  statusText("Model Load Error");
+  loadingState(false);
+}
+
+);
+}
+
+modelFile.addEventListener("change", (event) => {
+const file = event.target.files && event.target.files[0];
+
+if (!file) return;
+
+const name = file.name.toLowerCase();
+
+if (name.endsWith(".glb") || name.endsWith(".gltf")) {
+loadGLTFFile(file);
+} else {
+statusText("Use GLB or GLTF");
+}
+
+event.target.value = "";
+});
+
+function saveSettings() {
+const data = {
+version: 1,
+model: {
+x: state.x,
+y: state.y,
+z: state.z,
+scale: state.scale,
+rotX: state.rotX,
+rotY: state.rotY,
+rotZ: state.rotZ
+},
+mirror: mirrored,
+faceMesh: meshVisible
+};
+
+const blob = new Blob(
+[JSON.stringify(data, null, 2)],
+{ type: "application/json" }
+);
+
+const url = URL.createObjectURL(blob);
+const link = document.createElement("a");
+
+link.href = url;
+link.download = "aziz-ar-settings.json";
+link.click();
+
+URL.revokeObjectURL(url);
+
+statusText("Settings Exported");
+}
+
+function loadSettings(file) {
+const reader = new FileReader();
+
+reader.onload = () => {
+try {
+const data = JSON.parse(reader.result);
+
+  if (data.model) {
+    state.x = Number(data.model.x) || 0;
+    state.y = Number(data.model.y) || 0;
+    state.z = Number(data.model.z) || 0;
+    state.scale = Number(data.model.scale) || 1;
+    state.rotX = Number(data.model.rotX) || 0;
+    state.rotY = Number(data.model.rotY) || 0;
+    state.rotZ = Number(data.model.rotZ) || 0;
+  }
+
+  if (typeof data.mirror === "boolean") {
+    mirrored = data.mirror;
+    mirrorButton.textContent = "MIRROR: " + (mirrored ? "ON" : "OFF");
+    applyMirror();
+  }
+
+  if (typeof data.faceMesh === "boolean") {
+    meshVisible = data.faceMesh;
+
+    if (faceMesh && faceMesh.material) {
+      faceMesh.material.opacity = meshVisible ? 0.3 : 0;
     }
 
+    meshButton.textContent =
+      "FACE MESH: " + (meshVisible ? "ON" : "OFF");
+  }
+
+  updateLabels();
+  updateModelTransform();
+
+  statusText("Settings Imported");
+} catch (error) {
+  statusText("Invalid Settings");
 }
 
+};
 
-setup();
+reader.readAsText(file);
+}
+
+settingsFile.addEventListener("change", (event) => {
+const file = event.target.files && event.target.files[0];
+
+if (!file) return;
+
+loadSettings(file);
+event.target.value = "";
+});
+
+function startRecording() {
+if (!running) {
+statusText("Start Camera First");
+return;
+}
+
+if (recorder && recorder.state === "recording") {
+recorder.stop();
+recordButton.textContent = "START RECORDING";
+return;
+}
+
+const recordCanvas = document.createElement("canvas");
+const recordContext = recordCanvas.getContext("2d");
+
+const width = Math.max(
+320,
+Math.floor(window.innerWidth * Math.min(window.devicePixelRatio || 1, 2))
+);
+
+const height = Math.max(
+240,
+Math.floor(window.innerHeight * Math.min(window.devicePixelRatio || 1, 2))
+);
+
+recordCanvas.width = width;
+recordCanvas.height = height;
+
+const stream = recordCanvas.captureStream(30);
+
+recordedChunks = [];
+
+let mimeType = "video/webm;codecs=vp9";
+
+if (!MediaRecorder.isTypeSupported(mimeType)) {
+mimeType = "video/webm;codecs=vp8";
+}
+
+if (!MediaRecorder.isTypeSupported(mimeType)) {
+mimeType = "video/webm";
+}
+
+recorder = new MediaRecorder(stream, {
+mimeType
+});
+
+recorder.ondataavailable = (event) => {
+if (event.data && event.data.size > 0) {
+recordedChunks.push(event.data);
+}
+};
+
+recorder.onstop = () => {
+const blob = new Blob(
+recordedChunks,
+{ type: mimeType }
+);
+
+const url = URL.createObjectURL(blob);
+const link = document.createElement("a");
+
+link.href = url;
+link.download = "aziz-ar-recording.webm";
+link.click();
+
+setTimeout(() => {
+  URL.revokeObjectURL(url);
+}, 1000);
+
+statusText("Recording Saved");
+
+};
+
+recorder.start();
+recordButton.textContent = "STOP RECORDING";
+statusText("Recording");
+
+const drawRecording = () => {
+if (!recorder || recorder.state !== "recording") return;
+
+const video = getVideo();
+
+recordContext.clearRect(
+  0,
+  0,
+  recordCanvas.width,
+  recordCanvas.height
+);
+
+if (video && video.readyState >= 2) {
+  const vw = video.videoWidth || window.innerWidth;
+  const vh = video.videoHeight || window.innerHeight;
+
+  const videoRatio = vw / vh;
+  const canvasRatio = recordCanvas.width / recordCanvas.height;
+
+  let dw;
+  let dh;
+  let dx;
+  let dy;
+
+  if (videoRatio > canvasRatio) {
+    dh = recordCanvas.height;
+    dw = dh * videoRatio;
+    dx = (recordCanvas.width - dw) / 2;
+    dy = 0;
+  } else {
+    dw = recordCanvas.width;
+    dh = dw / videoRatio;
+    dx = 0;
+    dy = (recordCanvas.height - dh) / 2;
+  }
+
+  recordContext.save();
+
+  if (mirrored) {
+    recordContext.translate(recordCanvas.width, 0);
+    recordContext.scale(-1, 1);
+  }
+
+  recordContext.drawImage(
+    video,
+    dx,
+    dy,
+    dw,
+    dh
+  );
+
+  recordContext.restore();
+}
+
+if (renderer && renderer.domElement) {
+  recordContext.drawImage(
+    renderer.domElement,
+    0,
+    0,
+    recordCanvas.width,
+    recordCanvas.height
+  );
+}
+
+requestAnimationFrame(drawRecording);
+
+};
+
+drawRecording();
+}
+
+recordButton.addEventListener("click", startRecording);
+
+function downloadCurrentSettings() {
+saveSettings();
+}
+
+exportButton.addEventListener(
+"click",
+downloadCurrentSettings
+);
+
+function updateFaceMeshVisibility() {
+if (!faceMesh || !faceMesh.material) return;
+
+faceMesh.material.transparent = true;
+faceMesh.material.opacity = meshVisible ? 0.3 : 0;
+faceMesh.visible = true;
+}
+
+function toggleFaceMesh() {
+meshVisible = !meshVisible;
+
+updateFaceMeshVisibility();
+
+meshButton.textContent =
+"FACE MESH: " + (meshVisible ? "ON" : "OFF");
+
+statusText(
+meshVisible
+? "Face Mesh On"
+: "Face Mesh Off"
+);
+}
+
+meshButton.addEventListener(
+"click",
+toggleFaceMesh
+);
+
+function updateTrackingStatus() {
+if (!running) return;
+
+if (faceAnchor && faceAnchor.group) {
+const visible =
+faceAnchor.group.visible !== false;
+
+if (visible) {
+  statusText("Face Tracking Active");
+} else {
+  statusText("Searching Face");
+}
+
+}
+}
+
+function applyModelVisibility() {
+if (!modelRoot) return;
+
+modelRoot.visible = true;
+}
+
+function animateFrame() {
+if (!running) return;
+
+requestAnimationFrame(animateFrame);
+
+applyModelVisibility();
+updateFaceMeshVisibility();
+updateTrackingStatus();
+
+if (renderer && scene && camera) {
+renderer.render(scene, camera);
+}
+}
+
+function startRenderLoop() {
+animateFrame();
+}
+
+function fixVideoLayer() {
+const video = getVideo();
+
+if (!video) return;
+
+video.style.position = "absolute";
+video.style.left = "0";
+video.style.top = "0";
+video.style.width = "100%";
+video.style.height = "100%";
+video.style.objectFit = "cover";
+video.style.zIndex = "1";
+video.style.pointerEvents = "none";
+
+applyMirror();
+}
+
+function finalResize() {
+resize();
+fixVideoLayer();
+
+if (renderer) {
+renderer.setPixelRatio(
+Math.min(window.devicePixelRatio || 1, 2)
+);
+}
+}
+
+window.addEventListener(
+"orientationchange",
+() => {
+setTimeout(finalResize, 400);
+}
+);
+
+window.addEventListener(
+"resize",
+finalResize
+);
+
+importButton.addEventListener(
+"click",
+() => modelFile.click()
+);
+
+settingsButton.addEventListener(
+"click",
+() => settingsFile.click()
+);
+
+setInterval(() => {
+if (running) {
+fixVideoLayer();
+updateFaceMeshVisibility();
+}
+}, 1000);
+
+updateLabels();
+loadingState(false);
+statusText("Camera Off");
 
 </script>
-
 </body>
-
 </html>
