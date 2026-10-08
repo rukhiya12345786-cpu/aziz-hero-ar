@@ -506,3 +506,319 @@ threeLoop();
 console.log(
     "THREE.JS 3D TEST READY"
 );
+// ==========================================
+// MEDIAPIPE FACE TRACKING TEST
+// ==========================================
+
+import {
+    FaceLandmarker,
+    FilesetResolver
+} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm";
+
+
+// ==========================================
+// TRACKING VARIABLES
+// ==========================================
+
+let faceLandmarker = null;
+let faceTrackingReady = false;
+let lastVideoTime = -1;
+
+const landmarkCanvas =
+    document.getElementById("landmarkCanvas");
+
+const landmarkCtx =
+    landmarkCanvas
+        ? landmarkCanvas.getContext("2d")
+        : null;
+
+
+// ==========================================
+// LANDMARK CANVAS SIZE
+// ==========================================
+
+function resizeLandmarkCanvas() {
+
+    if (!landmarkCanvas) {
+        return;
+    }
+
+    landmarkCanvas.width =
+        window.innerWidth;
+
+    landmarkCanvas.height =
+        window.innerHeight;
+}
+
+resizeLandmarkCanvas();
+
+window.addEventListener(
+    "resize",
+    resizeLandmarkCanvas
+);
+
+
+// ==========================================
+// LOAD FACE LANDMARKER
+// ==========================================
+
+async function loadFaceTracking() {
+
+    try {
+
+        setStatus(
+            "LOADING FACE TRACKING..."
+        );
+
+        const vision =
+            await FilesetResolver.forVisionTasks(
+                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
+            );
+
+
+        faceLandmarker =
+            await FaceLandmarker.createFromOptions(
+                vision,
+                {
+                    baseOptions: {
+                        modelAssetPath:
+                            "../models/face_landmarker.task",
+
+                        delegate: "GPU"
+                    },
+
+                    runningMode: "VIDEO",
+
+                    numFaces: 1,
+
+                    minFaceDetectionConfidence:
+                        0.5,
+
+                    minFacePresenceConfidence:
+                        0.5,
+
+                    minTrackingConfidence:
+                        0.5
+                }
+            );
+
+
+        faceTrackingReady = true;
+
+        setStatus(
+            "FACE TRACKING READY"
+        );
+
+        console.log(
+            "FACE TRACKING READY"
+        );
+
+
+        requestAnimationFrame(
+            faceTrackingLoop
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "FACE TRACKING ERROR:",
+            error
+        );
+
+        setStatus(
+            "FACE ERROR: " +
+            error.message
+        );
+    }
+}
+
+
+// ==========================================
+// DRAW FACE LANDMARKS
+// ==========================================
+
+function drawFaceLandmarks(
+    landmarks
+) {
+
+    if (
+        !landmarkCtx ||
+        !landmarkCanvas
+    ) {
+        return;
+    }
+
+
+    landmarkCtx.clearRect(
+        0,
+        0,
+        landmarkCanvas.width,
+        landmarkCanvas.height
+    );
+
+
+    if (
+        !landmarks ||
+        landmarks.length === 0
+    ) {
+        return;
+    }
+
+
+    landmarkCtx.fillStyle =
+        "#00ff55";
+
+
+    for (
+        const point of landmarks
+    ) {
+
+        const x =
+            point.x *
+            landmarkCanvas.width;
+
+        const y =
+            point.y *
+            landmarkCanvas.height;
+
+
+        landmarkCtx.beginPath();
+
+        landmarkCtx.arc(
+            x,
+            y,
+            2,
+            0,
+            Math.PI * 2
+        );
+
+        landmarkCtx.fill();
+    }
+}
+
+
+// ==========================================
+// FACE TRACKING LOOP
+// ==========================================
+
+function faceTrackingLoop() {
+
+    if (!faceTrackingReady) {
+        return;
+    }
+
+
+    if (
+        !camera ||
+        camera.readyState <
+        HTMLMediaElement.HAVE_CURRENT_DATA
+    ) {
+
+        requestAnimationFrame(
+            faceTrackingLoop
+        );
+
+        return;
+    }
+
+
+    if (
+        camera.currentTime !==
+        lastVideoTime
+    ) {
+
+        lastVideoTime =
+            camera.currentTime;
+
+
+        try {
+
+            const result =
+                faceLandmarker.detectForVideo(
+                    camera,
+                    performance.now()
+                );
+
+
+            if (
+                result.faceLandmarks &&
+                result.faceLandmarks.length > 0
+            ) {
+
+                drawFaceLandmarks(
+                    result.faceLandmarks[0]
+                );
+
+
+                setStatus(
+                    "FACE DETECTED"
+                );
+
+
+                window.azizFaceLandmarks =
+                    result.faceLandmarks[0];
+
+
+            } else {
+
+                if (landmarkCtx) {
+
+                    landmarkCtx.clearRect(
+                        0,
+                        0,
+                        landmarkCanvas.width,
+                        landmarkCanvas.height
+                    );
+                }
+
+
+                setStatus(
+                    "SEARCHING FACE..."
+                );
+            }
+
+
+        } catch (error) {
+
+            console.error(
+                "TRACKING LOOP ERROR:",
+                error
+            );
+        }
+    }
+
+
+    requestAnimationFrame(
+        faceTrackingLoop
+    );
+}
+
+
+// ==========================================
+// START TRACKING AFTER CAMERA START
+// ==========================================
+
+const originalStartCamera =
+    startCamera;
+
+
+startCamera =
+    async function () {
+
+        await originalStartCamera();
+
+
+        if (
+            cameraStream &&
+            !faceTrackingReady
+        ) {
+
+            await loadFaceTracking();
+        }
+    };
+
+
+console.log(
+    "FACE TRACKING TEST CODE READY"
+);
