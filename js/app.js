@@ -1,14 +1,42 @@
-import * as THREE from "three";
+// ==========================================
+// AZEEZ AI AR
+// CAMERA + 3D CUBE STABLE TEST
+// ==========================================
 
-const camera = document.getElementById("camera");
-const startButton = document.getElementById("startCameraBtn");
-const switchButton = document.getElementById("switchCameraBtn");
-const mirrorButton = document.getElementById("mirrorBtn");
-const statusBox = document.getElementById("status");
+const camera =
+    document.getElementById("camera");
+
+const startButton =
+    document.getElementById("startCameraBtn");
+
+const switchButton =
+    document.getElementById("switchCameraBtn");
+
+const mirrorButton =
+    document.getElementById("mirrorBtn");
+
+const statusBox =
+    document.getElementById("status");
+
+const threeCanvas =
+    document.getElementById("threeCanvas");
+
 
 let cameraStream = null;
+
 let currentFacingMode = "user";
+
 let mirrorEnabled = false;
+
+let THREE = null;
+
+let cube = null;
+
+let renderer = null;
+
+let threeCamera = null;
+
+let scene = null;
 
 
 // ==========================================
@@ -16,6 +44,7 @@ let mirrorEnabled = false;
 // ==========================================
 
 function setStatus(message) {
+
     if (statusBox) {
         statusBox.textContent = message;
     }
@@ -25,19 +54,28 @@ function setStatus(message) {
 
 
 // ==========================================
-// CAMERA
+// CAMERA START
 // ==========================================
 
 async function startCamera() {
 
     try {
 
-        setStatus("REQUESTING CAMERA...");
+        setStatus("CAMERA REQUESTING...");
 
 
         if (!navigator.mediaDevices) {
+
             throw new Error(
                 "Camera API unavailable"
+            );
+        }
+
+
+        if (!navigator.mediaDevices.getUserMedia) {
+
+            throw new Error(
+                "getUserMedia unavailable"
             );
         }
 
@@ -49,41 +87,41 @@ async function startCamera() {
                 .forEach(track => {
                     track.stop();
                 });
+
+            cameraStream = null;
         }
 
 
         cameraStream =
-            await navigator.mediaDevices
-                .getUserMedia({
+            await navigator.mediaDevices.getUserMedia({
 
-                    video: {
+                video: {
 
-                        facingMode: {
-                            ideal:
-                                currentFacingMode
-                        },
+                    facingMode:
+                        currentFacingMode,
 
-                        width: {
-                            ideal: 1280
-                        },
-
-                        height: {
-                            ideal: 720
-                        }
+                    width: {
+                        ideal: 1280
                     },
 
-                    audio: false
-                });
+                    height: {
+                        ideal: 720
+                    }
+                },
+
+                audio: false
+            });
 
 
         camera.srcObject =
             cameraStream;
 
+
         camera.muted = true;
 
-        camera.playsInline = true;
-
         camera.autoplay = true;
+
+        camera.playsInline = true;
 
 
         await camera.play();
@@ -102,10 +140,14 @@ async function startCamera() {
         );
 
 
+        // Start Three.js only after camera works
+        await startThree();
+
+
     } catch (error) {
 
         console.error(
-            "CAMERA ERROR",
+            "CAMERA ERROR:",
             error
         );
 
@@ -113,9 +155,9 @@ async function startCamera() {
         setStatus(
             "CAMERA ERROR: " +
             (
-                error.message ||
                 error.name ||
-                "Unknown error"
+                error.message ||
+                "UNKNOWN"
             )
         );
     }
@@ -135,6 +177,7 @@ async function switchCamera() {
 
 
     if (cameraStream) {
+
         await startCamera();
     }
 }
@@ -146,12 +189,21 @@ async function switchCamera() {
 
 function applyMirror() {
 
+    if (!camera) {
+        return;
+    }
+
+
     camera.style.transform =
         mirrorEnabled
             ? "scaleX(-1)"
             : "scaleX(1)";
 }
 
+
+// ==========================================
+// MIRROR BUTTON
+// ==========================================
 
 function toggleMirror() {
 
@@ -170,6 +222,264 @@ function toggleMirror() {
                 : "MIRROR: OFF";
     }
 }
+
+
+// ==========================================
+// THREE.JS LOAD
+// ==========================================
+
+async function loadThree() {
+
+    if (THREE) {
+        return THREE;
+    }
+
+
+    setStatus(
+        "LOADING 3D..."
+    );
+
+
+    const module =
+        await import(
+            "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
+        );
+
+
+    THREE = module;
+
+
+    console.log(
+        "THREE.JS LOADED"
+    );
+
+
+    return THREE;
+}
+
+
+// ==========================================
+// START THREE.JS
+// ==========================================
+
+async function startThree() {
+
+    try {
+
+        if (!threeCanvas) {
+
+            throw new Error(
+                "3D canvas not found"
+            );
+        }
+
+
+        await loadThree();
+
+
+        if (renderer) {
+
+            setStatus(
+                "CAMERA + 3D WORKING"
+            );
+
+            return;
+        }
+
+
+        renderer =
+            new THREE.WebGLRenderer({
+
+                canvas:
+                    threeCanvas,
+
+                alpha: true,
+
+                antialias: true
+            });
+
+
+        renderer.setPixelRatio(
+            Math.min(
+                window.devicePixelRatio,
+                2
+            )
+        );
+
+
+        renderer.setSize(
+            window.innerWidth,
+            window.innerHeight
+        );
+
+
+        renderer.setClearColor(
+            0x000000,
+            0
+        );
+
+
+        scene =
+            new THREE.Scene();
+
+
+        threeCamera =
+            new THREE.PerspectiveCamera(
+
+                45,
+
+                window.innerWidth /
+                window.innerHeight,
+
+                0.1,
+
+                100
+            );
+
+
+        threeCamera.position.z = 5;
+
+
+        // ==================================
+        // LIGHT
+        // ==================================
+
+        const light =
+            new THREE.HemisphereLight(
+                0xffffff,
+                0x444444,
+                2
+            );
+
+
+        scene.add(light);
+
+
+        // ==================================
+        // CUBE
+        // ==================================
+
+        const geometry =
+            new THREE.BoxGeometry(
+                1.2,
+                1.2,
+                1.2
+            );
+
+
+        const material =
+            new THREE.MeshNormalMaterial();
+
+
+        cube =
+            new THREE.Mesh(
+                geometry,
+                material
+            );
+
+
+        scene.add(cube);
+
+
+        // Make sure canvas is visible
+        threeCanvas.style.display =
+            "block";
+
+
+        threeCanvas.style.opacity =
+            "1";
+
+
+        setStatus(
+            "CAMERA + 3D WORKING"
+        );
+
+
+        console.log(
+            "3D CUBE READY"
+        );
+
+
+        renderLoop();
+
+
+    } catch (error) {
+
+        console.error(
+            "THREE ERROR:",
+            error
+        );
+
+
+        setStatus(
+            "3D ERROR: " +
+            (
+                error.message ||
+                "UNKNOWN"
+            )
+        );
+    }
+}
+
+
+// ==========================================
+// RENDER LOOP
+// ==========================================
+
+function renderLoop() {
+
+    requestAnimationFrame(
+        renderLoop
+    );
+
+
+    if (!cube || !renderer) {
+        return;
+    }
+
+
+    cube.rotation.x +=
+        0.01;
+
+
+    cube.rotation.y +=
+        0.015;
+
+
+    renderer.render(
+        scene,
+        threeCamera
+    );
+}
+
+
+// ==========================================
+// RESIZE
+// ==========================================
+
+window.addEventListener(
+    "resize",
+    () => {
+
+        if (!renderer || !threeCamera) {
+            return;
+        }
+
+
+        threeCamera.aspect =
+            window.innerWidth /
+            window.innerHeight;
+
+
+        threeCamera.updateProjectionMatrix();
+
+
+        renderer.setSize(
+            window.innerWidth,
+            window.innerHeight
+        );
+    }
+);
 
 
 // ==========================================
@@ -204,152 +514,8 @@ if (mirrorButton) {
 
 
 // ==========================================
-// THREE.JS
+// INITIAL
 // ==========================================
-
-const threeCanvas =
-    document.getElementById(
-        "threeCanvas"
-    );
-
-
-const renderer =
-    new THREE.WebGLRenderer({
-
-        canvas: threeCanvas,
-
-        alpha: true,
-
-        antialias: true
-    });
-
-
-renderer.setPixelRatio(
-    Math.min(
-        window.devicePixelRatio,
-        2
-    )
-);
-
-
-renderer.setSize(
-    window.innerWidth,
-    window.innerHeight
-);
-
-
-const scene =
-    new THREE.Scene();
-
-
-const threeCamera =
-    new THREE.PerspectiveCamera(
-
-        45,
-
-        window.innerWidth /
-        window.innerHeight,
-
-        0.1,
-
-        100
-    );
-
-
-threeCamera.position.z = 5;
-
-
-// ==========================================
-// LIGHT
-// ==========================================
-
-const light =
-    new THREE.HemisphereLight(
-        0xffffff,
-        0x444444,
-        2
-    );
-
-
-scene.add(light);
-
-
-// ==========================================
-// CUBE
-// ==========================================
-
-const geometry =
-    new THREE.BoxGeometry(
-        1.2,
-        1.2,
-        1.2
-    );
-
-
-const material =
-    new THREE.MeshNormalMaterial();
-
-
-const cube =
-    new THREE.Mesh(
-        geometry,
-        material
-    );
-
-
-scene.add(cube);
-
-
-// ==========================================
-// RESIZE
-// ==========================================
-
-window.addEventListener(
-    "resize",
-    () => {
-
-        threeCamera.aspect =
-            window.innerWidth /
-            window.innerHeight;
-
-
-        threeCamera
-            .updateProjectionMatrix();
-
-
-        renderer.setSize(
-            window.innerWidth,
-            window.innerHeight
-        );
-    }
-);
-
-
-// ==========================================
-// 3D LOOP
-// ==========================================
-
-function renderLoop() {
-
-    requestAnimationFrame(
-        renderLoop
-    );
-
-
-    cube.rotation.x += 0.01;
-
-    cube.rotation.y += 0.015;
-
-
-    renderer.render(
-        scene,
-        threeCamera
-    );
-}
-
-
-renderLoop();
-
 
 setStatus(
     "CAMERA TEST READY"
@@ -357,5 +523,5 @@ setStatus(
 
 
 console.log(
-    "AZEEZ CAMERA + 3D TEST READY"
+    "AZEEZ STABLE CAMERA TEST LOADED"
 );
