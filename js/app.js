@@ -367,4 +367,142 @@ setStatus("CAMERA TEST READY");
 
 console.log(
     "AZEEZ CAMERA TEST LOADED"
+);// ==========================================
+// THREE.JS 3D TEST
+// ==========================================
+
+import * as THREE from "three";
+
+const threeCanvas =
+    document.getElementById("threeCanvas");
+
+const renderer =
+    new THREE.WebGLRenderer({
+        canvas: threeCanvas,
+        alpha: true,
+        antialias: true
+    });
+
+renderer.setPixelRatio(
+    Math.min(window.devicePixelRatio, 2)
+);
+
+renderer.setSize(
+    window.innerWidth,
+    window.innerHeight
+);
+
+renderer.setClearColor(
+    0x000000,
+    0
+);
+
+
+// ==========================================
+// SCENE
+// ==========================================
+
+const scene =
+    new THREE.Scene();
+
+
+// ==========================================
+// 3D CAMERA
+// ==========================================
+
+const threeCamera =
+    new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth /
+        window.innerHeight,
+        0.1,
+        100
+    );
+
+threeCamera.position.z = 5;
+
+
+// ==========================================
+// LIGHT
+// ==========================================
+
+const light =
+    new THREE.HemisphereLight(
+        0xffffff,
+        0x444444,
+        2
+    );
+
+scene.add(light);
+
+
+// ==========================================
+// CUBE
+// ==========================================
+
+const geometry =
+    new THREE.BoxGeometry(
+        1.2,
+        1.2,
+        1.2
+    );
+
+const material =
+    new THREE.MeshNormalMaterial();
+
+const cube =
+    new THREE.Mesh(
+        geometry,
+        material
+    );
+
+scene.add(cube);
+
+
+// ==========================================
+// RESIZE
+// ==========================================
+
+window.addEventListener(
+    "resize",
+    () => {
+
+        threeCamera.aspect =
+            window.innerWidth /
+            window.innerHeight;
+
+        threeCamera.updateProjectionMatrix();
+
+        renderer.setSize(
+            window.innerWidth,
+            window.innerHeight
+        );
+    }
+);
+
+
+// ==========================================
+// 3D LOOP
+// ==========================================
+
+function threeLoop() {
+
+    requestAnimationFrame(
+        threeLoop
+    );
+
+    cube.rotation.x += 0.01;
+
+    cube.rotation.y += 0.015;
+
+    renderer.render(
+        scene,
+        threeCamera
+    );
+}
+
+threeLoop();
+
+console.log(
+    "THREE.JS 3D TEST READY"
 );
