@@ -186,3 +186,57 @@ setCameraStatus("OFF");
 setGlobalStatus("READY");
 
 console.log("AZEEZ AI AR - CAMERA SYSTEM READY");
+// CONTROL PANEL HIDE / SHOW
+
+const controls = document.getElementById("controls");
+const controlToggle = document.getElementById("controlToggle");
+const hideControlsBtn = document.getElementById("hideControlsBtn");
+const showControlsBtn = document.getElementById("showControlsBtn");
+
+function hideControls() {
+    if (controls) {
+        controls.classList.add("hidden");
+    }
+
+    if (controlToggle) {
+        controlToggle.textContent = "SHOW CONTROLS";
+    }
+}
+
+function showControls() {
+    if (controls) {
+        controls.classList.remove("hidden");
+    }
+
+    if (controlToggle) {
+        controlToggle.textContent = "HIDE CONTROLS";
+    }
+}
+
+if (controlToggle) {
+    controlToggle.addEventListener("click", function() {
+
+        if (controls && controls.classList.contains("hidden")) {
+            showControls();
+        } else {
+            hideControls();
+        }
+
+    });
+}
+
+if (hideControlsBtn) {
+    hideControlsBtn.addEventListener(
+        "click",
+        hideControls
+    );
+}
+
+if (showControlsBtn) {
+    showControlsBtn.addEventListener(
+        "click",
+        showControls
+    );
+}
+
+console.log("CONTROL HIDE / SHOW READY");
