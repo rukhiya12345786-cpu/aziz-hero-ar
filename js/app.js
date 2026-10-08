@@ -1,65 +1,370 @@
+// ==========================================
+// AZEEZ AI AR - CAMERA TEST
+// ==========================================
+
 const camera = document.getElementById("camera");
-const startBtn = document.getElementById("startCameraBtn");
-const status = document.getElementById("status");
+const startButton = document.getElementById("startCameraBtn");
+const switchButton = document.getElementById("switchCameraBtn");
+const mirrorButton = document.getElementById("mirrorBtn");
+const statusBox = document.getElementById("status");
 
-let stream = null;
+let cameraStream = null;
+let currentFacingMode = "user";
+let mirrorEnabled = false;
 
-function setStatus(text) {
-    if (status) {
-        status.textContent = text;
+
+// ==========================================
+// STATUS
+// ==========================================
+
+function setStatus(message) {
+    if (statusBox) {
+        statusBox.textContent = message;
+    }
+
+    console.log(message);
+}
+
+
+// ==========================================
+// CAMERA SUPPORT CHECK
+// ==========================================
+
+function checkCameraSupport() {
+
+    if (!window.isSecureContext) {
+
+        setStatus("HTTPS REQUIRED");
+
+        return false;
+    }
+
+    if (!navigator.mediaDevices) {
+
+        setStatus("CAMERA API NOT AVAILABLE");
+
+        return false;
+    }
+
+    if (!navigator.mediaDevices.getUserMedia) {
+
+        setStatus("CAMERA NOT SUPPORTED");
+
+        return false;
+    }
+
+    if (!camera) {
+
+        setStatus("VIDEO ELEMENT NOT FOUND");
+
+        return false;
+    }
+
+    return true;
+}
+
+
+// ==========================================
+// STOP CAMERA
+// ==========================================
+
+function stopCamera() {
+
+    if (!cameraStream) {
+        return;
+    }
+
+    cameraStream
+        .getTracks()
+        .forEach(track => {
+            track.stop();
+        });
+
+    cameraStream = null;
+
+    if (camera) {
+        camera.srcObject = null;
     }
 }
 
+
+// ==========================================
+// START CAMERA
+// ==========================================
+
 async function startCamera() {
+
+    console.log("START CAMERA BUTTON PRESSED");
+
+    if (!checkCameraSupport()) {
+        return;
+    }
+
     try {
-        setStatus("Requesting Camera...");
 
-        if (!navigator.mediaDevices) {
-            throw new Error("Camera API unavailable");
-        }
+        setStatus("REQUESTING CAMERA...");
 
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop());
-            stream = null;
-        }
+        stopCamera();
 
-        stream = await navigator.mediaDevices.getUserMedia({
+
+        const constraints = {
+
             video: {
-                facingMode: "user",
+
+                facingMode: {
+                    ideal: currentFacingMode
+                },
+
                 width: {
                     ideal: 1280
                 },
+
                 height: {
                     ideal: 720
+                },
+
+                frameRate: {
+                    ideal: 30
                 }
             },
-            audio: false
-        });
 
-        camera.srcObject = stream;
+            audio: false
+        };
+
+
+        console.log(
+            "Camera constraints:",
+            constraints
+        );
+
+
+        cameraStream =
+            await navigator.mediaDevices
+                .getUserMedia(
+                    constraints
+                );
+
+
+        console.log(
+            "Camera stream received"
+        );
+
+
+        camera.srcObject =
+            cameraStream;
+
+
+        camera.muted = true;
+
+        camera.autoplay = true;
+
+        camera.playsInline = true;
+
 
         await camera.play();
 
-        setStatus("Camera Working");
 
-        console.log("CAMERA WORKING");
+        applyMirror();
+
+
+        setStatus("CAMERA WORKING");
+
+
+        console.log(
+            "CAMERA WORKING SUCCESSFULLY"
+        );
+
 
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            "CAMERA ERROR:",
+            error
+        );
+
+
+        let message =
+            error.message ||
+            "Unknown camera error";
+
+
+        if (
+            error.name ===
+            "NotAllowedError"
+        ) {
+
+            message =
+                "CAMERA PERMISSION DENIED";
+        }
+
+
+        if (
+            error.name ===
+            "NotFoundError"
+        ) {
+
+            message =
+                "NO CAMERA FOUND";
+        }
+
+
+        if (
+            error.name ===
+            "NotReadableError"
+        ) {
+
+            message =
+                "CAMERA BUSY";
+        }
+
+
+        if (
+            error.name ===
+            "OverconstrainedError"
+        ) {
+
+            message =
+                "CAMERA SETTINGS ERROR";
+        }
+
+
+        if (
+            error.name ===
+            "SecurityError"
+        ) {
+
+            message =
+                "CAMERA SECURITY ERROR";
+        }
+
 
         setStatus(
-            "Camera Error: " +
-            error.message
+            "ERROR: " + message
         );
     }
 }
 
-if (startBtn) {
-    startBtn.addEventListener(
+
+// ==========================================
+// SWITCH CAMERA
+// ==========================================
+
+async function switchCamera() {
+
+    currentFacingMode =
+        currentFacingMode === "user"
+            ? "environment"
+            : "user";
+
+
+    setStatus(
+        currentFacingMode === "user"
+            ? "FRONT CAMERA"
+            : "BACK CAMERA"
+    );
+
+
+    if (cameraStream) {
+
+        await startCamera();
+    }
+}
+
+
+// ==========================================
+// MIRROR
+// ==========================================
+
+function applyMirror() {
+
+    if (!camera) {
+        return;
+    }
+
+
+    camera.style.transform =
+        mirrorEnabled
+            ? "scaleX(-1)"
+            : "scaleX(1)";
+}
+
+
+// ==========================================
+// MIRROR BUTTON
+// ==========================================
+
+function toggleMirror() {
+
+    mirrorEnabled =
+        !mirrorEnabled;
+
+
+    applyMirror();
+
+
+    if (mirrorButton) {
+
+        mirrorButton.textContent =
+            mirrorEnabled
+                ? "MIRROR: ON"
+                : "MIRROR: OFF";
+    }
+}
+
+
+// ==========================================
+// BUTTON EVENTS
+// ==========================================
+
+if (startButton) {
+
+    startButton.addEventListener(
         "click",
         startCamera
     );
+
+} else {
+
+    console.error(
+        "START CAMERA BUTTON NOT FOUND"
+    );
 }
 
-console.log("CAMERA TEST APP READY");
+
+if (switchButton) {
+
+    switchButton.addEventListener(
+        "click",
+        switchCamera
+    );
+}
+
+
+if (mirrorButton) {
+
+    mirrorButton.addEventListener(
+        "click",
+        toggleMirror
+    );
+}
+
+
+// ==========================================
+// INITIAL STATUS
+// ==========================================
+
+if (camera) {
+
+    camera.muted = true;
+
+    camera.autoplay = true;
+
+    camera.playsInline = true;
+}
+
+
+setStatus("CAMERA TEST READY");
+
+console.log(
+    "AZEEZ CAMERA TEST LOADED"
+);
