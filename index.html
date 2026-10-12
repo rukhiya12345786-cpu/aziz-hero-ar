@@ -3,30 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#10121a">
-<title>AZEEZ AI AR STUDIO</title>
-
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
-  }
-}
-</script>
+<meta name="theme-color" content="#080b12">
+<title>Azeez AR Head Tracker</title>
 
 <style>
 :root {
   color-scheme: dark;
-  --bg: #10121a;
-  --panel: #1a1e2b;
-  --panel2: #242a3b;
-  --text: #f4f6ff;
-  --muted: #aab2c8;
-  --accent: #7c8cff;
-  --border: #343b51;
-  --danger: #ff596b;
-  --success: #58d6a1;
+  --bg: #080b12;
+  --panel: #141b28;
+  --border: #29364a;
+  --text: #f4f7ff;
+  --muted: #9caac0;
+  --accent: #38bdf8;
+  --green: #34d399;
 }
 
 * {
@@ -34,15 +23,16 @@
 }
 
 html, body {
-  margin: 0;
-  min-height: 100%;
   width: 100%;
+  min-height: 100%;
+  margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: Arial, Helvetica, sans-serif;
 }
 
 body {
+  min-height: 100dvh;
   overflow-x: hidden;
 }
 
@@ -51,43 +41,28 @@ button, input, select {
 }
 
 button {
+  min-height: 42px;
+  padding: 10px 13px;
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 11px 13px;
-  background: var(--panel2);
+  background: #1b2637;
   color: var(--text);
-  font-weight: 650;
   cursor: pointer;
   touch-action: manipulation;
 }
 
 button:active {
-  transform: scale(0.98);
-}
-
-button.primary {
-  background: var(--accent);
-  color: #fff;
-  border-color: transparent;
-}
-
-button.danger {
-  background: #482530;
-  border-color: #75404d;
-}
-
-button.success {
-  background: #173e35;
-  border-color: #2d7460;
+  transform: scale(.98);
 }
 
 button:disabled {
-  opacity: 0.5;
+  opacity: .55;
   cursor: not-allowed;
 }
 
-input, select {
-  max-width: 100%;
+input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
 }
 
 input[type="file"] {
@@ -96,144 +71,147 @@ input[type="file"] {
 
 .app-header {
   position: relative;
-  z-index: 20;
-  padding: 14px;
-  background: #151925;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px;
+  background: #0c111c;
   border-bottom: 1px solid var(--border);
 }
 
-.brand {
-  font-size: 20px;
-  line-height: 1.25;
-  font-weight: 850;
-  letter-spacing: 0.6px;
+.app-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: .4px;
 }
 
-.brand-subtitle {
-  margin-top: 5px;
-  font-size: 12px;
+.app-subtitle {
+  margin-top: 4px;
   color: var(--muted);
+  font-size: 11px;
 }
 
-.header-status {
-  margin-top: 10px;
-  font-size: 12px;
-  color: var(--success);
-  overflow-wrap: anywhere;
+.status-pill {
+  flex-shrink: 0;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--green);
+  font-size: 11px;
+}
+
+#app {
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 10px;
 }
 
 .camera-stage {
   position: relative;
   width: 100%;
-  height: 58vh;
-  height: 58dvh;
-  min-height: 260px;
-  max-height: 720px;
+  height: min(66dvh, 620px);
+  min-height: 300px;
   overflow: hidden;
-  background: #050609;
   isolation: isolate;
+  background: #030509;
+  border: 1px solid var(--border);
+  border-radius: 16px;
 }
 
-#camera {
+#cameraVideo,
+#threeCanvas,
+#faceCanvas {
   position: absolute;
   inset: 0;
-  z-index: 1;
   width: 100%;
   height: 100%;
+}
+
+#cameraVideo {
+  z-index: 0;
   object-fit: cover;
-  background: #050609;
-}
-
-#trackingCanvas {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  display: none;
+  background: #030509;
 }
 
 #threeCanvas {
+  z-index: 1;
+  pointer-events: none;
+}
+
+#faceCanvas {
+  z-index: 2;
+  pointer-events: none;
+}
+
+.camera-placeholder {
   position: absolute;
   inset: 0;
   z-index: 3;
-  width: 100%;
-  height: 100%;
-  display: block;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+  text-align: center;
+  color: var(--muted);
   pointer-events: none;
-  background: transparent;
+}
+
+.camera-placeholder strong {
+  color: var(--text);
+  font-size: 17px;
+}
+
+.camera-placeholder span {
+  max-width: 280px;
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 .stage-badge {
   position: absolute;
-  z-index: 8;
-  top: 10px;
+  z-index: 4;
   left: 10px;
-  max-width: calc(100% - 20px);
-  padding: 7px 10px;
-  border: 1px solid #ffffff2b;
+  top: 10px;
+  padding: 7px 9px;
+  background: #080b12cc;
+  border: 1px solid #35445a;
   border-radius: 8px;
-  background: #111522c9;
   font-size: 11px;
-  overflow-wrap: anywhere;
+  pointer-events: none;
 }
 
 .stage-bottom-status {
   position: absolute;
-  z-index: 8;
+  z-index: 4;
   left: 10px;
   right: 10px;
   bottom: 10px;
   padding: 8px 10px;
   border-radius: 8px;
-  background: #111522c9;
+  background: #080b12cc;
+  color: #dce8f8;
   font-size: 11px;
-  overflow-wrap: anywhere;
+  pointer-events: none;
 }
 
-.quick-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.section {
+  margin-top: 12px;
   padding: 12px;
-  background: var(--bg);
-}
-
-.quick-actions button {
-  flex: 1 1 140px;
-}
-
-#controlsPanel {
-  position: relative;
-  z-index: 20;
-  padding: 12px;
-  padding-bottom: max(24px, env(safe-area-inset-bottom));
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  background: var(--bg);
-}
-
-.panel-heading {
-  font-size: 16px;
-  font-weight: 800;
-  margin-bottom: 8px;
-}
-
-.panel-subheading {
-  color: var(--muted);
-  font-size: 12px;
-  margin-top: -3px;
-  margin-bottom: 10px;
-}
-
-.control-card {
-  padding: 13px;
+  background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 14px;
-  background: var(--panel);
-  min-width: 0;
+}
+
+.section-heading {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 800;
 }
 
 .button-grid {
@@ -242,559 +220,503 @@ input[type="file"] {
   gap: 8px;
 }
 
-.button-grid button {
+.button-primary {
+  background: #075985;
+  border-color: #0284c7;
+}
+
+.button-success {
+  background: #064e3b;
+  border-color: #059669;
+}
+
+.button-danger {
+  background: #4c1d2b;
+  border-color: #9f1239;
+}
+
+.button-wide {
   width: 100%;
-  min-width: 0;
-  overflow-wrap: anywhere;
 }
 
-.button-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.button-muted {
+  background: #111827;
 }
 
-.button-row button {
-  flex: 1 1 130px;
-}
-
-.status-line {
+.status-text {
+  min-height: 18px;
+  margin-top: 10px;
   color: var(--muted);
   font-size: 12px;
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
 
-.status-line strong {
-  color: var(--success);
+.control-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
 }
 
-.slider-control {
+.control-row > button {
+  flex: 1 1 130px;
+}
+
+.panel-label {
   display: block;
-  margin: 13px 0;
+  margin-bottom: 7px;
+  color: #dce8f8;
+  font-size: 12px;
+  font-weight: 700;
 }
 
-.slider-label {
+.slider-block {
+  margin-top: 14px;
+}
+
+.slider-topline {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 7px;
-  font-size: 13px;
+  gap: 12px;
+  margin-bottom: 5px;
+  font-size: 12px;
 }
 
 .slider-value {
+  min-width: 42px;
   color: var(--accent);
+  text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-input[type="range"] {
-  width: 100%;
-  accent-color: var(--accent);
-  min-height: 26px;
-}
-
-.slider-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0 14px;
-}
-
-.model-slot {
-  padding: 11px;
-  margin-top: 9px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: #151925;
-}
-
-.model-slot-title {
-  font-size: 13px;
-  font-weight: 750;
-  margin-bottom: 8px;
-}
-
-.model-slot button {
-  width: 100%;
-}
-
-#showControlsBtn {
-  position: fixed;
-  z-index: 1000;
-  right: 12px;
-  top: 12px;
-  max-width: calc(100vw - 24px);
-  display: none;
-  box-shadow: 0 4px 20px #0008;
-}
-
-body.controls-hidden #controlsPanel,
-body.controls-hidden .app-header,
-body.controls-hidden .quick-actions {
-  display: none !important;
-}
-
-body.controls-hidden .camera-stage {
-  position: fixed;
-  inset: 0;
-  z-index: 1;
-  width: 100vw;
-  height: 100vh;
-  height: 100dvh;
-  max-height: none;
-}
-
-body.controls-hidden #showControlsBtn {
-  display: block;
-}
-
-body.sliders-hidden #sliderArea {
-  display: none !important;
-}
-
-.small-note {
+.helper-text {
+  margin: 8px 0 0;
   color: var(--muted);
   font-size: 11px;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
-@media (max-width: 380px) {
-  .brand {
-    font-size: 17px;
+.hidden-panel {
+  display: none !important;
+}
+
+@media (min-width: 720px) {
+  #app {
+    padding: 16px;
   }
 
-  .slider-grid {
-    grid-template-columns: 1fr;
+  .camera-stage {
+    height: min(70dvh, 720px);
   }
 
   .button-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 </style>
 </head>
 
 <body>
+
 <header class="app-header">
-  <div class="brand">AZEEZ AI AR STUDIO</div>
-  <div class="brand-subtitle">
-    3D Head Tracker • Helmet Studio • Face Animation
+  <div>
+    <h1 class="app-title">AZEEZ AR</h1>
+    <div class="app-subtitle">3D Face & Head Tracker</div>
   </div>
-  <div class="header-status" id="globalStatus">
-    READY — Start the camera
-  </div>
+  <div class="status-pill" id="appStatus">READY</div>
 </header>
 
-<main>
+<main id="app">
+
   <section class="camera-stage" id="cameraStage">
     <video
-      id="camera"
+      id="cameraVideo"
       autoplay
       playsinline
       muted
     ></video>
 
-    <canvas id="trackingCanvas"></canvas>
     <canvas id="threeCanvas"></canvas>
+    <canvas id="faceCanvas"></canvas>
 
-    <div class="stage-badge" id="cameraStatusChip">
-      CAMERA: OFF
+    <div class="camera-placeholder" id="cameraPlaceholder">
+      <strong>AZEEZ AR CAMERA</strong>
+      <span>
+        Press Start Camera to open the camera.
+        Allow camera permission when requested.
+      </span>
     </div>
 
+    <div class="stage-badge">LIVE AR VIEW</div>
+
     <div class="stage-bottom-status" id="trackingStatus">
-      TRACKING: WAITING
+      Camera stopped · Tracking not started
     </div>
   </section>
 
-  <div class="quick-actions">
-    <button
-      type="button"
-      id="hideAllBtn"
-      class="danger"
-    >HIDE ALL CONTROLS</button>
+  <section class="section" id="visibilitySection">
+    <h2 class="section-heading">PANEL VISIBILITY</h2>
 
-    <button
-      type="button"
-      id="hideSlidersBtn"
-    >HIDE SLIDERS</button>
-  </div>
+    <div class="button-grid">
+      <button
+        type="button"
+        id="toggleSlidersBtn"
+        class="button-primary"
+      >
+        HIDE SLIDERS
+      </button>
 
-  <button
-    type="button"
-    id="showControlsBtn"
-    class="primary"
-  >SHOW CONTROLS</button>
-
-  <section id="controlsPanel">
-
-    <div class="control-card">
-      <div class="panel-heading">Camera Controls</div>
-
-      <div class="button-grid">
-        <button type="button" id="startCameraBtn" class="primary">
-          START CAMERA
-        </button>
-
-        <button type="button" id="stopCameraBtn" class="danger">
-          STOP CAMERA
-        </button>
-
-        <button type="button" id="frontCameraBtn">
-          FRONT CAMERA
-        </button>
-
-        <button type="button" id="backCameraBtn">
-          BACK CAMERA
-        </button>
-
-        <button type="button" id="switchCameraBtn">
-          SWITCH CAMERA
-        </button>
-
-        <button type="button" id="mirrorBtn">
-          MIRROR: OFF
-        </button>
-      </div>
-
-      <p class="status-line" id="cameraStatus">
-        Camera has not started.
-      </p>
+      <button
+        type="button"
+        id="toggleControlsBtn"
+        class="button-primary"
+      >
+        HIDE CONTROLS
+      </button>
     </div>
 
-    <div class="control-card">
-      <div class="panel-heading">Face Tracking</div>
+    <p class="helper-text">
+      These two buttons work independently.
+      Hiding controls will not automatically hide sliders.
+    </p>
+  </section>
+
+  <div id="controlsPanel">
+
+    <section class="section" id="cameraControls">
+      <h2 class="section-heading">CAMERA & TRACKING</h2>
 
       <div class="button-grid">
         <button
           type="button"
+          id="startCameraBtn"
+          class="button-success"
+        >
+          START CAMERA
+        </button>
+
+        <button
+          type="button"
+          id="stopCameraBtn"
+          class="button-danger"
+        >
+          STOP CAMERA
+        </button>
+
+        <button
+          type="button"
+          id="switchCameraBtn"
+        >
+          SWITCH FRONT/BACK
+        </button>
+
+        <button
+          type="button"
+          id="mirrorBtn"
+        >
+          MIRROR FLIP: OFF
+        </button>
+
+        <button
+          type="button"
           id="startTrackingBtn"
-          class="primary"
-        >START TRACKING</button>
+          class="button-primary"
+        >
+          START FACE TRACKING
+        </button>
 
         <button
           type="button"
           id="stopTrackingBtn"
-          class="danger"
-        >STOP TRACKING</button>
+        >
+          STOP FACE TRACKING
+        </button>
       </div>
 
-      <p class="status-line" id="trackingDetailStatus">
+      <div class="status-text" id="cameraStatus">
+        Waiting for camera.
+      </div>
+
+      <div class="status-text" id="faceStatus">
         Face tracking has not started.
-      </p>
-
-      <p class="status-line" id="blendshapeStatus">
-        Blendshapes: waiting for tracking
-      </p>
-
-      <p class="small-note">
-        Face landmarks are used internally for tracking.
-        Green landmark dots and the green mesh overlay are
-        not displayed by default.
-      </p>
-    </div>
-
-    <div class="control-card">
-      <div class="panel-heading">3D Model Import</div>
-      <div class="panel-subheading">
-        Select a model for each person.
       </div>
-      
-      <div class="model-slot">
-        <div class="model-slot-title">MODEL SLOT 1</div>
-        <input
-          type="file"
-          id="model1"
-          accept=".glb,.gltf,.obj,.fbx"
+    </section>
+
+    <section class="section" id="modelControls">
+      <h2 class="section-heading">3D MODEL</h2>
+
+      <div class="button-grid">
+        <button
+          type="button"
+          id="importModelBtn"
+          class="button-primary"
         >
-        <button type="button" id="importModel1Btn" class="primary">
-          IMPORT MODEL 1
+          IMPORT 3D MODEL
         </button>
-      </div>
 
-      <div class="model-slot">
-        <div class="model-slot-title">MODEL SLOT 2</div>
-        <input
-          type="file"
-          id="model2"
-          accept=".glb,.gltf,.obj,.fbx"
+        <button
+          type="button"
+          id="resetModelBtn"
         >
-        <button type="button" id="importModel2Btn">
-          IMPORT MODEL 2
-        </button>
-      </div>
-
-      <div class="model-slot">
-        <div class="model-slot-title">MODEL SLOT 3</div>
-        <input
-          type="file"
-          id="model3"
-          accept=".glb,.gltf,.obj,.fbx"
-        >
-        <button type="button" id="importModel3Btn">
-          IMPORT MODEL 3
-        </button>
-      </div>
-
-      <div class="model-slot">
-        <div class="model-slot-title">MODEL SLOT 4</div>
-        <input
-          type="file"
-          id="model4"
-          accept=".glb,.gltf,.obj,.fbx"
-        >
-        <button type="button" id="importModel4Btn">
-          IMPORT MODEL 4
-        </button>
-      </div>
-
-      <p class="status-line" id="modelStatus">
-        MODEL: NONE
-      </p>
-
-      <p class="small-note">
-        OBJ and FBX files may require separate texture files.
-        GLB is recommended for models with embedded textures.
-      </p>
-    </div>
-
-    <div class="control-card" id="sliderArea">
-      <div class="panel-heading">3D Helmet / Face Controls</div>
-
-      <div class="panel-subheading">
-        Adjust position, depth, size and rotation.
-      </div>
-
-      <div class="slider-grid">
-
-        <label class="slider-control">
-          <span class="slider-label">
-            <span>X — Left / Right</span>
-            <span class="slider-value" id="xValue">0</span>
-          </span>
-          <input
-            type="range"
-            id="x"
-            min="-200"
-            max="200"
-            step="1"
-            value="0"
-          >
-        </label>
-
-        <label class="slider-control">
-          <span class="slider-label">
-            <span>Y — Up / Down</span>
-            <span class="slider-value" id="yValue">0</span>
-          </span>
-          <input
-            type="range"
-            id="y"
-            min="-200"
-            max="200"
-            step="1"
-            value="0"
-          >
-        </label>
-
-        <label class="slider-control">
-          <span class="slider-label">
-            <span>Z — Depth</span>
-            <span class="slider-value" id="zValue">0</span>
-          </span>
-          <input
-            type="range"
-            id="z"
-            min="-200"
-            max="200"
-            step="1"
-            value="0"
-          >
-        </label>
-
-        <label class="slider-control">
-          <span class="slider-label">
-            <span>Scale — Size</span>
-            <span class="slider-value" id="scaleValue">100</span>
-          </span>
-          <input
-            type="range"
-            id="scale"
-            min="1"
-            max="500"
-            step="1"
-            value="100"
-          >
-        </label>
-
-        <label class="slider-control">
-          <span class="slider-label">
-            <span>Rotate X</span>
-            <span class="slider-value" id="rotXValue">0°</span>
-          </span>
-          <input
-            type="range"
-            id="rotX"
-            min="-180"
-            max="180"
-            step="1"
-            value="0"
-          >
-        </label>
-
-        <label class="slider-control">
-          <span class="slider-label">
-            <span>Rotate Y</span>
-            <span class="slider-value" id="rotYValue">0°</span>
-          </span>
-          <input
-            type="range"
-            id="rotY"
-            min="-180"
-            max="180"
-            step="1"
-            value="0"
-          >
-        </label>
-
-        <label class="slider-control">
-          <span class="slider-label">
-            <span>Rotate Z</span>
-            <span class="slider-value" id="rotZValue">0°</span>
-          </span>
-          <input
-            type="range"
-            id="rotZ"
-            min="-180"
-            max="180"
-            step="1"
-            value="0"
-          >
-        </label>
-
-      </div>
-
-      <div class="button-row">
-        <button type="button" id="resetModelBtn">
           RESET MODEL
         </button>
 
-        <button type="button" id="showSlidersBtn" class="primary">
-          SHOW SLIDERS
+        <button
+          type="button"
+          id="exportSettingsBtn"
+        >
+          EXPORT SETTINGS
+        </button>
+
+        <button
+          type="button"
+          id="importSettingsBtn"
+        >
+          IMPORT SETTINGS
         </button>
       </div>
 
-      <p class="small-note">
-        Actual head fit and depth depend on the imported model
-        and the 3D tracking implementation.
+      <input
+        type="file"
+        id="modelFileInput"
+        accept=".glb,.gltf,.obj,.fbx"
+      >
+
+      <input
+        type="file"
+        id="settingsFileInput"
+        accept=".json,application/json"
+      >
+
+      <div class="status-text" id="modelStatus">
+        No 3D model loaded.
+      </div>
+
+      <p class="helper-text">
+        Supported formats depend on the matching 3D loader.
+        GLB/GLTF, OBJ and FBX require their respective loaders.
       </p>
-    </div>
+    </section>
 
-    <div class="control-card">
-      <div class="panel-heading">Face Expressions</div>
+  </div>
+  <div id="slidersPanel">
 
-      <p class="status-line" id="expressionStatus">
-        Expressions: waiting for face data
+    <section class="section" id="meshSliders">
+      <h2 class="section-heading">A. FACE MESH ADJUSTMENT</h2>
+
+      <p class="helper-text">
+        Adjust the face mesh size, position and depth independently.
       </p>
 
-      <p class="status-line" id="eyeStatus">
-        Eye blink: waiting
-      </p>
+      <div class="slider-block">
+        <div class="slider-topline">
+          <label class="panel-label" for="meshScale">Mesh Size</label>
+          <span class="slider-value" id="meshScaleValue">100%</span>
+        </div>
+        <input id="meshScale" type="range" min="10" max="250"
+          step="1" value="100">
+      </div>
 
-      <p class="status-line" id="mouthStatus">
-        Mouth open: waiting
-      </p>
+      <div class="slider-block">
+        <div class="slider-topline">
+          <label class="panel-label" for="meshX">Mesh Left / Right (X)</label>
+          <span class="slider-value" id="meshXValue">0</span>
+        </div>
+        <input id="meshX" type="range" min="-100" max="100"
+          step="1" value="0">
+      </div>
 
-      <p class="status-line" id="blendshapeCountStatus">
-        Blendshape categories detected: 0 / 52
-      </p>
+      <div class="slider-block">
+        <div class="slider-topline">
+          <label class="panel-label" for="meshY">Mesh Down / Up (Y)</label>
+          <span class="slider-value" id="meshYValue">0</span>
+        </div>
+        <input id="meshY" type="range" min="-100" max="100"
+          step="1" value="0">
+      </div>
 
-      <p class="small-note">
-        Expression values can be read when the tracking model
-        provides them. Animated blinking and mouth movement
-        also require compatible model morph targets or a rig.
-      </p>
-    </div>
+      <div class="slider-block">
+        <div class="slider-topline">
+          <label class="panel-label" for="meshZ">Mesh Depth</label>
+          <span class="slider-value" id="meshZValue">0</span>
+        </div>
+        <input id="meshZ" type="range" min="-100" max="100"
+          step="1" value="0">
+      </div>
 
-    <div class="control-card">
-      <div class="panel-heading">Recording</div>
+      <div class="slider-block">
+        <div class="slider-topline">
+          <label class="panel-label" for="meshRotation">Mesh Rotation</label>
+          <span class="slider-value" id="meshRotationValue">0°</span>
+        </div>
+        <input id="meshRotation" type="range" min="-180" max="180"
+          step="1" value="0">
+      </div>
+
+      <div class="control-row">
+        <button type="button" id="resetMeshBtn">RESET MESH</button>
+        <button type="button" id="toggleMeshBtn">HIDE FACE MESH</button>
+        <button type="button" id="toggleLandmarksBtn">HIDE LANDMARKS</button>
+      </div>
+
+      <div class="status-text" id="meshStatus">
+        Face mesh overlay enabled.
+      </div>
+    </section>
+
+    <section class="section" id="modelSliders">
+      <h2 class="section-heading">B. 3D MODEL ADJUSTMENT</h2>
+
+      <div class="slider-block">
+        <div class="slider-topline">
+          <label class="panel-label" for="modelScale">Model Size</label>
+          <span class="slider-value" id="modelScaleValue">100%</span>
+        </div>
+        <input id="modelScale" type="range" min="1" max="500"
+          step="1" value="100">
+      </div>
+
+      <div class="slider-block">
+        <div class="slider-topline">
+          <label class="panel-label" for="modelX">Model X (Left / Right)</label>
+          <span class="slider-value" id="modelXValue">0</span>
+        </div>
+        <input id="modelX" type="range" min="-300" max="300"
+          step="1" value="0">
+      </div>
+
+      <div class="slider-block">
+        <div class="slider-topline">
+          <label class="panel-label" for="modelY">Model Y (Down / Up)</label>
+          <span class="slider-value" id="modelYValue">0</span>
+        </div>
+        <input id="modelY" type="range" min="-300" max="300"
+          step="1" value="0">
+      </div>
+
+      <div class="slider-block">
+        <div class="slider-topline">
+          <label class="panel-label" for="modelZ">Model Z (Depth)</label>
+          <span class="slider-value" id="modelZValue">0</span>
+        </div>
+        <input id="modelZ" type="range" min="-500" max="500"
+          step="1" value="0">
+      </div>
+
+      <div class="slider-block">
+        <div class="slider-topline">
+          <label class="panel-label" for="modelPitch">Model Pitch</label>
+          <span class="slider-value" id="modelPitchValue">0°</span>
+        </div>
+        <input id="modelPitch" type="range" min="-180" max="180"
+          step="1" value="0">
+      </div>
+
+      <div class="slider-block">
+        <div class="slider-topline">
+          <label class="panel-label" for="modelYaw">Model Yaw</label>
+          <span class="slider-value" id="modelYawValue">0°</span>
+        </div>
+        <input id="modelYaw" type="range" min="-180" max="180"
+          step="1" value="0">
+      </div>
+
+      <div class="slider-block">
+        <div class="slider-topline">
+          <label class="panel-label" for="modelRoll">Model Roll</label>
+          <span class="slider-value" id="modelRollValue">0°</span>
+        </div>
+        <input id="modelRoll" type="range" min="-180" max="180"
+          step="1" value="0">
+      </div>
+
+      <div class="slider-block">
+        <div class="slider-topline">
+          <label class="panel-label" for="headFit">Head Fit</label>
+          <span class="slider-value" id="headFitValue">100%</span>
+        </div>
+        <input id="headFit" type="range" min="25" max="250"
+          step="1" value="100">
+      </div>
+
+      <div class="control-row">
+        <button type="button" id="resetModelSlidersBtn">
+          RESET MODEL SLIDERS
+        </button>
+        <button type="button" id="headFitModeBtn">
+          HEAD FIT MODE: OFF
+        </button>
+      </div>
+    </section>
+
+    <section class="section" id="trackingOptions">
+      <h2 class="section-heading">C. FACE TRACKING OPTIONS</h2>
+
+      <div class="button-grid">
+        <button type="button" id="toggleExpressionBtn">
+          EXPRESSIONS: ON
+        </button>
+        <button type="button" id="toggleAutoFitBtn">
+          AUTO HEAD FIT: OFF
+        </button>
+      </div>
+
+      <p class="helper-text">
+        Expression tracking and head rotation require a working
+        face-tracking model and tracking code.
+      </p>
+    </section>
+
+  </div>
+
+  <div id="recordingControls">
+
+    <section class="section" id="recordingSection">
+      <h2 class="section-heading">D. RECORDING</h2>
 
       <div class="button-grid">
         <button
           type="button"
           id="startRecordingBtn"
-          class="primary"
-        >START RECORDING</button>
+          class="button-success"
+        >
+          START RECORDING
+        </button>
 
         <button
           type="button"
           id="stopRecordingBtn"
-          class="danger"
-        >STOP RECORDING</button>
+          class="button-danger"
+        >
+          STOP RECORDING
+        </button>
       </div>
 
-      <p class="status-line" id="recordingStatus">
-        Recording: stopped
-      </p>
-
-      <p class="small-note">
-        Camera and microphone permission may be required.
-        Recording support depends on your browser.
-      </p>
-    </div>
-
-    <div class="control-card">
-      <div class="panel-heading">Settings</div>
-
-      <div class="button-grid">
-        <button
-          type="button"
-          id="exportSettingsBtn"
-        >EXPORT SETTINGS</button>
-
-        <button
-          type="button"
-          id="importSettingsBtn"
-        >IMPORT SETTINGS</button>
-
-        <button
-          type="button"
-          id="portraitBtn"
-        >PORTRAIT VIEW</button>
-
-        <button
-          type="button"
-          id="landscapeBtn"
-        >LANDSCAPE VIEW</button>
+      <div class="status-text" id="recordingStatus">
+        Recording stopped.
       </div>
 
-      <input
-        type="file"
-        id="settingsImportInput"
-        accept=".json,application/json"
-      >
-
-      <p class="status-line" id="settingsStatus">
-        Settings ready.
+      <p class="helper-text">
+        Camera and microphone permissions may be required.
+        Audio recording depends on browser support and the
+        recording implementation.
       </p>
+    </section>
+
+  </div>
+
+  <footer class="section">
+    <div class="section-heading">AZEEZ AR STATUS</div>
+    <div class="status-text" id="generalStatus">
+      Interface loaded. JavaScript initialization is pending.
     </div>
+  </footer>
 
-    <div class="control-card">
-      <div class="panel-heading">System Status</div>
-
-      <p class="status-line" id="threeStatus">
-        3D engine: waiting
-      </p>
-
-      <p class="status-line" id="systemStatus">
-        App ready.
-      </p>
-    </div>
-
-  </section>
 </main>
 
 <script type="module" src="js/app.js"></script>
+
 </body>
 </html>
-
-      
