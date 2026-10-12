@@ -1,16 +1,20 @@
-
 // AZEEZ AI AR STUDIO
-// APP.JS - PART 1 OF 5
-// Camera system
+// APP.JS — PART 1 OF 4
+// Camera + Hide/Show Controls
 
 const camera = document.getElementById("camera");
+const controls = document.getElementById("controls");
 
 const startCameraBtn = document.getElementById("startCameraBtn");
 const stopCameraBtn = document.getElementById("stopCameraBtn");
-const switchCameraBtn = document.getElementById("switchCameraBtn");
 const frontCameraBtn = document.getElementById("frontCameraBtn");
 const backCameraBtn = document.getElementById("backCameraBtn");
+const switchCameraBtn = document.getElementById("switchCameraBtn");
 const mirrorBtn = document.getElementById("mirrorBtn");
+
+const controlToggle = document.getElementById("controlToggle");
+const hideControlsBtn = document.getElementById("hideControlsBtn");
+const showControlsBtn = document.getElementById("showControlsBtn");
 
 const globalStatus = document.getElementById("globalStatus");
 const cameraStatus = document.getElementById("cameraStatus");
@@ -20,6 +24,7 @@ let cameraStream = null;
 let currentFacingMode = "user";
 let mirrorEnabled = false;
 let cameraStarting = false;
+let controlsHidden = false;
 
 function setGlobalStatus(message) {
     if (globalStatus) {
@@ -54,8 +59,9 @@ function updateCameraButtons() {
     }
 
     if (mirrorBtn) {
-        mirrorBtn.textContent =
-            mirrorEnabled ? "MIRROR FLIP: ON" : "MIRROR FLIP: OFF";
+        mirrorBtn.textContent = mirrorEnabled
+            ? "MIRROR FLIP: ON"
+            : "MIRROR FLIP: OFF";
     }
 }
 
@@ -70,17 +76,9 @@ function applyCameraMirror() {
 async function startCamera() {
     if (cameraStarting) return;
 
-    if (!camera) {
-        setGlobalStatus("ERROR: CAMERA VIDEO ELEMENT MISSING");
-        return;
-    }
-
-    if (!navigator.mediaDevices ||
-        !navigator.mediaDevices.getUserMedia) {
+    if (!camera || !navigator.mediaDevices?.getUserMedia) {
         setCameraStatus("UNAVAILABLE");
-        setGlobalStatus(
-            "CAMERA ERROR: OPEN THIS WEBSITE USING HTTPS"
-        );
+        setGlobalStatus("CAMERA ERROR: USE HTTPS");
         return;
     }
 
@@ -90,9 +88,7 @@ async function startCamera() {
 
     try {
         if (cameraStream) {
-            cameraStream.getTracks().forEach(function(track) {
-                track.stop();
-            });
+            cameraStream.getTracks().forEach(track => track.stop());
             cameraStream = null;
         }
 
@@ -103,25 +99,18 @@ async function startCamera() {
         try {
             stream = await navigator.mediaDevices.getUserMedia({
                 video: {
-                    facingMode: {
-                        exact: currentFacingMode
-                    },
+                    facingMode: { exact: currentFacingMode },
                     width: { ideal: 1280 },
                     height: { ideal: 720 }
                 },
                 audio: true
             });
-        } catch (firstError) {
-            console.warn(
-                "Preferred camera or audio unavailable; retrying:",
-                firstError
-            );
+        } catch (error) {
+            console.warn("Retrying camera without audio:", error);
 
             stream = await navigator.mediaDevices.getUserMedia({
                 video: {
-                    facingMode: {
-                        ideal: currentFacingMode
-                    },
+                    facingMode: { ideal: currentFacingMode },
                     width: { ideal: 1280 },
                     height: { ideal: 720 }
                 },
@@ -130,7 +119,7 @@ async function startCamera() {
         }
 
         cameraStream = stream;
-        camera.srcObject = cameraStream;
+        camera.srcObject = stream;
         camera.muted = true;
         camera.autoplay = true;
         camera.playsInline = true;
@@ -143,25 +132,20 @@ async function startCamera() {
         setCameraStatus("ON");
         setGlobalStatus("CAMERA WORKING");
 
-        console.log("Camera started successfully.");
-
     } catch (error) {
         console.error("CAMERA ERROR:", error);
 
-        setCameraStatus("ERROR");
-        setGlobalStatus(
-            "CAMERA ERROR: " +
-            (error.message || error.name || "Unknown error")
-        );
-
         if (cameraStream) {
-            cameraStream.getTracks().forEach(function(track) {
-                track.stop();
-            });
+            cameraStream.getTracks().forEach(track => track.stop());
             cameraStream = null;
         }
 
-        camera.srcObject = null;
+        if (camera) camera.srcObject = null;
+
+        setCameraStatus("ERROR");
+        setGlobalStatus(
+            "CAMERA ERROR: " + (error.message || error.name)
+        );
 
     } finally {
         cameraStarting = false;
@@ -170,10 +154,7 @@ async function startCamera() {
 
 function stopCamera() {
     if (cameraStream) {
-        cameraStream.getTracks().forEach(function(track) {
-            track.stop();
-        });
-
+        cameraStream.getTracks().forEach(track => track.stop());
         cameraStream = null;
     }
 
@@ -186,32 +167,29 @@ function stopCamera() {
     setGlobalStatus("CAMERA OFF");
 }
 
-async function selectCamera(facingMode) {
-    currentFacingMode = facingMode;
+async function selectCamera(mode) {
+    currentFacingMode = mode;
     updateCameraButtons();
 
     if (cameraStream) {
         await startCamera();
     } else {
         setGlobalStatus(
-            "SELECTED: " +
-            (facingMode === "user" ? "FRONT CAMERA" : "BACK CAMERA")
+            mode === "user"
+                ? "FRONT CAMERA SELECTED"
+                : "BACK CAMERA SELECTED"
         );
     }
 }
 
-async function switchCamera() {
-    const nextMode =
-        currentFacingMode === "user"
-            ? "environment"
-            : "user";
-
-    await selectCamera(nextMode);
+function switchCamera() {
+    selectCamera(
+        currentFacingMode === "user" ? "environment" : "user"
+    );
 }
 
 function toggleMirror() {
     mirrorEnabled = !mirrorEnabled;
-
     applyCameraMirror();
     updateCameraButtons();
 
@@ -220,332 +198,75 @@ function toggleMirror() {
     );
 }
 
-// Camera button connections
+// Hide and show the controls without stopping the camera.
 
-if (startCameraBtn) {
-    startCameraBtn.addEventListener("click", startCamera);
+function hideControls() {
+    controlsHidden = true;
+
+    if (controls) {
+        controls.classList.add("hidden");
+    }
+
+    if (controlToggle) {
+        controlToggle.textContent = "SHOW CONTROLS";
+        controlToggle.setAttribute("aria-expanded", "false");
+    }
+
+    setGlobalStatus("CONTROLS HIDDEN — CAMERA KEEPS RUNNING");
 }
 
-if (stopCameraBtn) {
-    stopCameraBtn.addEventListener("click", stopCamera);
+function showControls() {
+    controlsHidden = false;
+
+    if (controls) {
+        controls.classList.remove("hidden");
+    }
+
+    if (controlToggle) {
+        controlToggle.textContent = "HIDE CONTROLS";
+        controlToggle.setAttribute("aria-expanded", "true");
+    }
+
+    setGlobalStatus("CONTROLS VISIBLE");
 }
 
-if (frontCameraBtn) {
-    frontCameraBtn.addEventListener("click", function() {
-        selectCamera("user");
-    });
+function toggleControls() {
+    if (controlsHidden) {
+        showControls();
+    } else {
+        hideControls();
+    }
 }
 
-if (backCameraBtn) {
-    backCameraBtn.addEventListener("click", function() {
-        selectCamera("environment");
-    });
-}
+// Button connections.
 
-if (switchCameraBtn) {
-    switchCameraBtn.addEventListener("click", switchCamera);
-}
+startCameraBtn?.addEventListener("click", startCamera);
+stopCameraBtn?.addEventListener("click", stopCamera);
 
-if (mirrorBtn) {
-    mirrorBtn.addEventListener("click", toggleMirror);
-}
+frontCameraBtn?.addEventListener("click", () => {
+    selectCamera("user");
+});
 
-// Initial state
+backCameraBtn?.addEventListener("click", () => {
+    selectCamera("environment");
+});
+
+switchCameraBtn?.addEventListener("click", switchCamera);
+mirrorBtn?.addEventListener("click", toggleMirror);
+
+hideControlsBtn?.addEventListener("click", hideControls);
+showControlsBtn?.addEventListener("click", showControls);
+controlToggle?.addEventListener("click", toggleControls);
+
+// Initial status.
 
 setCameraStatus("OFF");
 updateCameraButtons();
+
+if (controlToggle) {
+    controlToggle.textContent = "HIDE CONTROLS";
+    controlToggle.setAttribute("aria-expanded", "true");
+}
+
 setGlobalStatus("READY — START CAMERA");
-
-console.log("AZEEZ AI AR CAMERA SYSTEM READY");
-// ==========================================
-// PART 2 OF 5 — FACE TRACKING
-// Requires the MediaPipe face_landmarker.task
-// ==========================================
-
-const startTrackingBtn = document.getElementById("startTrackingBtn");
-const stopTrackingBtn = document.getElementById("stopTrackingBtn");
-const personCountSelect = document.getElementById("personCount");
-const trackingStatus = document.getElementById("trackingStatus");
-const trackingStatusChip = document.getElementById("trackingStatusChip");
-const landmarkCanvas = document.getElementById("landmarkCanvas");
-
-let faceLandmarker = null;
-let trackingRunning = false;
-let trackingLoading = false;
-let trackingAnimation = null;
-let lastTrackingVideoTime = -1;
-let showFaceLandmarks = false;
-let lastFaceResult = null;
-
-function setTrackingStatus(message) {
-    if (trackingStatus) {
-        trackingStatus.textContent = "TRACKING: " + message;
-    }
-
-    if (trackingStatusChip) {
-        trackingStatusChip.textContent = "TRACKING: " + message;
-    }
-}
-
-function resizeLandmarkCanvas() {
-    if (!landmarkCanvas) return;
-
-    const rect = landmarkCanvas.getBoundingClientRect();
-    const width = Math.max(1, Math.round(rect.width));
-    const height = Math.max(1, Math.round(rect.height));
-    const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
-
-    if (
-        landmarkCanvas.width !== Math.round(width * pixelRatio) ||
-        landmarkCanvas.height !== Math.round(height * pixelRatio)
-    ) {
-        landmarkCanvas.width = Math.round(width * pixelRatio);
-        landmarkCanvas.height = Math.round(height * pixelRatio);
-    }
-}
-
-function clearLandmarkCanvas() {
-    if (!landmarkCanvas) return;
-
-    const ctx = landmarkCanvas.getContext("2d");
-    if (!ctx) return;
-
-    ctx.clearRect(
-        0,
-        0,
-        landmarkCanvas.width,
-        landmarkCanvas.height
-    );
-}
-
-async function loadFaceLandmarker() {
-    if (faceLandmarker) return faceLandmarker;
-    if (trackingLoading) {
-        throw new Error("Face tracking is already loading. Try again.");
-    }
-
-    trackingLoading = true;
-    setTrackingStatus("LOADING MODEL");
-    setGlobalStatus("LOADING FACE TRACKING LIBRARY...");
-
-    try {
-        const vision = await import(
-            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm"
-        );
-
-        const resolver = await vision.FilesetResolver.forVisionTasks(
-            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
-        );
-
-        faceLandmarker = await vision.FaceLandmarker.createFromOptions(
-            resolver,
-            {
-                baseOptions: {
-                    modelAssetPath:
-                        new URL("../models/face_landmarker.task", import.meta.url).href
-                },
-                runningMode: "VIDEO",
-                numFaces: 4,
-                outputFaceBlendshapes: true,
-                outputFacialTransformationMatrixes: true
-            }
-        );
-
-        setGlobalStatus("FACE TRACKING MODEL READY");
-        console.log("FaceLandmarker loaded.");
-
-        return faceLandmarker;
-
-    } catch (error) {
-        faceLandmarker = null;
-        console.error("FACE TRACKING LOAD ERROR:", error);
-
-        setTrackingStatus("ERROR");
-        setGlobalStatus(
-            "TRACKING ERROR: " +
-            (error.message || error.name || "Unknown error")
-        );
-
-        throw error;
-
-    } finally {
-        trackingLoading = false;
-    }
-}
-
-async function startTracking() {
-    if (trackingRunning) return;
-
-    if (!cameraStream || !camera || camera.readyState < 2) {
-        setTrackingStatus("CAMERA REQUIRED");
-        setGlobalStatus("START CAMERA AND WAIT FOR VIDEO FIRST");
-        return;
-    }
-
-    try {
-        await loadFaceLandmarker();
-
-        trackingRunning = true;
-        lastTrackingVideoTime = -1;
-
-        setTrackingStatus("STARTING");
-        setGlobalStatus("FACE TRACKING STARTED");
-
-        trackingLoop();
-
-    } catch (error) {
-        trackingRunning = false;
-        setTrackingStatus("ERROR");
-        console.error("Could not start tracking:", error);
-    }
-}
-
-function stopTracking() {
-    trackingRunning = false;
-
-    if (trackingAnimation !== null) {
-        cancelAnimationFrame(trackingAnimation);
-        trackingAnimation = null;
-    }
-
-    lastTrackingVideoTime = -1;
-    lastFaceResult = null;
-
-    clearLandmarkCanvas();
-    setTrackingStatus("OFF");
-    setGlobalStatus("FACE TRACKING OFF");
-}
-
-function trackingLoop() {
-    if (!trackingRunning) return;
-
-    trackingAnimation = requestAnimationFrame(trackingLoop);
-
-    if (!faceLandmarker || !camera || camera.readyState < 2) {
-        return;
-    }
-
-    if (camera.currentTime === lastTrackingVideoTime) {
-        return;
-    }
-
-    lastTrackingVideoTime = camera.currentTime;
-
-    try {
-        const maxFaces = personCountSelect
-            ? Number(personCountSelect.value) || 4
-            : 4;
-
-        faceLandmarker.setOptions({
-            numFaces: Math.max(1, Math.min(4, maxFaces))
-        });
-
-        const result = faceLandmarker.detectForVideo(
-            camera,
-            performance.now()
-        );
-
-        lastFaceResult = result;
-        window.latestFaceResult = result;
-
-        const faces = result.faceLandmarks || [];
-
-        setTrackingStatus(
-            faces.length > 0
-                ? "ON — " + faces.length + " FACE" +
-                  (faces.length === 1 ? "" : "S")
-                : "ON — NO FACE"
-        );
-
-        if (showFaceLandmarks) {
-            drawFaceLandmarks(faces);
-        } else {
-            clearLandmarkCanvas();
-        }
-
-    } catch (error) {
-        console.error("FACE DETECTION ERROR:", error);
-        setTrackingStatus("DETECTION ERROR");
-    }
-}
-
-function drawFaceLandmarks(faces) {
-    if (!landmarkCanvas) return;
-
-    resizeLandmarkCanvas();
-
-    const ctx = landmarkCanvas.getContext("2d");
-    if (!ctx) return;
-
-    const width = landmarkCanvas.width;
-    const height = landmarkCanvas.height;
-
-    ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = "#00ff66";
-
-    for (const face of faces) {
-        for (let i = 0; i < face.length; i += 8) {
-            const point = face[i];
-
-            ctx.beginPath();
-            ctx.arc(
-                point.x * width,
-                point.y * height,
-                Math.max(2, width / 450),
-                0,
-                Math.PI * 2
-            );
-            ctx.fill();
-        }
-    }
-}
-
-function showFaceDots() {
-    showFaceLandmarks = true;
-
-    if (lastFaceResult) {
-        drawFaceLandmarks(lastFaceResult.faceLandmarks || []);
-    }
-}
-
-function hideFaceDots() {
-    showFaceLandmarks = false;
-    clearLandmarkCanvas();
-}
-
-// Connect tracking buttons.
-
-if (startTrackingBtn) {
-    startTrackingBtn.addEventListener("click", startTracking);
-}
-
-if (stopTrackingBtn) {
-    stopTrackingBtn.addEventListener("click", stopTracking);
-}
-
-const showLandmarksBtn =
-    document.getElementById("showLandmarksBtn");
-
-const hideLandmarksBtn =
-    document.getElementById("hideLandmarksBtn");
-
-if (showLandmarksBtn) {
-    showLandmarksBtn.addEventListener("click", showFaceDots);
-}
-
-if (hideLandmarksBtn) {
-    hideLandmarksBtn.addEventListener("click", hideFaceDots);
-}
-
-if (personCountSelect) {
-    personCountSelect.addEventListener("change", function() {
-        setGlobalStatus(
-            "TRACKING LIMIT: " + personCountSelect.value + " PERSON(S)"
-        );
-    });
-}
-
-window.addEventListener("resize", resizeLandmarkCanvas);
-
-setTrackingStatus("OFF");
-console.log("FACE TRACKING SYSTEM READY");
+console.log("AZEEZ AR PART 1 READY");
