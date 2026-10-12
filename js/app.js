@@ -309,3 +309,405 @@ function resetAllTransforms() {
 
 window.addEventListener("resize", resizeCanvases);
 resizeCanvases();
+// AZEEZ AR - PART 2 OF 4
+// Camera, face tracking and 3D model import.
+
+async function startCamera() {
+  if (cameraStarting) return;
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    setCameraStatus("Camera unavailable. Open this site using HTTPS.");
+    setGeneralStatus("Camera access requires a supported secure browser.");
+    return;
+  }
+
+  cameraStarting = true;
+
+  try {
+    if (mediaStream) {
+      mediaStream.getTracks().forEach((track) => track.stop());
+      mediaStream = null;
+    }
+
+    setCameraStatus("Requesting camera permission...");
+
+    mediaStream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: {
+        facingMode: cameraFacingMode,
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      }
+    });
+
+    if (!video) {
+      throw new Error("Camera video element was not found.");
+    }
+
+    video.srcObject = mediaStream;
+    video.muted = true;
+    video.playsInline = true;
+
+    await video.play();
+
+    if (placeholder) placeholder.style.display = "none";
+
+    setCameraStatus("Camera working.");
+    setGeneralStatus("Camera is running. Start face tracking when ready.");
+
+    return true;
+  } catch (error) {
+    console.error("Camera startup error:", error);
+
+    setCameraStatus("Camera error: " + error.message);
+    setGeneralStatus(
+      "Allow camera permission and open the site using HTTPS."
+    );
+
+    if (mediaStream) {
+      mediaStream.getTracks().forEach((track) => track.stop());
+      mediaStream = null;
+    }
+
+    return false;
+  } finally {
+    cameraStarting = false;
+  }
+}
+
+function stopCamera() {
+  stopFaceTracking();
+
+  if (mediaStream) {
+    mediaStream.getTracks().forEach((track) => track.stop());
+    mediaStream = null;
+  }
+
+  if (video) {
+    video.pause();
+    video.srcObject = null;
+  }
+
+  if (placeholder) placeholder.style.display = "flex";
+
+  setCameraStatus("Camera stopped.");
+  setGeneralStatus("Camera stopped.");
+}
+
+async function switchCamera() {
+  cameraFacingMode =
+    cameraFacingMode === "user" ? "environment" : "user";
+
+  if (mediaStream) {
+    const started = await startCamera();
+
+    if (started && faceTrackingActive) {
+      await startFaceTracking();
+    }
+  }
+
+  setGeneralStatus(
+    cameraFacingMode === "user"
+      ? "Front camera selected."
+      : "Back camera selected."
+  );
+}
+
+function updateMirror() {
+  mirrorEnabled = !mirrorEnabled;
+
+  if (video) {
+    video.style.transform = mirrorEnabled ? "scaleX(-1)" : "none";
+  }
+
+  setButtonText(
+    "mirrorBtn",
+    mirrorEnabled ? "MIRROR: ON" : "MIRROR: OFF"
+  );
+}
+
+async function startFaceTracking() {
+  if (faceTrackingActive) return;
+
+  if (!mediaStream || !video || video.readyState < 2) {
+    const started = await startCamera();
+
+    if (!started) return;
+  }
+
+  try {
+    setFaceStatus("Loading face tracking...");
+
+    const visionModule = await import(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.mjs"
+    );
+
+    const { FaceLandmarker, FilesetResolver } = visionModule;
+
+    const fileset = await FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
+    );
+
+    faceMeshInstance = await FaceLandmarker.createFromOptions(
+      fileset,
+      {
+        baseOptions: {
+          modelAssetPath:
+            "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+          delegate: "GPU"
+        },
+        runningMode: "VIDEO",
+        numFaces: 1,
+        outputFaceBlendshapes: true,
+        outputFacialTransformationMatrixes: true
+      }
+    );
+
+    faceTrackingActive = true;
+    setFaceStatus("Face tracking active.");
+
+    processFaceFrame();
+  } catch (error) {
+    console.error("Face tracking startup error:", error);
+
+    setFaceStatus("Tracking error: " + error.message);
+    setGeneralStatus(
+      "Face tracking could not load. Check internet and model access."
+    );
+  }
+}
+
+function stopFaceTracking() {
+  faceTrackingActive = false;
+  lastFaceResults = null;
+
+  if (faceMeshInstance) {
+    faceMeshInstance.close();
+    faceMeshInstance = null;
+  }
+
+  if (faceContext && faceCanvas) {
+    faceContext.clearRect(
+      0,
+      0,
+      faceCanvas.width,
+      faceCanvas.height
+    );
+  }
+
+  setFaceStatus("Face tracking stopped.");
+}
+
+function processFaceFrame() {
+  if (!faceTrackingActive || !faceMeshInstance || !video) return;
+
+  try {
+    if (video.readyState >= 2) {
+      const now = performance.now();
+
+      lastFaceResults = faceMeshInstance.detectForVideo(video, now);
+
+      updateFaceFromResults(lastFaceResults);
+    }
+  } catch (error) {
+    console.error("Face frame error:", error);
+  }
+
+  if (faceTrackingActive) {
+    animationFrameId = requestAnimationFrame(processFaceFrame);
+  }
+}
+
+function updateFaceFromResults(results) {
+  const faces = results && results.faceLandmarks;
+
+  if (!faces || faces.length === 0) {
+    setFaceStatus("Camera working. No face detected.");
+    headAnchor.visible = false;
+    faceVisuals.visible = false;
+    return;
+  }
+
+  headAnchor.visible = true;
+  faceVisuals.visible = showFaceMesh || showLandmarks;
+
+  const points = faces[0];
+
+  const leftEye = points[33];
+  const rightEye = points[263];
+  const nose = points[1];
+  const chin = points[152];
+  const forehead = points[10];
+
+  if (!leftEye || !rightEye || !nose || !chin || !forehead) return;
+
+  const centerX = (leftEye.x + rightEye.x) / 2;
+  const centerY = (forehead.y + chin.y) / 2;
+  const eyeDistance = Math.hypot(
+    rightEye.x - leftEye.x,
+    rightEye.y - leftEye.y
+  );
+
+  const faceScale = clamp(eyeDistance * 8, 0.35, 3.5);
+
+  headAnchor.position.set(
+    (0.5 - centerX) * 4 + settings.meshX,
+    (0.5 - centerY) * 3 + settings.meshY,
+    settings.meshZ
+  );
+
+  headAnchor.scale.setScalar(faceScale * settings.meshSize);
+
+  const roll = Math.atan2(
+    rightEye.y - leftEye.y,
+    rightEye.x - leftEye.x
+  );
+
+  headAnchor.rotation.z = -roll;
+
+  const noseOffsetX = nose.x - centerX;
+  const noseOffsetY = nose.y - centerY;
+
+  headAnchor.rotation.y = clamp(noseOffsetX * 2.5, -0.8, 0.8);
+  headAnchor.rotation.x = clamp(noseOffsetY * 2.0, -0.7, 0.7);
+
+  drawFaceMesh(points);
+
+  setFaceStatus("Face detected. Tracking active.");
+}
+
+function drawFaceMesh(points) {
+  if (!faceContext || !faceCanvas || !video) return;
+
+  const width = faceCanvas.width;
+  const height = faceCanvas.height;
+
+  faceContext.clearRect(0, 0, width, height);
+
+  if (!showFaceMesh && !showLandmarks) return;
+
+  faceContext.save();
+
+  if (mirrorEnabled) {
+    faceContext.translate(width, 0);
+    faceContext.scale(-1, 1);
+  }
+
+  if (showLandmarks) {
+    faceContext.fillStyle = "#00ff99";
+
+    for (let i = 0; i < points.length; i += 3) {
+      const point = points[i];
+
+      faceContext.beginPath();
+      faceContext.arc(
+        point.x * width,
+        point.y * height,
+        2 * (window.devicePixelRatio || 1),
+        0,
+        Math.PI * 2
+      );
+      faceContext.fill();
+    }
+  }
+
+  if (showFaceMesh) {
+    faceContext.strokeStyle = "rgba(34,255,136,0.7)";
+    faceContext.lineWidth = 1.2 * (window.devicePixelRatio || 1);
+
+    for (let i = 0; i < points.length - 1; i++) {
+      const a = points[i];
+      const b = points[i + 1];
+
+      faceContext.beginPath();
+      faceContext.moveTo(a.x * width, a.y * height);
+      faceContext.lineTo(b.x * width, b.y * height);
+      faceContext.stroke();
+    }
+  }
+
+  faceContext.restore();
+}
+
+function import3DModel(file) {
+  if (!file) return;
+
+  const extension = file.name.split(".").pop().toLowerCase();
+  const objectUrl = URL.createObjectURL(file);
+
+  setModelStatus("Loading " + file.name + "...");
+
+  const handleLoaded = (object, format) => {
+    clearCurrentModel();
+
+    currentModelUrl = objectUrl;
+    currentModelFormat = format;
+    currentModel = object;
+
+    modelContainer.add(object);
+
+    const box = new THREE.Box3().setFromObject(object);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+
+    object.position.sub(center);
+
+    const maxDimension = Math.max(size.x, size.y, size.z, 0.001);
+
+    object.scale.setScalar(1 / maxDimension);
+
+    if (autoHeadFit) {
+      object.scale.multiplyScalar(settings.headFit);
+    }
+
+    object.traverse((child) => {
+      if (!child.isMesh) return;
+
+      child.frustumCulled = false;
+
+      if (child.material) {
+        child.material.side = THREE.DoubleSide;
+        child.material.needsUpdate = true;
+      }
+    });
+
+    applySettingsToScene();
+
+    setModelStatus("Model loaded: " + file.name);
+    setGeneralStatus("3D model loaded successfully.");
+  };
+
+  const handleError = (error) => {
+    console.error("Model import error:", error);
+
+    URL.revokeObjectURL(objectUrl);
+
+    setModelStatus("Model import failed: " + file.name);
+  };
+
+  if (extension === "glb" || extension === "gltf") {
+    gltfLoader.load(
+      objectUrl,
+      (gltf) => handleLoaded(gltf.scene, extension),
+      undefined,
+      handleError
+    );
+  } else if (extension === "obj") {
+    objLoader.load(
+      objectUrl,
+      (object) => handleLoaded(object, extension),
+      undefined,
+      handleError
+    );
+  } else if (extension === "fbx") {
+    fbxLoader.load(
+      objectUrl,
+      (object) => handleLoaded(object, extension),
+      undefined,
+      handleError
+    );
+  } else {
+    URL.revokeObjectURL(objectUrl);
+    setModelStatus("Unsupported file. Use GLB, GLTF, OBJ or FBX.");
+  }
+      }
