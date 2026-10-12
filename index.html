@@ -3,62 +3,189 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Azeez AR Camera Test</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Azeez AR Face Tracking Test</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#111827;color:white;font-family:Arial,sans-serif;text-align:center}
-h2{font-size:22px}
-video{width:100%;max-height:70vh;object-fit:contain;background:#000}
-button{padding:14px;margin:6px;border:0;border-radius:9px;font-weight:bold}
-#status{padding:12px;overflow-wrap:anywhere}
+body{margin:0;background:#101522;color:white;font-family:Arial,sans-serif;text-align:center}
+h2{font-size:21px;margin:15px 8px}
+#view{position:relative;width:100%;max-width:700px;margin:auto;background:#000;min-height:220px}
+video{display:block;width:100%;height:auto;max-height:68vh;object-fit:contain}
+canvas{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}
+button{margin:5px;padding:13px 15px;border:0;border-radius:8px;font-weight:bold}
+#status{padding:12px;overflow-wrap:anywhere;line-height:1.5}
+#count{font-size:19px;color:#00ff88}
 </style>
 </head>
 <body>
-<h2>Azeez AR Camera Test</h2>
-<video id="cam" autoplay playsinline muted></video>
+<h2>Azeez AR Face Tracking Test</h2>
+<div id="view">
+<video id="video" autoplay playsinline muted></video>
+<canvas id="overlay"></canvas>
+</div>
 <div>
 <button id="start">START CAMERA</button>
 <button id="switch">SWITCH CAMERA</button>
-<button id="stop">STOP CAMERA</button>
+<button id="detect">START FACE TRACKING</button>
+<button id="stop">STOP</button>
 </div>
-<p id="status">Ready</p>
-<script>
-const video=document.getElementById("cam");
+<p id="status">Ready. Start the camera first.</p>
+<p id="count">Faces detected: 0</p>
+
+<script type="module">
+const video=document.getElementById("video");
+const canvas=document.getElementById("overlay");
+const ctx=canvas.getContext("2d");
 const status=document.getElementById("status");
+const count=document.getElementById("count");
+
 let stream=null;
 let facing="user";
+let landmarker=null;
+let tracking=false;
+let lastVideoTime=-1;
+let busy=false;
+
+function message(text){
+  status.textContent=text;
+}
 
 async function startCamera(){
-  stopCamera(false);
-  status.textContent="Requesting camera permission...";
+  stopAll(false);
+  message("Opening camera...");
   try{
-    if(!navigator.mediaDevices?.getUserMedia){
-      throw new Error("Camera API unavailable. Open the HTTPS GitHub Pages URL.");
-    }
     stream=await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:{ideal:facing}},
+      video:{
+        facingMode:{ideal:facing},
+        width:{ideal:960},
+        height:{ideal:720}
+      },
       audio:false
     });
     video.srcObject=stream;
     await video.play();
-    status.textContent="SUCCESS: Camera is working.";
-  }catch(e){
-    status.textContent="ERROR: "+e.name+" — "+e.message;
+    message("Camera working. Tap START FACE TRACKING.");
+  }catch(error){
+    message("CAMERA ERROR: "+error.name+" — "+error.message);
   }
 }
-function stopCamera(update=true){
-  if(stream)stream.getTracks().forEach(t=>t.stop());
-  stream=null;
-  video.srcObject=null;
-  if(update)status.textContent="Camera stopped.";
+
+async function loadTracker(){
+  if(landmarker)return landmarker;
+
+  message("Loading MediaPipe library...");
+  const vision=await import(
+    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.mjs"
+  );
+
+  message("Loading face detection model...");
+  const files=await vision.FilesetResolver.forVisionTasks(
+    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+  );
+
+  landmarker=await vision.FaceLandmarker.createFromOptions(files,{
+    baseOptions:{
+      modelAssetPath:
+        "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+      delegate:"CPU"
+    },
+    runningMode:"VIDEO",
+    numFaces:1,
+    outputFaceBlendshapes:true,
+    outputFacialTransformationMatrixes:true
+  });
+
+  return landmarker;
 }
-document.getElementById("start").onclick=()=>startCamera();
+
+async function startTracking(){
+  if(!stream){
+    message("Start the camera first.");
+    return;
+  }
+  if(tracking)return;
+
+  try{
+    await loadTracker();
+    tracking=true;
+    lastVideoTime=-1;
+    message("Tracker loaded. Looking for your face...");
+    requestAnimationFrame(detectFrame);
+  }catch(error){
+    console.error(error);
+    message("TRACKING ERROR: "+error.name+" — "+error.message);
+  }
+}
+
+function detectFrame(){
+  if(!tracking)return;
+  requestAnimationFrame(detectFrame);
+
+  if(video.readyState<2 || busy || video.currentTime===lastVideoTime)return;
+
+  lastVideoTime=video.currentTime;
+  busy=true;
+
+  try{
+    const result=landmarker.detectForVideo(video,performance.now());
+    const faces=result.faceLandmarks||[];
+
+    canvas.width=video.videoWidth||640;
+    canvas.height=video.videoHeight||480;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    count.textContent="Faces detected: "+faces.length;
+
+    if(faces.length){
+      const points=faces[0];
+      ctx.fillStyle="#00ff88";
+
+      for(let i=0;i<points.length;i+=3){
+        const p=points[i];
+        ctx.beginPath();
+        ctx.arc(
+          p.x*canvas.width,
+          p.y*canvas.height,
+          Math.max(1,canvas.width/400),
+          0,Math.PI*2
+        );
+        ctx.fill();
+      }
+
+      message("SUCCESS: Face detected. Landmarks: "+points.length);
+    }else{
+      message("Tracker running. Move your face into the camera view.");
+    }
+  }catch(error){
+    console.error(error);
+    message("DETECTION ERROR: "+error.message);
+  }finally{
+    busy=false;
+  }
+}
+
+function stopAll(showMessage=true){
+  tracking=false;
+  if(stream){
+    stream.getTracks().forEach(track=>track.stop());
+    stream=null;
+  }
+  video.pause();
+  video.srcObject=null;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  count.textContent="Faces detected: 0";
+  if(showMessage)message("Camera and tracking stopped.");
+}
+
+document.getElementById("start").onclick=startCamera;
 document.getElementById("switch").onclick=async()=>{
   facing=facing==="user"?"environment":"user";
   await startCamera();
 };
-document.getElementById("stop").onclick=()=>stopCamera();
+document.getElementById("detect").onclick=startTracking;
+document.getElementById("stop").onclick=()=>stopAll();
+
+window.addEventListener("pagehide",()=>stopAll(false));
 </script>
 </body>
 </html>
