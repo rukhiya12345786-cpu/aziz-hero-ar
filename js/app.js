@@ -1,6 +1,6 @@
 // AZEEZ AI AR STUDIO
 // APP.JS — PART 1 OF 4
-// Camera + Hide/Show Controls
+// CAMERA AND CONTROL VISIBILITY
 
 const camera = document.getElementById("camera");
 const controls = document.getElementById("controls");
@@ -27,9 +27,7 @@ let cameraStarting = false;
 let controlsHidden = false;
 
 function setGlobalStatus(message) {
-    if (globalStatus) {
-        globalStatus.textContent = message;
-    }
+    if (globalStatus) globalStatus.textContent = message;
     console.log("[AZEEZ AR]", message);
 }
 
@@ -37,7 +35,6 @@ function setCameraStatus(message) {
     if (cameraStatus) {
         cameraStatus.textContent = "CAMERA: " + message;
     }
-
     if (cameraStatusChip) {
         cameraStatusChip.textContent = "CAMERA: " + message;
     }
@@ -59,18 +56,16 @@ function updateCameraButtons() {
     }
 
     if (mirrorBtn) {
-        mirrorBtn.textContent = mirrorEnabled
-            ? "MIRROR FLIP: ON"
-            : "MIRROR FLIP: OFF";
+        mirrorBtn.textContent =
+            mirrorEnabled ? "MIRROR FLIP: ON" : "MIRROR FLIP: OFF";
     }
 }
 
 function applyCameraMirror() {
-    if (!camera) return;
-
-    camera.style.transform = mirrorEnabled
-        ? "scaleX(-1)"
-        : "scaleX(1)";
+    if (camera) {
+        camera.style.transform =
+            mirrorEnabled ? "scaleX(-1)" : "scaleX(1)";
+    }
 }
 
 async function startCamera() {
@@ -78,7 +73,7 @@ async function startCamera() {
 
     if (!camera || !navigator.mediaDevices?.getUserMedia) {
         setCameraStatus("UNAVAILABLE");
-        setGlobalStatus("CAMERA ERROR: USE HTTPS");
+        setGlobalStatus("CAMERA ERROR — OPEN THE HTTPS WEBSITE");
         return;
     }
 
@@ -121,8 +116,8 @@ async function startCamera() {
         cameraStream = stream;
         camera.srcObject = stream;
         camera.muted = true;
-        camera.autoplay = true;
         camera.playsInline = true;
+        camera.autoplay = true;
 
         await camera.play();
 
@@ -140,8 +135,7 @@ async function startCamera() {
             cameraStream = null;
         }
 
-        if (camera) camera.srcObject = null;
-
+        camera.srcObject = null;
         setCameraStatus("ERROR");
         setGlobalStatus(
             "CAMERA ERROR: " + (error.message || error.name)
@@ -198,14 +192,9 @@ function toggleMirror() {
     );
 }
 
-// Hide and show the controls without stopping the camera.
-
 function hideControls() {
     controlsHidden = true;
-
-    if (controls) {
-        controls.classList.add("hidden");
-    }
+    controls?.classList.add("hidden");
 
     if (controlToggle) {
         controlToggle.textContent = "SHOW CONTROLS";
@@ -217,10 +206,7 @@ function hideControls() {
 
 function showControls() {
     controlsHidden = false;
-
-    if (controls) {
-        controls.classList.remove("hidden");
-    }
+    controls?.classList.remove("hidden");
 
     if (controlToggle) {
         controlToggle.textContent = "HIDE CONTROLS";
@@ -231,26 +217,13 @@ function showControls() {
 }
 
 function toggleControls() {
-    if (controlsHidden) {
-        showControls();
-    } else {
-        hideControls();
-    }
+    controlsHidden ? showControls() : hideControls();
 }
-
-// Button connections.
 
 startCameraBtn?.addEventListener("click", startCamera);
 stopCameraBtn?.addEventListener("click", stopCamera);
-
-frontCameraBtn?.addEventListener("click", () => {
-    selectCamera("user");
-});
-
-backCameraBtn?.addEventListener("click", () => {
-    selectCamera("environment");
-});
-
+frontCameraBtn?.addEventListener("click", () => selectCamera("user"));
+backCameraBtn?.addEventListener("click", () => selectCamera("environment"));
 switchCameraBtn?.addEventListener("click", switchCamera);
 mirrorBtn?.addEventListener("click", toggleMirror);
 
@@ -258,17 +231,10 @@ hideControlsBtn?.addEventListener("click", hideControls);
 showControlsBtn?.addEventListener("click", showControls);
 controlToggle?.addEventListener("click", toggleControls);
 
-// Initial status.
-
 setCameraStatus("OFF");
 updateCameraButtons();
-
-if (controlToggle) {
-    controlToggle.textContent = "HIDE CONTROLS";
-    controlToggle.setAttribute("aria-expanded", "true");
-}
-
 setGlobalStatus("READY — START CAMERA");
+
 console.log("AZEEZ AR PART 1 READY");
 // ==========================================
 // AZEEZ AI AR STUDIO
@@ -294,12 +260,6 @@ const trackingStatusChip =
 const landmarkCanvas =
     document.getElementById("landmarkCanvas");
 
-const showLandmarksButtons =
-    document.querySelectorAll("#showLandmarksBtn");
-
-const hideLandmarksButtons =
-    document.querySelectorAll("#hideLandmarksBtn");
-
 let faceLandmarker = null;
 let trackingRunning = false;
 let trackingLoading = false;
@@ -316,20 +276,21 @@ function setTrackingStatus(message) {
     if (trackingStatusChip) {
         trackingStatusChip.textContent = "TRACKING: " + message;
     }
+
+    console.log("[TRACKING]", message);
 }
 
 function clearTrackingDots() {
     if (!landmarkCanvas) return;
 
     const ctx = landmarkCanvas.getContext("2d");
-    if (!ctx) return;
-
-    ctx.clearRect(
-        0,
-        0,
-        landmarkCanvas.width,
-        landmarkCanvas.height
-    );
+    if (ctx) {
+        ctx.clearRect(
+            0, 0,
+            landmarkCanvas.width,
+            landmarkCanvas.height
+        );
+    }
 }
 
 function resizeTrackingCanvas() {
@@ -338,11 +299,8 @@ function resizeTrackingCanvas() {
     const rect = landmarkCanvas.getBoundingClientRect();
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-    landmarkCanvas.width =
-        Math.max(1, Math.round(rect.width * dpr));
-
-    landmarkCanvas.height =
-        Math.max(1, Math.round(rect.height * dpr));
+    landmarkCanvas.width = Math.max(1, Math.round(rect.width * dpr));
+    landmarkCanvas.height = Math.max(1, Math.round(rect.height * dpr));
 }
 
 async function loadFaceTrackingModel() {
@@ -353,28 +311,72 @@ async function loadFaceTrackingModel() {
     }
 
     trackingLoading = true;
-    setTrackingStatus("LOADING MODEL");
+    setTrackingStatus("LOADING LIBRARY");
     setGlobalStatus("LOADING FACE TRACKING LIBRARY...");
 
-    try {
-        const vision = await import(
-            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.mjs"
-        );
+    const sources = [
+        {
+            bundle:
+                "https://unpkg.com/@mediapipe/tasks-vision@0.10.21/vision_bundle.mjs",
+            wasm:
+                "https://unpkg.com/@mediapipe/tasks-vision@0.10.21/wasm"
+        },
+        {
+            bundle:
+                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21/vision_bundle.mjs",
+            wasm:
+                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21/wasm"
+        }
+    ];
 
-        const fileset =
-            await vision.FilesetResolver.forVisionTasks(
-                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
+    let lastError = null;
+
+    try {
+        let vision = null;
+        let fileset = null;
+
+        for (const source of sources) {
+            try {
+                setTrackingStatus("TRYING CDN");
+
+                vision = await import(source.bundle);
+
+                fileset =
+                    await vision.FilesetResolver.forVisionTasks(
+                        source.wasm
+                    );
+
+                console.log("MediaPipe loaded from:", source.bundle);
+                break;
+
+            } catch (error) {
+                lastError = error;
+                vision = null;
+                fileset = null;
+
+                console.warn("MediaPipe CDN failed:", source.bundle, error);
+            }
+        }
+
+        if (!vision || !fileset) {
+            throw new Error(
+                "Both MediaPipe CDN links failed. Check internet access and reload."
             );
+        }
+
+        setTrackingStatus("LOADING FACE MODEL");
+
+        const modelURL = new URL(
+            "../models/face_landmarker.task",
+            import.meta.url
+        ).href;
 
         faceLandmarker =
             await vision.FaceLandmarker.createFromOptions(
                 fileset,
                 {
                     baseOptions: {
-                        modelAssetPath: new URL(
-                            "../models/face_landmarker.task",
-                            import.meta.url
-                        ).href
+                        modelAssetPath: modelURL
                     },
                     runningMode: "VIDEO",
                     numFaces: 4,
@@ -389,17 +391,12 @@ async function loadFaceTrackingModel() {
     } catch (error) {
         faceLandmarker = null;
 
-        console.error("TRACKING MODEL ERROR:", error);
+        console.error("FACE TRACKING LOAD ERROR:", error, lastError);
 
-        setTrackingStatus(
-            "ERROR — " +
-            (error.message || error.name || "MODEL LOAD FAILED")
-        );
+        const message = error.message || error.name || "Unknown error";
 
-        setGlobalStatus(
-            "TRACKING ERROR: " +
-            (error.message || error.name || "UNKNOWN ERROR")
-        );
+        setTrackingStatus("ERROR — " + message);
+        setGlobalStatus("TRACKING ERROR: " + message);
 
         throw error;
 
@@ -416,8 +413,6 @@ async function startTracking() {
         setGlobalStatus("START CAMERA BEFORE TRACKING");
         return;
     }
-
-    setTrackingStatus("STARTING");
 
     try {
         await loadFaceTrackingModel();
@@ -461,9 +456,7 @@ function trackingLoop() {
         return;
     }
 
-    if (camera.currentTime === lastVideoTime) {
-        return;
-    }
+    if (camera.currentTime === lastVideoTime) return;
 
     lastVideoTime = camera.currentTime;
 
@@ -477,17 +470,19 @@ function trackingLoop() {
         window.latestFaceResult = result;
 
         const faces = result.faceLandmarks || [];
-        const requestedFaces = personCountSelect
+        const requested = personCountSelect
             ? Math.max(1, Math.min(4, Number(personCountSelect.value) || 1))
             : 4;
 
-        const visibleFaces = faces.slice(0, requestedFaces);
+        const visibleFaces = faces.slice(0, requested);
 
-        setTrackingStatus(
-            visibleFaces.length
-                ? "FACE DETECTED — " + visibleFaces.length
-                : "NO FACE"
-        );
+        if (visibleFaces.length > 0) {
+            setTrackingStatus(
+                "FACE DETECTED — " + visibleFaces.length
+            );
+        } else {
+            setTrackingStatus("NO FACE");
+        }
 
         if (showFaceLandmarks) {
             drawTrackingDots(visibleFaces);
@@ -497,10 +492,9 @@ function trackingLoop() {
 
     } catch (error) {
         console.error("FACE DETECTION ERROR:", error);
-
         setTrackingStatus(
             "DETECTION ERROR — " +
-            (error.message || error.name || "UNKNOWN")
+            (error.message || error.name || "Unknown error")
         );
     }
 }
@@ -548,8 +542,13 @@ function showTrackingDots() {
     showFaceLandmarks = true;
 
     if (lastFaceResult) {
-        const faces = lastFaceResult.faceLandmarks || [];
-        drawTrackingDots(faces);
+        const requested = personCountSelect
+            ? Math.max(1, Math.min(4, Number(personCountSelect.value) || 1))
+            : 4;
+
+        drawTrackingDots(
+            (lastFaceResult.faceLandmarks || []).slice(0, requested)
+        );
     }
 }
 
@@ -558,26 +557,33 @@ function hideTrackingDots() {
     clearTrackingDots();
 }
 
-// Connect tracking buttons.
-
 startTrackingBtn?.addEventListener("click", startTracking);
 stopTrackingBtn?.addEventListener("click", stopTracking);
 
-showLandmarksButtons.forEach(button => {
+// Handle duplicate landmark button IDs if the HTML has them twice.
+document.querySelectorAll("#showLandmarksBtn").forEach(button => {
     button.addEventListener("click", showTrackingDots);
 });
 
-hideLandmarksButtons.forEach(button => {
+document.querySelectorAll("#hideLandmarksBtn").forEach(button => {
     button.addEventListener("click", hideTrackingDots);
 });
 
+personCountSelect?.addEventListener("change", () => {
+    setGlobalStatus(
+        "FACE DISPLAY LIMIT: " + personCountSelect.value
+    );
+});
+
 window.addEventListener("resize", () => {
+    resizeTrackingCanvas();
+
     if (showFaceLandmarks && lastFaceResult) {
-        drawTrackingDots(lastFaceResult.faceLandmarks || []);
+        showTrackingDots();
     } else {
         clearTrackingDots();
     }
 });
 
 setTrackingStatus("OFF");
-console.log("AZEEZ AR FACE TRACKING PART READY");
+console.log("AZEEZ AR PART 2 READY");
