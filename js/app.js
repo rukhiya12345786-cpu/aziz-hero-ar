@@ -257,3 +257,295 @@ updateCameraButtons();
 setGlobalStatus("READY — START CAMERA");
 
 console.log("AZEEZ AI AR CAMERA SYSTEM READY");
+// ==========================================
+// PART 2 OF 5 — FACE TRACKING
+// Requires the MediaPipe face_landmarker.task
+// ==========================================
+
+const startTrackingBtn = document.getElementById("startTrackingBtn");
+const stopTrackingBtn = document.getElementById("stopTrackingBtn");
+const personCountSelect = document.getElementById("personCount");
+const trackingStatus = document.getElementById("trackingStatus");
+const trackingStatusChip = document.getElementById("trackingStatusChip");
+const landmarkCanvas = document.getElementById("landmarkCanvas");
+
+let faceLandmarker = null;
+let trackingRunning = false;
+let trackingLoading = false;
+let trackingAnimation = null;
+let lastTrackingVideoTime = -1;
+let showFaceLandmarks = false;
+let lastFaceResult = null;
+
+function setTrackingStatus(message) {
+    if (trackingStatus) {
+        trackingStatus.textContent = "TRACKING: " + message;
+    }
+
+    if (trackingStatusChip) {
+        trackingStatusChip.textContent = "TRACKING: " + message;
+    }
+}
+
+function resizeLandmarkCanvas() {
+    if (!landmarkCanvas) return;
+
+    const rect = landmarkCanvas.getBoundingClientRect();
+    const width = Math.max(1, Math.round(rect.width));
+    const height = Math.max(1, Math.round(rect.height));
+    const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+
+    if (
+        landmarkCanvas.width !== Math.round(width * pixelRatio) ||
+        landmarkCanvas.height !== Math.round(height * pixelRatio)
+    ) {
+        landmarkCanvas.width = Math.round(width * pixelRatio);
+        landmarkCanvas.height = Math.round(height * pixelRatio);
+    }
+}
+
+function clearLandmarkCanvas() {
+    if (!landmarkCanvas) return;
+
+    const ctx = landmarkCanvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.clearRect(
+        0,
+        0,
+        landmarkCanvas.width,
+        landmarkCanvas.height
+    );
+}
+
+async function loadFaceLandmarker() {
+    if (faceLandmarker) return faceLandmarker;
+    if (trackingLoading) {
+        throw new Error("Face tracking is already loading. Try again.");
+    }
+
+    trackingLoading = true;
+    setTrackingStatus("LOADING MODEL");
+    setGlobalStatus("LOADING FACE TRACKING LIBRARY...");
+
+    try {
+        const vision = await import(
+            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm"
+        );
+
+        const resolver = await vision.FilesetResolver.forVisionTasks(
+            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
+        );
+
+        faceLandmarker = await vision.FaceLandmarker.createFromOptions(
+            resolver,
+            {
+                baseOptions: {
+                    modelAssetPath:
+                        new URL("../models/face_landmarker.task", import.meta.url).href
+                },
+                runningMode: "VIDEO",
+                numFaces: 4,
+                outputFaceBlendshapes: true,
+                outputFacialTransformationMatrixes: true
+            }
+        );
+
+        setGlobalStatus("FACE TRACKING MODEL READY");
+        console.log("FaceLandmarker loaded.");
+
+        return faceLandmarker;
+
+    } catch (error) {
+        faceLandmarker = null;
+        console.error("FACE TRACKING LOAD ERROR:", error);
+
+        setTrackingStatus("ERROR");
+        setGlobalStatus(
+            "TRACKING ERROR: " +
+            (error.message || error.name || "Unknown error")
+        );
+
+        throw error;
+
+    } finally {
+        trackingLoading = false;
+    }
+}
+
+async function startTracking() {
+    if (trackingRunning) return;
+
+    if (!cameraStream || !camera || camera.readyState < 2) {
+        setTrackingStatus("CAMERA REQUIRED");
+        setGlobalStatus("START CAMERA AND WAIT FOR VIDEO FIRST");
+        return;
+    }
+
+    try {
+        await loadFaceLandmarker();
+
+        trackingRunning = true;
+        lastTrackingVideoTime = -1;
+
+        setTrackingStatus("STARTING");
+        setGlobalStatus("FACE TRACKING STARTED");
+
+        trackingLoop();
+
+    } catch (error) {
+        trackingRunning = false;
+        setTrackingStatus("ERROR");
+        console.error("Could not start tracking:", error);
+    }
+}
+
+function stopTracking() {
+    trackingRunning = false;
+
+    if (trackingAnimation !== null) {
+        cancelAnimationFrame(trackingAnimation);
+        trackingAnimation = null;
+    }
+
+    lastTrackingVideoTime = -1;
+    lastFaceResult = null;
+
+    clearLandmarkCanvas();
+    setTrackingStatus("OFF");
+    setGlobalStatus("FACE TRACKING OFF");
+}
+
+function trackingLoop() {
+    if (!trackingRunning) return;
+
+    trackingAnimation = requestAnimationFrame(trackingLoop);
+
+    if (!faceLandmarker || !camera || camera.readyState < 2) {
+        return;
+    }
+
+    if (camera.currentTime === lastTrackingVideoTime) {
+        return;
+    }
+
+    lastTrackingVideoTime = camera.currentTime;
+
+    try {
+        const maxFaces = personCountSelect
+            ? Number(personCountSelect.value) || 4
+            : 4;
+
+        faceLandmarker.setOptions({
+            numFaces: Math.max(1, Math.min(4, maxFaces))
+        });
+
+        const result = faceLandmarker.detectForVideo(
+            camera,
+            performance.now()
+        );
+
+        lastFaceResult = result;
+        window.latestFaceResult = result;
+
+        const faces = result.faceLandmarks || [];
+
+        setTrackingStatus(
+            faces.length > 0
+                ? "ON — " + faces.length + " FACE" +
+                  (faces.length === 1 ? "" : "S")
+                : "ON — NO FACE"
+        );
+
+        if (showFaceLandmarks) {
+            drawFaceLandmarks(faces);
+        } else {
+            clearLandmarkCanvas();
+        }
+
+    } catch (error) {
+        console.error("FACE DETECTION ERROR:", error);
+        setTrackingStatus("DETECTION ERROR");
+    }
+}
+
+function drawFaceLandmarks(faces) {
+    if (!landmarkCanvas) return;
+
+    resizeLandmarkCanvas();
+
+    const ctx = landmarkCanvas.getContext("2d");
+    if (!ctx) return;
+
+    const width = landmarkCanvas.width;
+    const height = landmarkCanvas.height;
+
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = "#00ff66";
+
+    for (const face of faces) {
+        for (let i = 0; i < face.length; i += 8) {
+            const point = face[i];
+
+            ctx.beginPath();
+            ctx.arc(
+                point.x * width,
+                point.y * height,
+                Math.max(2, width / 450),
+                0,
+                Math.PI * 2
+            );
+            ctx.fill();
+        }
+    }
+}
+
+function showFaceDots() {
+    showFaceLandmarks = true;
+
+    if (lastFaceResult) {
+        drawFaceLandmarks(lastFaceResult.faceLandmarks || []);
+    }
+}
+
+function hideFaceDots() {
+    showFaceLandmarks = false;
+    clearLandmarkCanvas();
+}
+
+// Connect tracking buttons.
+
+if (startTrackingBtn) {
+    startTrackingBtn.addEventListener("click", startTracking);
+}
+
+if (stopTrackingBtn) {
+    stopTrackingBtn.addEventListener("click", stopTracking);
+}
+
+const showLandmarksBtn =
+    document.getElementById("showLandmarksBtn");
+
+const hideLandmarksBtn =
+    document.getElementById("hideLandmarksBtn");
+
+if (showLandmarksBtn) {
+    showLandmarksBtn.addEventListener("click", showFaceDots);
+}
+
+if (hideLandmarksBtn) {
+    hideLandmarksBtn.addEventListener("click", hideFaceDots);
+}
+
+if (personCountSelect) {
+    personCountSelect.addEventListener("change", function() {
+        setGlobalStatus(
+            "TRACKING LIMIT: " + personCountSelect.value + " PERSON(S)"
+        );
+    });
+}
+
+window.addEventListener("resize", resizeLandmarkCanvas);
+
+setTrackingStatus("OFF");
+console.log("FACE TRACKING SYSTEM READY");
