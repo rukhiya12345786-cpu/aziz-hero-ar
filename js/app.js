@@ -1,372 +1,311 @@
-// AZEEZ AR HEAD TRACKER
-// PART 1 OF 5
-// Camera, UI visibility, basic controls
+// AZEEZ AR - PART 1 OF 4
+// Core setup, camera scene, model groups and settings.
 
-(() => {
-  "use strict";
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
 
-  const $ = (id) => document.getElementById(id);
+import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js";
+import { OBJLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/OBJLoader.js";
+import { FBXLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/FBXLoader.js";
 
-  const app = window.AZEEZ_AR = window.AZEEZ_AR || {};
+const $ = (id) => document.getElementById(id);
 
-  app.version = "1.0";
-  app.cameraStream = null;
-  app.facingMode = "user";
-  app.mirrorEnabled = false;
-  app.cameraStarted = false;
-  app.trackingStarted = false;
-  app.meshVisible = true;
-  app.landmarksVisible = true;
-  app.expressionsEnabled = true;
-  app.headFitEnabled = false;
-  app.autoHeadFit = false;
-  app.recording = false;
-  app.loadedModel = null;
-  app.faceLandmarker = null;
-  app.animationFrame = null;
+const video = $("cameraVideo");
+const threeCanvas = $("threeCanvas");
+const faceCanvas = $("faceCanvas");
 
-  const video = $("cameraVideo");
-  const placeholder = $("cameraPlaceholder");
-  const cameraStatus = $("cameraStatus");
-  const trackingStatus = $("trackingStatus");
-  const faceStatus = $("faceStatus");
-  const appStatus = $("appStatus");
-  const generalStatus = $("generalStatus");
+const faceContext = faceCanvas
+  ? faceCanvas.getContext("2d")
+  : null;
 
-  const startCameraBtn = $("startCameraBtn");
-  const stopCameraBtn = $("stopCameraBtn");
-  const switchCameraBtn = $("switchCameraBtn");
-  const mirrorBtn = $("mirrorBtn");
+const cameraStatus = $("cameraStatus");
+const faceStatus = $("faceStatus");
+const modelStatus = $("modelStatus");
+const recordingStatus = $("recordingStatus");
+const generalStatus = $("generalStatus");
+const placeholder = $("cameraPlaceholder");
 
-  const startTrackingBtn = $("startTrackingBtn");
-  const stopTrackingBtn = $("stopTrackingBtn");
+const topControls = $("topControls");
+const sliderOverlay = $("sliderOverlay");
 
-  const toggleSlidersBtn = $("toggleSlidersBtn");
-  const toggleControlsBtn = $("toggleControlsBtn");
+let mediaStream = null;
+let animationFrameId = 0;
+let faceMeshInstance = null;
+let faceTrackingActive = false;
+let cameraFacingMode = "user";
+let mirrorEnabled = false;
+let cameraStarting = false;
 
-  const slidersPanel = $("slidersPanel");
-  const controlsPanel = $("controlsPanel");
-  const recordingControls = $("recordingControls");
+let mediaRecorder = null;
+let recordedChunks = [];
+let recordingActive = false;
 
-  function setText(id, message) {
-    const element = $(id);
-    if (element) element.textContent = message;
+let currentModel = null;
+let currentModelUrl = null;
+let currentModelFormat = "";
+let lastFaceResults = null;
+
+let showFaceMesh = false;
+let showLandmarks = false;
+let autoHeadFit = true;
+let expressionTrackingEnabled = true;
+
+let cameraWidth = 0;
+let cameraHeight = 0;
+
+const settings = {
+  meshSize: 1,
+  meshX: 0,
+  meshY: 0,
+  meshZ: 0,
+
+  modelScale: 1,
+  modelX: 0,
+  modelY: 0,
+  modelZ: 0,
+
+  modelPitch: 0,
+  modelYaw: 0,
+  modelRoll: 0,
+
+  headFit: 1,
+  overlayOpacity: 0.48
+};
+
+const defaultSettings = { ...settings };
+
+function setStatus(element, message) {
+  if (element) element.textContent = message;
+}
+
+function setGeneralStatus(message) {
+  setStatus(generalStatus, message);
+}
+
+function setCameraStatus(message) {
+  setStatus(cameraStatus, message);
+}
+
+function setFaceStatus(message) {
+  setStatus(faceStatus, message);
+}
+
+function setModelStatus(message) {
+  setStatus(modelStatus, message);
+}
+
+function setRecordingStatus(message) {
+  setStatus(recordingStatus, message);
+}
+
+function setButtonText(id, text) {
+  const element = $(id);
+  if (element) element.textContent = text;
+}
+
+function clamp(value, minimum, maximum) {
+  return Math.min(maximum, Math.max(minimum, value));
+}
+
+function getNumber(id, fallback = 0) {
+  const element = $(id);
+
+  if (!element) return fallback;
+
+  const value = Number(element.value);
+
+  return Number.isFinite(value) ? value : fallback;
+}
+
+function degreesToRadians(degrees) {
+  return degrees * Math.PI / 180;
+}
+
+function resizeCanvases() {
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+
+  if (threeCanvas) {
+    threeCanvas.width = Math.round(width * pixelRatio);
+    threeCanvas.height = Math.round(height * pixelRatio);
+
+    threeCanvas.style.width = width + "px";
+    threeCanvas.style.height = height + "px";
   }
 
-  function setStatus(message) {
-    setText("generalStatus", message);
-    setText("appStatus", app.cameraStarted ? "CAMERA ON" : "READY");
+  if (faceCanvas) {
+    faceCanvas.width = Math.round(width * pixelRatio);
+    faceCanvas.height = Math.round(height * pixelRatio);
+
+    faceCanvas.style.width = width + "px";
+    faceCanvas.style.height = height + "px";
   }
 
-  function setCameraMessage(message) {
-    setText("cameraStatus", message);
-    setText("trackingStatus", message);
+  cameraWidth = width;
+  cameraHeight = height;
+
+  if (renderer) {
+    renderer.setPixelRatio(pixelRatio);
+    renderer.setSize(width, height, false);
   }
 
-  function updateVideoMirror() {
-    if (!video) return;
-
-    video.style.transform = app.mirrorEnabled
-      ? "scaleX(-1)"
-      : "scaleX(1)";
-
-    setText(
-      "mirrorBtn",
-      "MIRROR FLIP: " + (app.mirrorEnabled ? "ON" : "OFF")
-    );
+  if (threeCamera) {
+    threeCamera.aspect = width / Math.max(height, 1);
+    threeCamera.updateProjectionMatrix();
   }
+}
 
-  function updateCameraButtons() {
-    if (startCameraBtn) {
-      startCameraBtn.disabled = app.cameraStarted;
-    }
+// Three.js scene.
 
-    if (stopCameraBtn) {
-      stopCameraBtn.disabled = !app.cameraStarted;
-    }
+const scene = new THREE.Scene();
 
-    if (switchCameraBtn) {
-      switchCameraBtn.disabled = !navigator.mediaDevices?.getUserMedia;
-    }
-  }
+const threeCamera = new THREE.PerspectiveCamera(
+  45,
+  window.innerWidth / Math.max(window.innerHeight, 1),
+  0.01,
+  1000
+);
 
-  async function startCamera() {
-    if (!video) {
-      setStatus("ERROR: cameraVideo element not found.");
-      return;
-    }
+threeCamera.position.set(0, 0, 5);
 
-    if (!navigator.mediaDevices ||
-        !navigator.mediaDevices.getUserMedia) {
-      setCameraMessage(
-        "Camera unavailable. Open this site using HTTPS."
-      );
-      setStatus("Camera API unavailable.");
-      return;
-    }
+const renderer = new THREE.WebGLRenderer({
+  canvas: threeCanvas,
+  alpha: true,
+  antialias: true,
+  powerPreference: "high-performance"
+});
 
-    if (app.cameraStarted && app.cameraStream) {
-      setCameraMessage("Camera is already running.");
-      return;
-    }
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setSize(window.innerWidth, window.innerHeight, false);
+renderer.setClearColor(0x000000, 0);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1;
 
-    setCameraMessage("Requesting camera permission...");
-    setStatus("Starting camera...");
+scene.add(new THREE.HemisphereLight(0xffffff, 0x485064, 2));
 
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: false,
-        video: {
-          facingMode: { ideal: app.facingMode },
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }
-      });
+const mainLight = new THREE.DirectionalLight(0xffffff, 2.5);
+mainLight.position.set(2, 4, 5);
+scene.add(mainLight);
 
-      app.cameraStream = stream;
-      video.srcObject = stream;
+const fillLight = new THREE.DirectionalLight(0xffffff, 1.1);
+fillLight.position.set(-4, 1, 3);
+scene.add(fillLight);
 
-      await video.play();
+// Tracking anchor follows the detected face.
 
-      app.cameraStarted = true;
+const headAnchor = new THREE.Group();
+scene.add(headAnchor);
 
-      if (placeholder) {
-        placeholder.style.display = "none";
-      }
+// Model offset controls are kept separate from face tracking.
 
-      updateVideoMirror();
-      updateCameraButtons();
+const modelOffset = new THREE.Group();
+headAnchor.add(modelOffset);
 
-      setCameraMessage("Camera running. Start face tracking next.");
-      setText("faceStatus", "Waiting for face tracking to start.");
-      setStatus("Camera started successfully.");
+// Imported model is placed inside this group.
 
-    } catch (error) {
-      app.cameraStream = null;
-      app.cameraStarted = false;
+const modelContainer = new THREE.Group();
+modelOffset.add(modelContainer);
 
-      updateCameraButtons();
+// Face mesh and landmarks can be shown or hidden independently.
 
-      let message = "Camera failed to start.";
+const faceVisuals = new THREE.Group();
+scene.add(faceVisuals);
 
-      if (error.name === "NotAllowedError") {
-        message = "Camera permission denied. Allow camera access.";
-      } else if (error.name === "NotFoundError") {
-        message = "No compatible camera found.";
-      } else if (error.name === "NotReadableError") {
-        message = "Camera is busy. Close other camera apps.";
-      } else if (error.name === "OverconstrainedError") {
-        message = "Requested camera settings are unavailable.";
-      }
+const faceGeometry = new THREE.BufferGeometry();
+const faceMaterial = new THREE.MeshBasicMaterial({
+  color: 0x22ff88,
+  wireframe: true,
+  transparent: true,
+  opacity: 0.7,
+  depthTest: false
+});
 
-      setCameraMessage(message);
-      setStatus(message);
-      console.error("Camera error:", error);
-    }
-  }
+const faceWireframe = new THREE.Mesh(
+  faceGeometry,
+  faceMaterial
+);
 
-  function stopCamera() {
-    stopTracking();
+faceWireframe.visible = false;
+faceVisuals.add(faceWireframe);
 
-    if (app.cameraStream) {
-      app.cameraStream.getTracks().forEach((track) => {
-        track.stop();
-      });
-    }
+const landmarkMaterial = new THREE.MeshBasicMaterial({
+  color: 0x00ff99,
+  depthTest: false
+});
 
-    app.cameraStream = null;
-    app.cameraStarted = false;
+const landmarkGeometry = new THREE.BufferGeometry();
+const landmarkPoints = new THREE.Points(
+  landmarkGeometry,
+  new THREE.PointsMaterial({
+    color: 0x00ff99,
+    size: 0.025,
+    sizeAttenuation: true,
+    depthTest: false
+  })
+);
 
-    if (video) {
-      video.pause();
-      video.srcObject = null;
-    }
+landmarkPoints.visible = false;
+faceVisuals.add(landmarkPoints);
 
-    if (placeholder) {
-      placeholder.style.display = "flex";
-    }
+// Model loader setup.
 
-    updateCameraButtons();
+const gltfLoader = new GLTFLoader();
+const objLoader = new OBJLoader();
+const fbxLoader = new FBXLoader();
 
-    setCameraMessage("Camera stopped.");
-    setText("faceStatus", "Face tracking stopped.");
-    setStatus("Camera stopped.");
-  }
+function clearCurrentModel() {
+  while (modelContainer.children.length > 0) {
+    const child = modelContainer.children[0];
 
-  async function switchCamera() {
-    const wasRunning = app.cameraStarted;
+    modelContainer.remove(child);
 
-    if (!wasRunning) {
-      app.facingMode =
-        app.facingMode === "user" ? "environment" : "user";
+    child.traverse((object) => {
+      if (!object.isMesh) return;
 
-      setCameraMessage(
-        "Selected camera: " +
-        (app.facingMode === "user" ? "Front" : "Back")
-      );
+      if (object.geometry) object.geometry.dispose();
 
-      return;
-    }
-
-    const previousMode = app.facingMode;
-
-    app.facingMode =
-      app.facingMode === "user" ? "environment" : "user";
-
-    stopCamera();
-
-    await startCamera();
-
-    if (!app.cameraStarted) {
-      app.facingMode = previousMode;
-    }
-  }
-
-  function toggleMirror() {
-    app.mirrorEnabled = !app.mirrorEnabled;
-    updateVideoMirror();
-
-    setStatus(
-      "Mirror flip " + (app.mirrorEnabled ? "enabled." : "disabled.")
-    );
-  }
-
-  function toggleSliders() {
-    if (!slidersPanel) return;
-
-    const willHide =
-      !slidersPanel.classList.contains("hidden-panel");
-
-    slidersPanel.classList.toggle("hidden-panel", willHide);
-
-    setText(
-      "toggleSlidersBtn",
-      willHide ? "SHOW SLIDERS" : "HIDE SLIDERS"
-    );
-  }
-
-  function toggleControls() {
-    if (!controlsPanel) return;
-
-    const willHide =
-      !controlsPanel.classList.contains("hidden-panel");
-
-    controlsPanel.classList.toggle("hidden-panel", willHide);
-
-    if (recordingControls) {
-      recordingControls.classList.toggle("hidden-panel", willHide);
-    }
-
-    setText(
-      "toggleControlsBtn",
-      willHide ? "SHOW CONTROLS" : "HIDE CONTROLS"
-    );
-  }
-
-  function stopTracking() {
-    app.trackingStarted = false;
-
-    if (app.animationFrame !== null) {
-      cancelAnimationFrame(app.animationFrame);
-      app.animationFrame = null;
-    }
-
-    setText("faceStatus", "Face tracking stopped.");
-  }
-
-  function startTracking() {
-    if (!app.cameraStarted) {
-      setText(
-        "faceStatus",
-        "Start the camera before starting face tracking."
-      );
-      return;
-    }
-
-    // MediaPipe tracking is implemented in a later part.
-    if (typeof app.initializeFaceTracking === "function") {
-      app.initializeFaceTracking();
-    } else {
-      setText(
-        "faceStatus",
-        "Camera ready. Complete the remaining app.js parts to enable tracking."
-      );
-    }
-  }
-
-  // Keep slider values visible while moving the sliders.
-
-  const sliderIds = [
-    "meshScale", "meshX", "meshY", "meshZ", "meshRotation",
-    "modelScale", "modelX", "modelY", "modelZ",
-    "modelPitch", "modelYaw", "modelRoll", "headFit"
-  ];
-
-  function updateSliderLabel(id) {
-    const slider = $(id);
-    const label = $(id + "Value");
-
-    if (!slider || !label) return;
-
-    let suffix = "";
-
-    if (id === "meshScale" ||
-        id === "modelScale" ||
-        id === "headFit") {
-      suffix = "%";
-    } else if (
-      id === "meshRotation" ||
-      id === "modelPitch" ||
-      id === "modelYaw" ||
-      id === "modelRoll"
-    ) {
-      suffix = "°";
-    }
-
-    label.textContent = slider.value + suffix;
-  }
-
-  sliderIds.forEach((id) => {
-    const slider = $(id);
-
-    if (!slider) return;
-
-    slider.addEventListener("input", () => {
-      updateSliderLabel(id);
-
-      if (typeof app.applySlider === "function") {
-        app.applySlider(id, Number(slider.value));
+      if (Array.isArray(object.material)) {
+        object.material.forEach((material) => material.dispose());
+      } else if (object.material) {
+        object.material.dispose();
       }
     });
+  }
 
-    updateSliderLabel(id);
-  });
+  currentModel = null;
+  currentModelFormat = "";
 
-  // Connect the buttons that already exist in index.html.
+  if (currentModelUrl) {
+    URL.revokeObjectURL(currentModelUrl);
+    currentModelUrl = null;
+  }
+}
 
-  startCameraBtn?.addEventListener("click", startCamera);
-  stopCameraBtn?.addEventListener("click", stopCamera);
-  switchCameraBtn?.addEventListener("click", switchCamera);
-  mirrorBtn?.addEventListener("click", toggleMirror);
+function resetModelTransform() {
+  settings.modelScale = defaultSettings.modelScale;
+  settings.modelX = defaultSettings.modelX;
+  settings.modelY = defaultSettings.modelY;
+  settings.modelZ = defaultSettings.modelZ;
 
-  startTrackingBtn?.addEventListener("click", startTracking);
-  stopTrackingBtn?.addEventListener("click", stopTracking);
+  settings.modelPitch = defaultSettings.modelPitch;
+  settings.modelYaw = defaultSettings.modelYaw;
+  settings.modelRoll = defaultSettings.modelRoll;
 
-  toggleSlidersBtn?.addEventListener("click", toggleSliders);
-  toggleControlsBtn?.addEventListener("click", toggleControls);
+  settings.headFit = defaultSettings.headFit;
 
-  // Publish functions for the following app.js parts.
+  applySettingsToScene();
+}
 
-  app.startCamera = startCamera;
-  app.stopCamera = stopCamera;
-  app.switchCamera = switchCamera;
-  app.stopTracking = stopTracking;
-  app.setStatus = setStatus;
+function resetAllTransforms() {
+  Object.assign(settings, defaultSettings);
 
-  updateCameraButtons();
-  updateVideoMirror();
+  applySettingsToScene();
+}
 
-  setStatus("Part 1 loaded. Press START CAMERA to begin.");
+// Part 2 will add camera startup, tracking and model import.
+// Part 3 will add controls, sliders, hide/show and recording.
+// Part 4 will add settings import/export and final startup.
 
-  console.log("Azeez AR: Part 1 initialized.");
-})();
+window.addEventListener("resize", resizeCanvases);
+resizeCanvases();
