@@ -2,15 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport"
-      content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-
-<title>Azeez AR - 3D Tracking Test</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Azeez AR Face Tracking Test</title>
 
 <style>
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 html, body {
   margin: 0;
@@ -20,30 +16,26 @@ html, body {
   font-family: Arial, sans-serif;
 }
 
-body {
-  padding: 12px;
-}
+body { padding: 10px; }
 
 h2 {
   text-align: center;
-  margin: 8px 0 12px;
-  font-size: 21px;
+  font-size: 20px;
+  margin: 5px 0 10px;
 }
 
 #view {
   position: relative;
   width: 100%;
-  max-width: 700px;
-  margin: 0 auto;
+  max-width: 900px;
+  margin: auto;
   aspect-ratio: 3 / 4;
-  background: #000;
   overflow: hidden;
-  border: 1px solid #405168;
-  border-radius: 12px;
+  background: #000;
+  border-radius: 10px;
 }
 
-#cameraVideo,
-#threeCanvas {
+#cameraVideo, #dotsCanvas {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -51,81 +43,55 @@ h2 {
 }
 
 #cameraVideo {
-  display: block;
   object-fit: fill;
   background: #000;
 }
 
-#threeCanvas {
+#dotsCanvas {
   pointer-events: none;
 }
 
 #status {
-  max-width: 700px;
+  max-width: 900px;
   margin: 10px auto;
   padding: 10px;
-  background: #142238;
+  background: #15253b;
   border-radius: 8px;
   font-size: 14px;
   overflow-wrap: anywhere;
 }
 
 .controls {
-  max-width: 700px;
+  max-width: 900px;
   margin: 10px auto;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 9px;
+  gap: 8px;
 }
 
 button {
-  min-height: 46px;
-  padding: 10px 7px;
+  min-height: 44px;
+  padding: 9px 5px;
   border: 0;
-  border-radius: 9px;
+  border-radius: 8px;
   background: #1769db;
   color: white;
-  font-size: 14px;
   font-weight: bold;
+  font-size: 13px;
 }
 
-button:disabled {
-  opacity: 0.45;
-}
-
-#stopBtn {
-  background: #b92d3b;
-}
-
-#mirrorBtn {
-  background: #6d42b8;
-}
-
-#fullscreenBtn {
-  background: #087f70;
-}
+button:disabled { opacity: 0.5; }
+#stopBtn { background: #b92d3b; }
+#mirrorBtn { background: #7044b8; }
+#fullscreenBtn { background: #087f70; }
+#dotsBtn { background: #168347; }
 
 .note {
-  max-width: 700px;
+  max-width: 900px;
   margin: 12px auto;
-  color: #bdcce0;
   font-size: 13px;
   line-height: 1.5;
-}
-
-/* Full-screen fallback for browsers without a usable Fullscreen API */
-#view.fake-fullscreen {
-  position: fixed;
-  inset: 0;
-  z-index: 99999;
-  width: 100vw;
-  height: 100vh;
-  height: 100dvh;
-  max-width: none;
-  aspect-ratio: auto;
-  margin: 0;
-  border: 0;
-  border-radius: 0;
+  color: #bdcce0;
 }
 
 body.fullscreen-active {
@@ -139,20 +105,35 @@ body.fullscreen-active .note {
   display: none;
 }
 
+body.fullscreen-active #view {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  max-width: none;
+  aspect-ratio: auto;
+  margin: 0;
+  border-radius: 0;
+}
+
 body.fullscreen-active .controls {
   position: fixed;
-  z-index: 100000;
+  z-index: 10000;
   left: 8px;
   right: 8px;
   bottom: max(8px, env(safe-area-inset-bottom));
-  margin: 0 auto;
   width: calc(100% - 16px);
-  max-width: 700px;
+  margin: auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-body.fullscreen-active .controls button {
-  min-height: 40px;
-  background: rgba(23, 48, 78, 0.92);
+body.fullscreen-active button {
+  min-height: 38px;
+  padding: 6px 3px;
+  background: rgba(20, 50, 80, 0.92);
+  font-size: 11px;
 }
 
 body.fullscreen-active #stopBtn {
@@ -160,50 +141,77 @@ body.fullscreen-active #stopBtn {
 }
 
 body.fullscreen-active #mirrorBtn {
-  background: rgba(109, 66, 184, 0.95);
+  background: rgba(112, 68, 184, 0.95);
 }
 
-body.fullscreen-active #fullscreenBtn {
-  background: rgba(8, 127, 112, 0.95);
+body.fullscreen-active #dotsBtn {
+  background: rgba(22, 131, 71, 0.95);
+}
+
+@media (orientation: landscape) {
+  body { padding: 6px; }
+
+  h2 { font-size: 16px; margin: 2px 0 5px; }
+
+  #view {
+    width: 100%;
+    max-width: 1200px;
+    aspect-ratio: 16 / 9;
+  }
+
+  .controls {
+    max-width: 1200px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 6px auto;
+  }
+
+  .controls button {
+    min-height: 38px;
+  }
+
+  body.fullscreen-active .controls {
+    left: 10px;
+    right: 10px;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    width: min(760px, calc(100% - 20px));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 </style>
 </head>
 
 <body>
-
-<h2>Azeez AR — 3D Tracking Test</h2>
+<h2>Azeez AR — Green Dot Tracking</h2>
 
 <div id="view">
   <video id="cameraVideo" autoplay playsinline muted></video>
-  <canvas id="threeCanvas"></canvas>
+  <canvas id="dotsCanvas"></canvas>
 </div>
 
-<div id="status">Ready. Press START CAMERA.</div>
+<div id="status">Press START CAMERA.</div>
 
 <div class="controls">
   <button id="startBtn">START CAMERA</button>
   <button id="switchBtn">SWITCH CAMERA</button>
   <button id="mirrorBtn">MIRROR FLIP: OFF</button>
   <button id="fullscreenBtn">FULL SCREEN</button>
-  <button id="trackingBtn">START 3D TRACKING</button>
+  <button id="trackingBtn">START TRACKING</button>
   <button id="stopTrackingBtn">STOP TRACKING</button>
+  <button id="dotsBtn">GREEN DOTS: ON</button>
   <button id="stopBtn">STOP CAMERA</button>
 </div>
 
 <div class="note">
-  Test 1: Start the camera and check the full-screen button.
-  Test 2: Turn MIRROR FLIP ON and OFF to compare left and right.
-  Test 3: Start 3D tracking and turn your head left, right, up and down.
-  The test cube is only a tracking indicator, not a fitted helmet.
+  The cube has been removed. Green dots show the detected face landmarks.
+  Test the camera in portrait and landscape. Use the mirror button to compare
+  left and right. Fullscreen availability depends on browser support.
 </div>
 
 <script type="module">
-import * as THREE from
-  "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
-
-const view = document.getElementById("view");
 const video = document.getElementById("cameraVideo");
-const canvas = document.getElementById("threeCanvas");
+const view = document.getElementById("view");
+const canvas = document.getElementById("dotsCanvas");
+const ctx = canvas.getContext("2d");
 const statusBox = document.getElementById("status");
 
 const startBtn = document.getElementById("startBtn");
@@ -212,104 +220,75 @@ const mirrorBtn = document.getElementById("mirrorBtn");
 const fullscreenBtn = document.getElementById("fullscreenBtn");
 const trackingBtn = document.getElementById("trackingBtn");
 const stopTrackingBtn = document.getElementById("stopTrackingBtn");
+const dotsBtn = document.getElementById("dotsBtn");
 const stopBtn = document.getElementById("stopBtn");
 
 let stream = null;
 let facingMode = "user";
 let mirrorOn = false;
+let dotsOn = true;
 let tracking = false;
 let landmarker = null;
-let trackingFrame = 0;
+let frameId = 0;
 let cameraStarting = false;
+let lastVideoTime = -1;
+let lastLandmarks = null;
+let loadingModel = false;
 
-function status(message) {
+function setStatus(message) {
   statusBox.textContent = message;
 }
 
-/* Three.js transparent overlay */
+/* Resize the canvas to the visible camera stage. */
+function resizeCanvas() {
+  const rect = view.getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-const renderer = new THREE.WebGLRenderer({
-  canvas,
-  alpha: true,
-  antialias: true
+  canvas.width = Math.max(1, Math.round(rect.width * dpr));
+  canvas.height = Math.max(1, Math.round(rect.height * dpr));
+
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  drawDots(lastLandmarks);
+}
+
+function clearDots() {
+  const rect = view.getBoundingClientRect();
+  ctx.clearRect(0, 0, rect.width, rect.height);
+}
+
+function drawDots(landmarks) {
+  clearDots();
+
+  if (!dotsOn || !landmarks) return;
+
+  const rect = view.getBoundingClientRect();
+  const radius = Math.max(1.4, Math.min(rect.width, rect.height) / 260);
+
+  ctx.fillStyle = "#00ff55";
+  ctx.strokeStyle = "rgba(0, 40, 10, 0.8)";
+  ctx.lineWidth = 0.7;
+
+  for (const point of landmarks) {
+    const x = point.x * rect.width;
+    const y = point.y * rect.height;
+
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
+}
+
+window.addEventListener("resize", resizeCanvas);
+window.addEventListener("orientationchange", () => {
+  setTimeout(resizeCanvas, 250);
 });
 
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-renderer.setClearColor(0x000000, 0);
-
-const scene = new THREE.Scene();
-
-const camera = new THREE.OrthographicCamera(
-  -2, 2, 2, -2, 0.1, 100
-);
-
-camera.position.set(0, 0, 10);
-camera.lookAt(0, 0, 0);
-
-scene.add(new THREE.AmbientLight(0xffffff, 2));
-
-const light = new THREE.DirectionalLight(0xffffff, 2);
-light.position.set(2, 4, 8);
-scene.add(light);
-
-const headObject = new THREE.Group();
-scene.add(headObject);
-
-const cube = new THREE.Mesh(
-  new THREE.BoxGeometry(0.55, 0.55, 0.55),
-  new THREE.MeshStandardMaterial({
-    color: 0xffa126,
-    metalness: 0.2,
-    roughness: 0.35
-  })
-);
-
-headObject.add(cube);
-
-const edges = new THREE.LineSegments(
-  new THREE.EdgesGeometry(cube.geometry),
-  new THREE.LineBasicMaterial({ color: 0xffffff })
-);
-
-cube.add(edges);
-
-const axes = new THREE.AxesHelper(0.8);
-headObject.add(axes);
-
-headObject.visible = false;
-
-function resizeScene() {
-  const width = Math.max(view.clientWidth, 1);
-  const height = Math.max(view.clientHeight, 1);
-  const aspect = width / height;
-  const viewHeight = 4.8;
-
-  camera.left = -(viewHeight * aspect) / 2;
-  camera.right = (viewHeight * aspect) / 2;
-  camera.top = viewHeight / 2;
-  camera.bottom = -viewHeight / 2;
-  camera.updateProjectionMatrix();
-
-  renderer.setSize(width, height, false);
-}
-
-function renderLoop() {
-  renderer.render(scene, camera);
-  requestAnimationFrame(renderLoop);
-}
-
-resizeScene();
-renderLoop();
-window.addEventListener("resize", resizeScene);
-
-/* Mirror both the video and the 3D overlay together */
-
+/* Mirror video and landmark canvas together. */
 function updateMirror() {
   const transform = mirrorOn ? "scaleX(-1)" : "none";
-
   video.style.transform = transform;
   canvas.style.transform = transform;
-
   mirrorBtn.textContent =
     "MIRROR FLIP: " + (mirrorOn ? "ON" : "OFF");
 }
@@ -319,8 +298,13 @@ mirrorBtn.addEventListener("click", () => {
   updateMirror();
 });
 
-/* Camera */
+dotsBtn.addEventListener("click", () => {
+  dotsOn = !dotsOn;
+  dotsBtn.textContent = "GREEN DOTS: " + (dotsOn ? "ON" : "OFF");
+  drawDots(lastLandmarks);
+});
 
+/* Camera */
 async function startCamera() {
   if (cameraStarting) return;
   cameraStarting = true;
@@ -328,7 +312,7 @@ async function startCamera() {
   try {
     stopCamera(false);
 
-    status("Opening camera...");
+    setStatus("Opening camera...");
 
     stream = await navigator.mediaDevices.getUserMedia({
       audio: false,
@@ -342,16 +326,14 @@ async function startCamera() {
     video.srcObject = stream;
     await video.play();
 
-    const w = video.videoWidth || 640;
-    const h = video.videoHeight || 480;
+    view.style.aspectRatio =
+      `${video.videoWidth || 640} / ${video.videoHeight || 480}`;
 
-    view.style.aspectRatio = `${w} / ${h}`;
-    resizeScene();
-
-    status("Camera working. You can test mirror and full screen.");
+    resizeCanvas();
+    setStatus("Camera working. Press START TRACKING.");
 
   } catch (error) {
-    status("Camera error: " + error.message);
+    setStatus("Camera error: " + error.message);
   } finally {
     cameraStarting = false;
   }
@@ -366,10 +348,10 @@ function stopCamera(showMessage = true) {
   }
 
   video.srcObject = null;
+  lastLandmarks = null;
+  clearDots();
 
-  if (showMessage) {
-    status("Camera stopped.");
-  }
+  if (showMessage) setStatus("Camera stopped.");
 }
 
 startBtn.addEventListener("click", startCamera);
@@ -379,39 +361,28 @@ switchBtn.addEventListener("click", async () => {
   await startCamera();
 });
 
-/* Full-screen mode */
-
-async function toggleFullscreen() {
+/* Fullscreen: request browser fullscreen first, then use a CSS fallback. */
+async function enterFullscreen() {
   try {
     if (document.fullscreenElement) {
       await document.exitFullscreen();
       return;
     }
 
-    if (view.classList.contains("fake-fullscreen")) {
-      view.classList.remove("fake-fullscreen");
-      document.body.classList.remove("fullscreen-active");
-      resizeScene();
-      return;
-    }
-
-    if (view.requestFullscreen) {
-      await view.requestFullscreen();
+    if (document.documentElement.requestFullscreen) {
+      await document.documentElement.requestFullscreen();
     } else {
-      view.classList.add("fake-fullscreen");
       document.body.classList.add("fullscreen-active");
     }
-
-    setTimeout(resizeScene, 150);
-
   } catch (error) {
-    view.classList.add("fake-fullscreen");
     document.body.classList.add("fullscreen-active");
-    resizeScene();
+    setStatus("Using camera full-screen layout. Browser bars may remain visible.");
   }
+
+  setTimeout(resizeCanvas, 200);
 }
 
-fullscreenBtn.addEventListener("click", toggleFullscreen);
+fullscreenBtn.addEventListener("click", enterFullscreen);
 
 document.addEventListener("fullscreenchange", () => {
   document.body.classList.toggle(
@@ -419,57 +390,54 @@ document.addEventListener("fullscreenchange", () => {
     Boolean(document.fullscreenElement)
   );
 
-  setTimeout(resizeScene, 100);
+  fullscreenBtn.textContent = document.fullscreenElement
+    ? "EXIT FULL SCREEN"
+    : "FULL SCREEN";
+
+  setTimeout(resizeCanvas, 200);
 });
 
-/* MediaPipe face tracking */
-
+/* MediaPipe */
 async function loadFaceLandmarker() {
   if (landmarker) return landmarker;
-
-  status("Loading face tracking model...");
-
-  const vision = await import(
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.mjs"
-  );
-
-  const files = await vision.FilesetResolver.forVisionTasks(
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
-  );
-
-  landmarker = await vision.FaceLandmarker.createFromOptions(files, {
-    baseOptions: {
-      modelAssetPath:
-        "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-      delegate: "GPU"
-    },
-    runningMode: "VIDEO",
-    numFaces: 1,
-    outputFacialTransformationMatrixes: true,
-    outputFaceBlendshapes: true
-  });
-
-  return landmarker;
-}
-
-function stopTracking(showMessage = true) {
-  tracking = false;
-
-  if (trackingFrame) {
-    cancelAnimationFrame(trackingFrame);
-    trackingFrame = 0;
+  if (loadingModel) {
+    throw new Error("Model is still loading. Please try again.");
   }
 
-  headObject.visible = false;
+  loadingModel = true;
 
-  if (showMessage) {
-    status("3D tracking stopped.");
+  try {
+    setStatus("Loading face model...");
+
+    const vision = await import(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.mjs"
+    );
+
+    const files = await vision.FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+    );
+
+    landmarker = await vision.FaceLandmarker.createFromOptions(files, {
+      baseOptions: {
+        modelAssetPath:
+          "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+        delegate: "GPU"
+      },
+      runningMode: "VIDEO",
+      numFaces: 1,
+      outputFaceBlendshapes: true,
+      outputFacialTransformationMatrixes: true
+    });
+
+    return landmarker;
+  } finally {
+    loadingModel = false;
   }
 }
 
 async function startTracking() {
   if (!stream) {
-    status("First press START CAMERA.");
+    setStatus("First press START CAMERA.");
     return;
   }
 
@@ -477,13 +445,27 @@ async function startTracking() {
     await loadFaceLandmarker();
 
     tracking = true;
-    status("Tracking started. Look at the camera.");
-
+    lastVideoTime = -1;
+    setStatus("Tracking started. Looking for face...");
     detectFrame();
 
   } catch (error) {
-    status("Tracking error: " + error.message);
+    setStatus("Tracking error: " + error.message);
   }
+}
+
+function stopTracking(showMessage = true) {
+  tracking = false;
+
+  if (frameId) {
+    cancelAnimationFrame(frameId);
+    frameId = 0;
+  }
+
+  lastLandmarks = null;
+  clearDots();
+
+  if (showMessage) setStatus("Tracking stopped.");
 }
 
 function detectFrame() {
@@ -491,71 +473,39 @@ function detectFrame() {
 
   if (video.readyState >= 2 && landmarker) {
     try {
-      const result = landmarker.detectForVideo(
-        video,
-        performance.now()
-      );
+      if (video.currentTime !== lastVideoTime) {
+        lastVideoTime = video.currentTime;
 
-      const landmarks = result.faceLandmarks?.[0];
+        const result = landmarker.detectForVideo(
+          video,
+          performance.now()
+        );
 
-      if (landmarks) {
-        headObject.visible = true;
+        lastLandmarks = result.faceLandmarks?.[0] || null;
+      }
 
-        /* Face landmark 1 is near the nose tip. */
-        const nose = landmarks[1];
+      drawDots(lastLandmarks);
 
-        const worldHeight = 4.8;
-        const worldWidth =
-          worldHeight * (view.clientWidth / Math.max(view.clientHeight, 1));
-
-        headObject.position.x = (nose.x - 0.5) * worldWidth;
-        headObject.position.y = (0.5 - nose.y) * worldHeight;
-        headObject.position.z = 0;
-
-        /*
-         * Apply the facial transformation rotation when available.
-         * Keep position from landmarks for easier visual testing.
-         */
-        const matrixData =
-          result.facialTransformationMatrixes?.[0]?.data;
-
-        if (matrixData && matrixData.length === 16) {
-          const matrix = new THREE.Matrix4().fromArray(matrixData);
-          const position = new THREE.Vector3();
-          const quaternion = new THREE.Quaternion();
-          const scale = new THREE.Vector3();
-
-          matrix.decompose(position, quaternion, scale);
-
-          headObject.quaternion.copy(quaternion);
-        }
-
-        status("FACE DETECTED — 3D OBJECT TRACKING");
+      if (lastLandmarks) {
+        setStatus("FACE DETECTED — GREEN DOTS ACTIVE");
       } else {
-        headObject.visible = false;
-        status("Looking for face...");
+        setStatus("Looking for face...");
       }
 
     } catch (error) {
-      status("Detection error: " + error.message);
+      setStatus("Detection error: " + error.message);
     }
   }
 
-  trackingFrame = requestAnimationFrame(detectFrame);
+  frameId = requestAnimationFrame(detectFrame);
 }
 
 trackingBtn.addEventListener("click", startTracking);
-
-stopTrackingBtn.addEventListener("click", () => {
-  stopTracking(true);
-});
-
-stopBtn.addEventListener("click", () => {
-  stopCamera(true);
-});
+stopTrackingBtn.addEventListener("click", () => stopTracking(true));
+stopBtn.addEventListener("click", () => stopCamera(true));
 
 updateMirror();
+resizeCanvas();
 </script>
-
 </body>
 </html>
