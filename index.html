@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#101014">
+  <meta name="theme-color" content="#08090c">
   <title>AZEEZ AI AR STUDIO</title>
 
   <script type="importmap">
@@ -16,41 +16,247 @@
   </script>
 
   <style>
-    :root { color-scheme: dark; --panel: rgba(14,16,20,.94); --line:#454a55; --accent:#00e676; }
-    * { box-sizing:border-box; }
-    html,body { margin:0; width:100%; height:100%; overflow:hidden; background:#08090c; color:#fff; font-family:Arial,sans-serif; }
-    button,input,select { font:inherit; }
-    button,select { color:#fff; background:#242831; border:1px solid #505664; border-radius:8px; padding:9px 10px; }
-    button { cursor:pointer; touch-action:manipulation; }
-    button:active { background:#075c36; }
-    #view { position:fixed; inset:0; overflow:hidden; background:#08090c; isolation:isolate; }
-    #cameraVideo { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0; background:#08090c; }
-    #dotsCanvas { position:absolute; inset:0; width:100%; height:100%; z-index:2; pointer-events:none; }
-    #status { position:absolute; top:calc(env(safe-area-inset-top) + 8px); left:8px; z-index:45; padding:7px 10px; border-radius:8px; background:#000a; color:#7dffb1; font-size:12px; max-width:75%; }
-    #topControls { position:absolute; top:calc(env(safe-area-inset-top) + 8px); right:8px; z-index:50; display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; max-width:60%; }
-    #topControls button { font-size:12px; padding:8px; background:#111d; }
-    #editor { position:absolute; z-index:40; top:58px; right:8px; bottom:calc(env(safe-area-inset-bottom) + 72px); width:min(340px, calc(100vw - 16px)); overflow:auto; padding:12px; border:1px solid var(--line); border-radius:12px; background:var(--panel); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); }
-    #editor h2 { font-size:16px; margin:2px 0 10px; }
-    #editor h3 { font-size:13px; margin:12px 0 7px; color:#c5ffdd; }
-    #editor .row { display:flex; flex-wrap:wrap; gap:6px; margin:6px 0; }
-    #editor .row > button, #editor .row > select { flex:1; min-width:70px; }
-    #editor .section { border-top:1px solid #444955; padding-top:8px; margin-top:10px; }
-    #editor .field { display:block; margin:9px 0; }
-    #editor .field span { display:flex; justify-content:space-between; gap:8px; font-size:12px; margin-bottom:4px; }
-    #editor input[type=range] { width:100%; accent-color:var(--accent); }
-    #editor input[type=file] { width:100%; font-size:12px; }
-    #editor .hint { color:#c1c6d0; font-size:11px; line-height:1.45; }
-    #editor .slot.active { border-color:var(--accent); background:#075c36; }
-    #editor .small { font-size:11px; padding:7px; }
-    #bottomControls { position:absolute; z-index:50; bottom:calc(env(safe-area-inset-bottom) + 10px); left:8px; right:8px; display:flex; justify-content:center; flex-wrap:wrap; gap:7px; }
-    #bottomControls button { background:#111d; font-size:12px; }
-    #toast { position:absolute; z-index:60; left:50%; bottom:80px; transform:translateX(-50%); max-width:90%; padding:8px 12px; border-radius:9px; background:#111e; color:#fff; font-size:12px; text-align:center; pointer-events:none; }
-    .hidden { display:none !important; }
-    #view.clean #status, #view.clean #editor, #view.clean #topControls, #view.clean #bottomControls, #view.clean #toast { display:none !important; }
-    @media (orientation:landscape) {
-      #editor { top:48px; bottom:48px; width:min(330px, 38vw); }
-      #bottomControls { left: auto; width:58%; }
-      #topControls { max-width:60%; }
+    :root {
+      color-scheme: dark;
+      --panel: rgba(14,16,20,.94);
+      --line: #454a55;
+      --accent: #00e676;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #08090c;
+      color: #fff;
+      font-family: Arial, sans-serif;
+    }
+
+    button, input, select {
+      font: inherit;
+    }
+
+    button, select {
+      color: #fff;
+      background: #242831;
+      border: 1px solid #505664;
+      border-radius: 8px;
+      padding: 9px 10px;
+    }
+
+    button {
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    button:active {
+      background: #075c36;
+    }
+
+    #view {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      background: #08090c;
+      isolation: isolate;
+    }
+
+    #cameraVideo {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 0;
+      background: #08090c;
+    }
+
+    #dotsCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    #arCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    #status {
+      position: absolute;
+      top: calc(env(safe-area-inset-top) + 8px);
+      left: 8px;
+      z-index: 45;
+      padding: 7px 10px;
+      border-radius: 8px;
+      background: #000a;
+      color: #7dffb1;
+      font-size: 12px;
+      max-width: 75%;
+    }
+
+    #topControls {
+      position: absolute;
+      top: calc(env(safe-area-inset-top) + 8px);
+      right: 8px;
+      z-index: 50;
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      max-width: 65%;
+    }
+
+    #topControls button,
+    #bottomControls button {
+      font-size: 12px;
+      padding: 8px;
+      background: #111d;
+    }
+
+    #editor {
+      position: absolute;
+      z-index: 40;
+      top: 58px;
+      right: 8px;
+      bottom: calc(env(safe-area-inset-bottom) + 72px);
+      width: min(340px, calc(100vw - 16px));
+      overflow: auto;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    #editor h2 {
+      font-size: 16px;
+      margin: 2px 0 10px;
+    }
+
+    #editor h3 {
+      font-size: 13px;
+      margin: 12px 0 7px;
+      color: #c5ffdd;
+    }
+
+    #editor .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 6px 0;
+    }
+
+    #editor .row > button,
+    #editor .row > select {
+      flex: 1;
+      min-width: 70px;
+    }
+
+    #editor .section {
+      border-top: 1px solid #444955;
+      padding-top: 8px;
+      margin-top: 10px;
+    }
+
+    #editor .field {
+      display: block;
+      margin: 9px 0;
+    }
+
+    #editor .field span {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    #editor input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    #editor input[type="file"] {
+      width: 100%;
+      font-size: 12px;
+    }
+
+    #editor .hint {
+      color: #c1c6d0;
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    #editor .slot.active {
+      border-color: var(--accent);
+      background: #075c36;
+    }
+
+    #bottomControls {
+      position: absolute;
+      z-index: 50;
+      bottom: calc(env(safe-area-inset-bottom) + 10px);
+      left: 8px;
+      right: 8px;
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    #toast {
+      position: absolute;
+      z-index: 60;
+      left: 50%;
+      bottom: 80px;
+      transform: translateX(-50%);
+      max-width: 90%;
+      padding: 8px 12px;
+      border-radius: 9px;
+      background: #111e;
+      color: #fff;
+      font-size: 12px;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    #view.clean #status,
+    #view.clean #editor,
+    #view.clean #topControls,
+    #view.clean #bottomControls,
+    #view.clean #toast {
+      display: none !important;
+    }
+
+    @media (orientation: landscape) {
+      #editor {
+        top: 48px;
+        bottom: 48px;
+        width: min(330px, 38vw);
+      }
+
+      #bottomControls {
+        left: auto;
+        width: 58%;
+      }
     }
   </style>
 </head>
@@ -58,110 +264,242 @@
   <main id="view">
     <video id="cameraVideo" autoplay playsinline muted></video>
     <canvas id="dotsCanvas"></canvas>
-    <div id="status">Ready — tap Start Camera</div>
+    <canvas id="arCanvas"></canvas>
+
+    <div id="status" role="status">
+      Ready — tap Start Camera
+    </div>
 
     <div id="topControls">
       <button id="startCameraBtn">Start Camera</button>
       <button id="switchCameraBtn">Front / Back</button>
-      <button id="flipBtn">Mirror</button>
+      <button id="flipBtn">Mirror: Off</button>
       <button id="trackingBtn">Face Track: Off</button>
     </div>
 
-    <aside id="editor">
+    <!-- HTML PART 2 STARTS HERE -->
+</body>
+</html>
+    <div id="editor">
       <h2>AZEEZ AI AR STUDIO</h2>
-      <div class="row">
-        <button id="hideSlidersBtn">Hide Sliders</button>
-        <button id="hideOptionsBtn">Hide Options</button>
-        <button id="cleanScreenBtn">Clean Screen</button>
-      </div>
 
-      <div id="optionsPanel">
-        <div class="section">
-          <h3>Four Filter Slots</h3>
-          <div class="row">
-            <button class="slot active" data-slot="0">Filter 1</button>
-            <button class="slot" data-slot="1">Filter 2</button>
-            <button class="slot" data-slot="2">Filter 3</button>
-            <button class="slot" data-slot="3">Filter 4</button>
-          </div>
-          <label class="field">Import 3D model (GLB, GLTF, OBJ, FBX)
-            <input id="modelFile" type="file" accept=".glb,.gltf,.obj,.fbx">
-          </label>
-          <div class="row">
-            <button id="removeModelBtn">Remove Slot Model</button>
-            <button id="showModelBtn">Model On / Off</button>
-          </div>
-          <p class="hint">GLB is recommended. A GLTF may need its companion .bin and texture files. OBJ/FBX morph animation support varies by model.</p>
-        </div>
-
-        <div class="section">
-          <h3>Blender / iClone Transform Gizmo</h3>
-          <div class="row">
-            <button data-transform="translate">Move</button>
-            <button data-transform="rotate">Rotate</button>
-            <button data-transform="scale">Scale</button>
-            <button id="resetTransformBtn">Reset</button>
-          </div>
-          <label class="field"><span>Position X <output id="posXOut">0.00</output></span><input id="posX" type="range" min="-3" max="3" step=".01" value="0"></label>
-          <label class="field"><span>Position Y <output id="posYOut">0.00</output></span><input id="posY" type="range" min="-3" max="3" step=".01" value="0"></label>
-          <label class="field"><span>Position Z <output id="posZOut">0.00</output></span><input id="posZ" type="range" min="-3" max="3" step=".01" value="0"></label>
-          <label class="field"><span>Rotation X° <output id="rotXOut">0</output></span><input id="rotX" type="range" min="-180" max="180" step="1" value="0"></label>
-          <label class="field"><span>Rotation Y° <output id="rotYOut">0</output></span><input id="rotY" type="range" min="-180" max="180" step="1" value="0"></label>
-          <label class="field"><span>Rotation Z° <output id="rotZOut">0</output></span><input id="rotZ" type="range" min="-180" max="180" step="1" value="0"></label>
-          <label class="field"><span>Model Scale <output id="scaleOut">1.00</output></span><input id="modelScale" type="range" min=".02" max="3" step=".01" value="1"></label>
-        </div>
-      </div>
-
-      <div id="slidersPanel">
-        <div class="section">
-          <h3>Face Fit / Head Anchor</h3>
-          <label class="field"><span>Face horizontal <output id="faceXOut">0.00</output></span><input id="faceX" type="range" min="-2" max="2" step=".01" value="0"></label>
-          <label class="field"><span>Face vertical <output id="faceYOut">0.00</output></span><input id="faceY" type="range" min="-2" max="2" step=".01" value="0"></label>
-          <label class="field"><span>Face depth <output id="faceZOut">0.00</output></span><input id="faceZ" type="range" min="-2" max="2" step=".01" value="0"></label>
-          <label class="field"><span>Face fit size <output id="faceSizeOut">1.00</output></span><input id="faceSize" type="range" min=".2" max="3" step=".01" value="1"></label>
-          <label class="field"><span>Head yaw offset° <output id="yawOffsetOut">0</output></span><input id="yawOffset" type="range" min="-90" max="90" step="1" value="0"></label>
-          <label class="field"><span>Head pitch offset° <output id="pitchOffsetOut">0</output></span><input id="pitchOffset" type="range" min="-90" max="90" step="1" value="0"></label>
-          <label class="field"><span>Head roll offset° <output id="rollOffsetOut">0</output></span><input id="rollOffset" type="range" min="-90" max="90" step="1" value="0"></label>
-          <div class="row"><button id="autoFitBtn">Auto Fit Model</button><button id="resetFaceBtn">Reset Face Fit</button></div>
-        </div>
-
-        <div class="section">
-          <h3>Face Parts / Lens Studio Style</h3>
-          <label class="field"><span>Left eye scale <output id="leftEyeOut">1.00</output></span><input id="leftEye" type="range" min=".2" max="3" step=".01" value="1"></label>
-          <label class="field"><span>Right eye scale <output id="rightEyeOut">1.00</output></span><input id="rightEye" type="range" min=".2" max="3" step=".01" value="1"></label>
-          <label class="field"><span>Mouth scale <output id="mouthScaleOut">1.00</output></span><input id="mouthScale" type="range" min=".2" max="3" step=".01" value="1"></label>
-          <label class="field"><span>Mouth open test <output id="mouthOpenOut">0.00</output></span><input id="mouthOpen" type="range" min="0" max="1" step=".01" value="0"></label>
-          <label class="field"><span>Left blink test <output id="blinkLeftOut">0.00</output></span><input id="blinkLeft" type="range" min="0" max="1" step=".01" value="0"></label>
-          <label class="field"><span>Right blink test <output id="blinkRightOut">0.00</output></span><input id="blinkRight" type="range" min="0" max="1" step=".01" value="0"></label>
-          <p class="hint">Expression sliders affect compatible morph targets if your model has them. Separate eye/mouth scaling is saved as fit settings; it cannot reshape a model that has no corresponding geometry or blendshapes.</p>
-        </div>
-      </div>
-
-      <div class="section" id="recordingOptions">
-        <h3>Capture</h3>
+      <div class="section">
+        <h3>Model Slots</h3>
         <div class="row">
-          <button id="recordBtn">Record Video</button>
-          <button id="stopRecordBtn" disabled>Stop Recording</button>
+          <button class="slot active" data-slot="0">Slot 1</button>
+          <button class="slot" data-slot="1">Slot 2</button>
+          <button class="slot" data-slot="2">Slot 3</button>
+          <button class="slot" data-slot="3">Slot 4</button>
+        </div>
+
+        <label class="field">
+          <span>Import 3D Model</span>
+          <input id="modelFile" type="file"
+            accept=".glb,.gltf,.obj,.fbx">
+        </label>
+
+        <div class="row">
+          <button id="showModelBtn">Show Model</button>
+          <button id="removeModelBtn">Remove Model</button>
+        </div>
+        <p class="hint">
+          Supported formats depend on the model loader. GLB is the recommended first format to test.
+        </p>
+      </div>
+
+      <div class="section">
+        <h3>Transform Mode</h3>
+        <div class="row">
+          <button data-transform="translate">Move</button>
+          <button data-transform="rotate">Rotate</button>
+          <button data-transform="scale">Scale</button>
+        </div>
+
+        <label class="field">
+          <span>Position X <output id="posXOut">0</output></span>
+          <input id="posX" type="range" min="-3" max="3"
+            step="0.01" value="0">
+        </label>
+
+        <label class="field">
+          <span>Position Y <output id="posYOut">0</output></span>
+          <input id="posY" type="range" min="-3" max="3"
+            step="0.01" value="0">
+        </label>
+
+        <label class="field">
+          <span>Depth Z <output id="posZOut">0</output></span>
+          <input id="posZ" type="range" min="-3" max="3"
+            step="0.01" value="0">
+        </label>
+
+        <label class="field">
+          <span>Rotation X <output id="rotXOut">0</output></span>
+          <input id="rotX" type="range" min="-180" max="180"
+            step="1" value="0">
+        </label>
+
+        <label class="field">
+          <span>Rotation Y <output id="rotYOut">0</output></span>
+          <input id="rotY" type="range" min="-180" max="180"
+            step="1" value="0">
+        </label>
+
+        <label class="field">
+          <span>Rotation Z <output id="rotZOut">0</output></span>
+          <input id="rotZ" type="range" min="-180" max="180"
+            step="1" value="0">
+        </label>
+
+        <label class="field">
+          <span>Model Scale <output id="scaleOut">1.00</output></span>
+          <input id="modelScale" type="range" min="0.05" max="3"
+            step="0.01" value="1">
+        </label>
+
+        <div class="row">
+          <button id="resetTransformBtn">Reset Transform</button>
+          <button id="autoFitBtn">Auto Fit</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>Face Position & Size</h3>
+
+        <label class="field">
+          <span>Face X</span>
+          <input id="faceX" type="range" min="-1" max="1"
+            step="0.01" value="0">
+        </label>
+
+        <label class="field">
+          <span>Face Y</span>
+          <input id="faceY" type="range" min="-1" max="1"
+            step="0.01" value="0">
+        </label>
+
+        <label class="field">
+          <span>Face Depth</span>
+          <input id="faceZ" type="range" min="-1" max="1"
+            step="0.01" value="0">
+        </label>
+
+        <label class="field">
+          <span>Face Size</span>
+          <input id="faceSize" type="range" min="0.2" max="3"
+            step="0.01" value="1">
+        </label>
+
+        <label class="field">
+          <span>Yaw Offset</span>
+          <input id="yawOffset" type="range" min="-90" max="90"
+            step="1" value="0">
+        </label>
+
+        <label class="field">
+          <span>Pitch Offset</span>
+          <input id="pitchOffset" type="range" min="-90" max="90"
+            step="1" value="0">
+        </label>
+
+        <label class="field">
+          <span>Roll Offset</span>
+          <input id="rollOffset" type="range" min="-90" max="90"
+            step="1" value="0">
+        </label>
+      </div>
+
+      <div class="section">
+        <h3>Face Tracking Options</h3>
+
+        <label class="field">
+          <span>Left Eye</span>
+          <input id="leftEye" type="range" min="0.5" max="1.8"
+            step="0.01" value="1">
+        </label>
+
+        <label class="field">
+          <span>Right Eye</span>
+          <input id="rightEye" type="range" min="0.5" max="1.8"
+            step="0.01" value="1">
+        </label>
+
+        <label class="field">
+          <span>Mouth Scale</span>
+          <input id="mouthScale" type="range" min="0.5" max="2"
+            step="0.01" value="1">
+        </label>
+
+        <label class="field">
+          <span>Mouth Open</span>
+          <input id="mouthOpen" type="range" min="0" max="1"
+            step="0.01" value="0">
+        </label>
+
+        <label class="field">
+          <span>Left Blink</span>
+          <input id="blinkLeft" type="range" min="0" max="1"
+            step="0.01" value="0">
+        </label>
+
+        <label class="field">
+          <span>Right Blink</span>
+          <input id="blinkRight" type="range" min="0" max="1"
+            step="0.01" value="0">
+        </label>
+
+        <div class="row">
+          <button id="resetFaceBtn">Reset Face</button>
+          <button id="resetAllBtn">Reset All</button>
+        </div>
+      </div>
+
+      <!-- HTML PART 3 STARTS HERE -->
+    </div>
+    
+      <div class="section" id="recordingOptions">
+        <h3>Recording</h3>
+        <div class="row">
+          <button id="recordBtn">Start Recording</button>
+          <button id="stopRecordBtn">Stop Recording</button>
           <button id="micBtn">Mic: Off</button>
         </div>
-        <p class="hint">Recording combines the camera image and 3D overlay. Microphone capture requires browser permission.</p>
       </div>
+
       <div class="section">
+        <h3>Settings</h3>
         <div class="row">
-          <button id="resetAllBtn">Reset Settings</button>
           <button id="exportSettingsBtn">Export Settings</button>
           <button id="importSettingsBtn">Import Settings</button>
-          <input id="settingsFile" type="file" accept=".json,application/json" hidden>
+        </div>
+        <input id="settingsFile" class="hidden" type="file"
+          accept=".json,application/json">
+      </div>
+
+      <div class="section">
+        <h3>Display</h3>
+        <div class="row">
+          <button id="dotsBtn">Green Dots: On</button>
+          <button id="fullscreenBtn">Fullscreen</button>
+        </div>
+        <div class="row">
+          <button id="hideOptionsBtn">Hide Options</button>
+          <button id="hideSlidersBtn">Hide Sliders</button>
+          <button id="cleanScreenBtn">Clean Screen</button>
+        </div>
+        <div class="row">
+          <button id="stopCameraBtn">Stop Camera</button>
         </div>
       </div>
-    </aside>
+    </div>
 
     <div id="bottomControls">
-      <button id="stopCameraBtn">Stop Camera</button>
-      <button id="dotsBtn">Dots: On</button>
-      <button id="fullscreenBtn">Fullscreen</button>
+      <button id="showEditorBtn">Show Options</button>
+      <button id="showSlidersBtn">Show Sliders</button>
+      <button id="exitCleanBtn">Exit Clean Screen</button>
     </div>
-    <div id="toast" class="hidden"></div>
+
+    <div id="toast" class="hidden" role="status"></div>
   </main>
 
   <script type="module" src="./js/app.js"></script>
