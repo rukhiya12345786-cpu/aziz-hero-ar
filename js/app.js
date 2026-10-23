@@ -1,270 +1,368 @@
-/* AZEEZ AI AR STUDIO
-   app.js — Part 1 of 3
-   Add Part 2 and Part 3 below this code.
-*/
-
-import * as THREE from "three";
-
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
-import { FBXLoader } from "three/addons/loaders/FBXLoader.js";
-
-import {
-  FaceLandmarker,
-  FilesetResolver
-} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.mjs";
+// AZEEZ AR STUDIO — APP.JS — PART 1 OF 3
 
 const $ = (id) => document.getElementById(id);
 
-const view = $("view");
+const app = $("app");
 const video = $("cameraVideo");
 const dotsCanvas = $("dotsCanvas");
-const statusBox = $("status");
 const toastBox = $("toast");
-
-const ctx = dotsCanvas.getContext("2d");
+const statusBox = $("status");
+const trackingStatus = $("trackingStatus");
+const dotsCtx = dotsCanvas?.getContext("2d");
 
 const state = {
   stream: null,
   facingMode: "user",
-  mirror: false,
+  mirrored: false,
   tracking: false,
   dotsVisible: true,
-  cameraReady: false,
-  faceLandmarker: null,
+  landmarker: null,
+  landmarkerLoading: false,
   lastVideoTime: -1,
-  animationId: 0,
+  faceResults: null,
+
+  slots: [null, null, null, null],
+  activeSlot: 0,
   renderer: null,
   scene: null,
   camera3D: null,
-  slots: [null, null, null, null],
-  activeSlot: 0,
-  selectedModel: null,
-  recording: null,
+  three: null,
+  modelVisible: true,
+  preset: "none",
+
+  recorder: null,
   recordedChunks: [],
-  mediaStreamDestination: null,
   micStream: null,
   micEnabled: false,
-  cleanScreen: false,
+
+  optionsVisible: true,
   slidersVisible: true,
-  optionsVisible: true
+  cleanPreview: false,
+  animationId: 0
 };
 
-function setStatus(message) {
-  if (statusBox) statusBox.textContent = message;
-}
+// ---------- MESSAGES AND BUTTON HELPERS ----------
 
-function showToast(message) {
+function toast(message) {
   if (!toastBox) return;
+
   toastBox.textContent = message;
   toastBox.classList.remove("hidden");
 
-  clearTimeout(showToast.timer);
-  showToast.timer = setTimeout(() => {
+  clearTimeout(toast.timer);
+
+  toast.timer = setTimeout(() => {
     toastBox.classList.add("hidden");
-  }, 2500);
+  }, 2800);
 }
 
-function getElement(id) {
-  const element = $(id);
-  if (!element) {
-    console.warn(`Missing HTML element: #${id}`);
+function setStatus(message) {
+  if (statusBox) {
+    statusBox.textContent = "● " + message;
   }
-  return element;
 }
 
-function setButtonText(id, text) {
+function setTrackingStatus(message) {
+  if (trackingStatus) {
+    trackingStatus.textContent = message;
+  }
+}
+
+function setButton(id, text, active = false) {
+  const button = $(id);
+  if (!button) return;
+
+  button.textContent = text;
+  button.classList.toggle("active", active);
+}
+
+function on(id, event, handler) {
   const element = $(id);
-  if (element) element.textContent = text;
+  if (element) {
+    element.addEventListener(event, handler);
+  }
 }
 
-function resizeCanvas() {
-  const width = Math.max(1, view.clientWidth);
-  const height = Math.max(1, view.clientHeight);
+function clearDots() {
+  if (!dotsCtx || !dotsCanvas) return;
+
+  dotsCtx.clearRect(
+    0,
+    0,
+    dotsCanvas.width,
+    dotsCanvas.height
+  );
+}
+
+// ---------- RESIZE CAMERA CANVASES ----------
+
+function resizeCanvases() {
+  const view = $("view");
+
+  if (!view || !dotsCanvas) return;
+
+  const rect = view.getBoundingClientRect();
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-  for (const canvas of [dotsCanvas]) {
-    canvas.width = Math.round(width * dpr);
-    canvas.height = Math.round(height * dpr);
-    canvas.style.width = `${width}px`;
-    canvas.style.height = `${height}px`;
+  dotsCanvas.width = Math.max(
+    1,
+    Math.round(rect.width * dpr)
+  );
 
-    const context = canvas.getContext("2d");
-    context.setTransform(dpr, 0, 0, dpr, 0, 0);
-  }
+  dotsCanvas.height = Math.max(
+    1,
+    Math.round(rect.height * dpr)
+  );
 
   if (state.renderer) {
     state.renderer.setPixelRatio(dpr);
-    state.renderer.setSize(width, height, false);
+
+    state.renderer.setSize(
+      rect.width,
+      rect.height,
+      false
+    );
+
+    if (state.camera3D) {
+      state.camera3D.aspect =
+        rect.width / Math.max(1, rect.height);
+
+      state.camera3D.updateProjectionMatrix();
+    }
   }
 
-  if (state.camera3D) {
-    state.camera3D.aspect = width / height;
-    state.camera3D.updateProjectionMatrix();
-  }
+  clearDots();
 }
 
-window.addEventListener("resize", resizeCanvas);
+window.addEventListener("resize", resizeCanvases);
+
 window.addEventListener("orientationchange", () => {
-  setTimeout(resizeCanvas, 250);
+  setTimeout(resizeCanvases, 250);
 });
 
-function clearDots() {
-  ctx.clearRect(0, 0, view.clientWidth, view.clientHeight);
-}
-
-function stopAnimation() {
-  if (state.animationId) {
-    cancelAnimationFrame(state.animationId);
-    state.animationId = 0;
-  }
-}
-
-async function loadFaceTracking() {
-  if (state.faceLandmarker) return state.faceLandmarker;
-
-  setStatus("Loading face tracking model…");
-
-  const vision = await FilesetResolver.forVisionTasks(
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
-  );
-
-  state.faceLandmarker = await FaceLandmarker.createFromOptions(
-    vision,
-    {
-      baseOptions: {
-        modelAssetPath: new URL(
-          "../models/face_landmarker.task",
-          import.meta.url
-        ).href,
-        delegate: "GPU"
-      },
-      runningMode: "VIDEO",
-      numFaces: 1,
-      outputFaceBlendshapes: true,
-      outputFacialTransformationMatrixes: true
-    }
-  );
-
-  return state.faceLandmarker;
-}
-/* PART 2 — CAMERA, FACE TRACKING AND GREEN DOTS */
+// ---------- CAMERA ----------
 
 async function startCamera() {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    toast("Camera needs HTTPS and a supported browser.");
+    return;
+  }
+
   try {
-    stopAnimation();
+    await stopCamera(false);
 
-    if (state.stream) {
-      state.stream.getTracks().forEach(track => track.stop());
-      state.stream = null;
-    }
+    setStatus("OPENING CAMERA");
 
-    state.cameraReady = false;
-    video.srcObject = null;
-    clearDots();
-    setStatus("Starting camera…");
-
-    if (!navigator.mediaDevices?.getUserMedia) {
-      throw new Error("Camera API unavailable. Open this site through HTTPS.");
-    }
-
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: false,
-      video: {
-        facingMode: state.facingMode,
-        width: { ideal: 1280 },
-        height: { ideal: 720 }
-      }
-    });
+    const stream =
+      await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: {
+          facingMode: {
+            ideal: state.facingMode
+          },
+          width: {
+            ideal: 1280
+          },
+          height: {
+            ideal: 720
+          }
+        }
+      });
 
     state.stream = stream;
+
     video.srcObject = stream;
-    video.style.transform = state.mirror ? "scaleX(-1)" : "none";
+
+    video.style.transform = state.mirrored
+      ? "scaleX(-1)"
+      : "none";
 
     await video.play();
 
-    state.cameraReady = true;
-    resizeCanvas();
-    setStatus("Camera ready");
-    showToast("Camera started");
+    resizeCanvases();
+
+    setStatus("CAMERA READY");
+    toast("Camera started");
 
     if (state.tracking) {
       await startTracking();
     }
   } catch (error) {
     console.error("Camera error:", error);
-    setStatus(`Camera error: ${error.message}`);
-    showToast("Camera failed. Check camera permission.");
+
+    setStatus("CAMERA ERROR");
+
+    toast(
+      "Camera failed. Check permission and HTTPS."
+    );
   }
 }
 
-function stopCamera() {
-  stopAnimation();
-
+async function stopCamera(showMessage = true) {
   if (state.stream) {
-    state.stream.getTracks().forEach(track => track.stop());
+    state.stream.getTracks().forEach(track => {
+      track.stop();
+    });
+
+    state.stream = null;
   }
 
-  state.stream = null;
-  state.cameraReady = false;
-  state.tracking = false;
-  video.srcObject = null;
+  if (video) {
+    video.pause();
+    video.srcObject = null;
+  }
 
+  stopTracking();
   clearDots();
-  setButtonText("trackingBtn", "Face Track: Off");
-  setStatus("Camera stopped");
+
+  if (showMessage) {
+    setStatus("CAMERA STOPPED");
+    toast("Camera stopped");
+  }
 }
 
 async function switchCamera() {
-  const wasTracking = state.tracking;
-
   state.facingMode =
-    state.facingMode === "user" ? "environment" : "user";
+    state.facingMode === "user"
+      ? "environment"
+      : "user";
 
-  state.tracking = wasTracking;
-  await startCamera();
+  if (state.stream) {
+    await startCamera();
+  } else {
+    toast(
+      state.facingMode === "user"
+        ? "Front camera selected"
+        : "Back camera selected"
+    );
+  }
 }
 
 function toggleMirror() {
-  state.mirror = !state.mirror;
-  video.style.transform = state.mirror ? "scaleX(-1)" : "none";
-  setButtonText("flipBtn", `Mirror: ${state.mirror ? "On" : "Off"}`);
-  clearDots();
+  state.mirrored = !state.mirrored;
+
+  if (video) {
+    video.style.transform = state.mirrored
+      ? "scaleX(-1)"
+      : "none";
+  }
+
+  setButton(
+    "flipBtn",
+    state.mirrored ? "Mirror ON" : "Mirror OFF",
+    state.mirrored
+  );
 }
 
-async function startTracking() {
-  try {
-    if (!state.cameraReady || !state.stream) {
-      showToast("Start the camera first");
-      return;
+// ---------- FACE TRACKING INITIALIZATION ----------
+
+async function loadFaceLandmarker() {
+  if (state.landmarker) {
+    return state.landmarker;
+  }
+
+  if (state.landmarkerLoading) {
+    while (state.landmarkerLoading) {
+      await new Promise(resolve => {
+        setTimeout(resolve, 100);
+      });
     }
 
-    setStatus("Loading face tracker…");
-    await loadFaceTracking();
+    if (state.landmarker) {
+      return state.landmarker;
+    }
+  }
+
+  state.landmarkerLoading = true;
+
+  try {
+    const vision = await import(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm"
+    );
+
+    const fileset =
+      await vision.FilesetResolver.forVisionTasks(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
+      );
+
+    state.landmarker =
+      await vision.FaceLandmarker.createFromOptions(
+        fileset,
+        {
+          baseOptions: {
+            modelAssetPath: new URL(
+              "../models/face_landmarker.task",
+              import.meta.url
+            ).href
+          },
+
+          runningMode: "VIDEO",
+          numFaces: 1,
+          outputFaceBlendshapes: true,
+          outputFacialTransformationMatrixes: true
+        }
+      );
+
+    return state.landmarker;
+  } catch (error) {
+    console.error(
+      "Face tracking initialization failed:",
+      error
+    );
+
+    toast(
+      "Tracking setup failed. Check internet and model file."
+    );
+
+    throw error;
+  } finally {
+    state.landmarkerLoading = false;
+  }
+}
+
+// Part 2 will continue with tracking controls,
+// landmark drawing and the tracking loop.
+   
+// ========== PART 2 OF 3 ==========
+
+// ---------- TRACKING CONTROLS ----------
+
+async function startTracking() {
+  if (!state.stream) {
+    toast("Start the camera first.");
+    return;
+  }
+
+  try {
+    setStatus("LOADING FACE TRACKING");
+    await loadFaceLandmarker();
 
     state.tracking = true;
     state.lastVideoTime = -1;
-    setButtonText("trackingBtn", "Face Track: On");
-    setStatus("Face tracking active");
 
-    stopAnimation();
+    setButton("trackingBtn", "◎ Stop Tracking", true);
+    setTrackingStatus("TRACKING ON");
+    setStatus("FACE TRACKING ON");
+
     trackingLoop();
   } catch (error) {
     state.tracking = false;
-    console.error("Tracking error:", error);
-    setButtonText("trackingBtn", "Face Track: Off");
-    setStatus(`Tracking error: ${error.message}`);
-    showToast("Tracking could not start");
+    setButton("trackingBtn", "◎ Start Tracking");
+    setTrackingStatus("TRACKING ERROR");
   }
 }
 
 function stopTracking() {
   state.tracking = false;
-  stopAnimation();
-  clearDots();
 
-  setButtonText("trackingBtn", "Face Track: Off");
-  setStatus(state.cameraReady ? "Camera ready" : "Camera stopped");
+  if (state.animationId) {
+    cancelAnimationFrame(state.animationId);
+    state.animationId = 0;
+  }
+
+  setButton("trackingBtn", "◎ Start Tracking");
+  setTrackingStatus("TRACKING OFF");
+  clearDots();
 }
 
 function toggleTracking() {
@@ -278,590 +376,798 @@ function toggleTracking() {
 function toggleDots() {
   state.dotsVisible = !state.dotsVisible;
 
-  setButtonText(
+  setButton(
     "dotsBtn",
-    `Green Dots: ${state.dotsVisible ? "On" : "Off"}`
+    state.dotsVisible ? "● Green Dots ON" : "● Green Dots OFF",
+    state.dotsVisible
   );
 
   if (!state.dotsVisible) clearDots();
 }
 
-function trackingLoop() {
-  if (!state.tracking || !state.cameraReady) return;
+// ---------- TRACKING LOOP ----------
 
-  state.animationId = requestAnimationFrame(trackingLoop);
+function trackingLoop() {
+  if (!state.tracking || !state.landmarker) return;
 
   if (
-    video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA ||
-    video.currentTime === state.lastVideoTime
+    video &&
+    video.readyState >= 2 &&
+    video.currentTime !== state.lastVideoTime
   ) {
+    state.lastVideoTime = video.currentTime;
+
+    try {
+      state.faceResults = state.landmarker.detectForVideo(
+        video,
+        performance.now()
+      );
+
+      drawFaceDots(state.faceResults);
+      updateFaceModel();
+    } catch (error) {
+      console.warn("Tracking frame failed:", error);
+    }
+  }
+
+  state.animationId = requestAnimationFrame(trackingLoop);
+}
+
+// ---------- GREEN FACE LANDMARK DOTS ----------
+
+function drawFaceDots(results) {
+  if (!dotsCanvas || !dotsCtx || !state.dotsVisible) {
+    clearDots();
     return;
   }
 
-  state.lastVideoTime = video.currentTime;
+  const view = $("view");
+  if (!view || !video) return;
+
+  const rect = view.getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+  dotsCtx.clearRect(
+    0,
+    0,
+    dotsCanvas.width,
+    dotsCanvas.height
+  );
+
+  const faces = results?.faceLandmarks || [];
+
+  if (!faces.length) {
+    setTrackingStatus("FACE NOT DETECTED");
+    return;
+  }
+
+  setTrackingStatus("FACE DETECTED");
+
+  const videoW = video.videoWidth || rect.width;
+  const videoH = video.videoHeight || rect.height;
+
+  // Match the video element's object-fit: cover layout.
+  const scale = Math.max(
+    rect.width / videoW,
+    rect.height / videoH
+  );
+
+  const drawW = videoW * scale;
+  const drawH = videoH * scale;
+  const offX = (rect.width - drawW) / 2;
+  const offY = (rect.height - drawH) / 2;
+
+  dotsCtx.fillStyle =
+    state.preset === "neon"
+      ? "#62f7ff"
+      : "#36f5a2";
+
+  for (const point of faces[0]) {
+    let x = offX + point.x * drawW;
+    const y = offY + point.y * drawH;
+
+    if (state.mirrored) {
+      x = rect.width - x;
+    }
+
+    const radius =
+      Math.max(1.2, Math.min(2.6, rect.width / 170)) * dpr;
+
+    dotsCtx.beginPath();
+    dotsCtx.arc(
+      x * dpr,
+      y * dpr,
+      radius,
+      0,
+      Math.PI * 2
+    );
+    dotsCtx.fill();
+  }
+}
+
+// ---------- THREE.JS INITIALIZATION ----------
+
+async function init3D() {
+  if (state.renderer) return;
 
   try {
-    const result = state.faceLandmarker.detectForVideo(
-      video,
-      performance.now()
+    const THREE = await import(
+      "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
     );
 
-    drawFaceDots(result);
+    state.three = THREE;
+    state.scene = new THREE.Scene();
+
+    state.camera3D = new THREE.PerspectiveCamera(
+      45,
+      1,
+      0.01,
+      1000
+    );
+
+    state.camera3D.position.set(0, 0, 8);
+
+    const canvas = $("arCanvas");
+
+    state.renderer = new THREE.WebGLRenderer({
+      canvas,
+      alpha: true,
+      antialias: true
+    });
+
+    state.renderer.setClearColor(0x000000, 0);
+    state.renderer.setPixelRatio(
+      Math.min(window.devicePixelRatio || 1, 2)
+    );
+
+    state.scene.add(
+      new THREE.HemisphereLight(0xffffff, 0x404050, 2)
+    );
+
+    const light = new THREE.DirectionalLight(0xffffff, 2);
+    light.position.set(2, 4, 6);
+    state.scene.add(light);
+
+    resizeCanvases();
+    render3D();
+
+    setStatus("3D VIEW READY");
   } catch (error) {
-    console.error("Face detection error:", error);
-    setStatus("Face detection error");
+    console.error("3D setup failed:", error);
+    toast("3D setup failed. Check internet and WebGL support.");
   }
-}
-
-function drawFaceDots(result) {
-  clearDots();
-
-  if (!state.dotsVisible) return;
-
-  const faces = result.faceLandmarks || [];
-  if (faces.length === 0) {
-    setStatus("Looking for a face…");
-    return;
-  }
-
-  setStatus("Face detected");
-
-  const width = view.clientWidth;
-  const height = view.clientHeight;
-
-  ctx.fillStyle = "#00ff66";
-
-  for (const landmark of faces[0]) {
-    const x = state.mirror
-      ? (1 - landmark.x) * width
-      : landmark.x * width;
-
-    const y = landmark.y * height;
-
-    ctx.beginPath();
-    ctx.arc(x, y, 2, 0, Math.PI * 2);
-    ctx.fill();
-  }
-}
-
-/* PART 3 — 3D MODELS, SLIDERS, SETTINGS AND CONTROLS */
-
-const arCanvas = $("arCanvas");
-const gltfLoader = new GLTFLoader();
-const objLoader = new OBJLoader();
-const fbxLoader = new FBXLoader();
-
-const transforms = {
-  x: 0, y: 0, z: 0,
-  rx: 0, ry: 0, rz: 0,
-  scale: 1
-};
-
-function init3D() {
-  state.scene = new THREE.Scene();
-
-  state.camera3D = new THREE.PerspectiveCamera(
-    45,
-    Math.max(1, view.clientWidth) / Math.max(1, view.clientHeight),
-    0.01,
-    100
-  );
-  state.camera3D.position.set(0, 0, 5);
-
-  state.renderer = new THREE.WebGLRenderer({
-    canvas: arCanvas,
-    alpha: true,
-    antialias: true
-  });
-  state.renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
-  state.renderer.setSize(view.clientWidth, view.clientHeight, false);
-  state.renderer.setClearColor(0x000000, 0);
-
-  state.scene.add(new THREE.HemisphereLight(0xffffff, 0x444455, 2));
-
-  const light = new THREE.DirectionalLight(0xffffff, 2);
-  light.position.set(2, 4, 5);
-  state.scene.add(light);
-
-  render3D();
 }
 
 function render3D() {
+  if (!state.renderer || !state.scene || !state.camera3D) return;
+
+  state.renderer.render(state.scene, state.camera3D);
+
   requestAnimationFrame(render3D);
-  if (state.renderer && state.scene && state.camera3D) {
-    state.renderer.render(state.scene, state.camera3D);
+}
+
+// ---------- MODEL IMPORT HELPERS ----------
+
+async function loadModelFile(file) {
+  if (!file) return;
+
+  await init3D();
+
+  if (!state.three || !state.scene) {
+    toast("3D view is unavailable.");
+    return;
+  }
+
+  const extension = file.name.split(".").pop().toLowerCase();
+
+  try {
+    let object;
+
+    if (extension === "glb" || extension === "gltf") {
+      const { GLTFLoader } = await import(
+        "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js"
+      );
+
+      const url = URL.createObjectURL(file);
+
+      try {
+        const loader = new GLTFLoader();
+        const gltf = await loader.loadAsync(url);
+        object = gltf.scene;
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+    } else if (extension === "obj") {
+      const { OBJLoader } = await import(
+        "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/OBJLoader.js"
+      );
+
+      object = new OBJLoader().parse(await file.text());
+    } else if (extension === "fbx") {
+      const { FBXLoader } = await import(
+        "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/FBXLoader.js"
+      );
+
+      const buffer = await file.arrayBuffer();
+      object = new FBXLoader().parse(buffer, "");
+    } else {
+      toast("Choose a GLB, GLTF, OBJ or FBX file.");
+      return;
+    }
+
+    const slot = state.activeSlot;
+
+    if (state.slots[slot]) {
+      state.scene.remove(state.slots[slot]);
+    }
+
+    // Fit the imported object into a predictable starting size.
+    const THREE = state.three;
+    const box = new THREE.Box3().setFromObject(object);
+    const size = box.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+
+    if (maxDim > 0) {
+      object.scale.multiplyScalar(2 / maxDim);
+    }
+
+    const center = box.getCenter(new THREE.Vector3());
+    object.position.sub(center);
+
+    object.userData.originalPosition = object.position.clone();
+    object.userData.originalScale = object.scale.clone();
+
+    state.slots[slot] = object;
+    state.scene.add(object);
+    state.modelVisible = true;
+
+    updateSlotLabels();
+    applyModelControls();
+
+    toast("Model imported into Slot " + (slot + 1));
+  } catch (error) {
+    console.error("Model import failed:", error);
+    toast("Could not load this model. Check its format and files.");
   }
 }
 
-function currentModel() {
-  return state.slots[state.activeSlot];
+// ---------- MODEL SLOT HELPERS ----------
+
+function updateSlotLabels() {
+  document.querySelectorAll(".slot").forEach((button, index) => {
+    const hasModel = Boolean(state.slots[index]);
+
+    button.textContent =
+      "Slot " + (index + 1) + (hasModel ? " · Loaded" : " · Empty");
+
+    button.classList.toggle(
+      "active",
+      index === state.activeSlot
+    );
+  });
 }
 
-function applyTransform() {
-  const model = currentModel();
+function selectSlot(index) {
+  if (index < 0 || index >= state.slots.length) return;
+
+  state.activeSlot = index;
+  updateSlotLabels();
+  applyModelControls();
+}
+
+function getActiveModel() {
+  return state.slots[state.activeSlot] || null;
+}
+
+// Part 3 will add transforms, face-model updates,
+// recording, interface controls and event handlers.
+      
+// ========== PART 3 OF 3 ==========
+
+// ---------- MODEL TRANSFORMS ----------
+
+function applyModelControls() {
+  const model = getActiveModel();
   if (!model) return;
 
-  model.position.set(transforms.x, transforms.y, transforms.z);
-  model.rotation.set(
-    THREE.MathUtils.degToRad(transforms.rx),
-    THREE.MathUtils.degToRad(transforms.ry),
-    THREE.MathUtils.degToRad(transforms.rz)
-  );
-  model.scale.setScalar(transforms.scale);
+  const number = (id, fallback = 0) => {
+    const value = Number($(id)?.value);
+    return Number.isFinite(value) ? value : fallback;
+  };
+
+  model.position.x = number("posX") + number("faceX");
+  model.position.y = number("posY") + number("faceY");
+  model.position.z = number("posZ") + number("faceZ");
+
+  const toRadians = degrees => degrees * Math.PI / 180;
+
+  model.rotation.x = toRadians(number("rotX"));
+  model.rotation.y = toRadians(number("rotY"));
+  model.rotation.z = toRadians(number("rotZ"));
+
+  const scale = Math.max(0.01, number("modelScale", 1));
+  const faceScale = Math.max(0.01, number("faceSize", 1));
+
+  const baseScale = model.userData.originalScale;
+  if (baseScale) {
+    model.scale.set(
+      baseScale.x * scale * faceScale,
+      baseScale.y * scale * faceScale,
+      baseScale.z * scale * faceScale
+    );
+  }
+
+  model.visible = state.modelVisible;
+  if ($("scaleOut")) {
+    $("scaleOut").textContent = scale.toFixed(2) + "×";
+  }
 }
 
 function resetTransform() {
-  Object.assign(transforms, {
-    x: 0, y: 0, z: 0,
-    rx: 0, ry: 0, rz: 0,
-    scale: 1
-  });
-
-  const values = {
+  const defaults = {
     posX: 0, posY: 0, posZ: 0,
     rotX: 0, rotY: 0, rotZ: 0,
     modelScale: 1
   };
 
-  for (const [id, value] of Object.entries(values)) {
-    const el = $(id);
-    if (el) el.value = value;
-  }
-
-  applyTransform();
-  updateSliderOutputs();
-}
-
-function updateSliderOutputs() {
-  for (const id of [
-    "posX", "posY", "posZ",
-    "rotX", "rotY", "rotZ", "modelScale"
-  ]) {
-    const input = $(id);
-    const output = $(`${id}Out`);
-    if (input && output) {
-      output.value = Number(input.value).toFixed(
-        id === "modelScale" ? 2 : 0
-      );
-      output.textContent = output.value;
-    }
-  }
-}
-
-function loadModel(file) {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const ext = file.name.split(".").pop().toLowerCase();
-
-    const done = (object) => {
-      URL.revokeObjectURL(url);
-      resolve(object);
-    };
-
-    const fail = (error) => {
-      URL.revokeObjectURL(url);
-      reject(error);
-    };
-
-    if (ext === "glb" || ext === "gltf") {
-      gltfLoader.load(url, result => done(result.scene), undefined, fail);
-    } else if (ext === "obj") {
-      objLoader.load(url, done, undefined, fail);
-    } else if (ext === "fbx") {
-      fbxLoader.load(url, done, undefined, fail);
-    } else {
-      fail(new Error("Choose a GLB, GLTF, OBJ or FBX file."));
-    }
+  Object.entries(defaults).forEach(([id, value]) => {
+    if ($(id)) $(id).value = String(value);
   });
+
+  applyModelControls();
 }
 
-async function importModel(file) {
-  if (!file) return;
+function resetFaceControls() {
+  const defaults = {
+    faceX: 0, faceY: 0, faceZ: 0,
+    faceSize: 1,
+    leftEye: 1, rightEye: 1,
+    mouthScale: 1, mouthOpen: 0,
+    blinkLeft: 0, blinkRight: 0
+  };
 
-  try {
-    setStatus("Loading 3D model…");
+  Object.entries(defaults).forEach(([id, value]) => {
+    if ($(id)) $(id).value = String(value);
+  });
 
-    const model = await loadModel(file);
-    model.visible = true;
+  applyModelControls();
+}
 
-    const old = state.slots[state.activeSlot];
-    if (old) state.scene.remove(old);
+function resetAllControls() {
+  resetTransform();
+  resetFaceControls();
+}
 
-    state.slots[state.activeSlot] = model;
-    state.scene.add(model);
+function updateFaceModel() {
+  // Face landmarks and expression data are available in
+  // state.faceResults. This basic version does not yet
+  // deform a model or attach it to a tracked face.
+  if (!state.faceResults?.faceLandmarks?.length) return;
 
-    // Fit model around its center for initial viewing.
-    const bounds = new THREE.Box3().setFromObject(model);
-    const size = bounds.getSize(new THREE.Vector3());
-    const center = bounds.getCenter(new THREE.Vector3());
+  // Do not overwrite the user's manual positioning sliders.
+}
 
-    model.position.sub(center);
+function removeActiveModel() {
+  const model = getActiveModel();
 
-    const maxDim = Math.max(size.x, size.y, size.z);
-    if (maxDim > 0) {
-      model.scale.setScalar(2 / maxDim);
-    }
-
-    transforms.scale = model.scale.x;
-    const scaleInput = $("modelScale");
-    if (scaleInput) scaleInput.value = transforms.scale;
-
-    updateSliderOutputs();
-    setStatus(`Model loaded: ${file.name}`);
-    showToast("Model imported");
-  } catch (error) {
-    console.error("Model import error:", error);
-    setStatus(`Model error: ${error.message}`);
-    showToast("Could not load model");
+  if (model && state.scene) {
+    state.scene.remove(model);
+    state.slots[state.activeSlot] = null;
+    updateSlotLabels();
+    toast("Model removed from current slot");
   }
 }
 
-function selectSlot(index) {
-  state.activeSlot = index;
+function clearActiveSlot() {
+  removeActiveModel();
+}
 
-  document.querySelectorAll(".slot").forEach(button => {
+function toggleModelVisibility() {
+  state.modelVisible = !state.modelVisible;
+
+  const model = getActiveModel();
+  if (model) model.visible = state.modelVisible;
+
+  setButton(
+    "showModelBtn",
+    state.modelVisible ? "Hide Model" : "Show Model",
+    state.modelVisible
+  );
+}
+
+function autoFitModel() {
+  const model = getActiveModel();
+  if (!model) {
+    toast("Import a model first.");
+    return;
+  }
+
+  resetTransform();
+  toast("Model transform reset to starting size.");
+}
+
+// ---------- LENS PRESETS ----------
+
+function setPreset(preset) {
+  state.preset = preset;
+
+  document.querySelectorAll(".preset-btn").forEach(button => {
     button.classList.toggle(
       "active",
-      Number(button.dataset.slot) === index
+      button.dataset.preset === preset
     );
   });
 
-  const model = currentModel();
-  if (model) {
-    transforms.x = model.position.x;
-    transforms.y = model.position.y;
-    transforms.z = model.position.z;
-    transforms.rx = THREE.MathUtils.radToDeg(model.rotation.x);
-    transforms.ry = THREE.MathUtils.radToDeg(model.rotation.y);
-    transforms.rz = THREE.MathUtils.radToDeg(model.rotation.z);
-    transforms.scale = model.scale.x;
+  if (preset === "green") {
+    state.dotsVisible = true;
+    setButton("dotsBtn", "● Green Dots ON", true);
   }
 
-  syncTransformInputs();
-}
-
-function syncTransformInputs() {
-  const values = {
-    posX: transforms.x, posY: transforms.y, posZ: transforms.z,
-    rotX: transforms.rx, rotY: transforms.ry, rotZ: transforms.rz,
-    modelScale: transforms.scale
-  };
-
-  for (const [id, value] of Object.entries(values)) {
-    const el = $(id);
-    if (el) el.value = value;
+  if (preset === "neon") {
+    state.dotsVisible = true;
+    setButton("dotsBtn", "● Green Dots ON", true);
   }
 
-  updateSliderOutputs();
+  toast("Preview preset: " + preset);
 }
 
-function bindTransformSliders() {
-  const mapping = {
-    posX: "x", posY: "y", posZ: "z",
-    rotX: "rx", rotY: "ry", rotZ: "rz",
-    modelScale: "scale"
-  };
+// ---------- INTERFACE VISIBILITY ----------
 
-  for (const [id, property] of Object.entries(mapping)) {
-    const el = $(id);
-    if (!el) continue;
+function toggleButtonsVisibility() {
+  state.optionsVisible = !state.optionsVisible;
 
-    el.addEventListener("input", () => {
-      transforms[property] = Number(el.value);
-      applyTransform();
-      updateSliderOutputs();
-    });
-  }
-}
-
-function bindFaceSliders() {
-  for (const id of [
-    "faceX", "faceY", "faceZ", "faceSize",
-    "yawOffset", "pitchOffset", "rollOffset",
-    "leftEye", "rightEye", "mouthScale", "mouthOpen",
-    "blinkLeft", "blinkRight"
-  ]) {
-    const el = $(id);
-    if (el) {
-      el.addEventListener("input", () => {
-        const model = currentModel();
-        if (!model) return;
-
-        model.position.x = Number($("faceX").value);
-        model.position.y = Number($("faceY").value);
-        model.position.z = Number($("faceZ").value);
-
-        const s = Number($("faceSize").value);
-        model.scale.setScalar(s);
-      });
-    }
-  }
-}
-
-function togglePanel(id, visible) {
-  const panel = $(id);
-  if (panel) panel.classList.toggle("hidden", !visible);
-}
-
-function bindButtons() {
-  getElement("startCameraBtn")?.addEventListener("click", startCamera);
-  getElement("switchCameraBtn")?.addEventListener("click", switchCamera);
-  getElement("flipBtn")?.addEventListener("click", toggleMirror);
-  getElement("trackingBtn")?.addEventListener("click", toggleTracking);
-  getElement("stopCameraBtn")?.addEventListener("click", stopCamera);
-  getElement("dotsBtn")?.addEventListener("click", toggleDots);
-
-  getElement("modelFile")?.addEventListener("change", event => {
-    importModel(event.target.files?.[0]);
-    event.target.value = "";
-  });
-
-  document.querySelectorAll(".slot").forEach(button => {
-    button.addEventListener("click", () => {
-      selectSlot(Number(button.dataset.slot));
-    });
-  });
-
-  getElement("removeModelBtn")?.addEventListener("click", () => {
-    const model = currentModel();
-    if (model) state.scene.remove(model);
-    state.slots[state.activeSlot] = null;
-    showToast("Active model removed");
-  });
-
-  getElement("showModelBtn")?.addEventListener("click", () => {
-    const model = currentModel();
-    if (model) model.visible = true;
-  });
-
-  getElement("resetTransformBtn")?.addEventListener("click", resetTransform);
-  getElement("autoFitBtn")?.addEventListener("click", () => {
-    const model = currentModel();
-    if (!model) return;
-    model.position.set(0, 0, 0);
-    model.rotation.set(0, 0, 0);
-    model.scale.setScalar(1);
-    resetTransform();
-  });
-
-  getElement("resetFaceBtn")?.addEventListener("click", () => {
-    for (const id of [
-      "faceX", "faceY", "faceZ", "yawOffset",
-      "pitchOffset", "rollOffset", "mouthOpen",
-      "blinkLeft", "blinkRight"
-    ]) {
-      const el = $(id);
-      if (el) el.value = 0;
-    }
-    for (const id of ["faceSize", "leftEye", "rightEye", "mouthScale"]) {
-      const el = $(id);
-      if (el) el.value = 1;
-    }
-    bindFaceSliders();
-  });
-
-  getElement("resetAllBtn")?.addEventListener("click", () => {
-    resetTransform();
-    clearDots();
-  });
-
-  getElement("hideOptionsBtn")?.addEventListener("click", () => {
-    state.optionsVisible = false;
-    togglePanel("editor", false);
-  });
-
-  getElement("showEditorBtn")?.addEventListener("click", () => {
-    state.optionsVisible = true;
-    togglePanel("editor", true);
-  });
-
-  getElement("hideSlidersBtn")?.addEventListener("click", () => {
-    state.slidersVisible = false;
-    document.querySelectorAll("#editor .field").forEach(el => {
-      el.classList.add("hidden");
-    });
-  });
-
-  getElement("showSlidersBtn")?.addEventListener("click", () => {
-    state.slidersVisible = true;
-    document.querySelectorAll("#editor .field").forEach(el => {
-      el.classList.remove("hidden");
-    });
-  });
-
-  getElement("cleanScreenBtn")?.addEventListener("click", () => {
-    state.cleanScreen = true;
-    view.classList.add("clean");
-  });
-
-  getElement("exitCleanBtn")?.addEventListener("click", () => {
-    state.cleanScreen = false;
-    view.classList.remove("clean");
-  });
-
-  getElement("fullscreenBtn")?.addEventListener("click", async () => {
-    try {
-      if (!document.fullscreenElement) {
-        await view.requestFullscreen();
-      } else {
-        await document.exitFullscreen();
-      }
-      resizeCanvas();
-    } catch (error) {
-      showToast("Fullscreen is not supported here");
-    }
-  });
-
-  document.querySelectorAll("[data-transform]").forEach(button => {
-    button.addEventListener("click", () => {
-      showToast(`${button.dataset.transform} mode selected`);
-    });
-  });
-
-  getElement("exportSettingsBtn")?.addEventListener("click", exportSettings);
-  getElement("importSettingsBtn")?.addEventListener("click", () => {
-    $("settingsFile")?.click();
-  });
-
-  getElement("settingsFile")?.addEventListener("change", event => {
-    const file = event.target.files?.[0];
-    if (file) importSettings(file);
-    event.target.value = "";
-  });
-
-  getElement("recordBtn")?.addEventListener("click", startRecording);
-  getElement("stopRecordBtn")?.addEventListener("click", stopRecording);
-  getElement("micBtn")?.addEventListener("click", toggleMic);
-}
-
-function getSettings() {
-  const settings = {};
-  document.querySelectorAll("#editor input[type=range]").forEach(el => {
-    settings[el.id] = Number(el.value);
-  });
-  settings.mirror = state.mirror;
-  settings.facingMode = state.facingMode;
-  settings.dotsVisible = state.dotsVisible;
-  return settings;
-}
-
-function exportSettings() {
-  const blob = new Blob(
-    [JSON.stringify(getSettings(), null, 2)],
-    { type: "application/json" }
+  app?.classList.toggle(
+    "buttons-hidden",
+    !state.optionsVisible
   );
 
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "azeez-ar-settings.json";
-  a.click();
-  URL.revokeObjectURL(url);
+  setButton(
+    "hideOptionsBtn",
+    state.optionsVisible ? "Hide Buttons" : "Show Buttons"
+  );
 }
 
-async function importSettings(file) {
+function toggleSlidersVisibility() {
+  state.slidersVisible = !state.slidersVisible;
+
+  app?.classList.toggle(
+    "sliders-hidden",
+    !state.slidersVisible
+  );
+
+  setButton(
+    "hideSlidersBtn",
+    state.slidersVisible ? "Hide Sliders" : "Show Sliders"
+  );
+}
+
+function enterCleanPreview() {
+  state.cleanPreview = true;
+  app?.classList.add("clean-preview");
+}
+
+function exitCleanPreview() {
+  state.cleanPreview = false;
+  app?.classList.remove("clean-preview");
+}
+
+function openWorkspace() {
+  exitCleanPreview();
+
+  $("lensWorkspace")?.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+}
+
+async function toggleFullscreen() {
   try {
-    const settings = JSON.parse(await file.text());
+    const target = $("previewPanel");
 
-    for (const [id, value] of Object.entries(settings)) {
-      const el = $(id);
-      if (el && el.type === "range" && Number.isFinite(Number(value))) {
-        el.value = value;
-        el.dispatchEvent(new Event("input"));
+    if (!document.fullscreenElement) {
+      if (target?.requestFullscreen) {
+        await target.requestFullscreen();
+      } else {
+        toast("Fullscreen is not supported by this browser.");
       }
+    } else {
+      await document.exitFullscreen();
     }
-
-    if (typeof settings.mirror === "boolean") {
-      state.mirror = settings.mirror;
-      video.style.transform = state.mirror ? "scaleX(-1)" : "none";
-      setButtonText("flipBtn", `Mirror: ${state.mirror ? "On" : "Off"}`);
-    }
-
-    if (typeof settings.dotsVisible === "boolean") {
-      state.dotsVisible = settings.dotsVisible;
-      setButtonText("dotsBtn", `Green Dots: ${state.dotsVisible ? "On" : "Off"}`);
-    }
-
-    showToast("Settings imported");
   } catch (error) {
-    showToast("Invalid settings file");
+    console.error("Fullscreen error:", error);
+    toast("Fullscreen could not be started.");
   }
 }
 
-async function toggleMic() {
-  try {
-    if (state.micEnabled) {
-      state.micStream?.getTracks().forEach(track => track.stop());
-      state.micStream = null;
-      state.micEnabled = false;
-    } else {
-      state.micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      state.micEnabled = true;
-    }
+// ---------- RECORDING ----------
 
-    setButtonText("micBtn", `Mic: ${state.micEnabled ? "On" : "Off"}`);
+async function toggleMicrophone() {
+  if (state.micEnabled) {
+    state.micStream?.getTracks().forEach(track => track.stop());
+    state.micStream = null;
+    state.micEnabled = false;
+    setButton("micBtn", "Mic OFF");
+    toast("Microphone disabled");
+    return;
+  }
+
+  try {
+    state.micStream = await navigator.mediaDevices.getUserMedia({
+      audio: true,
+      video: false
+    });
+
+    state.micEnabled = true;
+    setButton("micBtn", "Mic ON", true);
+    toast("Microphone enabled");
   } catch (error) {
-    showToast("Microphone permission unavailable");
+    console.error("Microphone error:", error);
+    toast("Microphone permission was not granted.");
   }
 }
 
 function startRecording() {
   if (!state.stream) {
-    showToast("Start camera before recording");
+    toast("Start the camera first.");
+    return;
+  }
+
+  if (!window.MediaRecorder) {
+    toast("Recording is not supported by this browser.");
     return;
   }
 
   try {
-    const tracks = [...state.stream.getVideoTracks()];
-    if (state.micEnabled && state.micStream) {
-      tracks.push(...state.micStream.getAudioTracks());
-    }
+    state.recordedChunks = [];
+
+    const tracks = [
+      ...state.stream.getVideoTracks(),
+      ...(state.micEnabled && state.micStream
+        ? state.micStream.getAudioTracks()
+        : [])
+    ];
 
     const recordingStream = new MediaStream(tracks);
-    state.recordedChunks = [];
-    state.recording = new MediaRecorder(recordingStream);
 
-    state.recording.ondataavailable = event => {
-      if (event.data.size) state.recordedChunks.push(event.data);
+    const options = MediaRecorder.isTypeSupported("video/webm;codecs=vp8")
+      ? { mimeType: "video/webm;codecs=vp8" }
+      : {};
+
+    state.recorder = new MediaRecorder(recordingStream, options);
+
+    state.recorder.ondataavailable = event => {
+      if (event.data && event.data.size > 0) {
+        state.recordedChunks.push(event.data);
+      }
     };
 
-    state.recording.onstop = () => {
+    state.recorder.onstop = () => {
       const blob = new Blob(state.recordedChunks, {
-        type: state.recording.mimeType || "video/webm"
+        type: state.recorder?.mimeType || "video/webm"
       });
+
       const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "azeez-ar-recording.webm";
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = "azeez-ar-recording.webm";
+      link.click();
+
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+      toast("Recording downloaded");
     };
 
-    state.recording.start();
-    showToast("Recording started");
+    state.recorder.start();
+
+    setButton("recordBtn", "● Recording", true);
+    toast("Recording started");
   } catch (error) {
-    showToast("Recording could not start");
+    console.error("Recording failed:", error);
+    toast("Could not start recording.");
   }
 }
 
 function stopRecording() {
-  if (state.recording?.state === "recording") {
-    state.recording.stop();
-    showToast("Recording stopped");
+  if (state.recorder && state.recorder.state !== "inactive") {
+    state.recorder.stop();
+    setButton("recordBtn", "● Start Recording");
+  } else {
+    toast("No recording is active.");
   }
 }
 
-/* START APP */
-try {
-  init3D();
-  bindTransformSliders();
-  bindFaceSliders();
-  bindButtons();
-  resizeCanvas();
-  setStatus("Ready — tap Start Camera");
-} catch (error) {
-  console.error("App initialization error:", error);
-  setStatus(`App error: ${error.message}`);
+// ---------- SETTINGS IMPORT / EXPORT ----------
+
+function exportSettings() {
+  const ids = [
+    "posX", "posY", "posZ",
+    "rotX", "rotY", "rotZ", "modelScale",
+    "faceX", "faceY", "faceZ", "faceSize",
+    "leftEye", "rightEye", "mouthScale",
+    "mouthOpen", "blinkLeft", "blinkRight"
+  ];
+
+  const values = {};
+
+  ids.forEach(id => {
+    if ($(id)) values[id] = $(id).value;
+  });
+
+  const settings = {
+    version: 1,
+    values,
+    activeSlot: state.activeSlot,
+    mirrored: state.mirrored,
+    dotsVisible: state.dotsVisible,
+    preset: state.preset
+  };
+
+  const blob = new Blob(
+    [JSON.stringify(settings, null, 2)],
+    { type: "application/json" }
+  );
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = "azeez-ar-settings.json";
+  link.click();
+
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+  toast("Settings exported");
+}
+
+async function importSettings(file) {
+  if (!file) return;
+
+  try {
+    const settings = JSON.parse(await file.text());
+
+    if (!settings || typeof settings !== "object") {
+      throw new Error("Invalid settings file");
+    }
+
+    Object.entries(settings.values || {}).forEach(([id, value]) => {
+      const element = $(id);
+
+      if (
+        element &&
+        element.matches("input[type='range']") &&
+        Number.isFinite(Number(value))
+      ) {
+        element.value = String(value);
       }
-  
-                  
+    });
+
+    if (Number.isInteger(settings.activeSlot) &&
+        settings.activeSlot >= 0 &&
+        settings.activeSlot < state.slots.length) {
+      selectSlot(settings.activeSlot);
+    }
+
+    if (typeof settings.mirrored === "boolean" &&
+        settings.mirrored !== state.mirrored) {
+      toggleMirror();
+    }
+
+    if (typeof settings.dotsVisible === "boolean" &&
+        settings.dotsVisible !== state.dotsVisible) {
+      toggleDots();
+    }
+
+    if (typeof settings.preset === "string") {
+      setPreset(settings.preset);
+    }
+
+    applyModelControls();
+    toast("Settings imported");
+  } catch (error) {
+    console.error("Settings import failed:", error);
+    toast("Invalid settings JSON file.");
+  }
+}
+
+// ---------- EVENT HANDLERS ----------
+
+on("startCameraBtn", "click", startCamera);
+on("switchCameraBtn", "click", switchCamera);
+on("flipBtn", "click", toggleMirror);
+on("fullscreenBtn", "click", toggleFullscreen);
+
+on("trackingBtn", "click", toggleTracking);
+on("dotsBtn", "click", toggleDots);
+
+on("stopCameraBtn", "click", () => stopCamera());
+on("hideOptionsBtn", "click", toggleButtonsVisibility);
+on("showButtonsBtn", "click", () => {
+  state.optionsVisible = true;
+  app?.classList.remove("buttons-hidden");
+});
+
+on("hideSlidersBtn", "click", toggleSlidersVisibility);
+on("showSlidersBtn", "click", () => {
+  state.slidersVisible = true;
+  app?.classList.remove("sliders-hidden");
+});
+
+on("cleanScreenBtn", "click", enterCleanPreview);
+on("exitCleanBtn", "click", exitCleanPreview);
+on("restoreInterfaceBtn", "click", exitCleanPreview);
+on("showEditorBtn", "click", openWorkspace);
+
+on("importModelBtn", "click", () => $("modelFile")?.click());
+on("modelFile", "change", event => {
+  const file = event.target.files?.[0];
+  if (file) loadModelFile(file);
+  event.target.value = "";
+});
+
+document.querySelectorAll(".slot").forEach((button, index) => {
+  button.addEventListener("click", () => selectSlot(index));
+});
+
+document.querySelectorAll(".preset-btn").forEach(button => {
+  button.addEventListener("click", () => {
+    setPreset(button.dataset.preset || "none");
+  });
+});
+
+[
+  "posX", "posY", "posZ",
+  "rotX", "rotY", "rotZ", "modelScale",
+  "faceX", "faceY", "faceZ", "faceSize"
+].forEach(id => {
+  on(id, "input", applyModelControls);
+});
+
+on("resetTransformBtn", "click", resetTransform);
+on("resetFaceBtn", "click", resetFaceControls);
+on("resetAllBtn", "click", resetAllControls);
+on("autoFitBtn", "click", autoFitModel);
+on("removeModelBtn", "click", removeActiveModel);
+on("clearModelBtn", "click", clearActiveSlot);
+on("showModelBtn", "click", toggleModelVisibility);
+
+on("recordBtn", "click", startRecording);
+on("stopRecordBtn", "click", stopRecording);
+on("micBtn", "click", toggleMicrophone);
+
+on("exportSettingsBtn", "click", exportSettings);
+on("importSettingsBtn", "click", () => $("settingsFile")?.click());
+on("settingsFile", "change", event => {
+  const file = event.target.files?.[0];
+  if (file) importSettings(file);
+  event.target.value = "";
+});
+
+// ---------- STARTUP ----------
+
+function initializeApp() {
+  resizeCanvases();
+  updateSlotLabels();
+
+  setStatus("SYSTEM READY");
+  setTrackingStatus("TRACKING OFF");
+
+  // Load 3D support without blocking camera controls.
+  init3D();
+}
+
+initializeApp();
+
+window.addEventListener("beforeunload", () => {
+  stopTracking();
+
+  state.stream?.getTracks().forEach(track => track.stop());
+  state.micStream?.getTracks().forEach(track => track.stop());
+
+  if (state.renderer) {
+    state.renderer.dispose();
+  }
+
+  if (state.landmarker) {
+    state.landmarker.close();
+  }
+});
+          
