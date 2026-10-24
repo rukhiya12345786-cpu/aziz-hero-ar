@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Azeez AR Camera and Face Tracking Test</title>
+<title>Azeez AR - Face Tracking Test</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#101010;color:#fff;font-family:Arial,sans-serif;text-align:center}
@@ -43,11 +42,6 @@ let tracker=null;
 let running=false;
 let busy=false;
 
-function showError(stage,error){
-  status.textContent=stage+" ERROR: "+(error?.message||String(error));
-  console.error(stage,error);
-}
-
 async function startTest(){
   if(busy||running)return;
   busy=true;
@@ -56,11 +50,8 @@ async function startTest(){
   try{
     status.textContent="STEP 1: Opening camera...";
 
-    if(!navigator.mediaDevices||
-       !navigator.mediaDevices.getUserMedia){
-      throw new Error(
-        "Camera API unavailable. Open the HTTPS GitHub Pages site in Chrome."
-      );
+    if(!navigator.mediaDevices?.getUserMedia){
+      throw new Error("Open the HTTPS GitHub Pages website in Chrome and allow camera access.");
     }
 
     stream=await navigator.mediaDevices.getUserMedia({
@@ -74,25 +65,22 @@ async function startTest(){
 
     video.srcObject=stream;
     await video.play();
-
-    status.textContent="STEP 2: Camera is working. Loading tracking library...";
+    status.textContent="STEP 2: Camera opened. Loading tracking library...";
 
     const mp=await import(
       "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.mjs"
     );
 
-    status.textContent="STEP 3: Loading tracking engine...";
-
     const vision=await mp.FilesetResolver.forVisionTasks(
       "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
     );
 
-    const modelURL=
-      "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
+    status.textContent="STEP 3: Loading face tracking model...";
 
     tracker=await mp.FaceLandmarker.createFromOptions(vision,{
       baseOptions:{
-        modelAssetPath:modelURL,
+        modelAssetPath:
+          "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
         delegate:"CPU"
       },
       runningMode:"VIDEO",
@@ -100,15 +88,14 @@ async function startTest(){
     });
 
     running=true;
-    status.textContent="STEP 4: Tracking ready. Looking for your face...";
+    status.textContent="Tracking ready. Look left and right.";
     requestAnimationFrame(detectFace);
 
   }catch(error){
-    showError("START",error);
-    running=false;
-
+    status.textContent="ERROR: "+(error.message||String(error));
+    console.error(error);
     if(stream){
-      stream.getTracks().forEach(track=>track.stop());
+      stream.getTracks().forEach(t=>t.stop());
       stream=null;
       video.srcObject=null;
     }
@@ -134,28 +121,26 @@ function detectFace(){
       const result=tracker.detectForVideo(video,performance.now());
       const faces=result.faceLandmarks||[];
 
-      if(faces.length>0){
-        status.textContent="SUCCESS: FACE DETECTED — GREEN DOTS ACTIVE";
+      if(faces.length){
+        status.textContent="FACE DETECTED ✓ — MIRRORED DOTS";
         ctx.fillStyle="#00ff66";
 
         for(const point of faces[0]){
+          // Flip X coordinates to match the mirrored preview.
+          const mirroredX=(1-point.x)*canvas.width;
+          const y=point.y*canvas.height;
+
           ctx.beginPath();
-          ctx.arc(
-            point.x*canvas.width,
-            point.y*canvas.height,
-            2,
-            0,
-            Math.PI*2
-          );
+          ctx.arc(mirroredX,y,2,0,Math.PI*2);
           ctx.fill();
         }
       }else{
-        status.textContent="Tracking is running. Face not detected yet.";
+        status.textContent="Tracking running — face not detected";
       }
     }
   }catch(error){
     running=false;
-    showError("TRACKING",error);
+    status.textContent="TRACKING ERROR: "+error.message;
     return;
   }
 
@@ -166,7 +151,7 @@ function stopCamera(){
   running=false;
 
   if(stream){
-    stream.getTracks().forEach(track=>track.stop());
+    stream.getTracks().forEach(t=>t.stop());
     stream=null;
   }
 
