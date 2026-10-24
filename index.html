@@ -305,6 +305,16 @@ function initThree() {
   controls = new OrbitControls(arCamera, renderer.domElement);
   controls.enableDamping = true;
   controls.enabled = false;
+transformControls = new TransformControls(arCamera, renderer.domElement);
+transformControls.setMode("translate");
+
+scene.add(transformControls.getHelper());
+transformControls.getHelper().visible = false;
+
+transformControls.addEventListener("dragging-changed", event => {
+  if (controls) controls.enabled = !event.value;
+});
+  
 
   resizeCanvases();
   renderLoop();
