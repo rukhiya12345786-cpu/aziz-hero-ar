@@ -1,655 +1,1036 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#080b12">
-  <title>AZEEZ AR STUDIO</title>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0,
+      maximum-scale=1.0, user-scalable=no">
 
-  <style>
-    :root {
-      --bg: #080b12;
-      --panel: rgba(15, 21, 34, 0.94);
-      --line: rgba(255,255,255,0.13);
-      --text: #f5f7ff;
-      --muted: #9ba7bd;
-      --accent: #7c5cff;
-      --green: #36f5a2;
-    }
+<title>Azeez AR Studio</title>
 
-    * {
-      box-sizing: border-box;
-    }
+<style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
-    html, body {
-      margin: 0;
-      width: 100%;
-      min-height: 100%;
-      background: var(--bg);
-      color: var(--text);
-      font-family: system-ui, Arial, sans-serif;
-    }
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #050505;
+  color: white;
+  font-family: Arial, sans-serif;
+  overscroll-behavior: none;
+}
 
-    body {
-      overflow-x: hidden;
-    }
+button, input {
+  font: inherit;
+}
 
-    button, input, select {
-      font: inherit;
-    }
+button {
+  border: 1px solid #333;
+  background: #171717;
+  color: white;
+  border-radius: 12px;
+  padding: 12px;
+  cursor: pointer;
+}
 
-    button {
-      color: var(--text);
-      background: #1b2334;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 10px 13px;
-      cursor: pointer;
-      touch-action: manipulation;
-    }
+button:active {
+  background: #303030;
+}
 
-    button:active {
-      transform: scale(0.98);
-    }
+#app {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #050505;
+}
 
-    button.primary {
-      background: linear-gradient(135deg, #7657ff, #4b7dff);
-      border-color: transparent;
-    }
+/* CAMERA */
 
-    button.active {
-      border-color: var(--green);
-      color: var(--green);
-    }
+#cameraScreen {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #000;
+}
 
-    .app {
-      min-height: 100dvh;
-      display: flex;
-      flex-direction: column;
-    }
+#cameraVideo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(1);
+}
 
-    .header {
-      min-height: 62px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 10px 14px;
-      background: #0c111c;
-      border-bottom: 1px solid var(--line);
-      position: relative;
-      z-index: 20;
-    }
+#cameraVideo.mirrored {
+  transform: scaleX(-1);
+}
 
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
+#dotsCanvas,
+#arCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
 
-    .brand-icon {
-      width: 38px;
-      height: 38px;
-      display: grid;
-      place-items: center;
-      border-radius: 12px;
-      font-weight: 900;
-      background: linear-gradient(135deg, #8c5bff, #28d9d0);
-    }
+#dotsCanvas {
+  z-index: 2;
+}
 
-    .brand-name {
-      font-size: 15px;
-      font-weight: 850;
-      letter-spacing: 1px;
-    }
+#arCanvas {
+  z-index: 3;
+}
 
-    .brand-sub {
-      color: var(--muted);
-      font-size: 11px;
-      margin-top: 2px;
-    }
+/* TOP STATUS */
 
-    .status-pill {
-      font-size: 11px;
-      color: var(--green);
-      background: rgba(54,245,162,0.08);
-      border: 1px solid rgba(54,245,162,0.25);
-      border-radius: 30px;
-      padding: 7px 10px;
-      white-space: nowrap;
-    }
+#topBar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
 
-    .workspace {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr);
-      gap: 12px;
-      padding: 12px;
-      flex: 1;
-    }
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 
-    .preview-panel {
-      position: relative;
-      width: 100%;
-      min-height: 52dvh;
-      height: 58dvh;
-      max-height: 850px;
-      overflow: hidden;
-      border: 1px solid var(--line);
-      border-radius: 20px;
-      background:
-        radial-gradient(ellipse at center, #172137 0%, #080b12 72%);
-      isolation: isolate;
-    }
+  padding:
+    max(14px, env(safe-area-inset-top))
+    14px
+    12px;
 
-    #view {
-      position: absolute;
-      inset: 0;
-      overflow: hidden;
-      background: #080b12;
-    }
+  background: linear-gradient(
+    to bottom,
+    rgba(0,0,0,.65),
+    transparent
+  );
 
-    #cameraVideo,
-    #dotsCanvas,
-    #arCanvas {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-    }
+  pointer-events: none;
+}
 
-    #cameraVideo {
-      object-fit: cover;
-      z-index: 1;
-      background: transparent;
-    }
+#appTitle {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: .5px;
+}
 
-    #arCanvas {
-      z-index: 2;
-      pointer-events: none;
-    }
+#status {
+  font-size: 11px;
+  color: #aaa;
+  margin-top: 4px;
+}
 
-    #dotsCanvas {
-      z-index: 3;
-      pointer-events: none;
-    }
+#trackingStatus {
+  font-size: 11px;
+  color: #48ff91;
+  margin-top: 3px;
+}
 
-    .preview-top {
-      position: absolute;
-      z-index: 8;
-      top: 12px;
-      left: 12px;
-      right: 12px;
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 8px;
-      pointer-events: none;
-    }
+/* SWIPE HANDLE */
 
-    .preview-label,
-    .preview-status {
-      pointer-events: auto;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 8px 10px;
-      background: rgba(5,8,15,0.75);
-      backdrop-filter: blur(10px);
-      font-size: 11px;
-    }
+#openOptions {
+  position: absolute;
+  z-index: 15;
 
-    .preview-status {
-      color: var(--green);
-    }
+  right: 0;
+  top: 42%;
+  transform: translateY(-50%);
 
-    .preview-actions {
-      position: absolute;
-      z-index: 9;
-      left: 10px;
-      right: 10px;
-      bottom: 12px;
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 8px;
-    }
+  width: 28px;
+  height: 100px;
 
-    .preview-actions button {
-      background: rgba(8,11,18,0.86);
-      backdrop-filter: blur(10px);
-      font-size: 12px;
-      padding: 10px 12px;
-    }
+  border-radius: 16px 0 0 16px;
+  border: 1px solid #444;
+  border-right: none;
 
-    .panel {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      padding: 14px;
-      min-width: 0;
-    }
+  background: rgba(20,20,20,.8);
 
-    .panel-heading {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      margin-bottom: 12px;
-    }
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-    .panel-heading h2 {
-      font-size: 14px;
-      margin: 0;
-    }
+#openOptions span {
+  font-size: 20px;
+  color: white;
+}
 
-    .muted {
-      color: var(--muted);
-      font-size: 12px;
-    }
+/* OPTIONS DRAWER */
 
-    .button-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px;
-    }
+#optionsPanel {
+  position: absolute;
+  z-index: 30;
 
-    .button-grid button {
-      min-width: 0;
-      font-size: 12px;
-    }
+  top: 0;
+  right: 0;
 
-    .section-title {
-      color: var(--muted);
-      font-size: 10px;
-      font-weight: 800;
-      letter-spacing: 1.4px;
-      margin: 18px 0 9px;
-      text-transform: uppercase;
-    }
+  width: min(86%, 360px);
+  height: 100%;
 
-    .divider {
-      height: 1px;
-      background: var(--line);
-      margin: 14px 0;
-    }
+  padding:
+    max(18px, env(safe-area-inset-top))
+    16px
+    max(18px, env(safe-area-inset-bottom));
 
-    .hidden {
-      display: none !important;
-    }
+  background: rgba(15,15,18,.97);
+  border-left: 1px solid #333;
 
-    #toast {
-      position: fixed;
-      z-index: 100;
-      left: 50%;
-      bottom: 22px;
-      transform: translateX(-50%);
-      width: max-content;
-      max-width: calc(100% - 30px);
-      padding: 11px 15px;
-      color: white;
-      background: #202a3c;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      font-size: 12px;
-      text-align: center;
-    }
-  </style>
+  transform: translateX(105%);
+  transition: transform .28s ease;
+
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+#optionsPanel.open {
+  transform: translateX(0);
+}
+
+#panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+
+  padding-bottom: 16px;
+  border-bottom: 1px solid #333;
+}
+
+#panelHeader h2 {
+  font-size: 18px;
+}
+
+#closeOptions {
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  font-size: 22px;
+}
+
+/* PANEL CONTENT */
+
+.panelSection {
+  margin-top: 18px;
+  padding: 14px;
+
+  border: 1px solid #303030;
+  border-radius: 14px;
+
+  background: #19191c;
+}
+
+.panelSection h3 {
+  font-size: 14px;
+  margin-bottom: 12px;
+  color: #eee;
+}
+
+.buttonGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.buttonGrid button {
+  min-width: 0;
+  font-size: 12px;
+}
+
+.fullButton {
+  width: 100%;
+  margin-top: 8px;
+}
+
+/* SLIDERS */
+
+.sliderControl {
+  margin-top: 14px;
+}
+
+.sliderControl label {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+
+  font-size: 12px;
+  color: #ccc;
+  margin-bottom: 8px;
+}
+
+.sliderControl output {
+  color: #48ff91;
+}
+
+.sliderControl input {
+  width: 100%;
+  accent-color: #48ff91;
+}
+
+/* PANEL OVERLAY */
+
+#panelBackdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+
+  background: rgba(0,0,0,.45);
+
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .25s ease;
+
+  pointer-events: none;
+}
+
+#panelBackdrop.visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* CAMERA MESSAGE */
+
+#cameraMessage {
+  position: absolute;
+  z-index: 5;
+
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+
+  width: 85%;
+  max-width: 320px;
+
+  text-align: center;
+  color: #bbb;
+
+  font-size: 14px;
+  line-height: 1.6;
+
+  pointer-events: none;
+}
+
+/* RESPONSIVE */
+
+@media (orientation: landscape) {
+  #optionsPanel {
+    width: min(55%, 380px);
+  }
+
+  #openOptions {
+    top: 50%;
+  }
+}
+
+@media (min-width: 700px) {
+  #optionsPanel {
+    width: 340px;
+  }
+}
+</style>
 </head>
 
 <body>
-  <div class="app" id="app">
 
-    <header class="header" id="topControls">
-      <div class="brand">
-        <div class="brand-icon">A</div>
-        <div>
-          <div class="brand-name">AZEEZ AR STUDIO</div>
-          <div class="brand-sub">FACE TRACKING WORKSPACE</div>
+<div id="app">
+
+  <!-- CAMERA SCREEN -->
+
+  <section id="cameraScreen">
+
+    <video
+      id="cameraVideo"
+      autoplay
+      playsinline
+      muted>
+    </video>
+
+    <canvas id="dotsCanvas"></canvas>
+    <canvas id="arCanvas"></canvas>
+
+    <div id="topBar">
+
+      <div>
+        <div id="appTitle">
+          AZEEZ AR STUDIO
+        </div>
+
+        <div id="status">
+          Camera not started
+        </div>
+
+        <div id="trackingStatus">
+          Tracking OFF
         </div>
       </div>
-      <div class="status-pill" id="status">● SYSTEM READY</div>
-    </header>
 
-    <main class="workspace">
-      <section class="preview-panel" id="previewPanel">
-        <div id="view">
-          <video id="cameraVideo" autoplay playsinline muted></video>
-          <canvas id="arCanvas"></canvas>
-          <canvas id="dotsCanvas"></canvas>
-        </div>
+    </div>
 
-        <div class="preview-top">
-          <div class="preview-label">LIVE AR PREVIEW</div>
-          <div class="preview-status" id="trackingStatus">TRACKING OFF</div>
-        </div>
+    <div id="cameraMessage">
+      Start camera from AR Options
+    </div>
 
-        <div class="preview-actions" id="previewActions">
-          <button class="primary" id="startCameraBtn">▶ Camera</button>
-          <button id="switchCameraBtn">⇄ Switch</button>
-          <button id="flipBtn">Mirror OFF</button>
-          <button id="fullscreenBtn">⛶ Fullscreen</button>
-        </div>
-      </section>
+  </section>
 
-      <section class="panel" id="lensWorkspace">
-        <div class="panel-heading">
-          <h2>✦ Lens Workspace</h2>
-          <span class="muted">STUDIO</span>
-        </div>
+  <!-- OPTIONS BACKDROP -->
 
-        <p class="muted">
-          Manage your live preview, face tracking and imported AR models.
-        </p>
+  <div id="panelBackdrop"></div>
 
-        <div class="section-title">Quick controls</div>
-        <div class="button-grid">
-          <button id="trackingBtn">◎ Start Tracking</button>
-          <button id="dotsBtn">● Green Dots ON</button>
-          <button id="hideOptionsBtn">Hide Buttons</button>
-          <button id="hideSlidersBtn">Hide Sliders</button>
-        </div>
+  <!-- SWIPE HANDLE -->
 
-        <div class="divider"></div>
+  <button id="openOptions" aria-label="Open AR options">
+    <span>‹</span>
+  </button>
 
-        <div class="section-title">Lens presets</div>
-        <div class="button-grid">
-          <button class="preset-btn active" data-preset="none">Original</button>
-          <button class="preset-btn" data-preset="green">Green Points</button>
-          <button class="preset-btn" data-preset="neon">Neon Preview</button>
-          <button class="preset-btn" data-preset="cyber">Cyber Style</button>
-        </div>
+  <!-- RIGHT SIDE OPTIONS PANEL -->
 
-        <div class="divider"></div>
+  <aside id="optionsPanel">
 
-        <div class="section-title">Model library</div>
-        <button class="primary" id="importModelBtn">＋ Import 3D Model</button>
-        <input id="modelFile" type="file"
-          accept=".glb,.gltf,.obj,.fbx"
-          hidden>
-        <p class="muted">
-          Supported formats depend on the model and its linked assets.
-        </p>
+    <div id="panelHeader">
+
+      <h2>AR Options</h2>
+
+      <button id="closeOptions"
+              aria-label="Close options">
+        ×
+      </button>
+
+    </div>
+
+    <!-- HTML PART 2 CONTINUES HERE -->
+
 </body>
-      </html>
-        
-        
-        <div class="section-title">Model slots</div>
-        <div class="button-grid" id="modelSlots">
-          <button class="slot active" data-slot="0">Slot 1 · Empty</button>
-          <button class="slot" data-slot="1">Slot 2 · Empty</button>
-          <button class="slot" data-slot="2">Slot 3 · Empty</button>
-          <button class="slot" data-slot="3">Slot 4 · Empty</button>
-        </div>
+  </html>
+    
+    <!-- CAMERA CONTROLS -->
 
-        <div class="button-grid" style="margin-top:8px">
-          <button id="showModelBtn">Show Model</button>
-          <button id="removeModelBtn">Remove Model</button>
-        </div>
+    <section class="panelSection">
 
-        <div class="divider"></div>
+      <h3>📷 Camera</h3>
 
-        <section id="slidersPanel">
-          <div class="panel-heading">
-            <h2>⚙ Model Transform</h2>
-            <button id="resetTransformBtn">Reset</button>
-          </div>
+      <div class="buttonGrid">
 
-          <div class="section-title">Position</div>
+        <button id="startCameraBtn">
+          Start Camera
+        </button>
 
-          <label for="posX">Left / Right</label>
-          <input id="posX" type="range" min="-3" max="3" step="0.01" value="0">
+        <button id="stopCameraBtn">
+          Stop Camera
+        </button>
 
-          <label for="posY">Up / Down</label>
-          <input id="posY" type="range" min="-3" max="3" step="0.01" value="0">
+        <button id="switchCameraBtn">
+          Switch Camera
+        </button>
 
-          <label for="posZ">Depth · Front / Back</label>
-          <input id="posZ" type="range" min="-5" max="5" step="0.01" value="0">
+        <button id="flipBtn">
+          Mirror ON
+        </button>
 
-          <div class="section-title">Rotation</div>
+        <button id="fullscreenBtn">
+          Full Screen
+        </button>
 
-          <label for="rotX">Rotate X</label>
-          <input id="rotX" type="range" min="-180" max="180" value="0">
+      </div>
 
-          <label for="rotY">Rotate Y</label>
-          <input id="rotY" type="range" min="-180" max="180" value="0">
+    </section>
 
-          <label for="rotZ">Rotate Z</label>
-          <input id="rotZ" type="range" min="-180" max="180" value="0">
+    <!-- FACE TRACKING -->
 
-          <div class="section-title">Size</div>
+    <section class="panelSection">
 
-          <label for="modelScale">Model Scale</label>
-          <input id="modelScale" type="range" min="0.1" max="5" step="0.05" value="1">
-          <div class="muted" id="scaleOut">1.00×</div>
+      <h3>🎯 Face Tracking</h3>
 
-          <button id="autoFitBtn" style="width:100%;margin-top:10px">
-            Auto Fit Model
-          </button>
+      <div class="buttonGrid">
 
-          <div class="divider"></div>
+        <button id="trackingBtn">
+          Start Tracking
+        </button>
 
-          <div class="panel-heading">
-            <h2>◎ Face Controls</h2>
-            <button id="resetFaceBtn">Reset</button>
-          </div>
+        <button id="dotsBtn">
+          Green Dots ON
+        </button>
 
-          <label for="faceX">Face Left / Right</label>
-          <input id="faceX" type="range" min="-2" max="2" step="0.01" value="0">
+      </div>
 
-          <label for="faceY">Face Up / Down</label>
-          <input id="faceY" type="range" min="-2" max="2" step="0.01" value="0">
+      <div id="trackingPanelStatus"
+           style="margin-top:12px;font-size:12px;color:#aaa">
+        Tracking is OFF
+      </div>
 
-          <label for="faceZ">Face Depth</label>
-          <input id="faceZ" type="range" min="-3" max="3" step="0.01" value="0">
+    </section>
 
-          <label for="faceSize">Face Scale</label>
-          <input id="faceSize" type="range" min="0.2" max="3" step="0.05" value="1">
+    <!-- MODEL IMPORT -->
 
-          <div class="section-title">Expression controls</div>
+    <section class="panelSection">
 
-          <label for="leftEye">Left Eye</label>
-          <input id="leftEye" type="range" min="0" max="1" step="0.01" value="1">
+      <h3>🧊 3D Model</h3>
 
-          <label for="rightEye">Right Eye</label>
-          <input id="rightEye" type="range" min="0" max="1" step="0.01" value="1">
+      <input
+        type="file"
+        id="modelFile"
+        accept=".glb,.gltf,.obj,.fbx"
+        style="width:100%;font-size:12px;color:#aaa">
 
-          <label for="mouthScale">Mouth Scale</label>
-          <input id="mouthScale" type="range" min="0" max="2" step="0.01" value="1">
+      <button
+        id="importModelBtn"
+        class="fullButton">
+        Import 3D Model
+      </button>
 
-          <label for="mouthOpen">Mouth Open</label>
-          <input id="mouthOpen" type="range" min="0" max="1" step="0.01" value="0">
+      <div class="buttonGrid">
 
-          <label for="blinkLeft">Left Blink</label>
-          <input id="blinkLeft" type="range" min="0" max="1" step="0.01" value="0">
+        <button id="showModelBtn">
+          Hide Model
+        </button>
 
-          <label for="blinkRight">Right Blink</label>
-          <input id="blinkRight" type="range" min="0" max="1" step="0.01" value="0">
+        <button id="removeModelBtn">
+          Remove Model
+        </button>
 
-          <div class="button-grid" style="margin-top:12px">
-            <button id="resetAllBtn">Reset All</button>
-            <button id="clearModelBtn">Clear Slot</button>
-          </div>
-        </section>
+      </div>
 
-        <div class="divider"></div>
+      <div id="modelStatus"
+           style="font-size:12px;color:#aaa;margin-top:12px">
+        No model loaded
+      </div>
 
-        <div class="section-title">Studio notes</div>
-        <p class="muted">
-          These controls provide a workspace for model positioning and
-          expression settings. Real face-following and expression-driven
-          model animation require the JavaScript tracking implementation
-          and a compatible 3D model.
-        </p>
-      </section>
+    </section>
 
-      <section class="panel" id="recordingPanel">
-        <div class="panel-heading">
-          <h2>● Capture Studio</h2>
-          <span class="muted">RECORDING</span>
-        </div>
+    <!-- MODEL SLOTS -->
 
-        <div class="button-grid">
-          <button id="recordBtn">● Start Recording</button>
-          <button id="stopRecordBtn">■ Stop Recording</button>
-          <button id="micBtn">Mic OFF</button>
-          <button id="stopCameraBtn">Stop Camera</button>
-        </div>
+    <section class="panelSection">
 
-        <div class="divider"></div>
+      <h3>🗂 Model Slots</h3>
 
-        <div class="section-title">Workspace settings</div>
-        <div class="button-grid">
-          <button id="exportSettingsBtn">Export Settings</button>
-          <button id="importSettingsBtn">Import Settings</button>
-        </div>
+      <div class="buttonGrid">
 
-        <input id="settingsFile" type="file" accept=".json,application/json" hidden>
+        <button class="slotBtn" data-slot="0">
+          Slot 1
+        </button>
 
-        <p class="muted">
-          Camera access requires permission. Recording support depends on
-          your browser and device.
-        </p>
-      </section>
+        <button class="slotBtn" data-slot="1">
+          Slot 2
+        </button>
 
-      <section class="panel" id="displayPanel">
-        <div class="panel-heading">
-          <h2>▣ Display & Interface</h2>
-        </div>
+        <button class="slotBtn" data-slot="2">
+          Slot 3
+        </button>
 
-        <div class="button-grid">
-          <button id="showButtonsBtn">Show Buttons</button>
-          <button id="showSlidersBtn">Show Sliders</button>
-          <button id="cleanScreenBtn">Clean Preview</button>
-          <button id="exitCleanBtn">Exit Clean Preview</button>
-        </div>
-      </section>
-      
-      
-    </main>
+        <button class="slotBtn" data-slot="3">
+          Slot 4
+        </button>
 
-    <footer class="header" id="bottomControls">
-      <span class="muted">AZEEZ AR STUDIO · MOBILE WORKSPACE</span>
-      <button id="showEditorBtn">Open Workspace</button>
-    </footer>
+      </div>
+
+    </section>
+
+    <!-- MODEL POSITION -->
+
+    <section class="panelSection">
+
+      <h3>📐 Model Position</h3>
+
+      <div class="sliderControl">
+
+        <label>
+          <span>Position X</span>
+          <output id="posXOut">0</output>
+        </label>
+
+        <input
+          id="posX"
+          type="range"
+          min="-3"
+          max="3"
+          step="0.01"
+          value="0">
+
+      </div>
+
+      <div class="sliderControl">
+
+        <label>
+          <span>Position Y</span>
+          <output id="posYOut">0</output>
+        </label>
+
+        <input
+          id="posY"
+          type="range"
+          min="-3"
+          max="3"
+          step="0.01"
+          value="0">
+
+      </div>
+
+      <div class="sliderControl">
+
+        <label>
+          <span>Position Z</span>
+          <output id="posZOut">0</output>
+        </label>
+
+        <input
+          id="posZ"
+          type="range"
+          min="-5"
+          max="5"
+          step="0.01"
+          value="0">
+
+      </div>
+
+    </section>
+
+    <!-- MODEL ROTATION -->
+
+    <section class="panelSection">
+
+      <h3>🔄 Model Rotation</h3>
+
+      <div class="sliderControl">
+
+        <label>
+          <span>Rotation X</span>
+          <output id="rotXOut">0</output>
+        </label>
+
+        <input
+          id="rotX"
+          type="range"
+          min="-180"
+          max="180"
+          value="0">
+
+      </div>
+
+      <div class="sliderControl">
+
+        <label>
+          <span>Rotation Y</span>
+          <output id="rotYOut">0</output>
+        </label>
+
+        <input
+          id="rotY"
+          type="range"
+          min="-180"
+          max="180"
+          value="0">
+
+      </div>
+
+      <div class="sliderControl">
+
+        <label>
+          <span>Rotation Z</span>
+          <output id="rotZOut">0</output>
+        </label>
+
+        <input
+          id="rotZ"
+          type="range"
+          min="-180"
+          max="180"
+          value="0">
+
+      </div>
+
+    </section>
+
+    <!-- MODEL SCALE -->
+
+    <section class="panelSection">
+
+      <h3>🔍 Model Scale</h3>
+
+      <div class="sliderControl">
+
+        <label>
+          <span>Model Size</span>
+          <output id="scaleOut">1.00</output>
+        </label>
+
+        <input
+          id="modelScale"
+          type="range"
+          min="0.1"
+          max="5"
+          step="0.01"
+          value="1">
+
+      </div>
+
+      <div class="buttonGrid">
+
+        <button id="autoFitBtn">
+          Auto Fit
+        </button>
+
+        <button id="resetTransformBtn">
+          Reset Transform
+        </button>
+
+      </div>
+
+    </section>
+
+    <!-- FACE CONTROLS -->
+
+    <section class="panelSection">
+
+      <h3>🙂 Face Controls</h3>
+
+      <div class="sliderControl">
+
+        <label>
+          <span>Face X</span>
+          <output id="faceXOut">0</output>
+        </label>
+
+        <input
+          id="faceX"
+          type="range"
+          min="-1"
+          max="1"
+          step="0.01"
+          value="0">
+
+      </div>
+
+      <div class="sliderControl">
+
+        <label>
+          <span>Face Y</span>
+          <output id="faceYOut">0</output>
+        </label>
+
+        <input
+          id="faceY"
+          type="range"
+          min="-1"
+          max="1"
+          step="0.01"
+          value="0">
+
+      </div>
+
+      <div class="sliderControl">
+
+        <label>
+          <span>Face Z</span>
+          <output id="faceZOut">0</output>
+        </label>
+
+        <input
+          id="faceZ"
+          type="range"
+          min="-1"
+          max="1"
+          step="0.01"
+          value="0">
+
+      </div>
+
+      <div class="sliderControl">
+
+        <label>
+          <span>Face Size</span>
+          <output id="faceSizeOut">1.00</output>
+        </label>
+
+        <input
+          id="faceSize"
+          type="range"
+          min="0.1"
+          max="3"
+          step="0.01"
+          value="1">
+
+      </div>
+
+      <div class="sliderControl">
+
+        <label>
+          <span>Left Eye</span>
+          <output id="leftEyeOut">1.00</output>
+        </label>
+
+        <input
+          id="leftEye"
+          type="range"
+          min="0"
+          max="2"
+          step="0.01"
+          value="1">
+
+      </div>
+
+      <div class="sliderControl">
+
+        <label>
+          <span>Right Eye</span>
+          <output id="rightEyeOut">1.00</output>
+        </label>
+
+        <input
+          id="rightEye"
+          type="range"
+          min="0"
+          max="2"
+          step="0.01"
+          value="1">
+
+      </div>
+
+      <div class="sliderControl">
+
+        <label>
+          <span>Mouth Size</span>
+          <output id="mouthScaleOut">1.00</output>
+        </label>
+
+        <input
+          id="mouthScale"
+          type="range"
+          min="0"
+          max="2"
+          step="0.01"
+          value="1">
+
+      </div>
+
+      <div class="sliderControl">
+
+        <label>
+          <span>Mouth Open</span>
+          <output id="mouthOpenOut">0</output>
+        </label>
+
+        <input
+          id="mouthOpen"
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value="0">
+
+      </div>
+
+      <div class="sliderControl">
+
+        <label>
+          <span>Left Blink</span>
+          <output id="blinkLeftOut">0</output>
+        </label>
+
+        <input
+          id="blinkLeft"
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value="0">
+
+      </div>
+
+      <div class="sliderControl">
+
+        <label>
+          <span>Right Blink</span>
+          <output id="blinkRightOut">0</output>
+        </label>
+
+        <input
+          id="blinkRight"
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value="0">
+
+      </div>
+
+      <button
+        id="resetFaceBtn"
+        class="fullButton">
+        Reset Face Controls
+      </button>
+
+    </section>
+
+    <!-- RECORDING -->
+
+    <section class="panelSection">
+
+      <h3>🎥 Recording</h3>
+
+      <div class="buttonGrid">
+
+        <button id="recordBtn">
+          Start Recording
+        </button>
+
+        <button id="stopRecordBtn">
+          Stop Recording
+        </button>
+
+        <button id="micBtn">
+          Microphone OFF
+        </button>
+
+      </div>
+
+    </section>
+
+    <!-- SETTINGS -->
+
+    <section class="panelSection">
+
+      <h3>⚙️ Settings</h3>
+
+      <div class="buttonGrid">
+
+        <button id="exportSettingsBtn">
+          Export Settings
+        </button>
+
+        <button id="importSettingsBtn">
+          Import Settings
+        </button>
+
+      </div>
+
+      <input
+        type="file"
+        id="settingsFile"
+        accept=".json"
+        hidden>
+
+      <button
+        id="resetAllBtn"
+        class="fullButton">
+        Reset All Controls
+      </button>
+
+      <button
+        id="clearModelBtn"
+        class="fullButton">
+        Clear All Models
+      </button>
+
+    </section>
+
+    <!-- DISPLAY -->
+
+    <section class="panelSection">
+
+      <h3>🖥 Display</h3>
+
+      <div class="buttonGrid">
+
+        <button id="hideOptionsBtn">
+          Hide Options
+        </button>
+
+        <button id="hideSlidersBtn">
+          Hide Sliders
+        </button>
+
+        <button id="cleanScreenBtn">
+          Clean Preview
+        </button>
+
+        <button id="exitCleanBtn">
+          Exit Clean Preview
+        </button>
+
+      </div>
+
+    </section>
+
+  
+    <!-- PANEL FOOTER -->
+
+    <div style="
+      margin-top:20px;
+      padding:14px;
+      text-align:center;
+      color:#777;
+      font-size:11px;
+      border-top:1px solid #333;
+    ">
+      AZEEZ AR STUDIO
+      <br>
+      Mobile AR Workspace
+    </div>
+
+  </aside>
+
+  <!-- TOAST MESSAGE -->
+
+  <div
+    id="toast"
+    style="
+      position:absolute;
+      z-index:100;
+      left:50%;
+      bottom:30px;
+      transform:translateX(-50%);
+      max-width:90%;
+      padding:12px 18px;
+      border-radius:12px;
+      background:#222;
+      color:white;
+      font-size:13px;
+      text-align:center;
+      opacity:0;
+      pointer-events:none;
+      transition:opacity .2s;
+    ">
   </div>
 
-  <div id="toast" class="hidden" role="status" aria-live="polite"></div>
+  <!-- CAMERA PANEL MESSAGE -->
 
-  <style>
-    #lensWorkspace label,
-    #recordingPanel label,
-    #displayPanel label {
-      display: block;
-      color: var(--muted);
-      font-size: 12px;
-      margin: 13px 0 5px;
-    }
+  <div
+    id="cameraError"
+    style="
+      position:absolute;
+      z-index:50;
+      left:50%;
+      top:50%;
+      transform:translate(-50%,-50%);
+      width:85%;
+      max-width:320px;
+      padding:16px;
+      background:#251414;
+      border:1px solid #733;
+      border-radius:14px;
+      color:#ffbaba;
+      text-align:center;
+      font-size:13px;
+      line-height:1.6;
+      display:none;
+    ">
+  </div>
 
-    #lensWorkspace input[type="range"] {
-      display: block;
-      width: 100%;
-      accent-color: var(--accent);
-      margin: 0 0 10px;
-    }
+</div>
 
-    #importModelBtn {
-      width: 100%;
-    }
+<!-- APP JAVASCRIPT -->
 
-    .app.buttons-hidden #topControls,
-    .app.buttons-hidden #bottomControls,
-    .app.buttons-hidden .preview-actions,
-    .app.buttons-hidden #lensWorkspace .button-grid,
-    .app.buttons-hidden #recordingPanel .button-grid,
-    .app.buttons-hidden #displayPanel .button-grid {
-      display: none !important;
-    }
+<script type="module" src="./js/app.js"></script>
 
-    .app.sliders-hidden #slidersPanel label,
-    .app.sliders-hidden #slidersPanel input,
-    .app.sliders-hidden #slidersPanel .section-title {
-      display: none !important;
-    }
-
-    .app.clean-preview .header,
-    .app.clean-preview #lensWorkspace,
-    .app.clean-preview #recordingPanel,
-    .app.clean-preview #displayPanel {
-      display: none !important;
-    }
-
-    .app.clean-preview .workspace {
-      display: block;
-      padding: 0;
-    }
-
-    .app.clean-preview .preview-panel {
-      width: 100%;
-      height: 100dvh;
-      min-height: 100dvh;
-      max-height: none;
-      border: 0;
-      border-radius: 0;
-    }
-
-    #restoreInterfaceBtn {
-      position: fixed;
-      z-index: 999;
-      top: 12px;
-      right: 12px;
-      display: none;
-      background: rgba(15,21,34,0.94);
-      border: 1px solid var(--green);
-    }
-
-    .app.clean-preview #restoreInterfaceBtn {
-      display: block;
-    }
-
-    @media (min-width: 900px) {
-      .workspace {
-        grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
-        align-items: start;
-      }
-
-      .preview-panel {
-        position: sticky;
-        top: 12px;
-        height: calc(100dvh - 100px);
-        min-height: 500px;
-      }
-
-      #lensWorkspace {
-        grid-column: 2;
-      }
-
-      #recordingPanel,
-      #displayPanel {
-        grid-column: 2;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .header {
-        padding: 9px 10px;
-      }
-
-      .brand-name {
-        font-size: 13px;
-      }
-
-      .preview-panel {
-        min-height: 54dvh;
-        height: 60dvh;
-      }
-
-      .panel {
-        padding: 12px;
-      }
-    }
-  </style>
-
-  <button id="restoreInterfaceBtn" type="button">Show Interface</button>
-
-  <script type="module" src="./js/app.js"></script>
 </body>
 </html>
+
+    
