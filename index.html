@@ -2,558 +2,727 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Azeez AR Studio</title>
 <style>
-:root {
-  --bg:#101114; --panel:#1b1d22; --panel2:#252830;
-  --line:#393d47; --text:#f4f5f7; --muted:#a7acb8;
-  --accent:#42df91; --blue:#5da9ff; --danger:#ff6464;
-}
-* { box-sizing:border-box; }
-html,body { margin:0; width:100%; height:100%; overflow:hidden; }
-body { background:var(--bg); color:var(--text); font:14px Arial,sans-serif; }
-button,input { font:inherit; }
-button {
-  border:1px solid var(--line); border-radius:9px;
-  background:var(--panel2); color:var(--text);
-  padding:11px 12px; cursor:pointer; touch-action:manipulation;
-}
-button:disabled { opacity:.45; cursor:not-allowed; }
-button.active { border-color:var(--accent); color:var(--accent); }
-button.primary { background:#176b42; border-color:#218653; }
-button.danger { background:#702c32; border-color:#9e3b44; }
-#app { position:relative; width:100%; height:100%; height:100dvh; overflow:hidden; background:#101114; }
-#cameraVideo,#arCanvas,#dotsCanvas {
-  position:absolute; inset:0; width:100%; height:100%;
-}
-#cameraVideo { z-index:1; object-fit:contain; background:#101114; }
-#arCanvas { z-index:2; pointer-events:none; }
-#dotsCanvas { z-index:3; pointer-events:none; }
-#cameraMessage {
-  position:absolute; z-index:4; inset:0; display:grid; place-content:center;
-  text-align:center; color:#c4c8d0; line-height:1.8; padding:25px;
-  pointer-events:none;
-}
-#topBar {
-  position:absolute; z-index:10; top:env(safe-area-inset-top,0px);
-  left:0; right:0; display:flex; align-items:center; gap:9px;
-  padding:10px; background:#101114c9; backdrop-filter:blur(8px);
-}
-#brand { font-size:13px; font-weight:bold; letter-spacing:1px; flex:1; }
-#trackingStatus { font-size:11px; color:var(--muted); white-space:nowrap; }
-#status {
-  position:absolute; z-index:10; left:10px; right:10px; top:65px;
-  padding:8px 10px; border-radius:8px; background:#101114b8;
-  color:#e5e7eb; font-size:12px; overflow-wrap:anywhere; pointer-events:none;
-}
-#bottomBar {
-  position:absolute; z-index:10; left:0; right:0;
-  bottom:env(safe-area-inset-bottom,0px);
-  display:flex; flex-wrap:wrap; gap:7px; justify-content:center;
-  padding:10px; background:#101114c9; backdrop-filter:blur(8px);
-}
-#bottomBar button { flex:1 1 105px; min-height:42px; font-size:12px; }
-.icon-button { width:42px; min-width:42px; height:42px; padding:0; font-size:20px; }
-#openOptions {
-  position:absolute; z-index:20; right:10px; top:50%; transform:translateY(-50%);
-  width:46px; height:54px; font-size:23px; background:#20242bdd;
-}
-#panelBackdrop {
-  position:absolute; z-index:29; inset:0; background:#0009; display:none;
-}
-#optionsPanel {
-  position:absolute; z-index:30; top:0; right:0; bottom:0;
-  width:min(390px,91vw); overflow-y:auto; overscroll-behavior:contain;
-  background:var(--panel); border-left:1px solid var(--line);
-  padding:12px; padding-top:env(safe-area-inset-top,12px);
-  padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));
-  transform:translateX(105%); visibility:hidden;
-  transition:transform .22s ease,visibility .22s;
-}
-#optionsPanel.open { transform:translateX(0); visibility:visible; }
-#panelBackdrop.open { display:block; }
-.panelHeader { display:flex; align-items:center; gap:8px; }
-.panelHeader h2 { font-size:17px; flex:1; margin:10px 0; }
-.section {
-  background:#14161a; border:1px solid var(--line);
-  border-radius:12px; padding:11px; margin:10px 0;
-}
-.section h3 { font-size:13px; margin:0 0 10px; color:var(--accent); }
-.buttonGrid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; }
-.buttonGrid button { min-width:0; font-size:12px; }
-.full { width:100%; margin-top:7px; }
-.field { margin:13px 0; }
-.fieldHead { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; }
-.fieldHead label { font-size:12px; color:#e1e4ea; }
-.fieldHead output { color:var(--accent); font-size:12px; font-variant-numeric:tabular-nums; }
-input[type=range] { width:100%; accent-color:var(--accent); }
-.slotRow { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
-.slotRow button { padding:10px 4px; }
-#modelFile,#settingsFile { width:100%; margin-top:8px; font-size:12px; }
-.smallNote { color:var(--muted); font-size:11px; line-height:1.5; }
-#toast {
-  position:absolute; z-index:50; left:50%; bottom:100px;
-  transform:translateX(-50%); max-width:90%; padding:10px 14px;
-  background:#292d35; border:1px solid var(--line); border-radius:9px;
-  display:none; text-align:center;
-}
-#toast.show { display:block; }
-#cameraError { color:#ff9999; font-size:12px; overflow-wrap:anywhere; }
-#app.controls-hidden #topBar,
-#app.controls-hidden #status,
-#app.controls-hidden #bottomBar { display:none; }
-#app.controls-hidden #openOptions { display:block; }
-#app.sliders-hidden #sliderSection { display:none; }
-@media (orientation:landscape) {
-  #status { top:62px; max-width:55%; }
-  #bottomBar { right:55px; justify-content:flex-start; }
-  #bottomBar button { flex:0 1 auto; }
-}
+:root{--bg:#101114;--panel:#1b1d22;--line:#393d47;--text:#f4f5f7;--accent:#42df91}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font:14px Arial,sans-serif}
+button,input,select{font:inherit}
+button{padding:10px;border:1px solid var(--line);border-radius:8px;background:#252830;color:white;cursor:pointer}
+button:disabled{opacity:.5}
+button.active{border-color:var(--accent);color:var(--accent)}
+#app{position:relative;width:100%;height:100dvh;overflow:hidden;background:#101114}
+#cameraVideo,#arCanvas,#dotsCanvas{position:absolute;inset:0;width:100%;height:100%}
+#cameraVideo{object-fit:contain;background:#101114}
+#arCanvas{z-index:2;pointer-events:none}
+#dotsCanvas{z-index:3;pointer-events:none}
+#cameraMessage{position:absolute;inset:0;display:grid;place-content:center;text-align:center;line-height:2;color:#ccc;pointer-events:none}
+#topBar,#bottomBar{position:absolute;z-index:10;left:0;right:0;display:flex;gap:6px;flex-wrap:wrap;padding:9px;background:#101114d9}
+#topBar{top:env(safe-area-inset-top,0px);align-items:center}
+#bottomBar{bottom:env(safe-area-inset-bottom,0px);justify-content:center}
+#brand{font-weight:bold;flex:1;align-self:center}
+#status{position:absolute;z-index:10;top:62px;left:8px;right:8px;background:#101114c9;padding:8px;border-radius:6px;font-size:12px;overflow-wrap:anywhere}
+#bottomBar button{flex:1 1 100px;font-size:11px}
+#openOptions{position:absolute;z-index:20;right:8px;top:50%;font-size:22px}
+#panelBackdrop{display:none;position:absolute;z-index:29;inset:0;background:#0009}
+#optionsPanel{position:absolute;z-index:30;top:0;right:0;bottom:0;width:min(420px,94vw);overflow:auto;background:var(--panel);padding:12px;transform:translateX(105%);visibility:hidden;transition:.2s}
+#optionsPanel.open{transform:translateX(0);visibility:visible}
+#panelBackdrop.open{display:block}
+.section{border:1px solid var(--line);border-radius:10px;padding:10px;margin:10px 0;background:#14161a}
+.section h3{font-size:13px;color:var(--accent);margin:0 0 10px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.grid button{font-size:12px}
+.field{margin:12px 0}
+.fieldHead{display:flex;justify-content:space-between;gap:8px;font-size:12px;margin-bottom:5px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+input[type=file]{width:100%;font-size:12px;margin:8px 0}
+.small{font-size:11px;color:#b7bdc8;line-height:1.5}
+#toast{position:absolute;z-index:50;left:50%;bottom:100px;transform:translateX(-50%);background:#292d35;padding:10px;border-radius:8px;display:none;max-width:90%}
+#toast.show{display:block}
+#app.controls-hidden #topBar,#app.controls-hidden #status,#app.controls-hidden #bottomBar{display:none}
+#app.sliders-hidden #sliderSection{display:none}
+@media(orientation:landscape){#bottomBar{right:50px;justify-content:flex-start}#status{max-width:55%}}
 </style>
 </head>
 <body>
 <div id="app">
-  <video id="cameraVideo" autoplay muted playsinline></video>
-  <canvas id="arCanvas"></canvas>
-  <canvas id="dotsCanvas"></canvas>
+<video id="cameraVideo" autoplay muted playsinline></video>
+<canvas id="arCanvas"></canvas>
+<canvas id="dotsCanvas"></canvas>
+<div id="cameraMessage"><div><b>AZEEZ AR STUDIO</b><br>Press START CAMERA</div></div>
 
-  <div id="cameraMessage">
-    <div><strong>AZEEZ AR STUDIO</strong><br>Press START CAMERA to begin.</div>
-  </div>
+<header id="topBar">
+<button id="hideOptionsBtn">☰</button><div id="brand">AZEEZ AR STUDIO</div><span id="trackingStatus">TRACKING OFF</span>
+</header>
+<div id="status">Ready. Start camera.</div>
+<div id="bottomBar">
+<button id="startCameraBtn">START CAMERA</button>
+<button id="stopCameraBtn">STOP CAMERA</button>
+<button id="switchCameraBtn">SWITCH CAMERA</button>
+<button id="flipBtn">MIRROR: ON</button>
+<button id="fullscreenBtn">FULL SCREEN</button>
+<button id="recordBtn">● RECORD</button>
+<button id="stopRecordBtn" disabled>STOP RECORDING</button>
+</div>
 
-  <header id="topBar">
-    <button id="hideOptionsBtn" class="icon-button" title="Hide controls">☰</button>
-    <div id="brand">AZEEZ AR STUDIO</div>
-    <div id="trackingStatus">TRACKING OFF</div>
-  </header>
+<button id="openOptions">☷</button>
+<div id="panelBackdrop"></div>
+<aside id="optionsPanel">
+<div class="grid"><h2>AR Controls</h2><button id="closeOptions">CLOSE ✕</button></div>
 
-  <div id="status" role="status">Ready. Start the camera.</div>
+<div class="section"><h3>CAMERA & TRACKING</h3>
+<div class="grid">
+<button id="trackingBtn">START TRACKING</button>
+<button id="dotsBtn">GREEN DOTS: ON</button>
+<button id="hideSlidersBtn">HIDE SLIDERS</button>
+<button id="cleanScreenBtn">HIDE CONTROLS</button>
+<button id="exitCleanBtn">SHOW CONTROLS</button>
+</div><p id="cameraError" class="small"></p>
+</div>
 
-  <div id="bottomBar">
-    <button id="startCameraBtn" class="primary">START CAMERA</button>
-    <button id="stopCameraBtn" class="danger">STOP CAMERA</button>
-    <button id="switchCameraBtn">SWITCH CAMERA</button>
-    <button id="flipBtn">MIRROR: ON</button>
-    <button id="fullscreenBtn">FULL SCREEN</button>
-    <button id="recordBtn">● RECORD</button>
-    <button id="stopRecordBtn" disabled>STOP RECORDING</button>
-  </div>
+<div class="section"><h3>3D MODEL IMPORT</h3>
+<input id="modelFile" type="file" accept=".glb,.gltf,.obj,.fbx">
+<div class="grid">
+<button id="importModelBtn">SELECT MODEL</button>
+<button id="showModelBtn">MODEL: SHOW</button>
+<button id="removeModelBtn">REMOVE MODEL</button>
+<button id="autoFitBtn">AUTO FIT</button>
+</div>
+<p id="modelStatus" class="small">No model loaded.</p>
+</div>
 
-  <button id="openOptions" aria-label="Open options">☷</button>
-  <div id="panelBackdrop"></div>
+<div class="section"><h3>FACE PARTS EDITOR</h3>
+<p class="small">Upload your own transparent PNG eyes, eyebrows or mouth. Each part is a separate editable 3D plane.</p>
+<label>Choose face part</label>
+<select id="partType" style="width:100%;padding:9px;margin:7px 0">
+<option value="mouth">Mouth</option><option value="leftEye">Left eye</option>
+<option value="rightEye">Right eye</option><option value="eyebrowLeft">Left eyebrow</option>
+<option value="eyebrowRight">Right eyebrow</option><option value="custom">Custom part</option>
+</select>
+<input id="partFile" type="file" accept="image/png,image/webp,image/jpeg">
+<div class="grid">
+<button id="addPartBtn">ADD FACE PART</button>
+<button id="duplicatePartBtn">DUPLICATE</button>
+<button id="removePartBtn">REMOVE PART</button>
+<button id="hidePartsBtn">HIDE PARTS</button>
+</div>
+<label class="small">Selected part</label>
+<select id="partSelect" style="width:100%;padding:9px;margin:7px 0">
+<option value="">No part selected</option>
+</select>
+<p id="partStatus" class="small">Upload an image and add a part.</p>
+</div>
 
-  <aside id="optionsPanel" aria-label="AR options">
-    <div class="panelHeader">
-      <h2>AR Controls</h2>
-      <button id="closeOptions" class="icon-button" aria-label="Close options">✕</button>
-    </div>
-
-    <div class="section">
-      <h3>CAMERA & TRACKING</h3>
-      <div class="buttonGrid">
-        <button id="trackingBtn" class="primary">START TRACKING</button>
-        <button id="dotsBtn">GREEN DOTS: ON</button>
-        <button id="micBtn">MIC: OFF</button>
-        <button id="hideSlidersBtn">HIDE SLIDERS</button>
-        <button id="cleanScreenBtn">HIDE CONTROLS</button>
-        <button id="exitCleanBtn">SHOW CONTROLS</button>
-      </div>
-      <p id="cameraError"></p>
-    </div>
-
-    <div class="section">
-      <h3>3D MODEL</h3>
-      <input id="modelFile" type="file" accept=".glb,.gltf,.obj,.fbx">
-      <div class="buttonGrid">
-        <button id="importModelBtn">SELECT MODEL</button>
-        <button id="showModelBtn">MODEL: SHOW</button>
-        <button id="removeModelBtn" class="danger">REMOVE MODEL</button>
-        <button id="autoFitBtn">AUTO FIT</button>
-      </div>
-      <p id="modelStatus" class="smallNote">3D model renderer is being connected.</p>
-    </div>
-
-    <div id="sliderSection">
-      <div class="section">
-        <h3>MODEL SLOT</h3>
-        <div class="slotRow">
-          <button class="slotBtn active" data-slot="0">SLOT 1</button>
-          <button class="slotBtn" data-slot="1">SLOT 2</button>
-          <button class="slotBtn" data-slot="2">SLOT 3</button>
-          <button class="slotBtn" data-slot="3">SLOT 4</button>
-        </div>
-        <p class="smallNote">Four model slots.</p>
-      </div>
-
-      <div class="section">
-        <h3>MODEL TRANSFORM</h3>
-        <div id="modelSliders"></div>
-        <div class="buttonGrid">
-          <button id="resetTransformBtn">RESET TRANSFORM</button>
-          <button id="resetAllBtn">RESET ALL</button>
-        </div>
-      </div>
-
-      <div class="section">
-        <h3>FACE ATTACHMENT</h3>
-        <div id="faceSliders"></div>
-        <button id="resetFaceBtn" class="full">RESET FACE SLIDERS</button>
-      </div>
-
-      <div class="section">
-        <h3>GIZMOS & SETTINGS</h3>
-        <div class="buttonGrid">
-          <button id="moveGizmoBtn">MOVE</button>
-          <button id="rotateGizmoBtn">ROTATE</button>
-          <button id="scaleGizmoBtn">SCALE</button>
-          <button id="hideGizmosBtn">HIDE GIZMOS</button>
-          <button id="exportSettingsBtn">EXPORT SETTINGS</button>
-          <button id="importSettingsBtn">IMPORT SETTINGS</button>
-        </div>
-        <input id="settingsFile" type="file" accept="application/json,.json" hidden>
-        <button id="clearModelBtn" class="full danger">CLEAR MODEL SELECTION</button>
-      </div>
-    </div>
-  </aside>
-
-  <div id="toast"></div>
-
+<div id="sliderSection">
+<div class="section"><h3>MODEL SLOT</h3>
+<div class="grid">
+<button class="slotBtn active" data-slot="0">SLOT 1</button>
+<button class="slotBtn" data-slot="1">SLOT 2</button>
+<button class="slotBtn" data-slot="2">SLOT 3</button>
+<button class="slotBtn" data-slot="3">SLOT 4</button>
+</div>
+</div>
+<div class="section"><h3>MODEL TRANSFORM</h3><div id="modelSliders"></div>
+<div class="grid"><button id="resetTransformBtn">RESET TRANSFORM</button><button id="resetAllBtn">RESET ALL</button></div>
+</div>
+<div class="section"><h3>FACE PART POSITION / SIZE</h3><div id="partSliders"></div>
+<button id="resetPartBtn" style="width:100%">RESET PART</button>
+</div>
+<div class="section"><h3>FACE ATTACHMENT</h3><div id="faceSliders"></div></div>
+<div class="section"><h3>GIZMOS & SETTINGS</h3>
+<div class="grid">
+<button id="moveGizmoBtn">MOVE</button><button id="rotateGizmoBtn">ROTATE</button>
+<button id="scaleGizmoBtn">SCALE</button><button id="hideGizmosBtn">HIDE GIZMOS</button>
+<button id="exportSettingsBtn">EXPORT SETTINGS</button><button id="importSettingsBtn">IMPORT SETTINGS</button>
+</div>
+<input id="settingsFile" type="file" accept=".json,application/json" hidden>
+<button id="clearModelBtn" style="width:100%;margin-top:8px">CLEAR MODEL SELECTION</button>
+</div>
+</div>
+</aside>
+<div id="toast"></div>
 </div>
 <script type="module">
 const $ = id => document.getElementById(id);
 const app = $("app");
 const video = $("cameraVideo");
+const arCanvas = $("arCanvas");
 const dotsCanvas = $("dotsCanvas");
 const dotsCtx = dotsCanvas.getContext("2d");
-const arCanvas = $("arCanvas");
-const arCtx = arCanvas.getContext("2d");
 
-let stream = null, tracker = null, running = false, loading = false, busy = false;
-let mirrored = true, showDots = true, showModel = true, micEnabled = false;
-let facingMode = "user", recorder = null, recordedChunks = [], gizmoMode = "";
-let activeSlot = 0, rafId = 0, lastStatus = "";
+let stream = null;
+let tracker = null;
+let tracking = false;
+let loading = false;
+let mirrored = true;
+let showDots = true;
+let showModel = true;
+let showParts = true;
+let facingMode = "user";
+let recorder = null;
+let recordedChunks = [];
+let activeSlot = 0;
+let selectedPart = null;
+let parts = [];
+let model = null;
+let renderer = null;
+let scene = null;
+let camera3D = null;
+let root3D = null;
+let threeReady = false;
+let raf = 0;
 
-function setStatus(message) { $("status").textContent = message; }
-function setTrackingStatus(message) { $("trackingStatus").textContent = message; }
+function status(message) { $("status").textContent = message; }
 function toast(message) {
   const el = $("toast");
   el.textContent = message;
   el.classList.add("show");
   clearTimeout(el._timer);
-  el._timer = setTimeout(() => el.classList.remove("show"), 2400);
+  el._timer = setTimeout(() => el.classList.remove("show"), 2500);
 }
-function cameraError(message = "") { $("cameraError").textContent = message; }
-function clearDots() { dotsCtx.clearRect(0, 0, dotsCanvas.width, dotsCanvas.height); }
-
-function resizeCanvases() {
-  const w = video.videoWidth || window.innerWidth;
-  const h = video.videoHeight || window.innerHeight;
-  if (dotsCanvas.width !== w || dotsCanvas.height !== h) {
-    dotsCanvas.width = w; dotsCanvas.height = h;
-  }
-  if (arCanvas.width !== w || arCanvas.height !== h) {
-    arCanvas.width = w; arCanvas.height = h;
-  }
+function error(message) {
+  $("cameraError").textContent = message || "";
 }
 function syncMirror() {
-  video.style.transform = mirrored ? "scaleX(-1)" : "scaleX(1)";
+  video.style.transform = mirrored ? "scaleX(-1)" : "";
   $("flipBtn").textContent = "MIRROR: " + (mirrored ? "ON" : "OFF");
-  $("flipBtn").classList.toggle("active", mirrored);
+}
+function clearDots() {
+  dotsCtx.clearRect(0, 0, dotsCanvas.width, dotsCanvas.height);
+}
+function resize() {
+  const w = Math.max(1, video.videoWidth || innerWidth);
+  const h = Math.max(1, video.videoHeight || innerHeight);
+  if (dotsCanvas.width !== w || dotsCanvas.height !== h) {
+    dotsCanvas.width = w;
+    dotsCanvas.height = h;
+  }
+  if (renderer) {
+    renderer.setSize(innerWidth, innerHeight, false);
+    camera3D.aspect = innerWidth / innerHeight;
+    camera3D.updateProjectionMatrix();
+  }
 }
 function updateButtons() {
-  $("trackingBtn").textContent = running ? "STOP TRACKING" : "START TRACKING";
-  $("trackingBtn").classList.toggle("active", running);
-  setTrackingStatus(running ? "TRACKING ON" : "TRACKING OFF");
+  $("trackingBtn").textContent = tracking ? "STOP TRACKING" : "START TRACKING";
+  $("trackingStatus").textContent = tracking ? "TRACKING ON" : "TRACKING OFF";
   $("dotsBtn").textContent = "GREEN DOTS: " + (showDots ? "ON" : "OFF");
-  $("dotsBtn").classList.toggle("active", showDots);
   $("showModelBtn").textContent = "MODEL: " + (showModel ? "SHOW" : "HIDE");
+  $("hidePartsBtn").textContent = showParts ? "HIDE PARTS" : "SHOW PARTS";
+  if (model) model.visible = showModel;
+  for (const part of parts) part.mesh.visible = showParts;
 }
 function stopTracks() {
-  if (stream) { stream.getTracks().forEach(track => track.stop()); stream = null; }
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  stream = null;
   video.srcObject = null;
 }
 async function openCamera() {
-  if (busy) return;
-  if (stream && stream.getVideoTracks().some(t => t.readyState === "live")) {
-    toast("Camera is already running."); return;
-  }
-  busy = true; cameraError(""); $("startCameraBtn").disabled = true;
   try {
-    if (!navigator.mediaDevices?.getUserMedia)
-      throw new Error("Open the HTTPS GitHub Pages site in Chrome and allow camera access.");
-    setStatus("Opening camera...");
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error("Open this HTTPS page in Chrome and allow camera access.");
+    }
+    stopTracks();
+    status("Opening camera...");
     stream = await navigator.mediaDevices.getUserMedia({
-      audio:false,
-      video:{ facingMode:{ideal:facingMode}, width:{ideal:640}, height:{ideal:480} }
+      audio: false,
+      video: {
+        facingMode: { ideal: facingMode },
+        width: { ideal: 640 },
+        height: { ideal: 480 }
+      }
     });
     video.srcObject = stream;
     await video.play();
     $("cameraMessage").style.display = "none";
-    syncMirror(); setStatus("Camera ready. Press START TRACKING."); cameraError("");
-  } catch(err) {
-    stopTracks(); $("cameraMessage").style.display = "grid";
-    setStatus("Camera error: " + (err.message || String(err)));
-    cameraError(err.message || String(err));
-  } finally {
-    busy = false; $("startCameraBtn").disabled = false;
+    syncMirror();
+    resize();
+    status("Camera ready. Start tracking.");
+    error("");
+  } catch (e) {
+    stopTracks();
+    status("Camera error: " + e.message);
+    error(e.message);
   }
 }
 async function startTracking() {
-  if (loading || running) return;
-  if (!stream || video.readyState < 2) { toast("Start the camera first."); return; }
-  loading = true; $("trackingBtn").disabled = true; cameraError("");
+  if (loading || tracking) return;
+  if (!stream || video.readyState < 2) {
+    toast("Start camera first.");
+    return;
+  }
+  loading = true;
+  $("trackingBtn").disabled = true;
   try {
-    setStatus("Loading MediaPipe tracking library...");
-    const mp = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.mjs");
-    const vision = await mp.FilesetResolver.forVisionTasks(
-      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+    status("Loading face tracking library...");
+    const mp = await import(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.mjs"
     );
-    setStatus("Loading face tracking model...");
+    const vision = await mp.FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
+    );
+    status("Loading face model...");
     tracker = await mp.FaceLandmarker.createFromOptions(vision, {
-      baseOptions:{
-        modelAssetPath:"https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-        delegate:"CPU"
+      baseOptions: {
+        modelAssetPath:
+          "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+        delegate: "CPU"
       },
-      runningMode:"VIDEO", numFaces:1
+      runningMode: "VIDEO",
+      numFaces: 1
     });
-    running = true; updateButtons(); setStatus("Tracking running. Look left and right.");
-    rafId = requestAnimationFrame(detectFace);
-  } catch(err) {
-    running = false;
-    if (tracker) { try { tracker.close(); } catch(_) {} tracker = null; }
-    updateButtons(); setStatus("Tracking error: " + (err.message || String(err)));
-    cameraError(err.message || String(err));
+    tracking = true;
+    updateButtons();
+    status("Tracking started.");
+    detect();
+  } catch (e) {
+    if (tracker) {
+      try { tracker.close(); } catch (_) {}
+      tracker = null;
+    }
+    tracking = false;
+    updateButtons();
+    status("Tracking error: " + e.message);
+    error(e.message);
   } finally {
-    loading = false; $("trackingBtn").disabled = false;
+    loading = false;
+    $("trackingBtn").disabled = false;
   }
 }
-function detectFace() {
-  if (!running || !tracker) return;
+function detect() {
+  if (!tracking || !tracker) return;
   try {
-    if (video.readyState >= 2 && video.videoWidth > 0) {
-      resizeCanvases(); clearDots();
+    if (video.readyState >= 2 && video.videoWidth) {
+      resize();
+      clearDots();
       const result = tracker.detectForVideo(video, performance.now());
-      const faces = result.faceLandmarks || [];
-      if (faces.length > 0) {
-        if (lastStatus !== "face") { setStatus("FACE DETECTED ✓"); lastStatus = "face"; }
-        if (showDots) {
-          dotsCtx.fillStyle = "#00ff66";
-          for (const point of faces[0]) {
-            const x = (mirrored ? 1 - point.x : point.x) * dotsCanvas.width;
-            const y = point.y * dotsCanvas.height;
-            dotsCtx.beginPath(); dotsCtx.arc(x, y, 2, 0, Math.PI * 2); dotsCtx.fill();
-          }
+      const face = result.faceLandmarks?.[0];
+      if (face && showDots) {
+        dotsCtx.fillStyle = "#00ff66";
+        for (const p of face) {
+          const x = (mirrored ? 1 - p.x : p.x) * dotsCanvas.width;
+          const y = p.y * dotsCanvas.height;
+          dotsCtx.beginPath();
+          dotsCtx.arc(x, y, 2, 0, Math.PI * 2);
+          dotsCtx.fill();
         }
-      } else if (lastStatus !== "no-face") {
-        setStatus("Tracking running — face not detected."); lastStatus = "no-face";
       }
     }
-  } catch(err) {
-    stopTracking(); setStatus("Tracking error: " + (err.message || String(err)));
-    cameraError(err.message || String(err)); return;
+  } catch (e) {
+    stopTracking();
+    status("Tracking error: " + e.message);
+    error(e.message);
+    return;
   }
-  if (running) rafId = requestAnimationFrame(detectFace);
+  raf = requestAnimationFrame(detect);
 }
 function stopTracking() {
-  running = false; cancelAnimationFrame(rafId); clearDots();
-  if (tracker) { try { tracker.close(); } catch(_) {} tracker = null; }
-  lastStatus = ""; updateButtons();
-  if (stream) setStatus("Camera running. Tracking stopped.");
+  tracking = false;
+  cancelAnimationFrame(raf);
+  clearDots();
+  if (tracker) {
+    try { tracker.close(); } catch (_) {}
+    tracker = null;
+  }
+  updateButtons();
 }
 function stopCamera() {
   stopTracking();
-  if (recorder && recorder.state !== "inactive") { try { recorder.stop(); } catch(_) {} }
-  stopTracks(); $("cameraMessage").style.display = "grid";
-  setStatus("Camera stopped."); cameraError("");
+  if (recorder && recorder.state !== "inactive") recorder.stop();
+  stopTracks();
+  $("cameraMessage").style.display = "grid";
+  status("Camera stopped.");
 }
 async function switchCamera() {
-  const wasRunning = running;
-  stopTracking(); stopTracks();
+  const wasTracking = tracking;
+  stopTracking();
   facingMode = facingMode === "user" ? "environment" : "user";
   await openCamera();
-  if (stream) setStatus("Camera switched. " + (wasRunning ? "Press START TRACKING again." : "Camera ready."));
+  if (wasTracking && stream) toast("Press START TRACKING again.");
 }
-async function toggleFullscreen() {
+async function initThree() {
+  if (threeReady) return;
+  status("Loading 3D renderer...");
+  const THREE = await import("https://esm.sh/three@0.170.0");
+  renderer = new THREE.WebGLRenderer({
+    canvas: arCanvas,
+    alpha: true,
+    antialias: true
+  });
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+  renderer.setSize(innerWidth, innerHeight, false);
+  scene = new THREE.Scene();
+  camera3D = new THREE.PerspectiveCamera(
+    45, innerWidth / innerHeight, 0.01, 1000
+  );
+  camera3D.position.set(0, 0, 5);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x444455, 2));
+  const light = new THREE.DirectionalLight(0xffffff, 2);
+  light.position.set(2, 3, 5);
+  scene.add(light);
+  root3D = new THREE.Group();
+  scene.add(root3D);
+  threeReady = true;
+  resize();
+  function draw() {
+    if (renderer && scene && camera3D) renderer.render(scene, camera3D);
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+async function loadModel(file) {
+  if (!file) return;
   try {
-    if (!document.fullscreenElement) {
-      await app.requestFullscreen(); $("fullscreenBtn").textContent = "EXIT FULL SCREEN";
-    } else { await document.exitFullscreen(); $("fullscreenBtn").textContent = "FULL SCREEN"; }
-  } catch(_) { toast("Fullscreen is not supported here. Try Chrome's menu."); }
+    await initThree();
+    $("modelStatus").textContent = "Loading " + file.name + "...";
+    let object;
+    const ext = file.name.split(".").pop().toLowerCase();
+    if (ext === "glb" || ext === "gltf") {
+      const { GLTFLoader } = await import(
+        "https://esm.sh/three@0.170.0/examples/jsm/loaders/GLTFLoader.js"
+      );
+      const url = URL.createObjectURL(file);
+      try {
+        const gltf = await new GLTFLoader().loadAsync(url);
+        object = gltf.scene;
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+    } else if (ext === "obj") {
+      const { OBJLoader } = await import(
+        "https://esm.sh/three@0.170.0/examples/jsm/loaders/OBJLoader.js"
+      );
+      object = new OBJLoader().parse(await file.text());
+    } else if (ext === "fbx") {
+      const { FBXLoader } = await import(
+        "https://esm.sh/three@0.170.0/examples/jsm/loaders/FBXLoader.js"
+      );
+      const url = URL.createObjectURL(file);
+      try {
+        object = await new FBXLoader().loadAsync(url);
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+    } else {
+      throw new Error("Choose GLB, GLTF, OBJ or FBX.");
+    }
+    if (model) root3D.remove(model);
+    model = object;
+    root3D.add(model);
+    model.visible = showModel;
+    const THREE = await import("https://esm.sh/three@0.170.0");
+    const box = new THREE.Box3().setFromObject(model);
+    const size = box.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z) || 1;
+    model.scale.multiplyScalar(2 / maxDim);
+    box.setFromObject(model);
+    const center = box.getCenter(new THREE.Vector3());
+    model.position.sub(center);
+    $("modelStatus").textContent = "Loaded: " + file.name;
+    status("3D model loaded.");
+  } catch (e) {
+    $("modelStatus").textContent = "Model error: " + e.message;
+    toast("Could not load model.");
+  }
 }
-function openPanel() { $("optionsPanel").classList.add("open"); $("panelBackdrop").classList.add("open"); }
-function closePanel() { $("optionsPanel").classList.remove("open"); $("panelBackdrop").classList.remove("open"); }
+function addSlider(containerId, id, label, min, max, step, value) {
+  const field = document.createElement("div");
+  field.className = "field";
+  const head = document.createElement("div");
+  head.className = "fieldHead";
+  const lab = document.createElement("label");
+  lab.textContent = label;
+  const out = document.createElement("output");
+  out.id = id + "Out";
+  out.textContent = value;
+  head.append(lab, out);
+  const input = document.createElement("input");
+  input.type = "range";
+  input.id = id;
+  Object.assign(input, { min, max, step, value });
+  input.addEventListener("input", () => {
+    out.textContent = input.value;
+    applySliders();
+  });
+  field.append(head, input);
+  $(containerId).append(field);
+}
+const modelDefaults = [
+  ["mX","Position X",-2,2,.01,0],
+  ["mY","Position Y",-2,2,.01,0],
+  ["mZ","Position Z",-2,2,.01,0],
+  ["mRX","Rotation X",-180,180,1,0],
+  ["mRY","Rotation Y",-180,180,1,0],
+  ["mRZ","Rotation Z",-180,180,1,0],
+  ["mScale","Model scale",.1,3,.05,1]
+];
+const faceDefaults = [
+  ["fX","Face left / right",-1,1,.01,0],
+  ["fY","Face up / down",-1,1,.01,0],
+  ["fZ","Face depth",-1,1,.01,0],
+  ["fScale","Face size",.2,3,.05,1]
+];
+const partDefaults = [
+  ["pX","Part left / right",-2,2,.01,0],
+  ["pY","Part up / down",-2,2,.01,0],
+  ["pZ","Part depth",-.5,.5,.01,.03],
+  ["pScale","Part size",.05,2,.01,.3],
+  ["pRX","Part rotation X",-180,180,1,0],
+  ["pRY","Part rotation Y",-180,180,1,0],
+  ["pRZ","Part rotation Z",-180,180,1,0]
+];
+for (const d of modelDefaults) addSlider("modelSliders", ...d);
+for (const d of faceDefaults) addSlider("faceSliders", ...d);
+for (const d of partDefaults) addSlider("partSliders", ...d);
+function applySliders() {
+  if (model) {
+    model.position.set(+ $("mX").value, + $("mY").value, + $("mZ").value);
+    model.rotation.set(
+      THREE_DEG($("mRX").value),
+      THREE_DEG($("mRY").value),
+      THREE_DEG($("mRZ").value)
+    );
+    model.scale.setScalar(+$("mScale").value);
+  }
+  if (selectedPart) {
+    selectedPart.mesh.position.set(
+      +$("pX").value + +$("fX").value,
+      +$("pY").value + +$("fY").value,
+      +$("pZ").value + +$("fZ").value
+    );
+    selectedPart.mesh.rotation.set(
+      THREE_DEG($("pRX").value),
+      THREE_DEG($("pRY").value),
+      THREE_DEG($("pRZ").value)
+    );
+    selectedPart.mesh.scale.setScalar(+$("pScale").value * +$("fScale").value);
+  }
+}
+function THREE_DEG(deg) { return Number(deg) * Math.PI / 180; }
+function resetGroup(defs) {
+  for (const d of defs) {
+    $(d[0]).value = d[5];
+    $(d[0] + "Out").textContent = d[5];
+  }
+  applySliders();
+}
+function selectPart(part) {
+  selectedPart = part;
+  $("partSelect").value = part ? String(parts.indexOf(part)) : "";
+  if (!part) return;
+  const p = part.mesh;
+  $("pX").value = p.position.x;
+  $("pY").value = p.position.y;
+  $("pZ").value = p.position.z;
+  $("pScale").value = p.scale.x;
+  $("pRX").value = p.rotation.x * 180 / Math.PI;
+  $("pRY").value = p.rotation.y * 180 / Math.PI;
+  $("pRZ").value = p.rotation.z * 180 / Math.PI;
+  for (const id of ["pX","pY","pZ","pScale","pRX","pRY","pRZ"]) {
+    $(id+"Out").textContent = $(id).value;
+  }
+}
+async function addPart() {
+  const file = $("partFile").files?.[0];
+  if (!file) { toast("Choose an eye or mouth image first."); return; }
+  try {
+    await initThree();
+    const THREE = await import("https://esm.sh/three@0.170.0");
+    const bitmap = await createImageBitmap(file);
+    const texture = new THREE.CanvasTexture(bitmap);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    const material = new THREE.MeshBasicMaterial({
+      map: texture, transparent: true, side: THREE.DoubleSide, depthWrite: false
+    });
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), material);
+    const aspect = bitmap.width / Math.max(1, bitmap.height);
+    mesh.scale.set(.3 * aspect, .3, 1);
+    mesh.position.set(0, 0, .03 + parts.length * .002);
+    root3D.add(mesh);
+    const part = {
+      name: $("partType").selectedOptions[0].text + " " + (parts.length + 1),
+      mesh, fileName: file.name, type: $("partType").value
+    };
+    parts.push(part);
+    refreshPartList();
+    selectPart(part);
+    $("partStatus").textContent = "Added " + part.name;
+  } catch (e) {
+    $("partStatus").textContent = "Part error: " + e.message;
+  }
+}
+function refreshPartList() {
+  const select = $("partSelect");
+  select.innerHTML = '<option value="">No part selected</option>';
+  parts.forEach((part, i) => {
+    const option = document.createElement("option");
+    option.value = String(i);
+    option.textContent = part.name;
+    select.append(option);
+  });
+}
+function duplicatePart() {
+  if (!selectedPart) return toast("Select a part first.");
+  const clone = selectedPart.mesh.clone();
+  clone.material = selectedPart.mesh.material.clone();
+  clone.position.x += .1;
+  root3D.add(clone);
+  const part = {...selectedPart, name:selectedPart.name + " copy", mesh:clone};
+  parts.push(part);
+  refreshPartList();
+  selectPart(part);
+}
+function removePart() {
+  if (!selectedPart) return;
+  root3D.remove(selectedPart.mesh);
+  selectedPart.mesh.geometry.dispose();
+  selectedPart.mesh.material.dispose();
+  parts = parts.filter(p => p !== selectedPart);
+  selectedPart = null;
+  refreshPartList();
+  $("partStatus").textContent = "Part removed.";
+}
+function removeModel() {
+  if (model && root3D) root3D.remove(model);
+  model = null;
+  $("modelFile").value = "";
+  $("modelStatus").textContent = "No model loaded.";
+}
+function openPanel() {
+  $("optionsPanel").classList.add("open");
+  $("panelBackdrop").classList.add("open");
+}
+function closePanel() {
+  $("optionsPanel").classList.remove("open");
+  $("panelBackdrop").classList.remove("open");
+}
+function hideControls() {
+  app.classList.add("controls-hidden");
+  closePanel();
+}
 function showControls() { app.classList.remove("controls-hidden"); }
-function hideControls() { app.classList.add("controls-hidden"); closePanel(); }
 
-$("startCameraBtn").addEventListener("click", openCamera);
-$("stopCameraBtn").addEventListener("click", stopCamera);
-$("switchCameraBtn").addEventListener("click", switchCamera);
-$("flipBtn").addEventListener("click", () => { mirrored = !mirrored; syncMirror(); });
-$("fullscreenBtn").addEventListener("click", toggleFullscreen);
+$("startCameraBtn").onclick = openCamera;
+$("stopCameraBtn").onclick = stopCamera;
+$("switchCameraBtn").onclick = switchCamera;
+$("flipBtn").onclick = () => { mirrored = !mirrored; syncMirror(); };
+$("trackingBtn").onclick = () => tracking ? stopTracking() : startTracking();
+$("dotsBtn").onclick = () => { showDots = !showDots; if (!showDots) clearDots(); updateButtons(); };
+$("hideOptionsBtn").onclick = hideControls;
+$("openOptions").onclick = () => { showControls(); openPanel(); };
+$("closeOptions").onclick = closePanel;
+$("panelBackdrop").onclick = closePanel;
+$("cleanScreenBtn").onclick = hideControls;
+$("exitCleanBtn").onclick = showControls;
+$("hideSlidersBtn").onclick = () => {
+  app.classList.toggle("sliders-hidden");
+  $("hideSlidersBtn").textContent =
+    app.classList.contains("sliders-hidden") ? "SHOW SLIDERS" : "HIDE SLIDERS";
+};
+$("showModelBtn").onclick = () => { showModel = !showModel; updateButtons(); };
+$("modelFile").onchange = () => loadModel($("modelFile").files?.[0]);
+$("importModelBtn").onclick = () => $("modelFile").click();
+$("removeModelBtn").onclick = removeModel;
+$("clearModelBtn").onclick = removeModel;
+$("autoFitBtn").onclick = () => toast("Model auto-scaled on import; adjust sliders for placement.");
+$("addPartBtn").onclick = addPart;
+$("duplicatePartBtn").onclick = duplicatePart;
+$("removePartBtn").onclick = removePart;
+$("partSelect").onchange = () => {
+  const i = $("partSelect").value;
+  selectPart(i === "" ? null : parts[Number(i)]);
+};
+$("hidePartsBtn").onclick = () => { showParts = !showParts; updateButtons(); };
+$("resetTransformBtn").onclick = () => resetGroup(modelDefaults);
+$("resetFaceBtn")?.addEventListener("click", () => resetGroup(faceDefaults));
+$("resetPartBtn").onclick = () => resetGroup(partDefaults);
+$("resetAllBtn").onclick = () => {
+  resetGroup(modelDefaults); resetGroup(faceDefaults); resetGroup(partDefaults);
+};
+for (const b of document.querySelectorAll(".slotBtn")) {
+  b.onclick = () => {
+    activeSlot = Number(b.dataset.slot);
+    document.querySelectorAll(".slotBtn").forEach(x => x.classList.remove("active"));
+    b.classList.add("active");
+    toast("Selected slot " + (activeSlot + 1) + ". Separate model storage is not configured yet.");
+  };
+}
+function downloadJSON(data, name) {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}));
+  const a = document.createElement("a");
+  a.href = url; a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
+$("exportSettingsBtn").onclick = () => {
+  const settings = {mirrored,showDots,showModel,showParts,activeSlot,sliders:{}};
+  for (const d of [...modelDefaults,...faceDefaults,...partDefaults]) settings.sliders[d[0]] = Number($(d[0]).value);
+  downloadJSON(settings,"azeez-ar-settings.json");
+};
+$("importSettingsBtn").onclick = () => $("settingsFile").click();
+$("settingsFile").onchange = async () => {
+  try {
+    const settings = JSON.parse(await $("settingsFile").files[0].text());
+    mirrored = settings.mirrored ?? mirrored;
+    showDots = settings.showDots ?? showDots;
+    showModel = settings.showModel ?? showModel;
+    showParts = settings.showParts ?? showParts;
+    activeSlot = settings.activeSlot ?? activeSlot;
+    for (const [id,value] of Object.entries(settings.sliders || {})) {
+      if ($(id)) { $(id).value = value; $(id+"Out").textContent = value; }
+    }
+    syncMirror(); updateButtons(); applySliders();
+    toast("Settings imported.");
+  } catch (_) { toast("Invalid settings file."); }
+};
+$("recordBtn").onclick = () => {
+  if (!stream) return toast("Start camera first.");
+  if (!window.MediaRecorder) return toast("Recording unsupported.");
+  try {
+    recordedChunks = [];
+    recorder = new MediaRecorder(stream);
+    recorder.ondataavailable = e => { if (e.data?.size) recordedChunks.push(e.data); };
+    recorder.onstop = () => {
+      const blob = new Blob(recordedChunks,{type:recorder.mimeType || "video/webm"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "azeez-ar-recording.webm"; a.click();
+      setTimeout(() => URL.revokeObjectURL(url),1500);
+    };
+    recorder.start();
+    $("recordBtn").disabled = true;
+    $("stopRecordBtn").disabled = false;
+    toast("Recording started.");
+  } catch (e) { toast("Recording error: " + e.message); }
+};
+$("stopRecordBtn").onclick = () => {
+  if (recorder && recorder.state !== "inactive") recorder.stop();
+  $("recordBtn").disabled = false;
+  $("stopRecordBtn").disabled = true;
+};
+$("fullscreenBtn").onclick = async () => {
+  try {
+    if (!document.fullscreenElement) await app.requestFullscreen();
+    else await document.exitFullscreen();
+  } catch (_) { toast("Use Chrome menu for fullscreen."); }
+};
 document.addEventListener("fullscreenchange", () => {
   $("fullscreenBtn").textContent = document.fullscreenElement ? "EXIT FULL SCREEN" : "FULL SCREEN";
 });
-$("trackingBtn").addEventListener("click", () => running ? stopTracking() : startTracking());
-$("dotsBtn").addEventListener("click", () => { showDots = !showDots; if (!showDots) clearDots(); updateButtons(); });
-$("hideOptionsBtn").addEventListener("click", hideControls);
-$("openOptions").addEventListener("click", () => { showControls(); openPanel(); });
-$("closeOptions").addEventListener("click", closePanel);
-$("panelBackdrop").addEventListener("click", closePanel);
-$("cleanScreenBtn").addEventListener("click", hideControls);
-$("exitCleanBtn").addEventListener("click", showControls);
-$("hideSlidersBtn").addEventListener("click", () => {
-  app.classList.toggle("sliders-hidden");
-  $("hideSlidersBtn").textContent = app.classList.contains("sliders-hidden") ? "SHOW SLIDERS" : "HIDE SLIDERS";
-});
-document.addEventListener("keydown", e => { if (e.key === "Escape") closePanel(); });
-
-$("showModelBtn").addEventListener("click", () => {
-  showModel = !showModel; updateButtons(); toast("Model visibility setting saved.");
-});
-$("importModelBtn").addEventListener("click", () => $("modelFile").click());
-$("modelFile").addEventListener("change", () => {
-  const file = $("modelFile").files?.[0]; if (!file) return;
-  $("modelStatus").textContent = "Selected: " + file.name + ". Connect the 3D renderer in app.js.";
-  toast("Model selected.");
-});
-$("removeModelBtn").addEventListener("click", () => {
-  $("modelFile").value = ""; $("modelStatus").textContent = "No model selected."; toast("Model selection cleared.");
-});
-$("clearModelBtn").addEventListener("click", () => {
-  $("modelFile").value = ""; $("modelStatus").textContent = "No model selected.";
-});
-$("autoFitBtn").addEventListener("click", () => toast("Auto-fit requires the 3D renderer."));
-$("micBtn").addEventListener("click", () => {
-  micEnabled = !micEnabled; $("micBtn").textContent = "MIC: " + (micEnabled ? "ON" : "OFF");
-  toast("Microphone is not connected to recording yet.");
-});
-$("recordBtn").addEventListener("click", async () => {
-  if (!stream) { toast("Start the camera first."); return; }
-  if (!window.MediaRecorder) { toast("Recording is not supported by this browser."); return; }
-  try {
-    recordedChunks = []; recorder = new MediaRecorder(stream);
-    recorder.ondataavailable = e => { if (e.data && e.data.size) recordedChunks.push(e.data); };
-    recorder.onstop = () => {
-      if (!recordedChunks.length) return;
-      const blob = new Blob(recordedChunks, {type:recorder.mimeType || "video/webm"});
-      const url = URL.createObjectURL(blob); const a = document.createElement("a");
-      a.href = url; a.download = "azeez-ar-recording.webm"; a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1500);
-    };
-    recorder.start(); $("recordBtn").disabled = true; $("stopRecordBtn").disabled = false;
-    toast("Recording started.");
-  } catch(err) { toast("Recording error: " + (err.message || String(err))); }
-});
-$("stopRecordBtn").addEventListener("click", () => {
-  if (recorder && recorder.state !== "inactive") recorder.stop();
-  $("recordBtn").disabled = false; $("stopRecordBtn").disabled = true;
-});
-
-const modelDefinitions = [
-  {id:"posX",label:"Position X",min:-2,max:2,step:.01,value:0},
-  {id:"posY",label:"Position Y",min:-2,max:2,step:.01,value:0},
-  {id:"posZ",label:"Position Z",min:-2,max:2,step:.01,value:0},
-  {id:"rotX",label:"Rotation X",min:-180,max:180,step:1,value:0},
-  {id:"rotY",label:"Rotation Y",min:-180,max:180,step:1,value:0},
-  {id:"rotZ",label:"Rotation Z",min:-180,max:180,step:1,value:0},
-  {id:"modelScale",label:"Model scale",min:.1,max:3,step:.05,value:1}
-];
-const faceDefinitions = [
-  {id:"faceX",label:"Face left / right",min:-1,max:1,step:.01,value:0},
-  {id:"faceY",label:"Face up / down",min:-1,max:1,step:.01,value:0},
-  {id:"faceZ",label:"Face depth",min:-1,max:1,step:.01,value:0},
-  {id:"faceSize",label:"Face size",min:.2,max:3,step:.05,value:1},
-  {id:"leftEye",label:"Left eye",min:.2,max:2,step:.05,value:1},
-  {id:"rightEye",label:"Right eye",min:.2,max:2,step:.05,value:1},
-  {id:"mouthScale",label:"Mouth size",min:.2,max:3,step:.05,value:1},
-  {id:"mouthOpen",label:"Mouth open",min:0,max:1,step:.01,value:0},
-  {id:"blinkLeft",label:"Left blink",min:0,max:1,step:.01,value:0},
-  {id:"blinkRight",label:"Right blink",min:0,max:1,step:.01,value:0}
-];
-function buildSliders(containerId, definitions) {
-  const container = $(containerId);
-  for (const d of definitions) {
-    const field = document.createElement("div"); field.className = "field";
-    const head = document.createElement("div"); head.className = "fieldHead";
-    const label = document.createElement("label"); label.htmlFor = d.id; label.textContent = d.label;
-    const output = document.createElement("output"); output.id = d.id + "Out"; output.textContent = String(d.value);
-    const input = document.createElement("input"); input.type = "range"; input.id = d.id;
-    input.min = d.min; input.max = d.max; input.step = d.step; input.value = d.value;
-    input.dataset.default = d.value;
-    input.addEventListener("input", () => { output.textContent = input.value; });
-    head.append(label, output); field.append(head, input); container.append(field);
-  }
-}
-buildSliders("modelSliders", modelDefinitions);
-buildSliders("faceSliders", faceDefinitions);
-
-function resetSliders(definitions) {
-  for (const d of definitions) { $(d.id).value = d.value; $(d.id + "Out").textContent = String(d.value); }
-}
-$("resetTransformBtn").addEventListener("click", () => resetSliders(modelDefinitions));
-$("resetFaceBtn").addEventListener("click", () => resetSliders(faceDefinitions));
-$("resetAllBtn").addEventListener("click", () => {
-  resetSliders(modelDefinitions); resetSliders(faceDefinitions); gizmoMode = ""; toast("Sliders reset.");
-});
-for (const button of document.querySelectorAll(".slotBtn")) {
-  button.addEventListener("click", () => {
-    activeSlot = Number(button.dataset.slot);
-    document.querySelectorAll(".slotBtn").forEach(b => b.classList.remove("active"));
-    button.classList.add("active"); toast("Selected slot " + (activeSlot + 1) + ".");
-  });
-}
-function setGizmo(mode) {
-  gizmoMode = mode;
-  for (const id of ["moveGizmoBtn","rotateGizmoBtn","scaleGizmoBtn"]) $(id).classList.remove("active");
-  if (mode) {
-    const map = {move:"moveGizmoBtn",rotate:"rotateGizmoBtn",scale:"scaleGizmoBtn"};
-    $(map[mode]).classList.add("active");
-  }
-  toast("Gizmo controls need the 3D renderer.");
-}
-$("moveGizmoBtn").addEventListener("click", () => setGizmo("move"));
-$("rotateGizmoBtn").addEventListener("click", () => setGizmo("rotate"));
-$("scaleGizmoBtn").addEventListener("click", () => setGizmo("scale"));
-$("hideGizmosBtn").addEventListener("click", () => setGizmo(""));
-
-$("exportSettingsBtn").addEventListener("click", () => {
-  const settings = {};
-  for (const d of [...modelDefinitions,...faceDefinitions]) settings[d.id] = Number($(d.id).value);
-  settings.mirrored = mirrored; settings.showDots = showDots; settings.showModel = showModel;
-  const blob = new Blob([JSON.stringify(settings,null,2)],{type:"application/json"});
-  const url = URL.createObjectURL(blob); const a = document.createElement("a");
-  a.href = url; a.download = "azeez-ar-settings.json"; a.click();
-  setTimeout(() => URL.revokeObjectURL(url),1500);
-});
-$("importSettingsBtn").addEventListener("click", () => $("settingsFile").click());
-$("settingsFile").addEventListener("change", async () => {
-  const file = $("settingsFile").files?.[0]; if (!file) return;
-  try {
-    const settings = JSON.parse(await file.text());
-    for (const d of [...modelDefinitions,...faceDefinitions]) {
-      if (Number.isFinite(settings[d.id])) {
-        const input = $(d.id);
-        input.value = Math.max(Number(input.min),Math.min(Number(input.max),settings[d.id]));
-        $(d.id+"Out").textContent = input.value;
-      }
-    }
-    if (typeof settings.mirrored === "boolean") mirrored = settings.mirrored;
-    if (typeof settings.showDots === "boolean") showDots = settings.showDots;
-    if (typeof settings.showModel === "boolean") showModel = settings.showModel;
-    syncMirror(); updateButtons(); toast("Settings imported.");
-  } catch(_) { toast("Invalid settings JSON file."); }
-});
+$("moveGizmoBtn").onclick = () => toast("Use position sliders to move parts.");
+$("rotateGizmoBtn").onclick = () => toast("Use rotation sliders to rotate parts.");
+$("scaleGizmoBtn").onclick = () => toast("Use size slider to scale parts.");
+$("hideGizmosBtn").onclick = () => toast("No visible 3D gizmo handles in this version.");
+window.addEventListener("resize", resize);
 window.addEventListener("pagehide", () => {
-  running = false; cancelAnimationFrame(rafId); stopTracks();
+  stopTracking();
+  stopTracks();
+  if (renderer) renderer.dispose();
 });
 syncMirror();
 updateButtons();
-clearDots();
-arCtx.clearRect(0,0,arCanvas.width,arCanvas.height);
+status("Ready. Start camera.");
 </script>
-<script type="module" src="js/app.js"></script>
 </body>
 </html>
-
-  
