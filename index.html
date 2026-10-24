@@ -2,428 +2,282 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>Azeez AR Studio</title>
-
 <style>
 *{box-sizing:border-box}
-html,body{
-  margin:0;width:100%;height:100%;overflow:hidden;
-  background:#05070b;color:#fff;
-  font-family:Arial,Helvetica,sans-serif
-}
+html,body,#app{margin:0;width:100%;height:100%;overflow:hidden}
+body{background:#05070b;color:white;font-family:Arial,sans-serif}
 button,input,select{font:inherit}
-button{
-  border:1px solid #343b49;background:#151b26;color:white;
-  border-radius:10px;padding:10px 12px;cursor:pointer
-}
-button:active{transform:scale(.97)}
-button.active{background:#087f65;border-color:#25d9ad}
-input[type=range]{width:100%;accent-color:#19d8a4}
-input[type=file]{width:100%;font-size:12px}
-label{display:block;font-size:12px;color:#c5cedb;margin:10px 0 5px}
-small,.muted{color:#9da9ba;font-size:12px}
-#app{position:fixed;inset:0;background:#05070b}
-#view{
-  position:absolute;inset:0;overflow:hidden;
-  background:#05070b;touch-action:none
-}
+button{background:#17212e;color:white;border:1px solid #344256;
+border-radius:9px;padding:10px;cursor:pointer}
+button.active{background:#087f65}
+#view{position:absolute;inset:0;background:#05070b}
 #cameraVideo,#arCanvas,#dotsCanvas{
-  position:absolute;inset:0;width:100%;height:100%;
-  object-fit:cover
+position:absolute;inset:0;width:100%;height:100%;object-fit:cover
 }
 #cameraVideo{z-index:1}
 #arCanvas{z-index:2;pointer-events:none}
 #dotsCanvas{z-index:3;pointer-events:none}
-#cameraMessage{
-  position:absolute;z-index:4;left:50%;top:50%;
-  transform:translate(-50%,-50%);width:85%;
-  text-align:center;color:#d6deeb;font-size:14px;
-  line-height:1.6;pointer-events:none
-}
-#topBar{
-  position:absolute;z-index:10;top:0;left:0;right:0;
-  display:flex;align-items:center;justify-content:space-between;
-  gap:8px;padding:12px;
-  background:linear-gradient(#000b,transparent)
-}
-#brand{font-weight:800;font-size:15px;letter-spacing:.5px}
-#trackingStatus{
-  display:inline-block;margin-top:4px;font-size:11px;
-  color:#54e8ba
-}
-#bottomBar{
-  position:absolute;z-index:10;bottom:0;left:0;right:0;
-  display:flex;flex-wrap:wrap;justify-content:center;
-  gap:7px;padding:12px 8px 20px;
-  background:linear-gradient(transparent,#000d)
-}
-#panelBackdrop{
-  display:none;position:absolute;inset:0;z-index:19;
-  background:#0009
-}
-#optionsPanel{
-  position:absolute;z-index:20;top:0;right:0;bottom:0;
-  width:min(390px,92vw);overflow-y:auto;
-  padding:16px;background:#101620;
-  border-left:1px solid #303949;
-  transform:translateX(105%);transition:transform .2s ease
-}
-#optionsPanel.open{transform:translateX(0)}
+#cameraMessage{position:absolute;z-index:4;top:50%;left:50%;
+transform:translate(-50%,-50%);text-align:center;width:85%;color:#ddd}
+#topBar,#bottomBar{position:absolute;z-index:10;left:0;right:0;
+display:flex;gap:7px;flex-wrap:wrap;align-items:center;padding:12px}
+#topBar{top:0;justify-content:space-between;background:linear-gradient(#000b,transparent)}
+#bottomBar{bottom:0;justify-content:center;background:linear-gradient(transparent,#000d)}
+#brand{font-size:15px;font-weight:bold}
+#trackingStatus{font-size:11px;color:#4de7b5;margin-top:4px}
+#panelBackdrop{display:none;position:absolute;inset:0;z-index:19;background:#0009}
 #panelBackdrop.open{display:block}
-.panelHeader{
-  display:flex;align-items:center;justify-content:space-between;
-  gap:10px;position:sticky;top:-16px;z-index:2;
-  padding:12px 0;background:#101620
-}
-.section{
-  border:1px solid #2a3443;border-radius:13px;
-  padding:12px;margin:12px 0;background:#151c27
-}
+#optionsPanel{position:absolute;z-index:20;top:0;right:0;bottom:0;
+width:min(390px,92vw);overflow:auto;padding:14px;background:#101722;
+border-left:1px solid #344256;transform:translateX(105%);transition:.2s}
+#optionsPanel.open{transform:translateX(0)}
+.panelHeader{display:flex;justify-content:space-between;align-items:center;
+position:sticky;top:-14px;background:#101722;padding:10px 0;z-index:2}
+.section{background:#151e2a;border:1px solid #2d394b;border-radius:12px;
+padding:12px;margin:12px 0}
 .section h3{font-size:14px;margin:0 0 10px}
-.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.row>*{flex:1;min-width:0}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.status{font-size:12px;color:#9eafc2;margin-top:8px;overflow-wrap:anywhere}
-.cropBox{
-  position:absolute;z-index:8;left:12px;top:75px;
-  width:130px;height:90px;overflow:hidden;
-  border:2px solid #24e2b0;border-radius:10px;
-  background:#111;display:none
-}
-.cropBox canvas{width:100%;height:100%;display:block}
-.cropBox span{
-  position:absolute;left:4px;bottom:3px;
-  font-size:10px;background:#000b;padding:3px 5px;
-  border-radius:4px
-}
-#mouthCropBox{top:175px;border-color:#ffb86b}
-#toast{
-  position:absolute;z-index:30;left:50%;bottom:90px;
-  transform:translateX(-50%);background:#17212e;
-  border:1px solid #39485c;border-radius:10px;
-  padding:10px 14px;font-size:12px;display:none;
-  max-width:90%;text-align:center
-}
-#app.clean #topBar,
-#app.clean #bottomBar{display:none}
-#app.clean .cropBox{display:none!important}
-body.fullscreen #app{background:#000}
+label{display:block;font-size:12px;color:#bdc9d8;margin:10px 0 5px}
+input[type=range]{width:100%;accent-color:#20d6a3}
+input[type=file]{width:100%;font-size:12px}
+.row,.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.status{font-size:12px;color:#9eb0c4;margin-top:8px;overflow-wrap:anywhere}
+.muted{font-size:12px;color:#9eb0c4}
+.cropBox{display:none;position:absolute;z-index:8;left:12px;top:75px;
+width:130px;overflow:hidden;border:2px solid #20d6a3;
+border-radius:9px;background:#111}
+.cropBox canvas{display:block;width:100%;height:auto}
+.cropBox span{font-size:10px;display:block;padding:3px;background:#000b}
+#mouthCropBox{top:180px;border-color:#ffb86b}
+#toast{display:none;position:absolute;z-index:30;bottom:85px;left:50%;
+transform:translateX(-50%);background:#17212e;border:1px solid #344256;
+border-radius:9px;padding:10px;font-size:12px;max-width:90%}
+#app.clean #topBar,#app.clean #bottomBar{display:none}
 @media(orientation:landscape){
-  #bottomBar{justify-content:flex-start;max-width:75%;padding-bottom:10px}
-  #optionsPanel{width:min(360px,70vw)}
+#bottomBar{justify-content:flex-start;max-width:75%}
+#optionsPanel{width:min(360px,70vw)}
 }
 </style>
 </head>
-
 <body>
 <div id="app">
-  <div id="view">
-    <video id="cameraVideo" autoplay playsinline muted></video>
-    <canvas id="arCanvas"></canvas>
-    <canvas id="dotsCanvas"></canvas>
+<div id="view">
+<video id="cameraVideo" autoplay playsinline muted></video>
+<canvas id="arCanvas"></canvas>
+<canvas id="dotsCanvas"></canvas>
+<div id="cameraMessage">AZEEZ AR STUDIO<br>Tap START CAMERA</div>
 
-    <div id="cameraMessage">
-      <strong>Azeez AR Studio</strong><br>
-      Tap START CAMERA to begin.
-    </div>
-
-    <div class="cropBox" id="eyeCropBox">
-      <canvas id="eyeCropCanvas"></canvas>
-      <span>LIVE EYES</span>
-    </div>
-
-    <div class="cropBox" id="mouthCropBox">
-      <canvas id="mouthCropCanvas"></canvas>
-      <span>LIVE MOUTH</span>
-    </div>
-  </div>
-
-  <header id="topBar">
-    <div>
-      <div id="brand">AZEEZ AR STUDIO</div>
-      <div id="trackingStatus">Tracking: OFF</div>
-    </div>
-    <button id="openOptions">⚙ SETTINGS</button>
-  </header>
-
-  <div id="bottomBar">
-    <button id="startCameraBtn">START CAMERA</button>
-    <button id="stopCameraBtn">STOP CAMERA</button>
-    <button id="switchCameraBtn">SWITCH</button>
-    <button id="flipBtn">MIRROR OFF</button>
-    <button id="fullscreenBtn">FULL SCREEN</button>
-    <button id="recordBtn">RECORD</button>
-    <button id="stopRecordBtn">STOP REC</button>
-    <button id="cleanScreenBtn">HIDE UI</button>
-  </div>
-
-  <div id="panelBackdrop"></div>
-
-  <aside id="optionsPanel">
-    <div class="panelHeader">
-      <strong>AR STUDIO SETTINGS</strong>
-      <button id="closeOptions">CLOSE ✕</button>
-    </div>
-
-    <div class="section">
-      <h3>Face Tracking</h3>
-      <div class="grid2">
-        <button id="trackingBtn">START TRACKING</button>
-        <button id="dotsBtn">GREEN DOTS ON</button>
-      </div>
-      <div class="status" id="trackingPanelStatus">Tracking is off.</div>
-    </div>
-
-    <div class="section">
-      <h3>Live Face Inset Editor</h3>
-      <p class="muted">Show live crops of your eyes and mouth.</p>
-      <div class="grid2">
-        <button id="eyeCropBtn">SHOW EYE CROP</button>
-        <button id="hideEyeCropBtn">HIDE EYE CROP</button>
-        <button id="mouthCropBtn">SHOW MOUTH CROP</button>
-        <button id="hideMouthCropBtn">HIDE MOUTH CROP</button>
-      </div>
-      <label for="eyeCropSize">Eye crop size</label>
-      <input id="eyeCropSize" type="range" min="60" max="240" value="130">
-      <label for="mouthCropSize">Mouth crop size</label>
-      <input id="mouthCropSize" type="range" min="60" max="240" value="130">
-      <div class="status" id="cropStatus">Live crops are hidden.</div>
-    </div>
-
-    <div class="section">
-      <h3>Import 3D Model</h3>
-      <label for="modelFile">Choose GLB, GLTF, OBJ or FBX</label>
-      <input id="modelFile" type="file"
-        accept=".glb,.gltf,.obj,.fbx">
-      <button id="importModelBtn">IMPORT MODEL</button>
-      <div class="row">
-        <button id="showModelBtn">SHOW / HIDE MODEL</button>
-        <button id="removeModelBtn">REMOVE MODEL</button>
-      </div>
-      <div class="status" id="modelStatus">No model loaded.</div>
-    </div>
-
-    <div class="section">
-      <h3>Import Image</h3>
-      <label for="imageFile">Choose an image</label>
-      <input id="imageFile" type="file" accept="image/*">
-      <button id="importImageBtn">IMPORT IMAGE</button>
-      <div class="status" id="imageStatus">No image loaded.</div>
-    </div>
-
-    <div class="section">
-      <h3>Import Video</h3>
-      <label for="videoFile">Choose a video</label>
-      <input id="videoFile" type="file" accept="video/*">
-      <button id="importVideoBtn">IMPORT VIDEO</button>
-      <div class="status" id="videoStatus">No video loaded.</div>
-    </div>
-
-    <div class="section">
-      <h3>Model Position & Rotation</h3>
-      <label for="modelX">Left / Right</label>
-      <input id="modelX" type="range" min="-3" max="3" step=".01" value="0">
-      <label for="modelY">Up / Down</label>
-      <input id="modelY" type="range" min="-3" max="3" step=".01" value="0">
-      <label for="modelZ">Depth</label>
-      <input id="modelZ" type="range" min="-5" max="5" step=".01" value="0">
-      <label for="modelScale">Model Scale</label>
-      <input id="modelScale" type="range" min=".1" max="3" step=".01" value="1">
-      <label for="modelRotation">Rotation</label>
-      <input id="modelRotation" type="range" min="-180" max="180" value="0">
-      <button id="resetTransformBtn">RESET TRANSFORM</button>
-    </div>
-
-    <div class="section">
-      <h3>Parts & Slots</h3>
-      <label for="partType">New part type</label>
-      <select id="partType">
-        <option value="eye">Live eye crop</option>
-        <option value="mouth">Live mouth crop</option>
-        <option value="image">Imported image</option>
-        <option value="video">Imported video</option>
-      </select>
-      <button id="addPartBtn">ADD PART</button>
-      <div class="row">
-        <button id="duplicatePartBtn">DUPLICATE</button>
-        <button id="removePartBtn">REMOVE PART</button>
-      </div>
-      <label for="partSelect">Select slot</label>
-      <select id="partSelect">
-        <option value="0">Slot 1</option>
-        <option value="1">Slot 2</option>
-        <option value="2">Slot 3</option>
-        <option value="3">Slot 4</option>
-      </select>
-      <div class="row">
-        <button id="hidePartsBtn">HIDE PARTS</button>
-        <button id="showPartsBtn">SHOW PARTS</button>
-      </div>
-      <div class="status" id="partStatus">No parts added.</div>
-    </div>
-
-    <div class="section">
-      <h3>Selected Part Transform</h3>
-      <label for="partX">Left / Right</label>
-      <input id="partX" type="range" min="-3" max="3" step=".01" value="0">
-      <label for="partY">Up / Down</label>
-      <input id="partY" type="range" min="-3" max="3" step=".01" value="0">
-      <label for="partScale">Part Scale</label>
-      <input id="partScale" type="range" min=".1" max="3" step=".01" value="1">
-      <label for="partRotation">Part Rotation</label>
-      <input id="partRotation" type="range" min="-180" max="180" value="0">
-      <button id="resetPartBtn">RESET PART</button>
-    </div>
-
-    <div class="section">
-      <h3>Settings</h3>
-      <div class="grid2">
-        <button id="exportSettingsBtn">EXPORT SETTINGS</button>
-        <button id="importSettingsBtn">IMPORT SETTINGS</button>
-      </div>
-      <input id="settingsFile" type="file" accept=".json,application/json">
-      <button id="hideOptionsBtn">HIDE SLIDERS</button>
-      <button id="resetAllBtn">RESET ALL</button>
-      <div class="status">Tip: GLB files are usually easier to import than GLTF files with separate assets.</div>
-    </div>
-  </aside>
-
-  <div id="toast"></div>
+<div class="cropBox" id="eyeCropBox">
+<canvas id="eyeCropCanvas"></canvas><span>LIVE EYES</span>
 </div>
+<div class="cropBox" id="mouthCropBox">
+<canvas id="mouthCropCanvas"></canvas><span>LIVE MOUTH</span>
+</div>
+</div>
+
+<header id="topBar">
+<div><div id="brand">AZEEZ AR STUDIO</div>
+<div id="trackingStatus">Tracking: OFF</div></div>
+<button id="openOptions">⚙ SETTINGS</button>
+</header>
+
+<div id="bottomBar">
+<button id="startCameraBtn">START CAMERA</button>
+<button id="stopCameraBtn">STOP CAMERA</button>
+<button id="switchCameraBtn">SWITCH</button>
+<button id="flipBtn">MIRROR OFF</button>
+<button id="fullscreenBtn">FULL SCREEN</button>
+<button id="recordBtn">RECORD</button>
+<button id="stopRecordBtn">STOP REC</button>
+<button id="cleanScreenBtn">HIDE UI</button>
+</div>
+
+<div id="panelBackdrop"></div>
+<aside id="optionsPanel">
+<div class="panelHeader"><strong>STUDIO SETTINGS</strong>
+<button id="closeOptions">CLOSE ✕</button></div>
+
+<div class="section"><h3>Face Tracking</h3>
+<div class="grid2">
+<button id="trackingBtn">START TRACKING</button>
+<button id="dotsBtn">GREEN DOTS ON</button>
+</div><div class="status" id="trackingPanelStatus">Tracking off.</div>
+</div>
+
+<div class="section"><h3>Live Eye & Mouth Crop</h3>
+<div class="grid2">
+<button id="eyeCropBtn">SHOW EYES</button>
+<button id="hideEyeCropBtn">HIDE EYES</button>
+<button id="mouthCropBtn">SHOW MOUTH</button>
+<button id="hideMouthCropBtn">HIDE MOUTH</button>
+</div>
+<label for="eyeCropSize">Eye crop size</label>
+<input id="eyeCropSize" type="range" min="60" max="240" value="130">
+<label for="mouthCropSize">Mouth crop size</label>
+<input id="mouthCropSize" type="range" min="60" max="240" value="130">
+<div class="status" id="cropStatus">Crops hidden.</div>
+</div>
+
+<div class="section"><h3>3D Model</h3>
+<label for="modelFile">GLB / GLTF / OBJ / FBX</label>
+<input id="modelFile" type="file" accept=".glb,.gltf,.obj,.fbx">
+<button id="importModelBtn">IMPORT MODEL</button>
+<div class="row">
+<button id="showModelBtn">SHOW / HIDE MODEL</button>
+<button id="removeModelBtn">REMOVE MODEL</button>
+</div><div class="status" id="modelStatus">No model loaded.</div>
+</div>
+
+<div class="section"><h3>Image Import</h3>
+<input id="imageFile" type="file" accept="image/*">
+<button id="importImageBtn">IMPORT IMAGE</button>
+<div class="status" id="imageStatus">No image loaded.</div>
+</div>
+
+<div class="section"><h3>Video Import</h3>
+<input id="videoFile" type="file" accept="video/*">
+<button id="importVideoBtn">IMPORT VIDEO</button>
+<div class="status" id="videoStatus">No video loaded.</div>
+</div>
+
+<div class="section"><h3>Model Transform</h3>
+<label for="modelX">Left / Right</label>
+<input id="modelX" type="range" min="-3" max="3" step=".01" value="0">
+<label for="modelY">Up / Down</label>
+<input id="modelY" type="range" min="-3" max="3" step=".01" value="0">
+<label for="modelZ">Depth</label>
+<input id="modelZ" type="range" min="-5" max="5" step=".01" value="0">
+<label for="modelScale">Scale</label>
+<input id="modelScale" type="range" min=".1" max="3" step=".01" value="1">
+<label for="modelRotation">Rotation</label>
+<input id="modelRotation" type="range" min="-180" max="180" value="0">
+<button id="resetTransformBtn">RESET TRANSFORM</button>
+</div>
+
+<div class="section"><h3>Parts / Slots</h3>
+<label for="partType">Part type</label>
+<select id="partType">
+<option value="eye">Live eye crop</option>
+<option value="mouth">Live mouth crop</option>
+<option value="image">Imported image</option>
+<option value="video">Imported video</option>
+</select>
+<button id="addPartBtn">ADD PART</button>
+<div class="row">
+<button id="duplicatePartBtn">DUPLICATE</button>
+<button id="removePartBtn">REMOVE</button>
+</div>
+<label for="partSelect">Slot</label>
+<select id="partSelect">
+<option value="0">Slot 1</option><option value="1">Slot 2</option>
+<option value="2">Slot 3</option><option value="3">Slot 4</option>
+</select>
+<div class="row">
+<button id="hidePartsBtn">HIDE PARTS</button>
+<button id="showPartsBtn">SHOW PARTS</button>
+</div>
+<div class="status" id="partStatus">No parts added.</div>
+</div>
+
+<div class="section"><h3>Selected Part Transform</h3>
+<label for="partX">Left / Right</label>
+<input id="partX" type="range" min="-3" max="3" step=".01" value="0">
+<label for="partY">Up / Down</label>
+<input id="partY" type="range" min="-3" max="3" step=".01" value="0">
+<label for="partScale">Scale</label>
+<input id="partScale" type="range" min=".1" max="3" step=".01" value="1">
+<label for="partRotation">Rotation</label>
+<input id="partRotation" type="range" min="-180" max="180" value="0">
+<button id="resetPartBtn">RESET PART</button>
+</div>
+
+<div class="section"><h3>Settings</h3>
+<div class="grid2">
+<button id="exportSettingsBtn">EXPORT SETTINGS</button>
+<button id="importSettingsBtn">IMPORT SETTINGS</button>
+</div>
+<input id="settingsFile" type="file" accept=".json,application/json">
+<button id="hideOptionsBtn">HIDE SLIDERS</button>
+<button id="resetAllBtn">RESET ALL</button>
+</div>
+</aside>
+<div id="toast"></div>
 <script type="module">
-import * as THREE from "https://esm.sh/three@0.170.0";
-import { GLTFLoader } from "https://esm.sh/three@0.170.0/examples/jsm/loaders/GLTFLoader.js";
-import { OBJLoader } from "https://esm.sh/three@0.170.0/examples/jsm/loaders/OBJLoader.js";
-import { FBXLoader } from "https://esm.sh/three@0.170.0/examples/jsm/loaders/FBXLoader.js";
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
+import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js";
+import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js";
+import { OBJLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/OBJLoader.js";
+import { FBXLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/FBXLoader.js";
 
 const $ = id => document.getElementById(id);
 
 const video = $("cameraVideo");
-const app = $("app");
 const view = $("view");
-const arCanvas = $("arCanvas");
 const dotsCanvas = $("dotsCanvas");
 const dotsCtx = dotsCanvas.getContext("2d");
+const eyeCanvas = $("eyeCropCanvas");
+const mouthCanvas = $("mouthCropCanvas");
+const eyeCtx = eyeCanvas.getContext("2d");
+const mouthCtx = mouthCanvas.getContext("2d");
 
-let cameraStream = null;
+let stream = null;
 let facingMode = "user";
-let mirrorOn = false;
+let mirrorOn = true;
 let trackingOn = false;
 let dotsOn = true;
 let faceLandmarker = null;
-let facePoints = null;
 let lastVideoTime = -1;
 let recording = null;
 let recordedChunks = [];
-let renderer, scene, camera, root3D;
+let mediaRecorder = null;
+let eyeLandmarks = null;
+let mouthLandmarks = null;
+let eyeTexture = new THREE.CanvasTexture(eyeCanvas);
+let mouthTexture = new THREE.CanvasTexture(mouthCanvas);
+let renderer, scene, camera, controls;
 let currentModel = null;
-let modelVisible = true;
-let eyeVisible = false;
-let mouthVisible = false;
-let eyeCropSize = 130;
-let mouthCropSize = 130;
-let importedImage = null;
-let importedVideo = null;
-let imageURL = null;
-let videoURL = null;
-let slots = [null, null, null, null];
-let selectedSlot = 0;
-let partsVisible = true;
-let cleanScreen = false;
-let cropAnimationStarted = false;
-let faceLoading = false;
+let importedImageTexture = null;
+let importedVideoTexture = null;
+let activeParts = [];
+let partsHidden = false;
+let modelBaseScale = 1;
+let animationFrame = 0;
+let cameraReady = false;
+let lastToastTimer = null;
 
-const toast = message => {
+function toast(message) {
   const el = $("toast");
+  if (!el) return;
   el.textContent = message;
-  el.style.display = "block";
-  clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => el.style.display = "none", 2500);
-};
+  el.classList.add("show");
+  clearTimeout(lastToastTimer);
+  lastToastTimer = setTimeout(() => el.classList.remove("show"), 2600);
+}
 
 function setStatus(id, message) {
   const el = $(id);
   if (el) el.textContent = message;
 }
 
-function fitCanvases() {
-  const w = view.clientWidth || innerWidth;
-  const h = view.clientHeight || innerHeight;
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-
-  for (const canvas of [arCanvas, dotsCanvas]) {
-    canvas.width = Math.round(w * dpr);
-    canvas.height = Math.round(h * dpr);
-    canvas.style.width = w + "px";
-    canvas.style.height = h + "px";
-  }
-
-  dotsCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-  if (renderer) {
-    renderer.setPixelRatio(dpr);
-    renderer.setSize(w, h, false);
-    camera.aspect = w / h;
-    camera.updateProjectionMatrix();
-  }
-}
-
-function init3D() {
-  scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(
-    45,
-    (view.clientWidth || innerWidth) /
-      (view.clientHeight || innerHeight),
-    0.01,
-    1000
-  );
-  camera.position.set(0, 0, 8);
-
-  renderer = new THREE.WebGLRenderer({
-    canvas: arCanvas,
-    alpha: true,
-    antialias: true,
-    preserveDrawingBuffer: true
-  });
-  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
-  renderer.setSize(view.clientWidth || innerWidth,
-                   view.clientHeight || innerHeight, false);
-  renderer.setClearColor(0x000000, 0);
-
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x465066, 2));
-
-  const light = new THREE.DirectionalLight(0xffffff, 2);
-  light.position.set(3, 5, 8);
-  scene.add(light);
-
-  root3D = new THREE.Group();
-  scene.add(root3D);
-
-  fitCanvases();
-  animate3D();
-}
-
-function animate3D() {
-  requestAnimationFrame(animate3D);
-  if (renderer && scene && camera) renderer.render(scene, camera);
+function resizeCanvases() {
+  const w = Math.max(1, video.videoWidth || view.clientWidth || 640);
+  const h = Math.max(1, video.videoHeight || view.clientHeight || 480);
+  dotsCanvas.width = w;
+  dotsCanvas.height = h;
+  eyeCanvas.width = 512;
+  eyeCanvas.height = 256;
+  mouthCanvas.width = 512;
+  mouthCanvas.height = 256;
 }
 
 async function startCamera() {
   try {
     if (!navigator.mediaDevices?.getUserMedia) {
-      throw new Error("Camera API unavailable. Open this page through HTTPS.");
+      throw new Error("Camera API unavailable. Open this page using HTTPS.");
     }
-
-    if (cameraStream) {
-      cameraStream.getTracks().forEach(track => track.stop());
-      cameraStream = null;
-    }
-
-    video.pause();
-    video.srcObject = null;
-
-    cameraStream = await navigator.mediaDevices.getUserMedia({
+    if (stream) stopCamera();
+    stream = await navigator.mediaDevices.getUserMedia({
       audio: false,
       video: {
         facingMode: { ideal: facingMode },
@@ -431,766 +285,393 @@ async function startCamera() {
         height: { ideal: 720 }
       }
     });
-
-    video.srcObject = cameraStream;
+    video.srcObject = stream;
+    video.playsInline = true;
+    video.muted = true;
     await video.play();
-
-    $("cameraMessage").style.display = "none";
-    video.style.transform = mirrorOn ? "scaleX(-1)" : "none";
-
-    fitCanvases();
+    cameraReady = true;
+    $("cameraMessage")?.classList.add("hidden");
+    resizeCanvases();
+    setStatus("trackingStatus", "Camera ready");
     toast("Camera started");
-  } catch (error) {
-    console.error(error);
-    setStatus("trackingPanelStatus", "Camera error: " + error.message);
-    $("cameraMessage").style.display = "block";
-    $("cameraMessage").textContent =
-      "Camera could not start. Allow camera permission and use HTTPS.";
-    toast("Camera error: " + error.message);
+    if (trackingOn) await startTracking();
+  } catch (err) {
+    console.error(err);
+    toast("Camera error: " + (err.message || "Permission denied"));
+    setStatus("trackingStatus", "Camera unavailable");
   }
 }
 
 function stopCamera() {
-  if (cameraStream) {
-    cameraStream.getTracks().forEach(track => track.stop());
-    cameraStream = null;
-  }
-  video.pause();
+  if (stream) stream.getTracks().forEach(track => track.stop());
+  stream = null;
   video.srcObject = null;
-  dotsCtx.clearRect(0, 0, view.clientWidth, view.clientHeight);
-  facePoints = null;
-  $("cameraMessage").style.display = "block";
-  $("cameraMessage").textContent = "Camera stopped. Tap START CAMERA.";
-  setStatus("trackingStatus", "Tracking: OFF");
-  toast("Camera stopped");
+  cameraReady = false;
+  dotsCtx.clearRect(0, 0, dotsCanvas.width, dotsCanvas.height);
+  setStatus("trackingStatus", "Camera stopped");
+  $("cameraMessage")?.classList.remove("hidden");
 }
 
 async function switchCamera() {
   facingMode = facingMode === "user" ? "environment" : "user";
-  if (cameraStream) await startCamera();
-  else toast("Camera selected: " + facingMode);
+  mirrorOn = facingMode === "user";
+  updateMirror();
+  if (stream) await startCamera();
+  else toast("Camera: " + (facingMode === "user" ? "Front" : "Back"));
 }
 
-function toggleMirror() {
+function updateMirror() {
+  video.style.transform = mirrorOn ? "scaleX(-1)" : "scaleX(1)";
+  dotsCanvas.style.transform = mirrorOn ? "scaleX(-1)" : "scaleX(1)";
+  $("flipBtn").textContent = "Mirror: " + (mirrorOn ? "ON" : "OFF");
+}
+
+function setMirror() {
   mirrorOn = !mirrorOn;
-  video.style.transform = mirrorOn ? "scaleX(-1)" : "none";
-  $("flipBtn").textContent = mirrorOn ? "MIRROR ON" : "MIRROR OFF";
-  $("flipBtn").classList.toggle("active", mirrorOn);
+  updateMirror();
 }
 
-function toggleFullscreen() {
-  if (!document.fullscreenElement) {
-    const result = app.requestFullscreen?.();
-    if (result?.catch) result.catch(() => toast("Fullscreen unavailable"));
-  } else {
-    document.exitFullscreen?.();
-  }
-}
-
-async function startFaceTracking() {
-  if (faceLoading) return;
-  if (trackingOn) return;
-
-  faceLoading = true;
-  setStatus("trackingPanelStatus", "Loading face tracker…");
-
+async function setFullscreen() {
   try {
-    const vision = await import(
-      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.mjs"
-    );
-
-    const fileset = await vision.FilesetResolver.forVisionTasks(
-      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
-    );
-
-    faceLandmarker = await vision.FaceLandmarker.createFromOptions(fileset, {
-      baseOptions: {
-        modelAssetPath:
-          "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-        delegate: "CPU"
-      },
-      runningMode: "VIDEO",
-      numFaces: 1,
-      outputFaceBlendshapes: false,
-      outputFacialTransformationMatrixes: false
-    });
-
-    trackingOn = true;
-    $("trackingBtn").textContent = "STOP TRACKING";
-    $("trackingBtn").classList.add("active");
-    setStatus("trackingStatus", "Tracking: ON");
-    setStatus("trackingPanelStatus", "Face tracking is active.");
-    toast("Face tracking started");
-  } catch (error) {
-    console.error(error);
-    setStatus("trackingPanelStatus", "Tracking error: " + error.message);
-    toast("Tracker failed to load. Check internet and try again.");
-  } finally {
-    faceLoading = false;
+    if (!document.fullscreenElement) {
+      await view.requestFullscreen?.();
+    } else {
+      await document.exitFullscreen?.();
+    }
+  } catch (err) {
+    toast("Fullscreen not supported by this browser");
   }
 }
 
-function stopFaceTracking() {
+function initThree() {
+  const canvas = $("arCanvas");
+  renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setSize(view.clientWidth || window.innerWidth, view.clientHeight || window.innerHeight, false);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(
+    45,
+    (view.clientWidth || window.innerWidth) / (view.clientHeight || window.innerHeight),
+    0.01,
+    1000
+  );
+  camera.position.set(0, 0, 5);
+
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x666677, 2));
+  const light = new THREE.DirectionalLight(0xffffff, 2.2);
+  light.position.set(3, 5, 8);
+  scene.add(light);
+
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.enablePan = true;
+  controls.enabled = false;
+
+  window.addEventListener("resize", onResize);
+  animateThree();
+}
+
+function onResize() {
+  if (!renderer || !camera) return;
+  const w = Math.max(1, view.clientWidth || window.innerWidth);
+  const h = Math.max(1, view.clientHeight || window.innerHeight);
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  if (cameraReady) resizeCanvases();
+}
+
+function animateThree() {
+  animationFrame = requestAnimationFrame(animateThree);
+  if (controls) controls.update();
+  if (renderer && scene && camera) renderer.render(scene, camera);
+  updateLiveCrops();
+}
+
+async function startTracking() {
+  trackingOn = true;
+  setStatus("trackingPanelStatus", "Loading face tracker…");
+  setStatus("trackingStatus", "Loading tracker…");
+  try {
+    if (!faceLandmarker) {
+      // Unpinned URL avoids the unavailable 0.10.22 release URL.
+      const vision = await import(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.mjs"
+      );
+      const fileset = await vision.FilesetResolver.forVisionTasks(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+      );
+      faceLandmarker = await vision.FaceLandmarker.createFromOptions(fileset, {
+        baseOptions: {
+          modelAssetPath:
+            "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+          delegate: "CPU"
+        },
+        runningMode: "VIDEO",
+        numFaces: 1,
+        outputFaceBlendshapes: true,
+        outputFacialTransformationMatrixes: true
+      });
+    }
+    setStatus("trackingPanelStatus", "Tracking active");
+    setStatus("trackingStatus", "Tracker ready");
+    trackingLoop();
+  } catch (err) {
+    console.error(err);
+    trackingOn = false;
+    setStatus("trackingPanelStatus", "Tracker failed to load");
+    setStatus("trackingStatus", "Tracking error");
+    toast("Tracking error: " + (err.message || "Network/model download failed"));
+  }
+}
+
+function stopTracking() {
   trackingOn = false;
-  facePoints = null;
-  $("trackingBtn").textContent = "START TRACKING";
-  $("trackingBtn").classList.remove("active");
-  setStatus("trackingStatus", "Tracking: OFF");
-  setStatus("trackingPanelStatus", "Tracking is off.");
-  dotsCtx.clearRect(0, 0, view.clientWidth, view.clientHeight);
+  eyeLandmarks = null;
+  mouthLandmarks = null;
+  dotsCtx.clearRect(0, 0, dotsCanvas.width, dotsCanvas.height);
+  setStatus("trackingPanelStatus", "Tracking stopped");
+  setStatus("trackingStatus", "Tracking off");
 }
 
-function toggleTracking() {
-  if (trackingOn) stopFaceTracking();
-  else startFaceTracking();
-}
-
-function toggleDots() {
-  dotsOn = !dotsOn;
-  $("dotsBtn").textContent = dotsOn ? "GREEN DOTS ON" : "GREEN DOTS OFF";
-  $("dotsBtn").classList.toggle("active", dotsOn);
-  if (!dotsOn) {
-    dotsCtx.clearRect(0, 0, view.clientWidth, view.clientHeight);
+function trackingLoop() {
+  if (!trackingOn) return;
+  if (cameraReady && video.readyState >= 2 && faceLandmarker) {
+    try {
+      if (video.currentTime !== lastVideoTime) {
+        lastVideoTime = video.currentTime;
+        const result = faceLandmarker.detectForVideo(video, performance.now());
+        const points = result.faceLandmarks?.[0] || null;
+        if (points) {
+          eyeLandmarks = getBounds(points, [
+            33, 133, 160, 159, 158, 144, 145, 153,
+            362, 263, 387, 386, 385, 373, 374, 380
+          ], 0.18, 0.30);
+          mouthLandmarks = getBounds(points, [
+            61, 146, 91, 181, 84, 17, 314, 405, 321,
+            375, 291, 308, 324, 318, 402, 317, 14, 87,
+            178, 88, 95, 78
+          ], 0.24, 0.38);
+          if (dotsOn) drawDots(points);
+          else dotsCtx.clearRect(0, 0, dotsCanvas.width, dotsCanvas.height);
+          setStatus("trackingStatus", "Face detected");
+          setStatus("trackingPanelStatus", "Face detected");
+          setStatus("cropStatus", "Live eye and mouth crops updating");
+        } else {
+          eyeLandmarks = null;
+          mouthLandmarks = null;
+          dotsCtx.clearRect(0, 0, dotsCanvas.width, dotsCanvas.height);
+          setStatus("trackingStatus", "No face detected");
+          setStatus("cropStatus", "Move your face into view");
+        }
+      }
+    } catch (err) {
+      console.warn("Face detection frame failed", err);
+    }
   }
+  requestAnimationFrame(trackingLoop);
 }
 
-function getLandmark(index) {
-  if (!facePoints || !facePoints[index]) return null;
-  const p = facePoints[index];
-  return { x: p.x, y: p.y, z: p.z || 0 };
+function getBounds(points, ids, padX, padY) {
+  const xs = ids.map(i => points[i].x * video.videoWidth);
+  const ys = ids.map(i => points[i].y * video.videoHeight);
+  let left = Math.min(...xs);
+  let right = Math.max(...xs);
+  let top = Math.min(...ys);
+  let bottom = Math.max(...ys);
+  const padW = (right - left) * padX;
+  const padH = (bottom - top) * padY;
+  left -= padW;
+  right += padW;
+  top -= padH;
+  bottom += padH;
+  left = Math.max(0, left);
+  top = Math.max(0, top);
+  right = Math.min(video.videoWidth, right);
+  bottom = Math.min(video.videoHeight, bottom);
+  return { x: left, y: top, w: Math.max(1, right - left), h: Math.max(1, bottom - top) };
 }
 
-function videoPointToScreen(point) {
-  const vw = video.videoWidth;
-  const vh = video.videoHeight;
-  const cw = view.clientWidth;
-  const ch = view.clientHeight;
-
-  if (!vw || !vh || !cw || !ch) return null;
-
-  // Match CSS object-fit: cover.
-  const scale = Math.max(cw / vw, ch / vh);
-  const shownW = vw * scale;
-  const shownH = vh * scale;
-  let x = point.x * shownW - (shownW - cw) / 2;
-  const y = point.y * shownH - (shownH - ch) / 2;
-
-  if (mirrorOn) x = cw - x;
-  return { x, y };
-}
-
-function drawFaceDots() {
-  const w = view.clientWidth;
-  const h = view.clientHeight;
-  dotsCtx.clearRect(0, 0, w, h);
-
-  if (!trackingOn || !dotsOn || !facePoints) return;
-
-  dotsCtx.fillStyle = "#21ff86";
-  for (const point of facePoints) {
-    const p = videoPointToScreen(point);
-    if (!p || p.x < 0 || p.y < 0 || p.x > w || p.y > h) continue;
+function drawDots(points) {
+  if (!video.videoWidth || !video.videoHeight) return;
+  if (dotsCanvas.width !== video.videoWidth || dotsCanvas.height !== video.videoHeight) {
+    resizeCanvases();
+  }
+  dotsCtx.clearRect(0, 0, dotsCanvas.width, dotsCanvas.height);
+  dotsCtx.fillStyle = "#00ff70";
+  for (const p of points) {
     dotsCtx.beginPath();
-    dotsCtx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+    dotsCtx.arc(p.x * dotsCanvas.width, p.y * dotsCanvas.height, 2.2, 0, Math.PI * 2);
     dotsCtx.fill();
   }
 }
 
-function trackingLoop() {
-  requestAnimationFrame(trackingLoop);
-
-  if (
-    !trackingOn ||
-    !faceLandmarker ||
-    video.readyState < 2 ||
-    video.currentTime === lastVideoTime
-  ) return;
-
-  lastVideoTime = video.currentTime;
-
-  try {
-    const result = faceLandmarker.detectForVideo(video, performance.now());
-    facePoints = result.faceLandmarks?.[0] || null;
-    setStatus(
-      "trackingStatus",
-      facePoints ? "Tracking: FACE FOUND" : "Tracking: SEARCHING"
-    );
-    drawFaceDots();
-    updateLiveCrops();
-  } catch (error) {
-    console.error("Tracking frame error:", error);
-  }
+function updateLiveCrops() {
+  if (!cameraReady || video.readyState < 2) return;
+  drawCrop(eyeCtx, eyeCanvas, eyeLandmarks, "eye");
+  drawCrop(mouthCtx, mouthCanvas, mouthLandmarks, "mouth");
+  if (eyeTexture) eyeTexture.needsUpdate = true;
+  if (mouthTexture) mouthTexture.needsUpdate = true;
 }
 
-function setCropVisibility(which, visible) {
-  if (which === "eye") {
-    eyeVisible = visible;
-    $("eyeCropBox").style.display = visible ? "block" : "none";
-  } else {
-    mouthVisible = visible;
-    $("mouthCropBox").style.display = visible ? "block" : "none";
-  }
-  setStatus(
-    "cropStatus",
-    "Eyes: " + (eyeVisible ? "ON" : "OFF") +
-    " • Mouth: " + (mouthVisible ? "ON" : "OFF")
-  );
-}
-
-function cropRegion(canvas, indices, paddingX, paddingY) {
-  if (!facePoints || video.readyState < 2) return;
-
-  const points = indices.map(getLandmark).filter(Boolean);
-  if (points.length < 2) return;
-
-  let minX = Math.min(...points.map(p => p.x));
-  let maxX = Math.max(...points.map(p => p.x));
-  let minY = Math.min(...points.map(p => p.y));
-  let maxY = Math.max(...points.map(p => p.y));
-
-  const vw = video.videoWidth;
-  const vh = video.videoHeight;
-  const padX = (maxX - minX) * paddingX;
-  const padY = (maxY - minY) * paddingY;
-
-  minX = Math.max(0, minX - padX);
-  maxX = Math.min(1, maxX + padX);
-  minY = Math.max(0, minY - padY);
-  maxY = Math.min(1, maxY + padY);
-
-  const sx = minX * vw;
-  const sy = minY * vh;
-  const sw = Math.max(1, (maxX - minX) * vw);
-  const sh = Math.max(1, (maxY - minY) * vh);
-
-  const ctx = canvas.getContext("2d");
-  const size = canvas === $("eyeCropCanvas") ? eyeCropSize : mouthCropSize;
-  canvas.width = size;
-  canvas.height = Math.max(50, Math.round(size * sh / sw));
-
+function drawCrop(ctx, canvas, bounds, kind) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  if (mirrorOn) {
+  if (!bounds) {
+    ctx.fillStyle = "#161923";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "22px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(kind === "eye" ? "EYES" : "MOUTH", canvas.width / 2, canvas.height / 2);
+    return;
+  }
+  try {
+    // Draw from the original video pixels; mirror is handled only in display.
     ctx.save();
     ctx.translate(canvas.width, 0);
     ctx.scale(-1, 1);
-    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+    const sx = mirrorOn
+      ? video.videoWidth - bounds.x - bounds.w
+      : bounds.x;
+    ctx.drawImage(video, sx, bounds.y, bounds.w, bounds.h, 0, 0, canvas.width, canvas.height);
     ctx.restore();
-  } else {
-    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+  } catch (err) {
+    ctx.restore();
   }
 }
 
-function updateLiveCrops() {
-  if (!facePoints) return;
+function toggleDots() {
+  dotsOn = !dotsOn;
+  $("dotsBtn").textContent = dotsOn ? "Green dots: ON" : "Green dots: OFF";
+  if (!dotsOn) dotsCtx.clearRect(0, 0, dotsCanvas.width, dotsCanvas.height);
+}
 
-  // MediaPipe Face Landmarker eye and mouth landmark groups.
-  if (eyeVisible) {
-    cropRegion($("eyeCropCanvas"),
-      [33, 133, 160, 159, 158, 144, 145, 153, 362, 263, 387, 386, 385, 373, 374, 380],
-      0.25, 0.8);
-  }
+function toggleEyeCrop() {
+  $("eyeCropBox").classList.toggle("hidden");
+  $("eyeCropBtn").textContent =
+    $("eyeCropBox").classList.contains("hidden") ? "Show eye crop" : "Hide eye crop";
+}
 
-  if (mouthVisible) {
-    cropRegion($("mouthCropCanvas"),
-      [61, 291, 0, 17, 13, 14, 78, 308, 82, 312],
-      0.35, 0.9);
-  }
+function toggleMouthCrop() {
+  $("mouthCropBox").classList.toggle("hidden");
+  $("mouthCropBtn").textContent =
+    $("mouthCropBox").classList.contains("hidden") ? "Show mouth crop" : "Hide mouth crop";
+}
+
+function setCropSize(kind, value) {
+  const box = $(kind === "eye" ? "eyeCropBox" : "mouthCropBox");
+  const width = Number(value);
+  box.style.width = width + "px";
+  box.style.height = Math.round(width / 2) + "px";
+}
+
+function toggleCleanScreen() {
+  $("topBar").classList.toggle("hidden");
+  $("bottomBar").classList.toggle("hidden");
+  $("eyeCropBox").classList.toggle("hidden");
+  $("mouthCropBox").classList.toggle("hidden");
+  toast("Screen controls toggled");
 }
 
 function startRecording() {
-  if (!cameraStream) {
-    toast("Start camera before recording");
+  if (!stream) {
+    toast("Start the camera first");
     return;
   }
-
   try {
     recordedChunks = [];
-    recording = new MediaRecorder(cameraStream);
-    recording.ondataavailable = event => {
-      if (event.data?.size) recordedChunks.push(event.data);
+    mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder.ondataavailable = e => {
+      if (e.data && e.data.size) recordedChunks.push(e.data);
     };
-    recording.onstop = () => {
+    mediaRecorder.onstop = () => {
       const blob = new Blob(recordedChunks, { type: "video/webm" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       a.download = "azeez-ar-recording.webm";
       a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      URL.revokeObjectURL(url);
+      toast("Recording saved");
     };
-    recording.start();
-    $("recordBtn").classList.add("active");
+    mediaRecorder.start();
+    recording = mediaRecorder;
+    $("recordBtn").classList.add("hidden");
+    $("stopRecordBtn").classList.remove("hidden");
     toast("Recording started");
-  } catch (error) {
-    toast("Recording error: " + error.message);
+  } catch (err) {
+    toast("Recording unavailable: " + (err.message || "browser error"));
   }
 }
 
 function stopRecording() {
-  if (recording && recording.state !== "inactive") {
-    recording.stop();
-    $("recordBtn").classList.remove("active");
-    toast("Recording saved");
-  }
+  if (recording && recording.state !== "inactive") recording.stop();
+  recording = null;
+  $("recordBtn").classList.remove("hidden");
+  $("stopRecordBtn").classList.add("hidden");
 }
 
-function openSettings() {
-  $("optionsPanel").classList.add("open");
-  $("panelBackdrop").classList.add("open");
+function openOptions() {
+  $("panelBackdrop").classList.remove("hidden");
+  $("optionsPanel").classList.remove("hidden");
 }
 
-function closeSettings() {
-  $("optionsPanel").classList.remove("open");
-  $("panelBackdrop").classList.remove("open");
+function closeOptions() {
+  $("panelBackdrop").classList.add("hidden");
+  $("optionsPanel").classList.add("hidden");
 }
 
-function toggleCleanScreen() {
-  cleanScreen = !cleanScreen;
-  app.classList.toggle("clean", cleanScreen);
-  $("exitCleanBtn")?.remove();
-  $("cleanScreenBtn").textContent = cleanScreen ? "SHOW UI" : "HIDE UI";
-}
-
-$("startCameraBtn").addEventListener("click", startCamera);
-$("stopCameraBtn").addEventListener("click", stopCamera);
-$("switchCameraBtn").addEventListener("click", switchCamera);
-$("flipBtn").addEventListener("click", toggleMirror);
-$("fullscreenBtn").addEventListener("click", toggleFullscreen);
-$("recordBtn").addEventListener("click", startRecording);
-$("stopRecordBtn").addEventListener("click", stopRecording);
-$("openOptions").addEventListener("click", openSettings);
-$("closeOptions").addEventListener("click", closeSettings);
-$("panelBackdrop").addEventListener("click", closeSettings);
-$("trackingBtn").addEventListener("click", toggleTracking);
-$("dotsBtn").addEventListener("click", toggleDots);
-$("cleanScreenBtn").addEventListener("click", toggleCleanScreen);
-
-$("eyeCropBtn").addEventListener("click", () => setCropVisibility("eye", true));
-$("hideEyeCropBtn").addEventListener("click", () => setCropVisibility("eye", false));
-$("mouthCropBtn").addEventListener("click", () => setCropVisibility("mouth", true));
-$("hideMouthCropBtn").addEventListener("click", () => setCropVisibility("mouth", false));
-
-$("eyeCropSize").addEventListener("input", event => {
-  eyeCropSize = Number(event.target.value);
-  $("eyeCropBox").style.width = eyeCropSize + "px";
-  if (facePoints && eyeVisible) updateLiveCrops();
-});
-
-$("mouthCropSize").addEventListener("input", event => {
-  mouthCropSize = Number(event.target.value);
-  $("mouthCropBox").style.width = mouthCropSize + "px";
-  if (facePoints && mouthVisible) updateLiveCrops();
-});
-
-window.addEventListener("resize", fitCanvases);
-document.addEventListener("fullscreenchange", () => {
-  document.body.classList.toggle("fullscreen", !!document.fullscreenElement);
-  setTimeout(fitCanvases, 100);
-});
-
-init3D();
-trackingLoop();
-  
-/* ===== PART 3/3: IMPORTS, MODEL PARTS, SLIDERS & SETTINGS ===== */
-
-function disposeObject(object) {
-  if (!object) return;
-  object.traverse?.(child => {
-    if (child.geometry) child.geometry.dispose();
-    if (child.material) {
-      const materials = Array.isArray(child.material)
-        ? child.material : [child.material];
-      materials.forEach(material => {
-        if (material.map) material.map.dispose();
-        material.dispose();
-      });
-    }
-  });
-}
-
-function fitObject(object) {
-  const box = new THREE.Box3().setFromObject(object);
-  if (box.isEmpty()) return;
-
-  const size = box.getSize(new THREE.Vector3());
-  const maxSize = Math.max(size.x, size.y, size.z);
-  if (!Number.isFinite(maxSize) || maxSize <= 0) return;
-
-  const factor = 2.5 / maxSize;
-  object.scale.multiplyScalar(factor);
-
-  const centeredBox = new THREE.Box3().setFromObject(object);
-  const center = centeredBox.getCenter(new THREE.Vector3());
-  object.position.sub(center);
-
-  object.userData.baseScale = object.scale.clone();
-}
-
-function importModel() {
-  const file = $("modelFile").files[0];
-  if (!file) {
-    toast("Pehle 3D model file select karo");
-    return;
-  }
-
-  const extension = file.name.split(".").pop().toLowerCase();
-  const url = URL.createObjectURL(file);
-  setStatus("modelStatus", "Loading " + file.name + "…");
-
-  const showLoadedModel = object => {
-    if (currentModel) {
-      root3D.remove(currentModel);
-      disposeObject(currentModel);
-    }
-
-    currentModel = object;
-    fitObject(currentModel);
-    root3D.add(currentModel);
-    modelVisible = true;
-    currentModel.visible = true;
-
-    $("modelScale").value = 1;
-    $("modelX").value = 0;
-    $("modelY").value = 0;
-    $("modelZ").value = 0;
-    $("modelRotation").value = 0;
-    updateModelTransform();
-
-    setStatus("modelStatus", "Loaded: " + file.name);
-    toast("Model loaded");
-    URL.revokeObjectURL(url);
-  };
-
-  const fail = error => {
-    console.error("Model import error:", error);
-    setStatus(
-      "modelStatus",
-      "Could not load model. Prefer a self-contained GLB file."
-    );
-    toast("Model import failed");
-    URL.revokeObjectURL(url);
-  };
-
-  try {
-    if (extension === "glb" || extension === "gltf") {
-      new GLTFLoader().load(
-        url,
-        gltf => showLoadedModel(gltf.scene),
-        undefined,
-        fail
-      );
-    } else if (extension === "obj") {
-      new OBJLoader().load(url, showLoadedModel, undefined, fail);
-    } else if (extension === "fbx") {
-      new FBXLoader().load(url, showLoadedModel, undefined, fail);
-    } else {
-      fail(new Error("Unsupported file format"));
-    }
-  } catch (error) {
-    fail(error);
-  }
-}
-
-function updateModelTransform() {
-  if (!currentModel) return;
-
-  const base = currentModel.userData.baseScale;
-  const scale = Number($("modelScale").value);
-
-  currentModel.scale.set(
-    base.x * scale,
-    base.y * scale,
-    base.z * scale
-  );
-
-  currentModel.position.x = Number($("modelX").value);
-  currentModel.position.y = Number($("modelY").value);
-  currentModel.position.z = Number($("modelZ").value);
-  currentModel.rotation.y =
-    THREE.MathUtils.degToRad(Number($("modelRotation").value));
-}
-
-$("importModelBtn").addEventListener("click", importModel);
-
-$("showModelBtn").addEventListener("click", () => {
-  if (!currentModel) {
-    toast("Pehle model import karo");
-    return;
-  }
-  modelVisible = !modelVisible;
-  currentModel.visible = modelVisible;
-});
-
-$("removeModelBtn").addEventListener("click", () => {
-  if (currentModel) {
-    root3D.remove(currentModel);
-    disposeObject(currentModel);
-    currentModel = null;
-  }
-  setStatus("modelStatus", "No model loaded.");
-});
-
-["modelX", "modelY", "modelZ", "modelScale", "modelRotation"]
-  .forEach(id => $(id).addEventListener("input", updateModelTransform));
-
-$("resetTransformBtn").addEventListener("click", () => {
+function resetTransform() {
   $("modelX").value = 0;
   $("modelY").value = 0;
   $("modelZ").value = 0;
   $("modelScale").value = 1;
   $("modelRotation").value = 0;
-  updateModelTransform();
-});
-
-/* Image and video imports */
-
-function createPartMaterial(type) {
-  const material = new THREE.MeshBasicMaterial({
-    color: 0xffffff,
-    side: THREE.DoubleSide,
-    transparent: true,
-    depthTest: true
-  });
-
-  if (type === "eye") {
-    material.map = new THREE.CanvasTexture($("eyeCropCanvas"));
-  } else if (type === "mouth") {
-    material.map = new THREE.CanvasTexture($("mouthCropCanvas"));
-  } else if (type === "image" && importedImage) {
-    material.map = new THREE.Texture(importedImage);
-    material.map.needsUpdate = true;
-  } else if (type === "video" && importedVideo) {
-    material.map = new THREE.VideoTexture(importedVideo);
-    material.map.colorSpace = THREE.SRGBColorSpace;
-  } else {
-    material.dispose();
-    return null;
+  if (currentModel) {
+    currentModel.position.set(0, 0, 0);
+    currentModel.rotation.set(0, 0, 0);
+    currentModel.scale.setScalar(modelBaseScale);
   }
-
-  material.needsUpdate = true;
-  return material;
 }
 
-function addPart(type) {
-  if (slots[selectedSlot]) {
-    toast("Selected slot occupied. Select another slot first.");
-    return;
-  }
-
-  if (type === "eye" && !eyeVisible) {
-    setCropVisibility("eye", true);
-  }
-  if (type === "mouth" && !mouthVisible) {
-    setCropVisibility("mouth", true);
-  }
-
-  const material = createPartMaterial(type);
-  if (!material) {
-    toast("Import the image/video or enable the live crop first.");
-    return;
-  }
-
-  const geometry = new THREE.PlaneGeometry(1.5, 1);
-  const mesh = new THREE.Mesh(geometry, material);
-
-  mesh.position.set(0, 0, 0.5);
-  mesh.userData.partType = type;
-  mesh.userData.baseWidth = 1.5;
-  mesh.userData.baseHeight = 1;
-  mesh.userData.baseMaterialMap = material.map;
-
-  root3D.add(mesh);
-  slots[selectedSlot] = mesh;
-  updatePartStatus();
-  loadPartControls();
-  toast("Part added to slot " + (selectedSlot + 1));
+function updateModelTransform() {
+  if (!currentModel) return;
+  currentModel.position.x = Number($("modelX").value);
+  currentModel.position.y = Number($("modelY").value);
+  currentModel.position.z = Number($("modelZ").value);
+  currentModel.scale.setScalar(modelBaseScale * Number($("modelScale").value));
+  currentModel.rotation.y = THREE.MathUtils.degToRad(Number($("modelRotation").value));
 }
 
-function updatePartStatus() {
-  const count = slots.filter(Boolean).length;
-  setStatus("partStatus", count + " / 4 slots used.");
-
-  const select = $("partSelect");
-  [...select.options].forEach((option, index) => {
-    option.textContent = "Slot " + (index + 1) +
-      (slots[index] ? " — " + slots[index].userData.partType : " — Empty");
-  });
+function togglePartVisibility() {
+  partsHidden = !partsHidden;
+  activeParts.forEach(part => part.group.visible = !partsHidden);
+  $("hidePartsBtn").classList.toggle("hidden", partsHidden);
+  $("showPartsBtn").classList.toggle("hidden", !partsHidden);
 }
 
-function loadPartControls() {
-  const part = slots[selectedSlot];
+function updatePartTransform(part) {
   if (!part) return;
-
-  $("partX").value = part.position.x;
-  $("partY").value = part.position.y;
-  $("partScale").value = part.scale.x || 1;
-  $("partRotation").value =
-    THREE.MathUtils.radToDeg(part.rotation.z);
+  part.group.position.set(Number($("partX").value), Number($("partY").value), 0);
+  part.group.scale.setScalar(Number($("partScale").value));
+  part.group.rotation.z = THREE.MathUtils.degToRad(Number($("partRotation").value));
 }
 
-function updatePartTransform() {
-  const part = slots[selectedSlot];
-  if (!part) return;
-
-  part.position.x = Number($("partX").value);
-  part.position.y = Number($("partY").value);
-
-  const scale = Number($("partScale").value);
-  part.scale.set(scale, scale, scale);
-
-  part.rotation.z =
-    THREE.MathUtils.degToRad(Number($("partRotation").value));
-}
-
-$("addPartBtn").addEventListener("click", () => {
-  addPart($("partType").value);
-});
-
-$("partSelect").addEventListener("change", event => {
-  selectedSlot = Number(event.target.value);
-  loadPartControls();
-});
-
-["partX", "partY", "partScale", "partRotation"]
-  .forEach(id => $(id).addEventListener("input", updatePartTransform));
-
-$("resetPartBtn").addEventListener("click", () => {
+function resetPartTransform() {
   $("partX").value = 0;
   $("partY").value = 0;
   $("partScale").value = 1;
   $("partRotation").value = 0;
-  updatePartTransform();
-});
+  updatePartTransform(activeParts[0]);
+}
 
-$("removePartBtn").addEventListener("click", () => {
-  const part = slots[selectedSlot];
-  if (!part) {
-    toast("Selected slot is empty");
-    return;
-  }
-
-  root3D.remove(part);
-  disposeObject(part);
-  slots[selectedSlot] = null;
-  updatePartStatus();
-  toast("Part removed");
-});
-
-$("duplicatePartBtn").addEventListener("click", () => {
-  const source = slots[selectedSlot];
-  if (!source) {
-    toast("Select a slot with a part");
-    return;
-  }
-
-  const freeSlot = slots.findIndex((part, index) =>
-    !part && index !== selectedSlot
-  );
-
-  if (freeSlot < 0) {
-    toast("All four slots are occupied");
-    return;
-  }
-
-  const clone = new THREE.Mesh(
-    source.geometry.clone(),
-    source.material.clone()
-  );
-  clone.position.copy(source.position);
-  clone.rotation.copy(source.rotation);
-  clone.scale.copy(source.scale);
-  clone.userData = { ...source.userData };
-
-  root3D.add(clone);
-  slots[freeSlot] = clone;
-  selectedSlot = freeSlot;
-  $("partSelect").value = String(freeSlot);
-  updatePartStatus();
-  loadPartControls();
-  toast("Part duplicated");
-});
-
-$("hidePartsBtn").addEventListener("click", () => {
-  partsVisible = false;
-  slots.forEach(part => {
-    if (part) part.visible = false;
-  });
-});
-
-$("showPartsBtn").addEventListener("click", () => {
-  partsVisible = true;
-  slots.forEach(part => {
-    if (part) part.visible = true;
-  });
-});
-
-/* Image import */
-
-$("importImageBtn").addEventListener("click", () => {
-  const file = $("imageFile").files[0];
-  if (!file) {
-    toast("Select an image first");
-    return;
-  }
-
-  if (imageURL) URL.revokeObjectURL(imageURL);
-  imageURL = URL.createObjectURL(file);
-
-  const img = new Image();
-  img.onload = () => {
-    importedImage = img;
-    setStatus("imageStatus", "Image ready: " + file.name);
-    toast("Image imported. Choose Image in New Part Type, then Add Part.");
-    URL.revokeObjectURL(imageURL);
-    imageURL = null;
-  };
-  img.onerror = () => {
-    setStatus("imageStatus", "Image could not be loaded.");
-  };
-  img.src = imageURL;
-});
-
-/* Video import */
-
-$("importVideoBtn").addEventListener("click", () => {
-  const file = $("videoFile").files[0];
-  if (!file) {
-    toast("Select a video first");
-    return;
-  }
-
-  if (videoURL) URL.revokeObjectURL(videoURL);
-  videoURL = URL.createObjectURL(file);
-
-  const media = document.createElement("video");
-  media.src = videoURL;
-  media.loop = true;
-  media.muted = true;
-  media.autoplay = true;
-  media.playsInline = true;
-
-  media.onloadeddata = async () => {
-    importedVideo = media;
-    try {
-      await media.play();
-    } catch (_) {
-      // Some browsers require a user gesture to play imported media.
-    }
-    setStatus("videoStatus", "Video ready: " + file.name);
-    toast("Video imported. Choose Video in New Part Type, then Add Part.");
-  };
-
-  media.onerror = () => {
-    setStatus("videoStatus", "Video could not be loaded.");
-  };
-});
-
-/* Export and import basic settings */
-
-function collectSettings() {
-  return {
-    version: 1,
+function exportSettings() {
+  const data = {
+    mirrorOn,
+    facingMode,
+    dotsOn,
     model: {
       x: $("modelX").value,
       y: $("modelY").value,
@@ -1198,118 +679,377 @@ function collectSettings() {
       scale: $("modelScale").value,
       rotation: $("modelRotation").value
     },
-    crops: {
-      eyeVisible,
-      mouthVisible,
-      eyeCropSize,
-      mouthCropSize,
-      dotsOn,
-      mirrorOn
-    },
-    selectedSlot,
-    parts: slots.map(part => part ? {
-      type: part.userData.partType,
-      x: part.position.x,
-      y: part.position.y,
-      z: part.position.z,
-      scaleX: part.scale.x,
-      scaleY: part.scale.y,
-      rotation: part.rotation.z
-    } : null)
+    eyeCropSize: $("eyeCropSize").value,
+    mouthCropSize: $("mouthCropSize").value
   };
-}
-
-$("exportSettingsBtn").addEventListener("click", () => {
-  const blob = new Blob(
-    [JSON.stringify(collectSettings(), null, 2)],
-    { type: "application/json" }
-  );
-
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
   a.download = "azeez-ar-settings.json";
   a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
-});
+  URL.revokeObjectURL(url);
+}
 
-$("importSettingsBtn").addEventListener("click", () => {
-  $("settingsFile").click();
-});
+function importSettings(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      mirrorOn = !!data.mirrorOn;
+      facingMode = data.facingMode || "user";
+      dotsOn = data.dotsOn !== false;
+      updateMirror();
+      $("dotsBtn").textContent = dotsOn ? "Green dots: ON" : "Green dots: OFF";
+      if (data.model) {
+        $("modelX").value = data.model.x ?? 0;
+        $("modelY").value = data.model.y ?? 0;
+        $("modelZ").value = data.model.z ?? 0;
+        $("modelScale").value = data.model.scale ?? 1;
+        $("modelRotation").value = data.model.rotation ?? 0;
+        updateModelTransform();
+      }
+      if (data.eyeCropSize) {
+        $("eyeCropSize").value = data.eyeCropSize;
+        setCropSize("eye", data.eyeCropSize);
+      }
+      if (data.mouthCropSize) {
+        $("mouthCropSize").value = data.mouthCropSize;
+        setCropSize("mouth", data.mouthCropSize);
+      }
+      toast("Settings imported");
+    } catch (err) {
+      toast("Invalid settings file");
+    }
+  };
+  reader.readAsText(file);
+}
+  
+/* ---------- 3D MODEL IMPORT ---------- */
 
-$("settingsFile").addEventListener("change", async event => {
-  const file = event.target.files[0];
+function disposeObject(object) {
+  object.traverse?.(child => {
+    if (child.geometry) child.geometry.dispose();
+    if (child.material) {
+      const materials = Array.isArray(child.material) ? child.material : [child.material];
+      materials.forEach(material => {
+        if (material.map && material.map !== eyeTexture && material.map !== mouthTexture) {
+          material.map.dispose?.();
+        }
+        material.dispose?.();
+      });
+    }
+  });
+}
+
+function removeCurrentModel() {
+  if (!currentModel) return;
+  scene.remove(currentModel);
+  disposeObject(currentModel);
+  currentModel = null;
+  setStatus("modelStatus", "No model loaded");
+}
+
+function fitObject(object) {
+  const box = new THREE.Box3().setFromObject(object);
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+  object.position.sub(center);
+
+  const maxDimension = Math.max(size.x, size.y, size.z) || 1;
+  modelBaseScale = 2.2 / maxDimension;
+  object.scale.setScalar(modelBaseScale);
+
+  currentModel = object;
+  scene.add(currentModel);
+  updateModelTransform();
+  setStatus("modelStatus", "3D model loaded");
+  toast("Model loaded");
+}
+
+async function importModel(file) {
   if (!file) return;
+  const extension = file.name.split(".").pop().toLowerCase();
+  const url = URL.createObjectURL(file);
 
   try {
-    const settings = JSON.parse(await file.text());
+    let object;
 
-    if (settings.model) {
-      $("modelX").value = settings.model.x ?? 0;
-      $("modelY").value = settings.model.y ?? 0;
-      $("modelZ").value = settings.model.z ?? 0;
-      $("modelScale").value = settings.model.scale ?? 1;
-      $("modelRotation").value = settings.model.rotation ?? 0;
-      updateModelTransform();
+    if (extension === "glb" || extension === "gltf") {
+      object = await new Promise((resolve, reject) => {
+        new GLTFLoader().load(url, result => resolve(result.scene), undefined, reject);
+      });
+    } else if (extension === "obj") {
+      object = await new Promise((resolve, reject) => {
+        new OBJLoader().load(url, resolve, undefined, reject);
+      });
+    } else if (extension === "fbx") {
+      object = await new Promise((resolve, reject) => {
+        new FBXLoader().load(url, resolve, undefined, reject);
+      });
+    } else {
+      throw new Error("Choose GLB, GLTF, OBJ or FBX");
     }
 
-    if (settings.crops) {
-      const crops = settings.crops;
-      eyeCropSize = Number(crops.eyeCropSize ?? 130);
-      mouthCropSize = Number(crops.mouthCropSize ?? 130);
-      $("eyeCropSize").value = eyeCropSize;
-      $("mouthCropSize").value = mouthCropSize;
-      $("eyeCropBox").style.width = eyeCropSize + "px";
-      $("mouthCropBox").style.width = mouthCropSize + "px";
-
-      setCropVisibility("eye", !!crops.eyeVisible);
-      setCropVisibility("mouth", !!crops.mouthVisible);
-
-      dotsOn = crops.dotsOn ?? true;
-      mirrorOn = crops.mirrorOn ?? false;
-      video.style.transform = mirrorOn ? "scaleX(-1)" : "none";
-      $("flipBtn").textContent = mirrorOn ? "MIRROR ON" : "MIRROR OFF";
-      $("dotsBtn").textContent = dotsOn ? "GREEN DOTS ON" : "GREEN DOTS OFF";
-    }
-
-    if (Number.isInteger(settings.selectedSlot) &&
-        settings.selectedSlot >= 0 &&
-        settings.selectedSlot < 4) {
-      selectedSlot = settings.selectedSlot;
-      $("partSelect").value = String(selectedSlot);
-      loadPartControls();
-    }
-
-    toast("Settings imported");
-  } catch (error) {
-    console.error(error);
-    toast("Invalid settings file");
+    removeCurrentModel();
+    fitObject(object);
+  } catch (err) {
+    console.error(err);
+    toast("Model import failed: " + (err.message || "Unsupported model"));
+    setStatus("modelStatus", "Model import failed");
+  } finally {
+    URL.revokeObjectURL(url);
   }
+}
 
-  event.target.value = "";
+/* ---------- LIVE EYE / MOUTH TEXTURES ---------- */
+
+function makeCropPart(texture, name) {
+  const group = new THREE.Group();
+  const geometry = new THREE.PlaneGeometry(1.5, 0.75);
+  const material = new THREE.MeshBasicMaterial({
+    map: texture,
+    transparent: false,
+    side: THREE.DoubleSide
+  });
+  const mesh = new THREE.Mesh(geometry, material);
+  group.add(mesh);
+  group.userData.partName = name;
+  return group;
+}
+
+function addLiveCropPart(type) {
+  const texture = type === "eye" ? eyeTexture : mouthTexture;
+  const group = makeCropPart(texture, type);
+  group.position.set(0, 0, 0.5);
+
+  const part = {
+    type,
+    group,
+    mesh: group.children[0]
+  };
+
+  activeParts.push(part);
+  scene.add(group);
+  $("partSelect").innerHTML = activeParts
+    .map((item, index) => `<option value="${index}">${index + 1}. ${item.type} crop</option>`)
+    .join("");
+
+  $("partSelect").value = String(activeParts.length - 1);
+  loadSelectedPart();
+  setStatus("partStatus", `${type} live crop added`);
+  toast(`${type === "eye" ? "Eye" : "Mouth"} crop added`);
+}
+
+function loadSelectedPart() {
+  const index = Number($("partSelect").value);
+  const part = activeParts[index];
+  if (!part) return;
+
+  $("partType").value = part.type;
+  $("partX").value = part.group.position.x;
+  $("partY").value = part.group.position.y;
+  $("partScale").value = part.group.scale.x || 1;
+  $("partRotation").value = THREE.MathUtils.radToDeg(part.group.rotation.z);
+}
+
+function removeSelectedPart() {
+  const index = Number($("partSelect").value);
+  const part = activeParts[index];
+  if (!part) return;
+
+  scene.remove(part.group);
+  disposeObject(part.group);
+  activeParts.splice(index, 1);
+
+  $("partSelect").innerHTML = activeParts
+    .map((item, i) => `<option value="${i}">${i + 1}. ${item.type} crop</option>`)
+    .join("");
+
+  if (activeParts.length) {
+    $("partSelect").value = "0";
+    loadSelectedPart();
+  }
+  setStatus("partStatus", activeParts.length ? "Part removed" : "No parts added");
+}
+
+/* ---------- IMAGE AND VIDEO IMPORT ---------- */
+
+function importImage(file) {
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  new THREE.TextureLoader().load(url, texture => {
+    if (importedImageTexture) importedImageTexture.dispose();
+    importedImageTexture = texture;
+    texture.colorSpace = THREE.SRGBColorSpace;
+
+    const group = new THREE.Group();
+    const material = new THREE.MeshBasicMaterial({
+      map: texture,
+      transparent: true,
+      side: THREE.DoubleSide
+    });
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.5), material);
+    group.add(mesh);
+    group.position.z = 0.6;
+
+    const part = { type: "image", group, mesh };
+    activeParts.push(part);
+    scene.add(group);
+
+    $("partSelect").innerHTML = activeParts
+      .map((item, i) => `<option value="${i}">${i + 1}. ${item.type}</option>`)
+      .join("");
+    $("partSelect").value = String(activeParts.length - 1);
+    loadSelectedPart();
+    setStatus("imageStatus", "Image loaded");
+    URL.revokeObjectURL(url);
+    toast("Image added");
+  }, undefined, err => {
+    console.error(err);
+    URL.revokeObjectURL(url);
+    toast("Image import failed");
+  });
+}
+
+function importVideo(file) {
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  const sourceVideo = document.createElement("video");
+  sourceVideo.src = url;
+  sourceVideo.loop = true;
+  sourceVideo.muted = true;
+  sourceVideo.playsInline = true;
+
+  sourceVideo.addEventListener("loadeddata", async () => {
+    try {
+      await sourceVideo.play();
+      if (importedVideoTexture) importedVideoTexture.dispose();
+
+      importedVideoTexture = new THREE.VideoTexture(sourceVideo);
+      importedVideoTexture.colorSpace = THREE.SRGBColorSpace;
+
+      const group = new THREE.Group();
+      const material = new THREE.MeshBasicMaterial({
+        map: importedVideoTexture,
+        side: THREE.DoubleSide
+      });
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.85), material);
+      group.add(mesh);
+      group.position.z = 0.7;
+
+      activeParts.push({ type: "video", group, mesh, sourceVideo });
+      scene.add(group);
+
+      $("partSelect").innerHTML = activeParts
+        .map((item, i) => `<option value="${i}">${i + 1}. ${item.type}</option>`)
+        .join("");
+      $("partSelect").value = String(activeParts.length - 1);
+      loadSelectedPart();
+      setStatus("videoStatus", "Video loaded and playing");
+      toast("Video added");
+    } catch (err) {
+      console.error(err);
+      toast("Video playback failed");
+    }
+  }, { once: true });
+
+  sourceVideo.addEventListener("error", () => {
+    URL.revokeObjectURL(url);
+    toast("Video import failed");
+  }, { once: true });
+}
+
+/* ---------- BUTTONS AND INPUTS ---------- */
+
+$("startCameraBtn").addEventListener("click", startCamera);
+$("stopCameraBtn").addEventListener("click", stopCamera);
+$("switchCameraBtn").addEventListener("click", switchCamera);
+$("flipBtn").addEventListener("click", setMirror);
+$("fullscreenBtn").addEventListener("click", setFullscreen);
+$("recordBtn").addEventListener("click", startRecording);
+$("stopRecordBtn").addEventListener("click", stopRecording);
+$("cleanScreenBtn").addEventListener("click", toggleCleanScreen);
+
+$("openOptions").addEventListener("click", openOptions);
+$("closeOptions").addEventListener("click", closeOptions);
+$("panelBackdrop").addEventListener("click", closeOptions);
+$("hideOptionsBtn").addEventListener("click", closeOptions);
+
+$("trackingBtn").addEventListener("click", () => {
+  if (trackingOn) stopTracking();
+  else startTracking();
 });
 
-$("hideOptionsBtn").addEventListener("click", closeSettings);
+$("dotsBtn").addEventListener("click", toggleDots);
+$("eyeCropBtn").addEventListener("click", toggleEyeCrop);
+$("hideEyeCropBtn").addEventListener("click", toggleEyeCrop);
+$("mouthCropBtn").addEventListener("click", toggleMouthCrop);
+$("hideMouthCropBtn").addEventListener("click", toggleMouthCrop);
 
+$("eyeCropSize").addEventListener("input", e => setCropSize("eye", e.target.value));
+$("mouthCropSize").addEventListener("input", e => setCropSize("mouth", e.target.value));
+
+$("importModelBtn").addEventListener("click", () => $("modelFile").click());
+$("modelFile").addEventListener("change", e => importModel(e.target.files[0]));
+$("showModelBtn").addEventListener("click", () => {
+  if (currentModel) currentModel.visible = true;
+});
+$("removeModelBtn").addEventListener("click", removeCurrentModel);
+
+$("importImageBtn").addEventListener("click", () => $("imageFile").click());
+$("imageFile").addEventListener("change", e => importImage(e.target.files[0]));
+$("importVideoBtn").addEventListener("click", () => $("videoFile").click());
+$("videoFile").addEventListener("change", e => importVideo(e.target.files[0]));
+
+["modelX", "modelY", "modelZ", "modelScale", "modelRotation"].forEach(id => {
+  $(id).addEventListener("input", updateModelTransform);
+});
+$("resetTransformBtn").addEventListener("click", resetTransform);
+
+$("addPartBtn").addEventListener("click", () => addLiveCropPart($("partType").value));
+$("duplicatePartBtn").addEventListener("click", () => {
+  const part = activeParts[Number($("partSelect").value)];
+  if (!part) return;
+  if (part.type === "eye" || part.type === "mouth") addLiveCropPart(part.type);
+  else toast("Use Import Image or Import Video to add another media layer");
+});
+$("removePartBtn").addEventListener("click", removeSelectedPart);
+$("partSelect").addEventListener("change", loadSelectedPart);
+["partX", "partY", "partScale", "partRotation"].forEach(id => {
+  $(id).addEventListener("input", () => updatePartTransform(activeParts[Number($("partSelect").value)]));
+});
+$("resetPartBtn").addEventListener("click", resetPartTransform);
+$("hidePartsBtn").addEventListener("click", togglePartVisibility);
+$("showPartsBtn").addEventListener("click", togglePartVisibility);
+
+$("exportSettingsBtn").addEventListener("click", exportSettings);
+$("importSettingsBtn").addEventListener("click", () => $("settingsFile").click());
+$("settingsFile").addEventListener("change", e => {
+  if (e.target.files[0]) importSettings(e.target.files[0]);
+});
 $("resetAllBtn").addEventListener("click", () => {
-  $("modelX").value = 0;
-  $("modelY").value = 0;
-  $("modelZ").value = 0;
-  $("modelScale").value = 1;
-  $("modelRotation").value = 0;
-  updateModelTransform();
-
-  setCropVisibility("eye", false);
-  setCropVisibility("mouth", false);
-
-  dotsOn = true;
-  $("dotsBtn").textContent = "GREEN DOTS ON";
-  $("dotsBtn").classList.remove("active");
-
-  toast("Controls reset. Imported files were kept.");
+  stopTracking();
+  stopCamera();
+  removeCurrentModel();
+  activeParts.forEach(part => {
+    scene.remove(part.group);
+    disposeObject(part.group);
+  });
+  activeParts = [];
+  $("partSelect").innerHTML = "";
+  resetTransform();
+  toast("Reset complete");
 });
 
-updatePartStatus();
+updateMirror();
+setCropSize("eye", $("eyeCropSize").value);
+setCropSize("mouth", $("mouthCropSize").value);
+initThree();
+setStatus("trackingPanelStatus", "Camera off — start camera first");
+setStatus("modelStatus", "No model loaded");
+setStatus("cropStatus", "Waiting for face tracking");
 </script>
+</div>
 </body>
 </html>
