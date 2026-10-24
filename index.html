@@ -937,21 +937,55 @@ updateCropSizes();
   
 /* PART 4: Recording, cleanup and final initialization */
 
+
+let recordingCanvas = null;
+let recordingContext = null;
+let recordingFrame = null;
+let recordingStream = null;
+
 function startRecording() {
-  if (!cameraStream) {
+  if (!cameraStream || !video.videoWidth) {
     setNotice("Start camera before recording");
     return;
   }
 
-  if (!window.MediaRecorder) {
-    setNotice("Recording is not supported by this browser");
+  if (!window.MediaRecorder || !renderer) {
+    setNotice("Recording is not supported");
     return;
   }
 
   try {
     recordedChunks = [];
 
-    // Record the camera stream; AR overlays are not included in this recording.
+    const width = video.videoWidth;
+    const height = video.videoHeight;
+
+    recordingCanvas = document.createElement("canvas");
+    recordingCanvas.width = width;
+    recordingCanvas.height = height;
+    recordingContext = recordingCanvas.getContext("2d");
+
+    const drawFrame = () => {
+      if (!recordingContext || !recordingCanvas) return;
+
+      recordingContext.drawImage(video, 0, 0, width, height);
+
+      const arCanvas = $("arCanvas");
+      recordingContext.drawImage(arCanvas, 0, 0, width, height);
+
+      const dots = $("dotsCanvas");
+      recordingContext.drawImage(dots, 0, 0, width, height);
+
+      if (recording) {
+        recordingFrame = requestAnimationFrame(drawFrame);
+      }
+    };
+
+    recording = true;
+    drawFrame();
+
+    recordingStream = recordingCanvas.captureStream(30);
+
     const options = {};
     if (MediaRecorder.isTypeSupported("video/webm;codecs=vp9")) {
       options.mimeType = "video/webm;codecs=vp9";
@@ -959,7 +993,7 @@ function startRecording() {
       options.mimeType = "video/webm";
     }
 
-    mediaRecorder = new MediaRecorder(cameraStream, options);
+    mediaRecorder = new MediaRecorder(recordingStream, options);
 
     mediaRecorder.ondataavailable = event => {
       if (event.data && event.data.size > 0) {
@@ -968,6 +1002,16 @@ function startRecording() {
     };
 
     mediaRecorder.onstop = () => {
+      if (recordingFrame) cancelAnimationFrame(recordingFrame);
+      recordingFrame = null;
+
+      if (recordingStream) {
+        recordingStream.getTracks().forEach(track => track.stop());
+      }
+      recordingStream = null;
+      recordingCanvas = null;
+      recordingContext = null;
+
       if (!recordedChunks.length) {
         setNotice("No recording data was captured");
         return;
@@ -984,27 +1028,33 @@ function startRecording() {
       link.click();
 
       setTimeout(() => URL.revokeObjectURL(url), 3000);
-      setNotice("Recording downloaded");
+      setNotice("AR recording downloaded");
     };
 
     mediaRecorder.start();
-    recording = true;
     $("recordBtn").textContent = "STOP RECORDING";
     $("recordBtn").classList.add("active");
     setStatus("RECORDING");
-    setNotice("Recording camera video");
+    setNotice("Recording camera and AR");
   } catch (error) {
+    recording = false;
     console.error("Recording error:", error);
     setNotice("Recording could not start");
   }
 }
 
 function stopRecording() {
+  recording = false;
+
+  if (recordingFrame) {
+    cancelAnimationFrame(recordingFrame);
+    recordingFrame = null;
+  }
+
   if (mediaRecorder && mediaRecorder.state !== "inactive") {
     mediaRecorder.stop();
   }
 
-  recording = false;
   $("recordBtn").textContent = "RECORD";
   $("recordBtn").classList.remove("active");
   setStatus(cameraStream ? "CAMERA ON" : "READY");
@@ -1014,6 +1064,7 @@ $("recordBtn").addEventListener("click", () => {
   if (recording) stopRecording();
   else startRecording();
 });
+  
 
 // Stop the camera and tracking cleanly when leaving the page.
 window.addEventListener("pagehide", () => {
