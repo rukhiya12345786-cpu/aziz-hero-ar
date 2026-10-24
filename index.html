@@ -494,7 +494,7 @@ function trackLoop() {
     const targetQuaternion = faceQuaternion.clone();
 targetQuaternion.y *= -1;
 
-currentModel.quaternion.slerp(targetQuaternion.multiply(sliderQuaternion), 0.4);
+currentModel.quaternion.slerp(targetQuaternion.multiply(sliderQuaternion), 0.5);
   }
       }
       const faces = result.faceLandmarks || [];
