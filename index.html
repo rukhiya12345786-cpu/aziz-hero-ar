@@ -2,577 +2,558 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Azeez AR Studio</title>
 <style>
-:root{color-scheme:dark;--bg:#080b12;--panel:#141b28;--line:#303b4e;--accent:#31f5a0}
-*{box-sizing:border-box}
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:#f7f9ff;font-family:Arial,sans-serif}
-button,input,select{font:inherit}
-button{background:#202a3a;color:white;border:1px solid var(--line);border-radius:9px;padding:10px 12px;cursor:pointer}
-button:disabled{opacity:.45}
-button:active{background:#34445b}
-#studio{position:fixed;inset:0;background:#080b12;overflow:hidden}
-#cameraVideo,#overlay,#threeRoot{position:absolute;inset:0;width:100%;height:100%}
-#cameraVideo{object-fit:contain;background:#080b12}
-#overlay{pointer-events:none}
-#threeRoot{pointer-events:none}
-#toolbar{position:absolute;z-index:5;top:env(safe-area-inset-top,8px);left:8px;right:8px;display:flex;flex-wrap:wrap;gap:6px}
-#toolbar button{font-size:12px;padding:10px}
-#status{position:absolute;z-index:6;left:8px;right:8px;bottom:10px;padding:10px;background:#101722e8;border:1px solid var(--line);border-radius:9px;font-size:12px;overflow-wrap:anywhere}
-#panel{position:absolute;z-index:7;top:70px;right:8px;bottom:55px;width:min(340px,94vw);overflow:auto;background:#101722f5;border:1px solid var(--line);border-radius:14px;padding:12px}
-#panel.hidden{display:none}
-.panelhead{display:flex;align-items:center;justify-content:space-between;gap:8px}
-h2{font-size:17px;margin:5px 0 12px}
-h3{font-size:13px;margin:17px 0 8px;color:var(--accent)}
-.field{display:block;margin:10px 0;font-size:12px;color:#dbe4f3}
-.field input[type=range]{display:block;width:100%;margin-top:8px}
-.row{display:flex;flex-wrap:wrap;gap:6px}
-.row button{flex:1}
-input[type=file]{width:100%;font-size:12px;margin:8px 0}
-#toast{display:none;position:absolute;z-index:10;top:76px;left:10px;right:10px;background:#29364a;padding:12px;border-radius:10px;font-size:13px;overflow-wrap:anywhere}
-#toast.show{display:block}
-#expressions{position:absolute;z-index:4;left:8px;top:145px;max-width:190px;padding:8px;background:#101722bb;border:1px solid #303b4e;border-radius:10px;font-size:12px;line-height:1.6}
-#expressions.hidden{display:none}
-#modelName{font-size:12px;color:#cbd5e1;overflow-wrap:anywhere}
-#hint{position:absolute;z-index:3;top:50%;left:12px;right:12px;transform:translateY(-50%);text-align:center;color:#a9b7ca;font-size:13px;pointer-events:none}
-@media (orientation:landscape){#toolbar{max-width:75vw}#panel{top:8px;bottom:48px}}
+:root {
+  --bg:#101114; --panel:#1b1d22; --panel2:#252830;
+  --line:#393d47; --text:#f4f5f7; --muted:#a7acb8;
+  --accent:#42df91; --blue:#5da9ff; --danger:#ff6464;
+}
+* { box-sizing:border-box; }
+html,body { margin:0; width:100%; height:100%; overflow:hidden; }
+body { background:var(--bg); color:var(--text); font:14px Arial,sans-serif; }
+button,input { font:inherit; }
+button {
+  border:1px solid var(--line); border-radius:9px;
+  background:var(--panel2); color:var(--text);
+  padding:11px 12px; cursor:pointer; touch-action:manipulation;
+}
+button:disabled { opacity:.45; cursor:not-allowed; }
+button.active { border-color:var(--accent); color:var(--accent); }
+button.primary { background:#176b42; border-color:#218653; }
+button.danger { background:#702c32; border-color:#9e3b44; }
+#app { position:relative; width:100%; height:100%; height:100dvh; overflow:hidden; background:#101114; }
+#cameraVideo,#arCanvas,#dotsCanvas {
+  position:absolute; inset:0; width:100%; height:100%;
+}
+#cameraVideo { z-index:1; object-fit:contain; background:#101114; }
+#arCanvas { z-index:2; pointer-events:none; }
+#dotsCanvas { z-index:3; pointer-events:none; }
+#cameraMessage {
+  position:absolute; z-index:4; inset:0; display:grid; place-content:center;
+  text-align:center; color:#c4c8d0; line-height:1.8; padding:25px;
+  pointer-events:none;
+}
+#topBar {
+  position:absolute; z-index:10; top:env(safe-area-inset-top,0px);
+  left:0; right:0; display:flex; align-items:center; gap:9px;
+  padding:10px; background:#101114c9; backdrop-filter:blur(8px);
+}
+#brand { font-size:13px; font-weight:bold; letter-spacing:1px; flex:1; }
+#trackingStatus { font-size:11px; color:var(--muted); white-space:nowrap; }
+#status {
+  position:absolute; z-index:10; left:10px; right:10px; top:65px;
+  padding:8px 10px; border-radius:8px; background:#101114b8;
+  color:#e5e7eb; font-size:12px; overflow-wrap:anywhere; pointer-events:none;
+}
+#bottomBar {
+  position:absolute; z-index:10; left:0; right:0;
+  bottom:env(safe-area-inset-bottom,0px);
+  display:flex; flex-wrap:wrap; gap:7px; justify-content:center;
+  padding:10px; background:#101114c9; backdrop-filter:blur(8px);
+}
+#bottomBar button { flex:1 1 105px; min-height:42px; font-size:12px; }
+.icon-button { width:42px; min-width:42px; height:42px; padding:0; font-size:20px; }
+#openOptions {
+  position:absolute; z-index:20; right:10px; top:50%; transform:translateY(-50%);
+  width:46px; height:54px; font-size:23px; background:#20242bdd;
+}
+#panelBackdrop {
+  position:absolute; z-index:29; inset:0; background:#0009; display:none;
+}
+#optionsPanel {
+  position:absolute; z-index:30; top:0; right:0; bottom:0;
+  width:min(390px,91vw); overflow-y:auto; overscroll-behavior:contain;
+  background:var(--panel); border-left:1px solid var(--line);
+  padding:12px; padding-top:env(safe-area-inset-top,12px);
+  padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));
+  transform:translateX(105%); visibility:hidden;
+  transition:transform .22s ease,visibility .22s;
+}
+#optionsPanel.open { transform:translateX(0); visibility:visible; }
+#panelBackdrop.open { display:block; }
+.panelHeader { display:flex; align-items:center; gap:8px; }
+.panelHeader h2 { font-size:17px; flex:1; margin:10px 0; }
+.section {
+  background:#14161a; border:1px solid var(--line);
+  border-radius:12px; padding:11px; margin:10px 0;
+}
+.section h3 { font-size:13px; margin:0 0 10px; color:var(--accent); }
+.buttonGrid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; }
+.buttonGrid button { min-width:0; font-size:12px; }
+.full { width:100%; margin-top:7px; }
+.field { margin:13px 0; }
+.fieldHead { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; }
+.fieldHead label { font-size:12px; color:#e1e4ea; }
+.fieldHead output { color:var(--accent); font-size:12px; font-variant-numeric:tabular-nums; }
+input[type=range] { width:100%; accent-color:var(--accent); }
+.slotRow { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+.slotRow button { padding:10px 4px; }
+#modelFile,#settingsFile { width:100%; margin-top:8px; font-size:12px; }
+.smallNote { color:var(--muted); font-size:11px; line-height:1.5; }
+#toast {
+  position:absolute; z-index:50; left:50%; bottom:100px;
+  transform:translateX(-50%); max-width:90%; padding:10px 14px;
+  background:#292d35; border:1px solid var(--line); border-radius:9px;
+  display:none; text-align:center;
+}
+#toast.show { display:block; }
+#cameraError { color:#ff9999; font-size:12px; overflow-wrap:anywhere; }
+#app.controls-hidden #topBar,
+#app.controls-hidden #status,
+#app.controls-hidden #bottomBar { display:none; }
+#app.controls-hidden #openOptions { display:block; }
+#app.sliders-hidden #sliderSection { display:none; }
+@media (orientation:landscape) {
+  #status { top:62px; max-width:55%; }
+  #bottomBar { right:55px; justify-content:flex-start; }
+  #bottomBar button { flex:0 1 auto; }
+}
 </style>
 </head>
 <body>
-<div id="studio">
-  <video id="cameraVideo" autoplay playsinline muted></video>
-  <div id="threeRoot"></div>
-  <canvas id="overlay"></canvas>
-  <div id="hint">AZEEZ AR STUDIO · Start camera to begin</div>
+<div id="app">
+  <video id="cameraVideo" autoplay muted playsinline></video>
+  <canvas id="arCanvas"></canvas>
+  <canvas id="dotsCanvas"></canvas>
 
-  <div id="toolbar">
-    <button id="startCamera">START CAMERA</button>
-    <button id="stopCamera" disabled>STOP CAMERA</button>
-    <button id="switchCamera">SWITCH CAMERA</button>
-    <button id="mirror">MIRROR OFF</button>
-    <button id="fullscreen">FULLSCREEN</button>
-    <button id="tracking">START TRACKING</button>
-    <button id="record">RECORD</button>
-    <button id="panelToggle">STUDIO CONTROLS</button>
-    <button id="hideDots">HIDE DOTS</button>
-    <button id="hideExpressions">HIDE EXPRESSIONS</button>
+  <div id="cameraMessage">
+    <div><strong>AZEEZ AR STUDIO</strong><br>Press START CAMERA to begin.</div>
   </div>
 
-  <div id="expressions" class="hidden">
-    <b>FACE EXPRESSIONS</b><br>
-    Face: <span id="faceFound">Not detected</span><br>
-    Mouth: <span id="mouthState">—</span><br>
-    Blink: <span id="blinkState">—</span><br>
-    Smile: <span id="smileState">—</span><br>
-    Head: <span id="headState">—</span>
+  <header id="topBar">
+    <button id="hideOptionsBtn" class="icon-button" title="Hide controls">☰</button>
+    <div id="brand">AZEEZ AR STUDIO</div>
+    <div id="trackingStatus">TRACKING OFF</div>
+  </header>
+
+  <div id="status" role="status">Ready. Start the camera.</div>
+
+  <div id="bottomBar">
+    <button id="startCameraBtn" class="primary">START CAMERA</button>
+    <button id="stopCameraBtn" class="danger">STOP CAMERA</button>
+    <button id="switchCameraBtn">SWITCH CAMERA</button>
+    <button id="flipBtn">MIRROR: ON</button>
+    <button id="fullscreenBtn">FULL SCREEN</button>
+    <button id="recordBtn">● RECORD</button>
+    <button id="stopRecordBtn" disabled>STOP RECORDING</button>
   </div>
 
-  <aside id="panel" class="hidden">
-    <div class="panelhead">
-      <h2>AR Studio Controls</h2>
-      <button id="closePanel">CLOSE</button>
+  <button id="openOptions" aria-label="Open options">☷</button>
+  <div id="panelBackdrop"></div>
+
+  <aside id="optionsPanel" aria-label="AR options">
+    <div class="panelHeader">
+      <h2>AR Controls</h2>
+      <button id="closeOptions" class="icon-button" aria-label="Close options">✕</button>
     </div>
 
-    <h3>3D MODEL</h3>
-    <label class="field">Import model (GLB / GLTF / OBJ / FBX)
+    <div class="section">
+      <h3>CAMERA & TRACKING</h3>
+      <div class="buttonGrid">
+        <button id="trackingBtn" class="primary">START TRACKING</button>
+        <button id="dotsBtn">GREEN DOTS: ON</button>
+        <button id="micBtn">MIC: OFF</button>
+        <button id="hideSlidersBtn">HIDE SLIDERS</button>
+        <button id="cleanScreenBtn">HIDE CONTROLS</button>
+        <button id="exitCleanBtn">SHOW CONTROLS</button>
+      </div>
+      <p id="cameraError"></p>
+    </div>
+
+    <div class="section">
+      <h3>3D MODEL</h3>
       <input id="modelFile" type="file" accept=".glb,.gltf,.obj,.fbx">
-    </label>
-    <div id="modelName">No model selected</div>
-    <div class="row">
-      <button id="removeModel">REMOVE MODEL</button>
-      <button id="resetSliders">RESET TRANSFORM</button>
+      <div class="buttonGrid">
+        <button id="importModelBtn">SELECT MODEL</button>
+        <button id="showModelBtn">MODEL: SHOW</button>
+        <button id="removeModelBtn" class="danger">REMOVE MODEL</button>
+        <button id="autoFitBtn">AUTO FIT</button>
+      </div>
+      <p id="modelStatus" class="smallNote">3D model renderer is being connected.</p>
     </div>
 
-    <label class="field">Scale <span id="scaleVal">1.0</span>
-      <input id="scale" type="range" min="0.1" max="3" step="0.05" value="1">
-    </label>
-    <label class="field">Left / Right <span id="xVal">0</span>
-      <input id="posX" type="range" min="-2" max="2" step="0.05" value="0">
-    </label>
-    <label class="field">Up / Down <span id="yVal">0</span>
-      <input id="posY" type="range" min="-2" max="2" step="0.05" value="0">
-    </label>
-    <label class="field">Depth <span id="zVal">0</span>
-      <input id="posZ" type="range" min="-3" max="3" step="0.05" value="0">
-    </label>
-    <label class="field">Rotation <span id="rotVal">0°</span>
-      <input id="rotation" type="range" min="-180" max="180" step="1" value="0">
-    </label>
+    <div id="sliderSection">
+      <div class="section">
+        <h3>MODEL SLOT</h3>
+        <div class="slotRow">
+          <button class="slotBtn active" data-slot="0">SLOT 1</button>
+          <button class="slotBtn" data-slot="1">SLOT 2</button>
+          <button class="slotBtn" data-slot="2">SLOT 3</button>
+          <button class="slotBtn" data-slot="3">SLOT 4</button>
+        </div>
+        <p class="smallNote">Four model slots.</p>
+      </div>
 
-    <h3>TRACKING</h3>
-    <div class="row">
-      <button id="dotsToggle">GREEN DOTS ON</button>
-      <button id="expressionToggle">EXPRESSIONS ON</button>
-    </div>
-    <label class="field">Tracking sensitivity
-      <input id="sensitivity" type="range" min="1" max="10" step="1" value="5">
-    </label>
+      <div class="section">
+        <h3>MODEL TRANSFORM</h3>
+        <div id="modelSliders"></div>
+        <div class="buttonGrid">
+          <button id="resetTransformBtn">RESET TRANSFORM</button>
+          <button id="resetAllBtn">RESET ALL</button>
+        </div>
+      </div>
 
-    <h3>SETTINGS</h3>
-    <div class="row">
-      <button id="exportSettings">EXPORT SETTINGS</button>
-      <button id="importSettingsBtn">IMPORT SETTINGS</button>
+      <div class="section">
+        <h3>FACE ATTACHMENT</h3>
+        <div id="faceSliders"></div>
+        <button id="resetFaceBtn" class="full">RESET FACE SLIDERS</button>
+      </div>
+
+      <div class="section">
+        <h3>GIZMOS & SETTINGS</h3>
+        <div class="buttonGrid">
+          <button id="moveGizmoBtn">MOVE</button>
+          <button id="rotateGizmoBtn">ROTATE</button>
+          <button id="scaleGizmoBtn">SCALE</button>
+          <button id="hideGizmosBtn">HIDE GIZMOS</button>
+          <button id="exportSettingsBtn">EXPORT SETTINGS</button>
+          <button id="importSettingsBtn">IMPORT SETTINGS</button>
+        </div>
+        <input id="settingsFile" type="file" accept="application/json,.json" hidden>
+        <button id="clearModelBtn" class="full danger">CLEAR MODEL SELECTION</button>
+      </div>
     </div>
-    <input id="importSettings" type="file" accept=".json,application/json">
-    <p style="font-size:11px;color:#a9b7ca">Face tracking and expression detection need the MediaPipe library and model to load successfully. 3D model formats require the corresponding Three.js loader.</p>
   </aside>
 
   <div id="toast"></div>
-  <div id="status">Ready. Start camera first.</div>
+
 </div>
-
-
-</body>
-</html>
-
 <script type="module">
 const $ = id => document.getElementById(id);
+const app = $("app");
 const video = $("cameraVideo");
-const canvas = $("overlay");
-const ctx = canvas.getContext("2d");
+const dotsCanvas = $("dotsCanvas");
+const dotsCtx = dotsCanvas.getContext("2d");
+const arCanvas = $("arCanvas");
+const arCtx = arCanvas.getContext("2d");
 
-let stream = null, facing = "user", mirrored = false;
-let tracker = null, tracking = false, showDots = true;
-let showExpressions = true, frame = 0, lastTime = -1;
-let recorder = null, chunks = [];
-let THREE = null, scene = null, camera3D = null, renderer = null;
-let model = null, animationFrame = null;
-let loaders = {};
+let stream = null, tracker = null, running = false, loading = false, busy = false;
+let mirrored = true, showDots = true, showModel = true, micEnabled = false;
+let facingMode = "user", recorder = null, recordedChunks = [], gizmoMode = "";
+let activeSlot = 0, rafId = 0, lastStatus = "";
 
-function status(s) { $("status").textContent = s; }
-function toast(s) {
+function setStatus(message) { $("status").textContent = message; }
+function setTrackingStatus(message) { $("trackingStatus").textContent = message; }
+function toast(message) {
   const el = $("toast");
-  el.textContent = s;
+  el.textContent = message;
   el.classList.add("show");
-  clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => el.classList.remove("show"), 3500);
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => el.classList.remove("show"), 2400);
 }
-function resize() {
-  const r = canvas.getBoundingClientRect();
-  const d = Math.min(window.devicePixelRatio || 1, 2);
-  canvas.width = Math.max(1, Math.round(r.width * d));
-  canvas.height = Math.max(1, Math.round(r.height * d));
-  ctx.setTransform(d, 0, 0, d, 0, 0);
-  if (renderer && camera3D) {
-    renderer.setSize(r.width, r.height, false);
-    camera3D.aspect = r.width / Math.max(1, r.height);
-    camera3D.updateProjectionMatrix();
+function cameraError(message = "") { $("cameraError").textContent = message; }
+function clearDots() { dotsCtx.clearRect(0, 0, dotsCanvas.width, dotsCanvas.height); }
+
+function resizeCanvases() {
+  const w = video.videoWidth || window.innerWidth;
+  const h = video.videoHeight || window.innerHeight;
+  if (dotsCanvas.width !== w || dotsCanvas.height !== h) {
+    dotsCanvas.width = w; dotsCanvas.height = h;
+  }
+  if (arCanvas.width !== w || arCanvas.height !== h) {
+    arCanvas.width = w; arCanvas.height = h;
   }
 }
-function clearDots() {
-  const r = canvas.getBoundingClientRect();
-  ctx.clearRect(0, 0, r.width, r.height);
+function syncMirror() {
+  video.style.transform = mirrored ? "scaleX(-1)" : "scaleX(1)";
+  $("flipBtn").textContent = "MIRROR: " + (mirrored ? "ON" : "OFF");
+  $("flipBtn").classList.toggle("active", mirrored);
 }
-function setMirror() {
-  video.style.transform = mirrored ? "scaleX(-1)" : "none";
-  $("mirror").textContent = mirrored ? "MIRROR ON" : "MIRROR OFF";
+function updateButtons() {
+  $("trackingBtn").textContent = running ? "STOP TRACKING" : "START TRACKING";
+  $("trackingBtn").classList.toggle("active", running);
+  setTrackingStatus(running ? "TRACKING ON" : "TRACKING OFF");
+  $("dotsBtn").textContent = "GREEN DOTS: " + (showDots ? "ON" : "OFF");
+  $("dotsBtn").classList.toggle("active", showDots);
+  $("showModelBtn").textContent = "MODEL: " + (showModel ? "SHOW" : "HIDE");
 }
-async function startCamera() {
+function stopTracks() {
+  if (stream) { stream.getTracks().forEach(track => track.stop()); stream = null; }
+  video.srcObject = null;
+}
+async function openCamera() {
+  if (busy) return;
+  if (stream && stream.getVideoTracks().some(t => t.readyState === "live")) {
+    toast("Camera is already running."); return;
+  }
+  busy = true; cameraError(""); $("startCameraBtn").disabled = true;
   try {
-    if (stream) return;
-    if (!navigator.mediaDevices?.getUserMedia) {
-      throw Error("Camera needs HTTPS and browser permission.");
-    }
+    if (!navigator.mediaDevices?.getUserMedia)
+      throw new Error("Open the HTTPS GitHub Pages site in Chrome and allow camera access.");
+    setStatus("Opening camera...");
     stream = await navigator.mediaDevices.getUserMedia({
-      audio: false,
-      video: {
-        facingMode: { ideal: facing },
-        width: { ideal: 1280 },
-        height: { ideal: 720 }
-      }
+      audio:false,
+      video:{ facingMode:{ideal:facingMode}, width:{ideal:640}, height:{ideal:480} }
     });
     video.srcObject = stream;
     await video.play();
-    $("startCamera").disabled = true;
-    $("stopCamera").disabled = false;
-    $("hint").style.display = "none";
-    resize();
-    status("Camera running. Start tracking when ready.");
-    toast("Camera started.");
-  } catch (e) {
-    console.error(e);
-    status("Camera error: " + e.message);
+    $("cameraMessage").style.display = "none";
+    syncMirror(); setStatus("Camera ready. Press START TRACKING."); cameraError("");
+  } catch(err) {
+    stopTracks(); $("cameraMessage").style.display = "grid";
+    setStatus("Camera error: " + (err.message || String(err)));
+    cameraError(err.message || String(err));
+  } finally {
+    busy = false; $("startCameraBtn").disabled = false;
   }
 }
+async function startTracking() {
+  if (loading || running) return;
+  if (!stream || video.readyState < 2) { toast("Start the camera first."); return; }
+  loading = true; $("trackingBtn").disabled = true; cameraError("");
+  try {
+    setStatus("Loading MediaPipe tracking library...");
+    const mp = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.mjs");
+    const vision = await mp.FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+    );
+    setStatus("Loading face tracking model...");
+    tracker = await mp.FaceLandmarker.createFromOptions(vision, {
+      baseOptions:{
+        modelAssetPath:"https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+        delegate:"CPU"
+      },
+      runningMode:"VIDEO", numFaces:1
+    });
+    running = true; updateButtons(); setStatus("Tracking running. Look left and right.");
+    rafId = requestAnimationFrame(detectFace);
+  } catch(err) {
+    running = false;
+    if (tracker) { try { tracker.close(); } catch(_) {} tracker = null; }
+    updateButtons(); setStatus("Tracking error: " + (err.message || String(err)));
+    cameraError(err.message || String(err));
+  } finally {
+    loading = false; $("trackingBtn").disabled = false;
+  }
+}
+function detectFace() {
+  if (!running || !tracker) return;
+  try {
+    if (video.readyState >= 2 && video.videoWidth > 0) {
+      resizeCanvases(); clearDots();
+      const result = tracker.detectForVideo(video, performance.now());
+      const faces = result.faceLandmarks || [];
+      if (faces.length > 0) {
+        if (lastStatus !== "face") { setStatus("FACE DETECTED ✓"); lastStatus = "face"; }
+        if (showDots) {
+          dotsCtx.fillStyle = "#00ff66";
+          for (const point of faces[0]) {
+            const x = (mirrored ? 1 - point.x : point.x) * dotsCanvas.width;
+            const y = point.y * dotsCanvas.height;
+            dotsCtx.beginPath(); dotsCtx.arc(x, y, 2, 0, Math.PI * 2); dotsCtx.fill();
+          }
+        }
+      } else if (lastStatus !== "no-face") {
+        setStatus("Tracking running — face not detected."); lastStatus = "no-face";
+      }
+    }
+  } catch(err) {
+    stopTracking(); setStatus("Tracking error: " + (err.message || String(err)));
+    cameraError(err.message || String(err)); return;
+  }
+  if (running) rafId = requestAnimationFrame(detectFace);
+}
 function stopTracking() {
-  tracking = false;
-  if (frame) cancelAnimationFrame(frame);
-  frame = 0;
-  clearDots();
-  $("tracking").textContent = "START TRACKING";
-  $("faceFound").textContent = "Not detected";
-  status("Tracking stopped.");
+  running = false; cancelAnimationFrame(rafId); clearDots();
+  if (tracker) { try { tracker.close(); } catch(_) {} tracker = null; }
+  lastStatus = ""; updateButtons();
+  if (stream) setStatus("Camera running. Tracking stopped.");
 }
 function stopCamera() {
   stopTracking();
-  if (recorder && recorder.state !== "inactive") recorder.stop();
-  if (stream) stream.getTracks().forEach(t => t.stop());
-  stream = null;
-  video.srcObject = null;
-  $("startCamera").disabled = false;
-  $("stopCamera").disabled = true;
-  $("hint").style.display = "block";
-  status("Camera stopped.");
+  if (recorder && recorder.state !== "inactive") { try { recorder.stop(); } catch(_) {} }
+  stopTracks(); $("cameraMessage").style.display = "grid";
+  setStatus("Camera stopped."); cameraError("");
 }
 async function switchCamera() {
-  const active = !!stream;
-  if (active) stopCamera();
-  facing = facing === "user" ? "environment" : "user";
-  if (active) await startCamera();
-  else toast(facing === "user" ? "Front camera selected" : "Back camera selected");
+  const wasRunning = running;
+  stopTracking(); stopTracks();
+  facingMode = facingMode === "user" ? "environment" : "user";
+  await openCamera();
+  if (stream) setStatus("Camera switched. " + (wasRunning ? "Press START TRACKING again." : "Camera ready."));
 }
-
-async function loadFaceTracker() {
-  if (tracker) return tracker;
-  status("Loading MediaPipe library...");
-  const mp = await import(
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.mjs"
-  );
-  const vision = await mp.FilesetResolver.forVisionTasks(
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
-  );
-  status("Downloading face landmark model...");
-  tracker = await mp.FaceLandmarker.createFromOptions(vision, {
-    baseOptions: {
-      modelAssetPath:
-        "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-      delegate: "CPU"
-    },
-    runningMode: "VIDEO",
-    numFaces: 1,
-    outputFaceBlendshapes: true
-  });
-  return tracker;
-}
-
-async function startTracking() {
-  if (!stream) {
-    toast("Start camera first.");
-    return;
-  }
-  if (tracking) {
-    stopTracking();
-    return;
-  }
-  $("tracking").disabled = true;
+async function toggleFullscreen() {
   try {
-    await loadFaceTracker();
-    tracking = true;
-    lastTime = -1;
-    $("tracking").textContent = "STOP TRACKING";
-    status("Tracking active. Look at the camera.");
-    frame = requestAnimationFrame(trackFrame);
-  } catch (e) {
-    console.error("MediaPipe setup failed:", e);
-    status("Tracking load failed: " + e.message);
-    toast("Library/model could not load. Check network or CDN access.");
-  } finally {
-    $("tracking").disabled = false;
-  }
+    if (!document.fullscreenElement) {
+      await app.requestFullscreen(); $("fullscreenBtn").textContent = "EXIT FULL SCREEN";
+    } else { await document.exitFullscreen(); $("fullscreenBtn").textContent = "FULL SCREEN"; }
+  } catch(_) { toast("Fullscreen is not supported here. Try Chrome's menu."); }
 }
+function openPanel() { $("optionsPanel").classList.add("open"); $("panelBackdrop").classList.add("open"); }
+function closePanel() { $("optionsPanel").classList.remove("open"); $("panelBackdrop").classList.remove("open"); }
+function showControls() { app.classList.remove("controls-hidden"); }
+function hideControls() { app.classList.add("controls-hidden"); closePanel(); }
 
-function landmarkXY(p, w, h, rect) {
-  const vw = video.videoWidth || w;
-  const vh = video.videoHeight || h;
-  const scale = Math.min(w / vw, h / vh);
-  const ox = (w - vw * scale) / 2;
-  const oy = (h - vh * scale) / 2;
-  const x = mirrored ? 1 - p.x : p.x;
-  return { x: ox + x * vw * scale, y: oy + p.y * vh * scale };
-}
+$("startCameraBtn").addEventListener("click", openCamera);
+$("stopCameraBtn").addEventListener("click", stopCamera);
+$("switchCameraBtn").addEventListener("click", switchCamera);
+$("flipBtn").addEventListener("click", () => { mirrored = !mirrored; syncMirror(); });
+$("fullscreenBtn").addEventListener("click", toggleFullscreen);
+document.addEventListener("fullscreenchange", () => {
+  $("fullscreenBtn").textContent = document.fullscreenElement ? "EXIT FULL SCREEN" : "FULL SCREEN";
+});
+$("trackingBtn").addEventListener("click", () => running ? stopTracking() : startTracking());
+$("dotsBtn").addEventListener("click", () => { showDots = !showDots; if (!showDots) clearDots(); updateButtons(); });
+$("hideOptionsBtn").addEventListener("click", hideControls);
+$("openOptions").addEventListener("click", () => { showControls(); openPanel(); });
+$("closeOptions").addEventListener("click", closePanel);
+$("panelBackdrop").addEventListener("click", closePanel);
+$("cleanScreenBtn").addEventListener("click", hideControls);
+$("exitCleanBtn").addEventListener("click", showControls);
+$("hideSlidersBtn").addEventListener("click", () => {
+  app.classList.toggle("sliders-hidden");
+  $("hideSlidersBtn").textContent = app.classList.contains("sliders-hidden") ? "SHOW SLIDERS" : "HIDE SLIDERS";
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape") closePanel(); });
 
-function updateExpression(points, result) {
-  if (!showExpressions) return;
-  $("faceFound").textContent = points ? "Detected" : "Not detected";
-  if (!points) {
-    $("mouthState").textContent = "—";
-    $("blinkState").textContent = "—";
-    $("smileState").textContent = "—";
-    $("headState").textContent = "—";
-    return;
-  }
-
-  // Approximate mouth opening from face landmark distances.
-  const dist = (a, b) => Math.hypot(points[a].x - points[b].x,
-                                   points[a].y - points[b].y);
-  const mouthOpen = dist(13, 14) > 0.025;
-  const leftEye = dist(159, 145);
-  const rightEye = dist(386, 374);
-  const blink = leftEye < 0.008 || rightEye < 0.008;
-  $("mouthState").textContent = mouthOpen ? "Open" : "Closed";
-  $("blinkState").textContent = blink ? "Blink / eyes closed" : "Eyes open";
-
-  const categories = result.faceBlendshapes?.[0]?.categories || [];
-  const score = name => categories.find(c => c.categoryName === name)?.score || 0;
-  $("smileState").textContent =
-    (score("mouthSmileLeft") + score("mouthSmileRight")) / 2 > 0.45
-      ? "Smile detected" : "Neutral / low smile";
-
-  const nose = points[1];
-  const left = points[234];
-  const right = points[454];
-  const yaw = nose.x - (left.x + right.x) / 2;
-  $("headState").textContent =
-    yaw > 0.025 ? "Turned right" : yaw < -0.025 ? "Turned left" : "Facing forward";
-}
-
-function trackFrame() {
-  if (!tracking || !stream || !tracker) return;
-  frame = requestAnimationFrame(trackFrame);
-  if (video.readyState < 2 || video.currentTime === lastTime) return;
-  lastTime = video.currentTime;
-
+$("showModelBtn").addEventListener("click", () => {
+  showModel = !showModel; updateButtons(); toast("Model visibility setting saved.");
+});
+$("importModelBtn").addEventListener("click", () => $("modelFile").click());
+$("modelFile").addEventListener("change", () => {
+  const file = $("modelFile").files?.[0]; if (!file) return;
+  $("modelStatus").textContent = "Selected: " + file.name + ". Connect the 3D renderer in app.js.";
+  toast("Model selected.");
+});
+$("removeModelBtn").addEventListener("click", () => {
+  $("modelFile").value = ""; $("modelStatus").textContent = "No model selected."; toast("Model selection cleared.");
+});
+$("clearModelBtn").addEventListener("click", () => {
+  $("modelFile").value = ""; $("modelStatus").textContent = "No model selected.";
+});
+$("autoFitBtn").addEventListener("click", () => toast("Auto-fit requires the 3D renderer."));
+$("micBtn").addEventListener("click", () => {
+  micEnabled = !micEnabled; $("micBtn").textContent = "MIC: " + (micEnabled ? "ON" : "OFF");
+  toast("Microphone is not connected to recording yet.");
+});
+$("recordBtn").addEventListener("click", async () => {
+  if (!stream) { toast("Start the camera first."); return; }
+  if (!window.MediaRecorder) { toast("Recording is not supported by this browser."); return; }
   try {
-    const result = tracker.detectForVideo(video, performance.now());
-    clearDots();
-    const points = result.faceLandmarks?.[0] || null;
-    updateExpression(points, result);
-
-    if (!points || !showDots) return;
-
-    const r = canvas.getBoundingClientRect();
-    ctx.fillStyle = "#31f5a0";
-    const radius = Math.max(1.5, Number($("sensitivity").value) * 0.35);
-    for (const p of points) {
-      const xy = landmarkXY(p, r.width, r.height, r);
-      ctx.beginPath();
-      ctx.arc(xy.x, xy.y, radius, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  } catch (e) {
-    console.error("Tracking frame error:", e);
-    status("Tracking frame error: " + e.message);
-  }
-}
-
-async function loadThree() {
-  if (THREE) return;
-  status("Loading 3D engine...");
-  THREE = await import("https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js");
-  const root = $("threeRoot");
-  scene = new THREE.Scene();
-  camera3D = new THREE.PerspectiveCamera(45, root.clientWidth / Math.max(1, root.clientHeight), 0.1, 100);
-  camera3D.position.set(0, 0, 6);
-  renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-  renderer.setSize(root.clientWidth, root.clientHeight);
-  renderer.setClearColor(0x000000, 0);
-  root.appendChild(renderer.domElement);
-  renderer.domElement.style.cssText = "position:absolute;inset:0;width:100%;height:100%;pointer-events:none";
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x334455, 2));
-  const light = new THREE.DirectionalLight(0xffffff, 2);
-  light.position.set(2, 3, 5);
-  scene.add(light);
-  function animate() {
-    animationFrame = requestAnimationFrame(animate);
-    if (renderer) renderer.render(scene, camera3D);
-  }
-  animate();
-}
-
-async function loadModel(file) {
-  if (!file) return;
-  const ext = file.name.split(".").pop().toLowerCase();
-  if (!["glb", "gltf", "obj", "fbx"].includes(ext)) {
-    toast("Supported formats: GLB, GLTF, OBJ, FBX");
-    return;
-  }
-  try {
-    await loadThree();
-    status("Loading 3D model...");
-    const url = URL.createObjectURL(file);
-    let loaded;
-    if (ext === "glb" || ext === "gltf") {
-      const mod = await import("https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js");
-      if (!loaders.gltf) loaders.gltf = new mod.GLTFLoader();
-      loaded = await new Promise((resolve, reject) =>
-        loaders.gltf.load(url, data => resolve(data.scene), undefined, reject));
-    } else if (ext === "obj") {
-      const mod = await import("https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/OBJLoader.js");
-      if (!loaders.obj) loaders.obj = new mod.OBJLoader();
-      const text = await file.text();
-      loaded = loaders.obj.parse(text);
-    } else {
-      const mod = await import("https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/FBXLoader.js");
-      if (!loaders.fbx) loaders.fbx = new mod.FBXLoader();
-      loaded = await new Promise((resolve, reject) =>
-        loaders.fbx.load(url, resolve, undefined, reject));
-    }
-    URL.revokeObjectURL(url);
-    if (model) scene.remove(model);
-    model = loaded;
-    const box = new THREE.Box3().setFromObject(model);
-    const size = box.getSize(new THREE.Vector3());
-    const center = box.getCenter(new THREE.Vector3());
-    model.position.sub(center);
-    const maxDim = Math.max(size.x, size.y, size.z) || 1;
-    model.scale.setScalar(2.5 / maxDim);
-    model.userData.baseScale = model.scale.x;
-    scene.add(model);
-    $("modelName").textContent = file.name;
-    applyTransforms();
-    status("3D model loaded.");
-    toast("Model loaded.");
-  } catch (e) {
-    console.error("3D model loading failed:", e);
-    status("Model error: " + e.message);
-    toast("Model failed to load. Check format and internet.");
-  }
-}
-
-function applyTransforms() {
-  if (!model) return;
-  const s = Number($("scale").value);
-  model.scale.setScalar((model.userData.baseScale || 1) * s);
-  model.position.x = Number($("posX").value);
-  model.position.y = Number($("posY").value);
-  model.position.z = Number($("posZ").value);
-  model.rotation.y = Number($("rotation").value) * Math.PI / 180;
-  $("scaleVal").textContent = s.toFixed(2);
-  $("xVal").textContent = $("posX").value;
-  $("yVal").textContent = $("posY").value;
-  $("zVal").textContent = $("posZ").value;
-  $("rotVal").textContent = $("rotation").value + "°";
-}
-function resetTransforms() {
-  $("scale").value = 1;
-  $("posX").value = 0;
-  $("posY").value = 0;
-  $("posZ").value = 0;
-  $("rotation").value = 0;
-  applyTransforms();
-}
-function exportSettings() {
-  const data = {};
-  ["scale", "posX", "posY", "posZ", "rotation", "sensitivity"].forEach(id => data[id] = $(id).value);
-  data.mirrored = mirrored;
-  data.showDots = showDots;
-  data.showExpressions = showExpressions;
-  const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "azeez-ar-settings.json";
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1500);
-}
-function importSettings(file) {
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    try {
-      const data = JSON.parse(reader.result);
-      ["scale", "posX", "posY", "posZ", "rotation", "sensitivity"].forEach(id => {
-        if (data[id] !== undefined) $(id).value = data[id];
-      });
-      if (typeof data.mirrored === "boolean") mirrored = data.mirrored;
-      if (typeof data.showDots === "boolean") showDots = data.showDots;
-      if (typeof data.showExpressions === "boolean") showExpressions = data.showExpressions;
-      setMirror();
-      $("dotsToggle").textContent = showDots ? "GREEN DOTS ON" : "GREEN DOTS OFF";
-      $("hideDots").textContent = showDots ? "HIDE DOTS" : "SHOW DOTS";
-      $("expressionToggle").textContent = showExpressions ? "EXPRESSIONS ON" : "EXPRESSIONS OFF";
-      $("hideExpressions").textContent = showExpressions ? "HIDE EXPRESSIONS" : "SHOW EXPRESSIONS";
-      $("expressions").classList.toggle("hidden", !showExpressions);
-      applyTransforms();
-      toast("Settings imported.");
-    } catch (e) {
-      toast("Invalid settings JSON file.");
-    }
-  };
-  reader.readAsText(file);
-}
-function toggleRecord() {
-  if (recorder && recorder.state !== "inactive") {
-    recorder.stop();
-    $("record").textContent = "RECORD";
-    return;
-  }
-  if (!stream) return toast("Start camera before recording.");
-  if (!window.MediaRecorder) return toast("Recording unsupported in this browser.");
-  try {
-    chunks = [];
-    recorder = new MediaRecorder(stream);
-    recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+    recordedChunks = []; recorder = new MediaRecorder(stream);
+    recorder.ondataavailable = e => { if (e.data && e.data.size) recordedChunks.push(e.data); };
     recorder.onstop = () => {
-      const blob = new Blob(chunks, {type: recorder.mimeType || "video/webm"});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "azeez-ar-recording.webm";
-      a.click();
+      if (!recordedChunks.length) return;
+      const blob = new Blob(recordedChunks, {type:recorder.mimeType || "video/webm"});
+      const url = URL.createObjectURL(blob); const a = document.createElement("a");
+      a.href = url; a.download = "azeez-ar-recording.webm"; a.click();
       setTimeout(() => URL.revokeObjectURL(url), 1500);
-      toast("Camera recording downloaded.");
     };
-    recorder.start();
-    $("record").textContent = "STOP RECORDING";
-  } catch (e) {
-    console.error(e);
-    toast("Recording failed: " + e.message);
+    recorder.start(); $("recordBtn").disabled = true; $("stopRecordBtn").disabled = false;
+    toast("Recording started.");
+  } catch(err) { toast("Recording error: " + (err.message || String(err))); }
+});
+$("stopRecordBtn").addEventListener("click", () => {
+  if (recorder && recorder.state !== "inactive") recorder.stop();
+  $("recordBtn").disabled = false; $("stopRecordBtn").disabled = true;
+});
+
+const modelDefinitions = [
+  {id:"posX",label:"Position X",min:-2,max:2,step:.01,value:0},
+  {id:"posY",label:"Position Y",min:-2,max:2,step:.01,value:0},
+  {id:"posZ",label:"Position Z",min:-2,max:2,step:.01,value:0},
+  {id:"rotX",label:"Rotation X",min:-180,max:180,step:1,value:0},
+  {id:"rotY",label:"Rotation Y",min:-180,max:180,step:1,value:0},
+  {id:"rotZ",label:"Rotation Z",min:-180,max:180,step:1,value:0},
+  {id:"modelScale",label:"Model scale",min:.1,max:3,step:.05,value:1}
+];
+const faceDefinitions = [
+  {id:"faceX",label:"Face left / right",min:-1,max:1,step:.01,value:0},
+  {id:"faceY",label:"Face up / down",min:-1,max:1,step:.01,value:0},
+  {id:"faceZ",label:"Face depth",min:-1,max:1,step:.01,value:0},
+  {id:"faceSize",label:"Face size",min:.2,max:3,step:.05,value:1},
+  {id:"leftEye",label:"Left eye",min:.2,max:2,step:.05,value:1},
+  {id:"rightEye",label:"Right eye",min:.2,max:2,step:.05,value:1},
+  {id:"mouthScale",label:"Mouth size",min:.2,max:3,step:.05,value:1},
+  {id:"mouthOpen",label:"Mouth open",min:0,max:1,step:.01,value:0},
+  {id:"blinkLeft",label:"Left blink",min:0,max:1,step:.01,value:0},
+  {id:"blinkRight",label:"Right blink",min:0,max:1,step:.01,value:0}
+];
+function buildSliders(containerId, definitions) {
+  const container = $(containerId);
+  for (const d of definitions) {
+    const field = document.createElement("div"); field.className = "field";
+    const head = document.createElement("div"); head.className = "fieldHead";
+    const label = document.createElement("label"); label.htmlFor = d.id; label.textContent = d.label;
+    const output = document.createElement("output"); output.id = d.id + "Out"; output.textContent = String(d.value);
+    const input = document.createElement("input"); input.type = "range"; input.id = d.id;
+    input.min = d.min; input.max = d.max; input.step = d.step; input.value = d.value;
+    input.dataset.default = d.value;
+    input.addEventListener("input", () => { output.textContent = input.value; });
+    head.append(label, output); field.append(head, input); container.append(field);
   }
 }
+buildSliders("modelSliders", modelDefinitions);
+buildSliders("faceSliders", faceDefinitions);
 
-$("startCamera").addEventListener("click", startCamera);
-$("stopCamera").addEventListener("click", stopCamera);
-$("switchCamera").addEventListener("click", switchCamera);
-$("mirror").addEventListener("click", () => { mirrored = !mirrored; setMirror(); });
-$("fullscreen").addEventListener("click", async () => {
+function resetSliders(definitions) {
+  for (const d of definitions) { $(d.id).value = d.value; $(d.id + "Out").textContent = String(d.value); }
+}
+$("resetTransformBtn").addEventListener("click", () => resetSliders(modelDefinitions));
+$("resetFaceBtn").addEventListener("click", () => resetSliders(faceDefinitions));
+$("resetAllBtn").addEventListener("click", () => {
+  resetSliders(modelDefinitions); resetSliders(faceDefinitions); gizmoMode = ""; toast("Sliders reset.");
+});
+for (const button of document.querySelectorAll(".slotBtn")) {
+  button.addEventListener("click", () => {
+    activeSlot = Number(button.dataset.slot);
+    document.querySelectorAll(".slotBtn").forEach(b => b.classList.remove("active"));
+    button.classList.add("active"); toast("Selected slot " + (activeSlot + 1) + ".");
+  });
+}
+function setGizmo(mode) {
+  gizmoMode = mode;
+  for (const id of ["moveGizmoBtn","rotateGizmoBtn","scaleGizmoBtn"]) $(id).classList.remove("active");
+  if (mode) {
+    const map = {move:"moveGizmoBtn",rotate:"rotateGizmoBtn",scale:"scaleGizmoBtn"};
+    $(map[mode]).classList.add("active");
+  }
+  toast("Gizmo controls need the 3D renderer.");
+}
+$("moveGizmoBtn").addEventListener("click", () => setGizmo("move"));
+$("rotateGizmoBtn").addEventListener("click", () => setGizmo("rotate"));
+$("scaleGizmoBtn").addEventListener("click", () => setGizmo("scale"));
+$("hideGizmosBtn").addEventListener("click", () => setGizmo(""));
+
+$("exportSettingsBtn").addEventListener("click", () => {
+  const settings = {};
+  for (const d of [...modelDefinitions,...faceDefinitions]) settings[d.id] = Number($(d.id).value);
+  settings.mirrored = mirrored; settings.showDots = showDots; settings.showModel = showModel;
+  const blob = new Blob([JSON.stringify(settings,null,2)],{type:"application/json"});
+  const url = URL.createObjectURL(blob); const a = document.createElement("a");
+  a.href = url; a.download = "azeez-ar-settings.json"; a.click();
+  setTimeout(() => URL.revokeObjectURL(url),1500);
+});
+$("importSettingsBtn").addEventListener("click", () => $("settingsFile").click());
+$("settingsFile").addEventListener("change", async () => {
+  const file = $("settingsFile").files?.[0]; if (!file) return;
   try {
-    if (!document.fullscreenElement) await $("studio").requestFullscreen();
-    else await document.exitFullscreen();
-  } catch (e) { toast("Fullscreen unavailable: " + e.message); }
-  setTimeout(resize, 200);
+    const settings = JSON.parse(await file.text());
+    for (const d of [...modelDefinitions,...faceDefinitions]) {
+      if (Number.isFinite(settings[d.id])) {
+        const input = $(d.id);
+        input.value = Math.max(Number(input.min),Math.min(Number(input.max),settings[d.id]));
+        $(d.id+"Out").textContent = input.value;
+      }
+    }
+    if (typeof settings.mirrored === "boolean") mirrored = settings.mirrored;
+    if (typeof settings.showDots === "boolean") showDots = settings.showDots;
+    if (typeof settings.showModel === "boolean") showModel = settings.showModel;
+    syncMirror(); updateButtons(); toast("Settings imported.");
+  } catch(_) { toast("Invalid settings JSON file."); }
 });
-$("tracking").addEventListener("click", startTracking);
-$("record").addEventListener("click", toggleRecord);
-$("panelToggle").addEventListener("click", () => $("panel").classList.toggle("hidden"));
-$("closePanel").addEventListener("click", () => $("panel").classList.add("hidden"));
-$("hideDots").addEventListener("click", () => {
-  showDots = !showDots;
-  $("hideDots").textContent = showDots ? "HIDE DOTS" : "SHOW DOTS";
-  $("dotsToggle").textContent = showDots ? "GREEN DOTS ON" : "GREEN DOTS OFF";
-  if (!showDots) clearDots();
+window.addEventListener("pagehide", () => {
+  running = false; cancelAnimationFrame(rafId); stopTracks();
 });
-$("dotsToggle").addEventListener("click", () => {
-  showDots = !showDots;
-  $("hideDots").textContent = showDots ? "HIDE DOTS" : "SHOW DOTS";
-  $("dotsToggle").textContent = showDots ? "GREEN DOTS ON" : "GREEN DOTS OFF";
-  if (!showDots) clearDots();
-});
-$("hideExpressions").addEventListener("click", () => {
-  showExpressions = !showExpressions;
-  $("expressions").classList.toggle("hidden", !showExpressions);
-  $("hideExpressions").textContent = showExpressions ? "HIDE EXPRESSIONS" : "SHOW EXPRESSIONS";
-  $("expressionToggle").textContent = showExpressions ? "EXPRESSIONS ON" : "EXPRESSIONS OFF";
-});
-$("expressionToggle").addEventListener("click", () => {
-  showExpressions = !showExpressions;
-  $("expressions").classList.toggle("hidden", !showExpressions);
-  $("hideExpressions").textContent = showExpressions ? "HIDE EXPRESSIONS" : "SHOW EXPRESSIONS";
-  $("expressionToggle").textContent = showExpressions ? "EXPRESSIONS ON" : "EXPRESSIONS OFF";
-});
-$("modelFile").addEventListener("change", e => loadModel(e.target.files?.[0]));
-$("removeModel").addEventListener("click", () => {
-  if (model && scene) scene.remove(model);
-  model = null;
-  $("modelName").textContent = "No model selected";
-  toast("Model removed.");
-});
-$("resetSliders").addEventListener("click", resetTransforms);
-["scale", "posX", "posY", "posZ", "rotation"].forEach(id =>
-  $(id).addEventListener("input", applyTransforms)
-);
-$("exportSettings").addEventListener("click", exportSettings);
-$("importSettingsBtn").addEventListener("click", () => $("importSettings").click());
-$("importSettings").addEventListener("change", e => importSettings(e.target.files?.[0]));
-video.addEventListener("loadedmetadata", resize);
-window.addEventListener("resize", resize);
-document.addEventListener("fullscreenchange", () => setTimeout(resize, 200));
-
-resize();
-setMirror();
-status("Ready. Start camera first.");
+syncMirror();
+updateButtons();
+clearDots();
+arCtx.clearRect(0,0,arCanvas.width,arCanvas.height);
 </script>
+<script type="module" src="js/app.js"></script>
 </body>
 </html>
 
+  
