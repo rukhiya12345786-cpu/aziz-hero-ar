@@ -470,6 +470,31 @@ function trackLoop() {
       const result = faceLandmarker.detectForVideo(video, now);
       const faceMatrices = result.facialTransformationMatrixes || [];
       console.log("Face matrix count:", faceMatrices.length);
+      if (currentModel && faceMatrices.length > 0) {
+  const data = faceMatrices[0].data;
+
+  if (data && data.length === 16) {
+    const faceMatrix = new THREE.Matrix4().fromArray(Array.from(data));
+    const faceQuaternion = new THREE.Quaternion();
+    const facePosition = new THREE.Vector3();
+    const faceScale = new THREE.Vector3();
+
+    faceMatrix.decompose(facePosition, faceQuaternion, faceScale);
+
+    const sliderRotation = new THREE.Euler(
+      THREE.MathUtils.degToRad(Number($("rotateXSlider").value)),
+      THREE.MathUtils.degToRad(Number($("rotateYSlider").value)),
+      THREE.MathUtils.degToRad(Number($("rotateZSlider").value)),
+      "XYZ"
+    );
+
+    const sliderQuaternion = new THREE.Quaternion()
+      .setFromEuler(sliderRotation);
+
+    currentModel.quaternion.copy(faceQuaternion)
+      .multiply(sliderQuaternion);
+  }
+      }
       const faces = result.faceLandmarks || [];
       lastLandmarks = faces;
       drawFaceDots(faces);
