@@ -6,253 +6,113 @@
 <title>Azeez AR Studio</title>
 <style>
 :root {
-  --bg: #101114;
-  --panel: #1b1d22;
-  --panel2: #252830;
-  --line: #393d47;
-  --text: #f4f5f7;
-  --muted: #a7acb8;
-  --accent: #42df91;
-  --blue: #5da9ff;
-  --danger: #ff6464;
+  --bg:#101114; --panel:#1b1d22; --panel2:#252830;
+  --line:#393d47; --text:#f4f5f7; --muted:#a7acb8;
+  --accent:#42df91; --blue:#5da9ff; --danger:#ff6464;
 }
-* { box-sizing: border-box; }
-html, body {
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  overflow: hidden;
-  background: var(--bg);
-  color: var(--text);
-  font-family: Arial, Helvetica, sans-serif;
+* { box-sizing:border-box; }
+html,body { margin:0; width:100%; height:100%; overflow:hidden; }
+body {
+  background:var(--bg); color:var(--text);
+  font:14px Arial,sans-serif;
 }
-button, input, select { font: inherit; }
+button,input { font:inherit; }
 button {
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  color: var(--text);
-  background: var(--panel2);
-  min-height: 40px;
-  padding: 8px 11px;
-  cursor: pointer;
-  touch-action: manipulation;
+  border:1px solid var(--line); border-radius:9px;
+  background:var(--panel2); color:var(--text);
+  padding:11px 12px; cursor:pointer; touch-action:manipulation;
 }
-button:active { transform: scale(.98); }
-button:disabled { opacity: .45; }
-button.active {
-  border-color: var(--accent);
-  color: var(--accent);
+button:disabled { opacity:.45; cursor:not-allowed; }
+button.active { border-color:var(--accent); color:var(--accent); }
+button.primary { background:#176b42; border-color:#218653; }
+button.danger { background:#702c32; border-color:#9e3b44; }
+#app { position:relative; width:100%; height:100%; height:100dvh; overflow:hidden; background:#101114; }
+#cameraVideo,#arCanvas,#dotsCanvas {
+  position:absolute; inset:0; width:100%; height:100%;
 }
-.icon-button {
-  width: 44px;
-  min-width: 44px;
-  height: 44px;
-  padding: 0;
-  font-size: 20px;
-}
-#app {
-  position: fixed;
-  inset: 0;
-  overflow: hidden;
-  background: #08090b;
-}
-#cameraVideo, #arCanvas, #dotsCanvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-#cameraVideo {
-  object-fit: contain;
-  background: #08090b;
-  z-index: 1;
-}
-#arCanvas { z-index: 2; pointer-events: none; }
-#dotsCanvas { z-index: 3; pointer-events: none; }
-#topBar {
-  position: absolute;
-  z-index: 10;
-  top: env(safe-area-inset-top, 0px);
-  left: 0;
-  right: 0;
-  min-height: 54px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 7px 12px;
-  background: linear-gradient(#000b, transparent);
-}
-#brand {
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: 1px;
-}
-#trackingStatus {
-  margin-left: auto;
-  color: var(--muted);
-  font-size: 12px;
-}
-#status {
-  position: absolute;
-  z-index: 9;
-  top: 62px;
-  left: 12px;
-  max-width: calc(100% - 24px);
-  padding: 7px 10px;
-  border-radius: 8px;
-  background: #0009;
-  color: var(--accent);
-  font-size: 12px;
-}
+#cameraVideo { z-index:1; object-fit:contain; background:#101114; }
+#arCanvas { z-index:2; pointer-events:none; }
+#dotsCanvas { z-index:3; pointer-events:none; }
 #cameraMessage {
-  position: absolute;
-  z-index: 4;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  padding: 30px;
-  text-align: center;
-  color: var(--muted);
-  pointer-events: none;
+  position:absolute; z-index:4; inset:0; display:grid; place-content:center;
+  text-align:center; color:#c4c8d0; line-height:1.8; padding:25px;
+  pointer-events:none;
+}
+#topBar {
+  position:absolute; z-index:10; top:env(safe-area-inset-top,0px);
+  left:0; right:0; display:flex; align-items:center; gap:9px;
+  padding:10px; background:#101114c9; backdrop-filter:blur(8px);
+}
+#brand { font-size:13px; font-weight:bold; letter-spacing:1px; flex:1; }
+#trackingStatus { font-size:11px; color:var(--muted); white-space:nowrap; }
+#status {
+  position:absolute; z-index:10; left:10px; right:10px; top:65px;
+  padding:8px 10px; border-radius:8px; background:#101114b8;
+  color:#e5e7eb; font-size:12px; overflow-wrap:anywhere;
+  pointer-events:none;
 }
 #bottomBar {
-  position: absolute;
-  z-index: 10;
-  left: 0;
-  right: 0;
-  bottom: env(safe-area-inset-bottom, 0px);
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 7px;
-  padding: 10px;
-  background: linear-gradient(transparent, #000b);
+  position:absolute; z-index:10; left:0; right:0; bottom:env(safe-area-inset-bottom,0px);
+  display:flex; flex-wrap:wrap; gap:7px; justify-content:center;
+  padding:10px; background:#101114c9; backdrop-filter:blur(8px);
 }
+#bottomBar button { flex:1 1 105px; min-height:42px; font-size:12px; }
+.icon-button { width:42px; min-width:42px; height:42px; padding:0; font-size:20px; }
 #openOptions {
-  position: absolute;
-  z-index: 40;
-  top: 46%;
-  right: 8px;
-  width: 48px;
-  height: 60px;
-  border-radius: 14px 0 0 14px;
-  background: #20242ddd;
-  border: 1px solid #777b85;
-  font-size: 24px;
+  position:absolute; z-index:20; right:10px; top:50%; transform:translateY(-50%);
+  width:46px; height:54px; font-size:23px; background:#20242bdd;
 }
 #panelBackdrop {
-  position: absolute;
-  z-index: 20;
-  inset: 0;
-  background: #0008;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity .22s;
-}
-#panelBackdrop.visible {
-  opacity: 1;
-  visibility: visible;
+  position:absolute; z-index:29; inset:0; background:#0009;
+  display:none;
 }
 #optionsPanel {
-  position: absolute;
-  z-index: 30;
-  top: 0;
-  right: 0;
-  width: min(370px, 91vw);
-  height: 100%;
-  padding: env(safe-area-inset-top, 8px) 12px
-           env(safe-area-inset-bottom, 8px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  background: var(--panel);
-  border-left: 1px solid var(--line);
-  transform: translateX(105%);
-  visibility: hidden;
-  pointer-events: none;
-  transition: transform .24s ease, visibility .24s;
+  position:absolute; z-index:30; top:0; right:0; bottom:0;
+  width:min(390px,91vw); overflow-y:auto; overscroll-behavior:contain;
+  background:var(--panel); border-left:1px solid var(--line);
+  padding:12px; padding-top:env(safe-area-inset-top,12px);
+  padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));
+  transform:translateX(105%); visibility:hidden;
+  transition:transform .22s ease,visibility .22s;
 }
-#optionsPanel.open {
-  transform: translateX(0);
-  visibility: visible;
-  pointer-events: auto;
-}
-.panelHeader {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 0 12px;
-  background: var(--panel);
-}
-.panelHeader h2 { margin: 0; font-size: 18px; }
+#optionsPanel.open { transform:translateX(0); visibility:visible; }
+#panelBackdrop.open { display:block; }
+.panelHeader { display:flex; align-items:center; gap:8px; }
+.panelHeader h2 { font-size:17px; flex:1; margin:10px 0; }
 .section {
-  margin: 10px 0;
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: #14161a;
+  background:#14161a; border:1px solid var(--line);
+  border-radius:12px; padding:11px; margin:10px 0;
 }
-.section h3 {
-  margin: 0 0 11px;
-  font-size: 13px;
-  color: var(--accent);
-  letter-spacing: .3px;
+.section h3 { font-size:13px; margin:0 0 10px; color:var(--accent); }
+.buttonGrid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; }
+.buttonGrid button { min-width:0; font-size:12px; }
+.full { width:100%; margin-top:7px; }
+.field { margin:13px 0; }
+.fieldHead { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; }
+.fieldHead label { font-size:12px; color:#e1e4ea; }
+.fieldHead output { color:var(--accent); font-size:12px; font-variant-numeric:tabular-nums; }
+input[type=range] { width:100%; accent-color:var(--accent); }
+.slotRow { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+.slotRow button { padding:10px 4px; }
+#modelFile,#settingsFile { width:100%; margin-top:8px; font-size:12px; }
+.smallNote { color:var(--muted); font-size:11px; line-height:1.5; }
+#toast {
+  position:absolute; z-index:50; left:50%; bottom:100px;
+  transform:translateX(-50%); max-width:90%; padding:10px 14px;
+  background:#292d35; border:1px solid var(--line); border-radius:9px;
+  display:none; text-align:center;
 }
-.buttonGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 7px;
-}
-.buttonGrid button { width: 100%; font-size: 12px; }
-.controlRow {
-  display: grid;
-  grid-template-columns: minmax(76px, 1fr) minmax(95px, 1.4fr) 42px;
-  align-items: center;
-  gap: 7px;
-  margin: 13px 0;
-}
-.controlRow label { font-size: 12px; color: var(--muted); }
-.controlRow output { text-align: right; font-size: 11px; color: var(--accent); }
-input[type="range"] {
-  width: 100%;
-  min-width: 0;
-  accent-color: var(--accent);
-}
-input[type="file"] {
-  width: 100%;
-  margin: 8px 0;
-  color: var(--muted);
-  font-size: 12px;
-}
-.smallNote { font-size: 11px; line-height: 1.5; color: var(--muted); }
-#toast, #cameraError {
-  position: absolute;
-  z-index: 60;
-  left: 50%;
-  bottom: 82px;
-  transform: translateX(-50%);
-  max-width: 92%;
-  padding: 10px 14px;
-  border-radius: 9px;
-  background: #20242d;
-  display: none;
-  overflow-wrap: anywhere;
-}
-#cameraError { color: var(--danger); }
-#app.clean-hidden #topBar,
-#app.clean-hidden #status,
-#app.clean-hidden #bottomBar,
-#app.clean-hidden #openOptions,
-#app.clean-hidden #trackingStatus {
-  display: none !important;
-}
-#app.sliders-hidden #sliderSection { display: none !important; }
-@media (orientation: landscape) {
-  #optionsPanel { width: min(390px, 65vw); }
-  #status { top: 56px; }
-  #bottomBar { justify-content: flex-start; }
+#toast.show { display:block; }
+#cameraError { color:#ff9999; font-size:12px; overflow-wrap:anywhere; }
+#app.controls-hidden #topBar,
+#app.controls-hidden #status,
+#app.controls-hidden #bottomBar { display:none; }
+#app.controls-hidden #openOptions { display:block; }
+#app.sliders-hidden #sliderSection { display:none; }
+@media (orientation:landscape) {
+  #status { top:62px; max-width:55%; }
+  #bottomBar { right:55px; justify-content:flex-start; }
+  #bottomBar button { flex:0 1 auto; }
 }
 </style>
 </head>
@@ -262,19 +122,21 @@ input[type="file"] {
   <canvas id="arCanvas"></canvas>
   <canvas id="dotsCanvas"></canvas>
 
-  <div id="cameraMessage">Azeez AR Studio<br>Press START CAMERA to begin.</div>
+  <div id="cameraMessage">
+    <div><strong>AZEEZ AR STUDIO</strong><br>Press START CAMERA to begin.</div>
+  </div>
 
   <header id="topBar">
-    <button id="hideOptionsBtn" class="icon-button" title="Hide top controls">☰</button>
+    <button id="hideOptionsBtn" class="icon-button" title="Hide controls">☰</button>
     <div id="brand">AZEEZ AR STUDIO</div>
     <div id="trackingStatus">TRACKING OFF</div>
   </header>
 
-  <div id="status">Ready</div>
+  <div id="status" role="status">Ready. Start the camera.</div>
 
   <div id="bottomBar">
-    <button id="startCameraBtn">START CAMERA</button>
-    <button id="stopCameraBtn">STOP CAMERA</button>
+    <button id="startCameraBtn" class="primary">START CAMERA</button>
+    <button id="stopCameraBtn" class="danger">STOP CAMERA</button>
     <button id="switchCameraBtn">SWITCH CAMERA</button>
     <button id="flipBtn">MIRROR: ON</button>
     <button id="fullscreenBtn">FULL SCREEN</button>
@@ -285,386 +147,639 @@ input[type="file"] {
   <button id="openOptions" aria-label="Open options">☷</button>
   <div id="panelBackdrop"></div>
 
-  <aside id="optionsPanel">
+  <aside id="optionsPanel" aria-label="AR options">
     <div class="panelHeader">
       <h2>AR Controls</h2>
       <button id="closeOptions" class="icon-button" aria-label="Close options">✕</button>
     </div>
 
-    
-    <section class="section">
+    <div class="section">
       <h3>CAMERA & TRACKING</h3>
       <div class="buttonGrid">
-        <button id="trackingBtn">START TRACKING</button>
+        <button id="trackingBtn" class="primary">START TRACKING</button>
         <button id="dotsBtn">GREEN DOTS: ON</button>
         <button id="micBtn">MIC: OFF</button>
-        <button id="cleanScreenBtn">CLEAN SCREEN</button>
-        <button id="exitCleanBtn">SHOW CONTROLS</button>
         <button id="hideSlidersBtn">HIDE SLIDERS</button>
+        <button id="cleanScreenBtn">HIDE CONTROLS</button>
+        <button id="exitCleanBtn">SHOW CONTROLS</button>
       </div>
-      <p class="smallNote">Camera and face tracking will be connected in the next JavaScript stage.</p>
-    </section>
+      <p id="cameraError"></p>
+    </div>
 
-    <section class="section">
+    <div class="section">
       <h3>3D MODEL</h3>
       <input id="modelFile" type="file" accept=".glb,.gltf,.obj,.fbx">
       <div class="buttonGrid">
-        <button id="importModelBtn">IMPORT MODEL</button>
-        <button id="showModelBtn">SHOW MODEL</button>
-        <button id="removeModelBtn">REMOVE MODEL</button>
+        <button id="importModelBtn">SELECT MODEL</button>
+        <button id="showModelBtn">MODEL: SHOW</button>
+        <button id="removeModelBtn" class="danger">REMOVE MODEL</button>
         <button id="autoFitBtn">AUTO FIT</button>
       </div>
-      <div id="modelStatus" class="smallNote">No model loaded.</div>
-      <p class="smallNote">GLB, GLTF, OBJ and FBX support will be connected later.</p>
-    </section>
+      <p id="modelStatus" class="smallNote">Model rendering will be added after tracking is verified.</p>
+    </div>
 
-    <section class="section" id="sliderSection">
-      <h3>TRANSFORM — BLENDER STYLE</h3>
-
-      <div class="buttonGrid">
-        <button class="slotBtn active" data-slot="0">MODEL 1</button>
-        <button class="slotBtn" data-slot="1">MODEL 2</button>
-        <button class="slotBtn" data-slot="2">MODEL 3</button>
-        <button class="slotBtn" data-slot="3">MODEL 4</button>
-      </div>
-
-      <div class="controlRow">
-        <label for="posX">Position X</label>
-        <input id="posX" type="range" min="-3" max="3" step="0.01" value="0">
-        <output id="posXOut">0.00</output>
-      </div>
-      <div class="controlRow">
-        <label for="posY">Position Y</label>
-        <input id="posY" type="range" min="-3" max="3" step="0.01" value="0">
-        <output id="posYOut">0.00</output>
-      </div>
-      <div class="controlRow">
-        <label for="posZ">Depth Z</label>
-        <input id="posZ" type="range" min="-5" max="5" step="0.01" value="0">
-        <output id="posZOut">0.00</output>
-      </div>
-      <div class="controlRow">
-        <label for="rotX">Rotate X</label>
-        <input id="rotX" type="range" min="-180" max="180" value="0">
-        <output id="rotXOut">0°</output>
-      </div>
-      <div class="controlRow">
-        <label for="rotY">Rotate Y</label>
-        <input id="rotY" type="range" min="-180" max="180" value="0">
-        <output id="rotYOut">0°</output>
-      </div>
-      <div class="controlRow">
-        <label for="rotZ">Rotate Z</label>
-        <input id="rotZ" type="range" min="-180" max="180" value="0">
-        <output id="rotZOut">0°</output>
-      </div>
-      <div class="controlRow">
-        <label for="modelScale">Model Scale</label>
-        <input id="modelScale" type="range" min="0.05" max="4" step="0.01" value="1">
-        <output id="modelScaleOut">1.00</output>
+    <div id="sliderSection">
+      <div class="section">
+        <h3>MODEL SLOT</h3>
+        <div class="slotRow">
+          <button class="slotBtn active" data-slot="0">SLOT 1</button>
+          <button class="slotBtn" data-slot="1">SLOT 2</button>
+          <button class="slotBtn" data-slot="2">SLOT 3</button>
+          <button class="slotBtn" data-slot="3">SLOT 4</button>
+        </div>
+        <p class="smallNote">Slots are interface placeholders until model rendering is connected.</p>
       </div>
 
-      <div class="buttonGrid">
-        <button id="resetTransformBtn">RESET TRANSFORM</button>
-        <button id="resetAllBtn">RESET ALL</button>
+      <div class="section">
+        <h3>MODEL TRANSFORM</h3>
+        <div id="modelSliders"></div>
+        <div class="buttonGrid">
+          <button id="resetTransformBtn">RESET TRANSFORM</button>
+          <button id="resetAllBtn">RESET ALL</button>
+        </div>
       </div>
-    </section>
 
-    <section class="section">
-      <h3>FACE ATTACHMENT</h3>
-      <div class="controlRow">
-        <label for="faceX">Face Left/Right</label>
-        <input id="faceX" type="range" min="-1" max="1" step="0.01" value="0">
-        <output id="faceXOut">0.00</output>
+      <div class="section">
+        <h3>FACE ATTACHMENT</h3>
+        <div id="faceSliders"></div>
+        <button id="resetFaceBtn" class="full">RESET FACE SLIDERS</button>
       </div>
-      <div class="controlRow">
-        <label for="faceY">Face Up/Down</label>
-        <input id="faceY" type="range" min="-1" max="1" step="0.01" value="0">
-        <output id="faceYOut">0.00</output>
-      </div>
-      <div class="controlRow">
-        <label for="faceZ">Face Depth</label>
-        <input id="faceZ" type="range" min="-2" max="2" step="0.01" value="0">
-        <output id="faceZOut">0.00</output>
-      </div>
-      <div class="controlRow">
-        <label for="faceSize">Face Size</label>
-        <input id="faceSize" type="range" min="0.1" max="3" step="0.01" value="1">
-        <output id="faceSizeOut">1.00</output>
-      </div>
-      <div class="controlRow">
-        <label for="leftEye">Left Eye</label>
-        <input id="leftEye" type="range" min="0" max="2" step="0.01" value="1">
-        <output id="leftEyeOut">1.00</output>
-      </div>
-      <div class="controlRow">
-        <label for="rightEye">Right Eye</label>
-        <input id="rightEye" type="range" min="0" max="2" step="0.01" value="1">
-        <output id="rightEyeOut">1.00</output>
-      </div>
-      <div class="controlRow">
-        <label for="mouthScale">Mouth Size</label>
-        <input id="mouthScale" type="range" min="0" max="2" step="0.01" value="1">
-        <output id="mouthScaleOut">1.00</output>
-      </div>
-      <div class="controlRow">
-        <label for="mouthOpen">Mouth Open</label>
-        <input id="mouthOpen" type="range" min="0" max="1" step="0.01" value="0">
-        <output id="mouthOpenOut">0.00</output>
-      </div>
-      <div class="controlRow">
-        <label for="blinkLeft">Left Blink</label>
-        <input id="blinkLeft" type="range" min="0" max="1" step="0.01" value="0">
-        <output id="blinkLeftOut">0.00</output>
-      </div>
-      <div class="controlRow">
-        <label for="blinkRight">Right Blink</label>
-        <input id="blinkRight" type="range" min="0" max="1" step="0.01" value="0">
-        <output id="blinkRightOut">0.00</output>
-      </div>
-      <button id="resetFaceBtn">RESET FACE SETTINGS</button>
-      <p class="smallNote">Face sliders are interface controls for now; actual model deformation will be implemented in app.js later.</p>
-    </section>
 
-    <section class="section">
-      <h3>GIZMOS & VIEW</h3>
-      <div class="buttonGrid">
-        <button id="moveGizmoBtn">MOVE GIZMO</button>
-        <button id="rotateGizmoBtn">ROTATE GIZMO</button>
-        <button id="scaleGizmoBtn">SCALE GIZMO</button>
-        <button id="hideGizmosBtn">HIDE GIZMOS</button>
+      <div class="section">
+        <h3>GIZMOS & SETTINGS</h3>
+        <div class="buttonGrid">
+          <button id="moveGizmoBtn">MOVE</button>
+          <button id="rotateGizmoBtn">ROTATE</button>
+          <button id="scaleGizmoBtn">SCALE</button>
+          <button id="hideGizmosBtn">HIDE GIZMOS</button>
+          <button id="exportSettingsBtn">EXPORT SETTINGS</button>
+          <button id="importSettingsBtn">IMPORT SETTINGS</button>
+        </div>
+        <input id="settingsFile" type="file" accept="application/json,.json" hidden>
+        <button id="clearModelBtn" class="full danger">CLEAR MODEL SELECTION</button>
       </div>
-      <p class="smallNote">Gizmo buttons are placeholders until the 3D engine is added.</p>
-    </section>
-
-    <section class="section">
-      <h3>SETTINGS</h3>
-      <div class="buttonGrid">
-        <button id="exportSettingsBtn">EXPORT SETTINGS</button>
-        <button id="importSettingsBtn">IMPORT SETTINGS</button>
-      </div>
-      <input id="settingsFile" type="file" accept=".json,application/json">
-      <button id="clearModelBtn">CLEAR MODEL</button>
-    </section>
+    </div>
   </aside>
 
   <div id="toast"></div>
-  <div id="cameraError"></div>
+
+  <!-- PART 2 GOES HERE -->
 </div>
-
-<script>
-(function () {
-  const app = document.getElementById("app");
-  const panel = document.getElementById("optionsPanel");
-  const backdrop = document.getElementById("panelBackdrop");
-  const openBtn = document.getElementById("openOptions");
-  const closeBtn = document.getElementById("closeOptions");
-
-  function openPanel() {
-    panel.classList.add("open");
-    backdrop.classList.add("visible");
-    openBtn.style.visibility = "hidden";
-    openBtn.style.pointerEvents = "none";
-  }
-
-  function closePanel() {
-    panel.classList.remove("open");
-    backdrop.classList.remove("visible");
-    openBtn.style.visibility = "visible";
-    openBtn.style.pointerEvents = "auto";
-  }
-
-  openBtn.addEventListener("click", openPanel);
-  closeBtn.addEventListener("click", closePanel);
-  backdrop.addEventListener("click", closePanel);
-
-  document.addEventListener("keydown", function (event) {
-    if (event.key === "Escape") closePanel();
-  });
-
-  document.getElementById("hideOptionsBtn").addEventListener("click", function () {
-    app.classList.add("clean-hidden");
-    closePanel();
-  });
-
-  document.getElementById("cleanScreenBtn").addEventListener("click", function () {
-    app.classList.add("clean-hidden");
-    closePanel();
-  });
-
-  document.getElementById("exitCleanBtn").addEventListener("click", function () {
-    app.classList.remove("clean-hidden");
-  });
-
-  document.getElementById("hideSlidersBtn").addEventListener("click", function () {
-    app.classList.toggle("sliders-hidden");
-    this.textContent = app.classList.contains("sliders-hidden")
-      ? "SHOW SLIDERS" : "HIDE SLIDERS";
-  });
-
-  document.getElementById("dotsBtn").addEventListener("click", function () {
-    const dots = document.getElementById("dotsCanvas");
-    dots.style.display = dots.style.display === "none" ? "block" : "none";
-    this.textContent = dots.style.display === "none"
-      ? "GREEN DOTS: OFF" : "GREEN DOTS: ON";
-  });
-
-  document.getElementById("flipBtn").addEventListener("click", function () {
-    const video = document.getElementById("cameraVideo");
-    const mirrored = video.dataset.mirror !== "off";
-    video.dataset.mirror = mirrored ? "off" : "on";
-    video.style.transform = mirrored ? "none" : "scaleX(-1)";
-    this.textContent = mirrored ? "MIRROR: OFF" : "MIRROR: ON";
-  });
-
-  document.getElementById("fullscreenBtn").addEventListener("click", async function () {
-    try {
-      if (!document.fullscreenElement) {
-        await app.requestFullscreen();
-      } else {
-        await document.exitFullscreen();
-      }
-    } catch (error) {
-      document.getElementById("status").textContent =
-        "Fullscreen unavailable: " + error.message;
-    }
-  });
-
-  const sliderIds = [
-    "posX","posY","posZ","rotX","rotY","rotZ","modelScale",
-    "faceX","faceY","faceZ","faceSize","leftEye","rightEye",
-    "mouthScale","mouthOpen","blinkLeft","blinkRight"
-  ];
-
-  sliderIds.forEach(function (id) {
-    const input = document.getElementById(id);
-    const output = document.getElementById(id + "Out");
-    if (!input || !output) return;
-
-    function updateOutput() {
-      const value = Number(input.value);
-      output.textContent = id.startsWith("rot")
-        ? value + "°"
-        : value.toFixed(2);
-    }
-
-    input.addEventListener("input", updateOutput);
-    updateOutput();
-  });
-
-  document.getElementById("resetTransformBtn").addEventListener("click", function () {
-    ["posX","posY","posZ","rotX","rotY","rotZ"].forEach(function (id) {
-      const input = document.getElementById(id);
-      input.value = 0;
-      input.dispatchEvent(new Event("input"));
-    });
-    const scale = document.getElementById("modelScale");
-    scale.value = 1;
-    scale.dispatchEvent(new Event("input"));
-  });
-
-  document.getElementById("resetFaceBtn").addEventListener("click", function () {
-    ["faceX","faceY","faceZ","mouthOpen","blinkLeft","blinkRight"].forEach(function (id) {
-      const input = document.getElementById(id);
-      input.value = 0;
-      input.dispatchEvent(new Event("input"));
-    });
-    ["faceSize","leftEye","rightEye","mouthScale"].forEach(function (id) {
-      const input = document.getElementById(id);
-      input.value = 1;
-      input.dispatchEvent(new Event("input"));
-    });
-  });
-
-  document.getElementById("resetAllBtn").addEventListener("click", function () {
-    document.getElementById("resetTransformBtn").click();
-    document.getElementById("resetFaceBtn").click();
-  });
-
-  document.getElementById("startCameraBtn").addEventListener("click", async function () {
-    const video = document.getElementById("cameraVideo");
-    try {
-      document.getElementById("status").textContent = "Opening camera...";
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: false,
-        video: { facingMode: "user" }
-      });
-      video.srcObject = stream;
-      await video.play();
-      document.getElementById("cameraMessage").style.display = "none";
-      document.getElementById("status").textContent =
-        "Camera opened. Face tracking will be connected later.";
-    } catch (error) {
-      document.getElementById("status").textContent =
-        "Camera error: " + error.message;
-    }
-  });
-
-  document.getElementById("stopCameraBtn").addEventListener("click", function () {
-    const video = document.getElementById("cameraVideo");
-    if (video.srcObject) {
-      video.srcObject.getTracks().forEach(track => track.stop());
-      video.srcObject = null;
-    }
-    document.getElementById("cameraMessage").style.display = "grid";
-    document.getElementById("status").textContent = "Camera stopped.";
-  });
-
-  document.getElementById("switchCameraBtn").addEventListener("click", function () {
-    document.getElementById("status").textContent =
-      "Camera switch will be connected in app.js.";
-  });
-
-  document.getElementById("trackingBtn").addEventListener("click", function () {
-    document.getElementById("status").textContent =
-      "Face tracking is not connected yet. The successful test will be integrated later.";
-  });
-
-  document.getElementById("recordBtn").addEventListener("click", function () {
-    document.getElementById("status").textContent =
-      "Recording will be connected in app.js.";
-  });
-
-  document.getElementById("stopRecordBtn").addEventListener("click", function () {
-    document.getElementById("status").textContent = "No active recording.";
-  });
-
-  document.getElementById("micBtn").addEventListener("click", function () {
-    this.classList.toggle("active");
-    this.textContent = this.classList.contains("active") ? "MIC: ON" : "MIC: OFF";
-  });
-
-  document.getElementById("importModelBtn").addEventListener("click", function () {
-    document.getElementById("modelFile").click();
-  });
-
-  document.getElementById("modelFile").addEventListener("change", function () {
-    const file = this.files && this.files[0];
-    document.getElementById("modelStatus").textContent = file
-      ? "Selected: " + file.name + " — loading will be connected later."
-      : "No model loaded.";
-  });
-
-  ["showModelBtn","removeModelBtn","autoFitBtn","clearModelBtn",
-   "moveGizmoBtn","rotateGizmoBtn","scaleGizmoBtn","hideGizmosBtn",
-   "exportSettingsBtn","importSettingsBtn"].forEach(function (id) {
-    document.getElementById(id).addEventListener("click", function () {
-      document.getElementById("status").textContent =
-        this.textContent + " will be connected in app.js.";
-    });
-  });
-
-  document.querySelectorAll(".slotBtn").forEach(function (button) {
-    button.addEventListener("click", function () {
-      document.querySelectorAll(".slotBtn").forEach(b => b.classList.remove("active"));
-      this.classList.add("active");
-      document.getElementById("status").textContent =
-        this.textContent + " selected.";
-    });
-  });
-})();
-</script>
 </body>
 </html>
+<script type="module">
+const $ = id => document.getElementById(id);
 
+const app = $("app");
+const video = $("cameraVideo");
+const dotsCanvas = $("dotsCanvas");
+const dotsCtx = dotsCanvas.getContext("2d");
+const arCanvas = $("arCanvas");
+const arCtx = arCanvas.getContext("2d");
+
+let stream = null;
+let tracker = null;
+let running = false;
+let loading = false;
+let busy = false;
+let mirrored = true;
+let showDots = true;
+let showModel = true;
+let micEnabled = false;
+let facingMode = "user";
+let recorder = null;
+let recordedChunks = [];
+let gizmoMode = "";
+let activeSlot = 0;
+let rafId = 0;
+let lastStatus = "";
+
+function setStatus(message) {
+  $("status").textContent = message;
+}
+function setTrackingStatus(message) {
+  $("trackingStatus").textContent = message;
+}
+function toast(message) {
+  const el = $("toast");
+  el.textContent = message;
+  el.classList.add("show");
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => el.classList.remove("show"), 2400);
+}
+function cameraError(message = "") {
+  $("cameraError").textContent = message;
+}
+function clearDots() {
+  dotsCtx.clearRect(0, 0, dotsCanvas.width, dotsCanvas.height);
+}
+function resizeCanvases() {
+  const w = video.videoWidth || window.innerWidth;
+  const h = video.videoHeight || window.innerHeight;
+  if (dotsCanvas.width !== w || dotsCanvas.height !== h) {
+    dotsCanvas.width = w;
+    dotsCanvas.height = h;
+  }
+  if (arCanvas.width !== w || arCanvas.height !== h) {
+    arCanvas.width = w;
+    arCanvas.height = h;
+  }
+}
+function syncMirror() {
+  video.style.transform = mirrored ? "scaleX(-1)" : "scaleX(1)";
+  $("flipBtn").textContent = "MIRROR: " + (mirrored ? "ON" : "OFF");
+  if (mirrored) $("flipBtn").classList.add("active");
+  else $("flipBtn").classList.remove("active");
+}
+function updateButtons() {
+  $("trackingBtn").textContent = running ? "STOP TRACKING" : "START TRACKING";
+  $("trackingBtn").classList.toggle("active", running);
+  setTrackingStatus(running ? "TRACKING ON" : "TRACKING OFF");
+  $("dotsBtn").textContent = "GREEN DOTS: " + (showDots ? "ON" : "OFF");
+  $("dotsBtn").classList.toggle("active", showDots);
+  $("showModelBtn").textContent = "MODEL: " + (showModel ? "SHOW" : "HIDE");
+}
+function stopTracks() {
+  if (stream) {
+    stream.getTracks().forEach(track => track.stop());
+    stream = null;
+  }
+  video.srcObject = null;
+}
+async function openCamera() {
+  if (busy) return;
+  if (stream && stream.getVideoTracks().some(t => t.readyState === "live")) {
+    toast("Camera is already running.");
+    return;
+  }
+
+  busy = true;
+  cameraError("");
+  $("startCameraBtn").disabled = true;
+
+  try {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error("Use the HTTPS GitHub Pages site in Chrome and allow camera access.");
+    }
+
+    setStatus("Opening camera...");
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: {
+        facingMode: { ideal: facingMode },
+        width: { ideal: 640 },
+        height: { ideal: 480 }
+      }
+    });
+
+    video.srcObject = stream;
+    await video.play();
+    $("cameraMessage").style.display = "none";
+    syncMirror();
+    setStatus("Camera ready. Press START TRACKING.");
+    cameraError("");
+  } catch (err) {
+    stopTracks();
+    $("cameraMessage").style.display = "grid";
+    setStatus("Camera error: " + (err.message || String(err)));
+    cameraError(err.message || String(err));
+  } finally {
+    busy = false;
+    $("startCameraBtn").disabled = false;
+  }
+}
+
+async function startTracking() {
+  if (loading || running) return;
+
+  if (!stream || video.readyState < 2) {
+    toast("Start the camera first.");
+    return;
+  }
+
+  loading = true;
+  $("trackingBtn").disabled = true;
+  cameraError("");
+
+  try {
+    setStatus("Loading MediaPipe tracking library...");
+
+    const mp = await import(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.mjs"
+    );
+
+    const vision = await mp.FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+    );
+
+    setStatus("Loading face tracking model...");
+
+    tracker = await mp.FaceLandmarker.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath:
+          "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+        delegate: "CPU"
+      },
+      runningMode: "VIDEO",
+      numFaces: 1
+    });
+
+    running = true;
+    updateButtons();
+    setStatus("Tracking running. Look left and right.");
+    rafId = requestAnimationFrame(detectFace);
+  } catch (err) {
+    running = false;
+    if (tracker) {
+      try { tracker.close(); } catch (_) {}
+      tracker = null;
+    }
+    updateButtons();
+    setStatus("Tracking error: " + (err.message || String(err)));
+    cameraError(err.message || String(err));
+  } finally {
+    loading = false;
+    $("trackingBtn").disabled = false;
+  }
+}
+
+function detectFace() {
+  if (!running || !tracker) return;
+
+  try {
+    if (video.readyState >= 2 && video.videoWidth > 0) {
+      resizeCanvases();
+      clearDots();
+
+      const result = tracker.detectForVideo(video, performance.now());
+      const faces = result.faceLandmarks || [];
+
+      if (faces.length > 0) {
+        if (lastStatus !== "face") {
+          setStatus("FACE DETECTED ✓");
+          lastStatus = "face";
+        }
+
+        if (showDots) {
+          dotsCtx.fillStyle = "#00ff66";
+          for (const point of faces[0]) {
+            // Match the landmarks to the mirrored camera preview.
+            const x = (mirrored ? 1 - point.x : point.x) * dotsCanvas.width;
+            const y = point.y * dotsCanvas.height;
+
+            dotsCtx.beginPath();
+            dotsCtx.arc(x, y, 2, 0, Math.PI * 2);
+            dotsCtx.fill();
+          }
+        }
+      } else {
+        if (lastStatus !== "no-face") {
+          setStatus("Tracking running — face not detected.");
+          lastStatus = "no-face";
+        }
+      }
+    }
+  } catch (err) {
+    stopTracking();
+    setStatus("Tracking error: " + (err.message || String(err)));
+    cameraError(err.message || String(err));
+    return;
+  }
+
+  if (running) rafId = requestAnimationFrame(detectFace);
+}
+
+function stopTracking() {
+  running = false;
+  cancelAnimationFrame(rafId);
+  clearDots();
+
+  if (tracker) {
+    try { tracker.close(); } catch (_) {}
+    tracker = null;
+  }
+
+  lastStatus = "";
+  updateButtons();
+  if (stream) setStatus("Camera running. Tracking stopped.");
+}
+
+function stopCamera() {
+  stopTracking();
+
+  if (recorder && recorder.state !== "inactive") {
+    try { recorder.stop(); } catch (_) {}
+  }
+
+  stopTracks();
+  $("cameraMessage").style.display = "grid";
+  setStatus("Camera stopped.");
+  cameraError("");
+}
+
+async function switchCamera() {
+  const wasRunning = running;
+  stopTracking();
+  stopTracks();
+  facingMode = facingMode === "user" ? "environment" : "user";
+  await openCamera();
+
+  if (stream) {
+    setStatus("Camera switched. " + (wasRunning ? "Press START TRACKING again." : "Camera ready."));
+  }
+}
+
+async function toggleFullscreen() {
+  try {
+    if (!document.fullscreenElement) {
+      await app.requestFullscreen();
+      $("fullscreenBtn").textContent = "EXIT FULL SCREEN";
+    } else {
+      await document.exitFullscreen();
+      $("fullscreenBtn").textContent = "FULL SCREEN";
+    }
+  } catch (_) {
+    toast("Fullscreen is not supported here. Try Chrome's menu.");
+  }
+}
+
+function openPanel() {
+  $("optionsPanel").classList.add("open");
+  $("panelBackdrop").classList.add("open");
+}
+function closePanel() {
+  $("optionsPanel").classList.remove("open");
+  $("panelBackdrop").classList.remove("open");
+}
+function showControls() {
+  app.classList.remove("controls-hidden");
+}
+function hideControls() {
+  app.classList.add("controls-hidden");
+  closePanel();
+}
+
+$("startCameraBtn").addEventListener("click", openCamera);
+$("stopCameraBtn").addEventListener("click", stopCamera);
+$("switchCameraBtn").addEventListener("click", switchCamera);
+$("flipBtn").addEventListener("click", () => {
+  mirrored = !mirrored;
+  syncMirror();
+});
+$("fullscreenBtn").addEventListener("click", toggleFullscreen);
+document.addEventListener("fullscreenchange", () => {
+  $("fullscreenBtn").textContent =
+    document.fullscreenElement ? "EXIT FULL SCREEN" : "FULL SCREEN";
+});
+
+$("trackingBtn").addEventListener("click", () => {
+  if (running) stopTracking();
+  else startTracking();
+});
+$("dotsBtn").addEventListener("click", () => {
+  showDots = !showDots;
+  if (!showDots) clearDots();
+  updateButtons();
+});
+$("hideOptionsBtn").addEventListener("click", hideControls);
+$("openOptions").addEventListener("click", () => {
+  showControls();
+  openPanel();
+});
+$("closeOptions").addEventListener("click", closePanel);
+$("panelBackdrop").addEventListener("click", closePanel);
+$("cleanScreenBtn").addEventListener("click", hideControls);
+$("exitCleanBtn").addEventListener("click", showControls);
+$("hideSlidersBtn").addEventListener("click", () => {
+  app.classList.toggle("sliders-hidden");
+  $("hideSlidersBtn").textContent =
+    app.classList.contains("sliders-hidden") ? "SHOW SLIDERS" : "HIDE SLIDERS";
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") closePanel();
+});
+
+$("showModelBtn").addEventListener("click", () => {
+  showModel = !showModel;
+  updateButtons();
+  toast("Model visibility setting saved for the future renderer.");
+});
+$("importModelBtn").addEventListener("click", () => $("modelFile").click());
+$("modelFile").addEventListener("change", () => {
+  const file = $("modelFile").files?.[0];
+  if (!file) return;
+  $("modelStatus").textContent =
+    "Selected: " + file.name + ". Rendering is not connected yet.";
+  toast("File selected; 3D rendering is the next development step.");
+});
+$("removeModelBtn").addEventListener("click", () => {
+  $("modelFile").value = "";
+  $("modelStatus").textContent = "No model selected.";
+  toast("Model selection cleared.");
+});
+$("clearModelBtn").addEventListener("click", () => {
+  $("modelFile").value = "";
+  $("modelStatus").textContent = "No model selected.";
+});
+$("autoFitBtn").addEventListener("click", () => toast("Auto-fit requires the 3D renderer."));
+$("micBtn").addEventListener("click", () => {
+  micEnabled = !micEnabled;
+  $("micBtn").textContent = "MIC: " + (micEnabled ? "ON" : "OFF");
+  toast("Microphone is not connected to recording yet.");
+});
+
+$("recordBtn").addEventListener("click", async () => {
+  if (!stream) {
+    toast("Start the camera first.");
+    return;
+  }
+  if (!window.MediaRecorder) {
+    toast("Recording is not supported by this browser.");
+    return;
+  }
+
+  try {
+    recordedChunks = [];
+    recorder = new MediaRecorder(stream);
+    recorder.ondataavailable = e => {
+      if (e.data && e.data.size) recordedChunks.push(e.data);
+    };
+    recorder.onstop = () => {
+      if (!recordedChunks.length) return;
+      const blob = new Blob(recordedChunks, { type: recorder.mimeType || "video/webm" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "azeez-ar-recording.webm";
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+    };
+    recorder.start();
+    $("recordBtn").disabled = true;
+    $("stopRecordBtn").disabled = false;
+    toast("Recording started.");
+  } catch (err) {
+    toast("Recording error: " + (err.message || String(err)));
+  }
+});
+$("stopRecordBtn").addEventListener("click", () => {
+  if (recorder && recorder.state !== "inactive") recorder.stop();
+  $("recordBtn").disabled = false;
+  $("stopRecordBtn").disabled = true;
+});
+
+const modelDefinitions = [
+  { id:"posX", label:"Position X", min:-2, max:2, step:.01, value:0 },
+  { id:"posY", label:"Position Y", min:-2, max:2, step:.01, value:0 },
+  { id:"posZ", label:"Position Z", min:-2, max:2, step:.01, value:0 },
+  { id:"rotX", label:"Rotation X", min:-180, max:180, step:1, value:0 },
+  { id:"rotY", label:"Rotation Y", min:-180, max:180, step:1, value:0 },
+  { id:"rotZ", label:"Rotation Z", min:-180, max:180, step:1, value:0 },
+  { id:"modelScale", label:"Model scale", min:.1, max:3, step:.05, value:1 }
+];
+const faceDefinitions = [
+  { id:"faceX", label:"Face left / right", min:-1, max:1, step:.01, value:0 },
+  { id:"faceY", label:"Face up / down", min:-1, max:1, step:.01, value:0 },
+  { id:"faceZ", label:"Face depth", min:-1, max:1, step:.01, value:0 },
+  { id:"faceSize", label:"Face size", min:.2, max:3, step:.05, value:1 },
+  { id:"leftEye", label:"Left eye", min:.2, max:2, step:.05, value:1 },
+  { id:"rightEye", label:"Right eye", min:.2, max:2, step:.05, value:1 },
+  { id:"mouthScale", label:"Mouth size", min:.2, max:3, step:.05, value:1 },
+  { id:"mouthOpen", label:"Mouth open", min:0, max:1, step:.01, value:0 },
+  { id:"blinkLeft", label:"Left blink", min:0, max:1, step:.01, value:0 },
+  { id:"blinkRight", label:"Right blink", min:0, max:1, step:.01, value:0 }
+];
+
+function buildSliders(containerId, definitions) {
+  const container = $(containerId);
+  for (const d of definitions) {
+    const field = document.createElement("div");
+    field.className = "field";
+
+    const head = document.createElement("div");
+    head.className = "fieldHead";
+
+    const label = document.createElement("label");
+    label.htmlFor = d.id;
+    label.textContent = d.label;
+
+    const output = document.createElement("output");
+    output.id = d.id + "Out";
+    output.textContent = String(d.value);
+
+    const input = document.createElement("input");
+    input.type = "range";
+    input.id = d.id;
+    input.min = d.min;
+    input.max = d.max;
+    input.step = d.step;
+    input.value = d.value;
+    input.dataset.default = d.value;
+
+    input.addEventListener("input", () => {
+      output.textContent = input.value;
+    });
+
+    head.append(label, output);
+    field.append(head, input);
+    container.append(field);
+  }
+}
+buildSliders("modelSliders", modelDefinitions);
+buildSliders("faceSliders", faceDefinitions);
+
+function resetSliders(definitions) {
+  for (const d of definitions) {
+    const input = $(d.id);
+    input.value = d.value;
+    $(d.id + "Out").textContent = String(d.value);
+  }
+}
+$("resetTransformBtn").addEventListener("click", () => resetSliders(modelDefinitions));
+$("resetFaceBtn").addEventListener("click", () => resetSliders(faceDefinitions));
+$("resetAllBtn").addEventListener("click", () => {
+  resetSliders(modelDefinitions);
+  resetSliders(faceDefinitions);
+  gizmoMode = "";
+  toast("Sliders reset.");
+});
+
+for (const button of document.querySelectorAll(".slotBtn")) {
+  button.addEventListener("click", () => {
+    activeSlot = Number(button.dataset.slot);
+    document.querySelectorAll(".slotBtn").forEach(b => b.classList.remove("active"));
+    button.classList.add("active");
+    toast("Selected slot " + (activeSlot + 1) + ".");
+  });
+}
+function setGizmo(mode) {
+  gizmoMode = mode;
+  for (const id of ["moveGizmoBtn", "rotateGizmoBtn", "scaleGizmoBtn"]) {
+    $(id).classList.remove("active");
+  }
+  if (mode) {
+    const map = { move:"moveGizmoBtn", rotate:"rotateGizmoBtn", scale:"scaleGizmoBtn" };
+    $(map[mode]).classList.add("active");
+  }
+  toast("Gizmo controls need the 3D renderer.");
+}
+$("moveGizmoBtn").addEventListener("click", () => setGizmo("move"));
+$("rotateGizmoBtn").addEventListener("click", () => setGizmo("rotate"));
+$("scaleGizmoBtn").addEventListener("click", () => setGizmo("scale"));
+$("hideGizmosBtn").addEventListener("click", () => setGizmo(""));
+
+$("exportSettingsBtn").addEventListener("click", () => {
+  const settings = {};
+  for (const d of [...modelDefinitions, ...faceDefinitions]) {
+    settings[d.id] = Number($(d.id).value);
+  }
+  settings.mirrored = mirrored;
+  settings.showDots = showDots;
+  settings.showModel = showModel;
+
+  const blob = new Blob([JSON.stringify(settings, null, 2)], {
+    type: "application/json"
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "azeez-ar-settings.json";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+});
+$("importSettingsBtn").addEventListener("click", () => $("settingsFile").click());
+$("settingsFile").addEventListener("change", async () => {
+  const file = $("settingsFile").files?.[0];
+  if (!file) return;
+  try {
+    const settings = JSON.parse(await file.text());
+    for (const d of [...modelDefinitions, ...faceDefinitions]) {
+      if (Number.isFinite(settings[d.id])) {
+        const input = $(d.id);
+        input.value = Math.max(Number(input.min), Math.min(Number(input.max), settings[d.id]));
+        $(d.id + "Out").textContent = input.value;
+      }
+    }
+    if (typeof settings.mirrored === "boolean") mirrored = settings.mirrored;
+    if (typeof settings.showDots === "boolean") showDots = settings.showDots;
+    if (typeof settings.showModel === "boolean") showModel = settings.showModel;
+    syncMirror();
+    updateButtons();
+    toast("Settings imported.");
+  } catch (_) {
+    toast("Invalid settings JSON file.");
+  }
+});
+
+window.addEventListener("pagehide", () => {
+  running = false;
+  cancelAnimationFrame(rafId);
+  stopTracks();
+});
+
+syncMirror();
+updateButtons();
+clearDots();
+arCtx.clearRect(0, 0, arCanvas.width, arCanvas.height);
+    </script>
     
