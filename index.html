@@ -491,10 +491,10 @@ function trackLoop() {
     const sliderQuaternion = new THREE.Quaternion()
       .setFromEuler(sliderRotation);
 
-    faceQuaternion.y *= -1;
+    const targetQuaternion = faceQuaternion.clone();
+targetQuaternion.y *= -1;
 
-currentModel.quaternion.copy(faceQuaternion)
-  .multiply(sliderQuaternion);
+currentModel.quaternion.slerp(targetQuaternion.multiply(sliderQuaternion), 0.2);
   }
       }
       const faces = result.faceLandmarks || [];
