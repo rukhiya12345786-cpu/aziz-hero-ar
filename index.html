@@ -668,6 +668,8 @@ function fitModel(model) {
 
   scene.add(model);
   currentModel = model;
+  transformControls.attach(model);
+  transformControls.getHelper().visible = true;
   showModel = true;
   setModelTransform();
   setNotice("3D model loaded");
