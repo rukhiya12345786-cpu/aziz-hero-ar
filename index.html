@@ -466,6 +466,7 @@ function trackLoop() {
     try {
       const now = performance.now();
       const result = faceLandmarker.detectForVideo(video, now);
+      const faceMatrices = result.facialTransformationMatrixes || [];
       const faces = result.faceLandmarks || [];
       lastLandmarks = faces;
       drawFaceDots(faces);
