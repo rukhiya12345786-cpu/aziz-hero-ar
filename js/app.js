@@ -1,2221 +1,951 @@
-/* =====================================================
-   AZEEZ AR STUDIO
-   NEW MOBILE AR APP
-   JAVASCRIPT PART 1 OF 3
-   CAMERA + SWIPE PANEL + TRACKING SETUP
-===================================================== */
+/* AZEEZ AR STUDIO — PART 1/3 */
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
+import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js";
+import { OBJLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/OBJLoader.js";
+import { FBXLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/FBXLoader.js";
 
-const $ = (id) => document.getElementById(id);
-
+const $ = id => document.getElementById(id);
 const video = $("cameraVideo");
 const dotsCanvas = $("dotsCanvas");
-const dotsCtx = dotsCanvas.getContext("2d");
-
 const arCanvas = $("arCanvas");
 
-const panel = $("optionsPanel");
-const backdrop = $("panelBackdrop");
-const openHandle = $("openOptions");
-const closeButton = $("closeOptions");
+if (!video || !dotsCanvas || !arCanvas) {
+  throw new Error("index.html is missing cameraVideo, dotsCanvas, or arCanvas.");
+}
+
+const dotsCtx = dotsCanvas.getContext("2d");
 
 const state = {
   stream: null,
-
   facingMode: "user",
   mirrored: false,
-
   tracking: false,
   dotsVisible: true,
-
-  landmarker: null,
   loadingTracking: false,
-
-  lastVideoTime: -1,
+  landmarker: null,
   animationId: null,
-
-  slots: [null, null, null, null],
-  activeSlot: 0,
-
-  modelVisible: true,
-
-  three: null,
-  renderer: null,
+  lastVideoTime: -1,
+  faceResults: null,
   scene: null,
   camera3D: null,
-
+  renderer: null,
+  renderFrame: null,
+  modelSlots: [null, null, null, null],
+  activeSlot: 0,
   recording: null,
   recordingChunks: [],
-
   micStream: null,
-  micEnabled: false,
-
-  touchStartX: 0,
-  touchStartY: 0,
-
-  faceResults: null
+  cleanPreview: false
 };
 
-/* =====================================================
-   STATUS
-===================================================== */
-
-function showToast(message) {
-  const toast = $("toast");
-
-  if (!toast) return;
-
-  toast.textContent = message;
-  toast.style.opacity = "1";
-
-  clearTimeout(showToast.timer);
-
-  showToast.timer = setTimeout(() => {
-    toast.style.opacity = "0";
-  }, 2500);
+function toast(message) {
+  const el = $("toast");
+  if (!el) return;
+  el.textContent = message;
+  el.classList.add("show");
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => el.classList.remove("show"), 2600);
 }
 
 function setStatus(message) {
-  const element = $("status");
-
-  if (element) {
-    element.textContent = message;
-  }
+  if ($("status")) $("status").textContent = message;
 }
 
 function setTrackingStatus(message) {
-  const element = $("trackingStatus");
-
-  if (element) {
-    element.textContent = message;
-  }
-
-  const panelStatus = $("trackingPanelStatus");
-
-  if (panelStatus) {
-    panelStatus.textContent = message;
-  }
-}
-
-function updateCameraMessage(message) {
-  const element = $("cameraMessage");
-
-  if (element) {
-    element.textContent = message;
-  }
+  if ($("trackingStatus")) $("trackingStatus").textContent = message;
+  if ($("trackingPanelStatus")) $("trackingPanelStatus").textContent = message;
 }
 
 function showCameraError(message) {
-  const error = $("cameraError");
-
-  if (!error) {
-    showToast(message);
-    return;
+  const el = $("cameraError");
+  if (el) {
+    el.textContent = message;
+    el.style.display = "block";
+  } else {
+    toast(message);
   }
-
-  error.textContent = message;
-  error.style.display = "block";
-
-  setTimeout(() => {
-    error.style.display = "none";
-  }, 5000);
 }
 
-/* =====================================================
-   SLIDING OPTIONS PANEL
-===================================================== */
+function hideCameraError() {
+  if ($("cameraError")) $("cameraError").style.display = "none";
+}
+
+function showCameraMessage(message) {
+  const el = $("cameraMessage");
+  if (!el) return;
+  el.textContent = message;
+  el.style.display = message ? "block" : "none";
+}
+
+function clearDots() {
+  dotsCtx.clearRect(0, 0, dotsCanvas.width, dotsCanvas.height);
+}
+
+function resizeCanvases() {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+  for (const canvas of [dotsCanvas, arCanvas]) {
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    canvas.style.width = w + "px";
+    canvas.style.height = h + "px";
+  }
+
+  dotsCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  if (state.renderer && state.camera3D) {
+    state.renderer.setPixelRatio(dpr);
+    state.renderer.setSize(w, h, false);
+    state.camera3D.aspect = w / h;
+    state.camera3D.updateProjectionMatrix();
+  }
+}
 
 function openOptions() {
-  panel.classList.add("open");
-  backdrop.classList.add("visible");
+  $("optionsPanel")?.classList.add("open");
+  $("panelBackdrop")?.classList.add("show");
 }
 
 function closeOptions() {
-  panel.classList.remove("open");
-  backdrop.classList.remove("visible");
+  $("optionsPanel")?.classList.remove("open");
+  $("panelBackdrop")?.classList.remove("show");
 }
 
-function toggleOptions() {
-  if (panel.classList.contains("open")) {
-    closeOptions();
-  } else {
-    openOptions();
-  }
-}
-
-openHandle.addEventListener("click", openOptions);
-
-closeButton.addEventListener("click", closeOptions);
-
-backdrop.addEventListener("click", closeOptions);
-
-/* =====================================================
-   MOBILE SWIPE CONTROL
-===================================================== */
-
-document.addEventListener(
-  "touchstart",
-  (event) => {
-
-    const touch = event.touches[0];
-
-    state.touchStartX = touch.clientX;
-    state.touchStartY = touch.clientY;
-
-  },
-  { passive: true }
-);
-
-document.addEventListener(
-  "touchend",
-  (event) => {
-
-    const touch = event.changedTouches[0];
-
-    const deltaX =
-      touch.clientX - state.touchStartX;
-
-    const deltaY =
-      touch.clientY - state.touchStartY;
-
-    if (Math.abs(deltaX) < 65) {
-      return;
-    }
-
-    if (Math.abs(deltaX) < Math.abs(deltaY)) {
-      return;
-    }
-
-    /*
-      Swipe LEFT from right edge:
-      open options panel.
-    */
-
-    if (
-      deltaX < 0 &&
-      state.touchStartX > window.innerWidth - 65
-    ) {
-      openOptions();
-    }
-
-    /*
-      Swipe RIGHT:
-      close options panel.
-    */
-
-    if (
-      deltaX > 0 &&
-      panel.classList.contains("open")
-    ) {
-      closeOptions();
-    }
-
-  },
-  { passive: true }
-);
-
-/* =====================================================
-   CANVAS RESIZE
-===================================================== */
-
-function resizeCanvases() {
-
-  const width =
-    video.clientWidth || window.innerWidth;
-
-  const height =
-    video.clientHeight || window.innerHeight;
-
-  const dpr = Math.min(
-    window.devicePixelRatio || 1,
-    2
-  );
-
-  for (const canvas of [
-    dotsCanvas,
-    arCanvas
-  ]) {
-
-    canvas.width =
-      Math.round(width * dpr);
-
-    canvas.height =
-      Math.round(height * dpr);
-
-    canvas.style.width =
-      width + "px";
-
-    canvas.style.height =
-      height + "px";
-
-    const context =
-      canvas.getContext("2d");
-
-    context.setTransform(
-      dpr,
-      0,
-      0,
-      dpr,
-      0,
-      0
-    );
-
-  }
-
-}
-
-window.addEventListener(
-  "resize",
-  resizeCanvases
-);
-
-/* =====================================================
-   CAMERA STOP
-===================================================== */
-
-async function stopCamera() {
-
-  stopTracking();
-
-  if (state.stream) {
-
-    state.stream
-      .getTracks()
-      .forEach(track => track.stop());
-
-  }
-
-  state.stream = null;
-
-  video.srcObject = null;
-
-  setStatus("Camera stopped");
-
-  updateCameraMessage(
-    "Start camera from AR Options"
-  );
-
-}
-
-/* =====================================================
-   CAMERA START
-===================================================== */
-
-async function startCamera() {
-
-  try {
-
-    await stopCamera();
-
-    if (
-      !navigator.mediaDevices ||
-      !navigator.mediaDevices.getUserMedia
-    ) {
-
-      throw new Error(
-        "Camera API unavailable. Open the website using HTTPS."
-      );
-
-    }
-
-    setStatus("Starting camera...");
-
-    updateCameraMessage(
-      "Opening camera..."
-    );
-
-    state.stream =
-      await navigator.mediaDevices.getUserMedia({
-
-        audio: false,
-
-        video: {
-
-          facingMode:
-            state.facingMode,
-
-          width: {
-            ideal: 1280
-          },
-
-          height: {
-            ideal: 720
-          }
-
-        }
-
-      });
-
-    video.srcObject =
-      state.stream;
-
-    await video.play();
-
-    resizeCanvases();
-
-    setStatus("Camera ON");
-
-    updateCameraMessage("");
-
-    showToast("Camera started");
-
-  } catch (error) {
-
-    console.error(
-      "Camera error:",
-      error
-    );
-
-    setStatus("Camera error");
-
-    updateCameraMessage(
-      "Camera could not start"
-    );
-
-    showCameraError(
-      error.message ||
-      "Camera permission or device error"
-    );
-
-  }
-
-}
-
-/* =====================================================
-   SWITCH CAMERA
-===================================================== */
-
-async function switchCamera() {
-
-  state.facingMode =
-    state.facingMode === "user"
-      ? "environment"
-      : "user";
-
-  await startCamera();
-
-}
-
-/* =====================================================
-   MIRROR
-===================================================== */
-
-function toggleMirror() {
-
-  state.mirrored =
-    !state.mirrored;
-
-  video.classList.toggle(
-    "mirrored",
-    state.mirrored
-  );
-
-  $("flipBtn").textContent =
-    state.mirrored
-      ? "Mirror OFF"
-      : "Mirror ON";
-
-}
-
-/* =====================================================
-   CAMERA BUTTONS
-===================================================== */
-
-$("startCameraBtn").addEventListener(
-  "click",
-  startCamera
-);
-
-$("stopCameraBtn").addEventListener(
-  "click",
-  stopCamera
-);
-
-$("switchCameraBtn").addEventListener(
-  "click",
-  switchCamera
-);
-
-$("flipBtn").addEventListener(
-  "click",
-  toggleMirror
-);
-
-/* =====================================================
-   FULLSCREEN
-===================================================== */
-
-$("fullscreenBtn").addEventListener(
-  "click",
-  async () => {
-
-    try {
-
-      if (!document.fullscreenElement) {
-
-        await $("app").requestFullscreen();
-
-      } else {
-
-        await document.exitFullscreen();
-
-      }
-
-    } catch (error) {
-
-      showToast(
-        "Fullscreen not supported by browser"
-      );
-
-    }
-
-  }
-);
-
-/* =====================================================
-   PART 2 CONTINUES
-===================================================== */
-      
-/* =====================================================
-   AZEEZ AR STUDIO
-   JAVASCRIPT PART 2 OF 3
-   FACE TRACKING + GREEN DOTS + 3D MODEL SETUP
-===================================================== */
-
-/* =====================================================
-   CLEAR FACE DOTS
-===================================================== */
-
-function clearDots() {
-
-  dotsCtx.clearRect(
-    0,
-    0,
-    dotsCanvas.width,
-    dotsCanvas.height
-  );
-
-}
-
-/* =====================================================
-   LOAD MEDIAPIPE
-===================================================== */
-
-async function loadFaceLandmarker() {
-
-  if (state.landmarker) {
-    return state.landmarker;
-  }
-
-  if (state.loadingTracking) {
-    throw new Error("Tracking is already loading");
-  }
-
-  state.loadingTracking = true;
-
-  setTrackingStatus("Loading face model...");
-
-  try {
-
-    const vision =
-      await import(
-        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm"
-      );
-
-    const files =
-      await vision.FilesetResolver.forVisionTasks(
-        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
-      );
-
-    state.landmarker =
-      await vision.FaceLandmarker.createFromOptions(
-        files,
-        {
-          baseOptions: {
-
-            modelAssetPath:
-              "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-
-            delegate: "GPU"
-
-          },
-
-          runningMode: "VIDEO",
-
-          numFaces: 4,
-
-          outputFaceBlendshapes: true,
-
-          outputFacialTransformationMatrixes: true
-
-        }
-      );
-
-    setTrackingStatus("Face model loaded");
-
-    return state.landmarker;
-
-  } catch (error) {
-
-    console.error(
-      "Face model loading error:",
-      error
-    );
-
-    state.landmarker = null;
-
-    setTrackingStatus("Model loading failed");
-
-    showCameraError(
-      "Face tracking model could not load. Check internet connection."
-    );
-
-    throw error;
-
-  } finally {
-
-    state.loadingTracking = false;
-
-  }
-
-}
-
-/* =====================================================
-   START TRACKING
-===================================================== */
-
-async function startTracking() {
-
-  if (!state.stream) {
-
-    showToast("Start camera first");
-
-    return;
-
-  }
-
-  if (state.tracking) {
-    return;
-  }
-
-  try {
-
-    await loadFaceLandmarker();
-
-    state.tracking = true;
-
-    state.lastVideoTime = -1;
-
-    setTrackingStatus("Tracking ON");
-
-    $("trackingBtn").textContent =
-      "Stop Tracking";
-
-    trackingLoop();
-
-    showToast("Face tracking started");
-
-  } catch (error) {
-
-    console.error(
-      "Tracking start error:",
-      error
-    );
-
-    state.tracking = false;
-
-    setTrackingStatus(
-      "Tracking failed"
-    );
-
-  }
-
-}
-
-/* =====================================================
-   STOP TRACKING
-===================================================== */
+$("openOptions")?.addEventListener("click", openOptions);
+$("closeOptions")?.addEventListener("click", closeOptions);
+$("panelBackdrop")?.addEventListener("click", closeOptions);
+$("hideOptionsBtn")?.addEventListener("click", closeOptions);
+
+let touchX = 0;
+let touchY = 0;
+
+document.addEventListener("touchstart", event => {
+  touchX = event.changedTouches[0].clientX;
+  touchY = event.changedTouches[0].clientY;
+}, { passive: true });
+
+document.addEventListener("touchend", event => {
+  const t = event.changedTouches[0];
+  const dx = t.clientX - touchX;
+  const dy = t.clientY - touchY;
+  if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy)) return;
+
+  if (dx < 0 && touchX > window.innerWidth - 45) openOptions();
+  if (dx > 0 && $("optionsPanel")?.classList.contains("open")) closeOptions();
+}, { passive: true });
 
 function stopTracking() {
-
   state.tracking = false;
-
   state.faceResults = null;
 
   if (state.animationId !== null) {
-
-    cancelAnimationFrame(
-      state.animationId
-    );
-
+    cancelAnimationFrame(state.animationId);
     state.animationId = null;
-
   }
 
   clearDots();
-
   setTrackingStatus("Tracking OFF");
-
-  const button = $("trackingBtn");
-
-  if (button) {
-
-    button.textContent =
-      "Start Tracking";
-
-  }
-
+  if ($("trackingBtn")) $("trackingBtn").textContent = "Start Tracking";
 }
 
-/* =====================================================
-   TRACKING BUTTON
-===================================================== */
+async function stopCamera() {
+  stopTracking();
 
-$("trackingBtn").addEventListener(
-  "click",
-  () => {
+  if (state.stream) {
+    state.stream.getTracks().forEach(track => track.stop());
+    state.stream = null;
+  }
 
-    if (state.tracking) {
+  video.srcObject = null;
+  setStatus("Camera stopped");
+  showCameraMessage("Press START CAMERA to begin.");
+}
 
-      stopTracking();
+async function startCamera() {
+  hideCameraError();
 
+  if (!navigator.mediaDevices?.getUserMedia) {
+    showCameraError("Camera requires HTTPS and a supported browser.");
+    return;
+  }
+
+  const resumeTracking = state.tracking;
+  await stopCamera();
+
+  try {
+    state.stream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: {
+        facingMode: { ideal: state.facingMode },
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      }
+    });
+
+    video.srcObject = state.stream;
+    video.muted = true;
+    video.playsInline = true;
+    await video.play();
+    video.classList.toggle("mirrored", state.mirrored);
+
+    resizeCanvases();
+    setStatus("Camera ready");
+    showCameraMessage("");
+
+    if (resumeTracking) await startTracking();
+    else toast("Camera started");
+  } catch (error) {
+    console.error("Camera error:", error);
+    showCameraError("Camera failed: " + error.message);
+    setStatus("Camera error");
+  }
+}
+
+$("startCameraBtn")?.addEventListener("click", startCamera);
+$("stopCameraBtn")?.addEventListener("click", stopCamera);
+
+$("switchCameraBtn")?.addEventListener("click", async () => {
+  const resumeTracking = state.tracking;
+  state.facingMode = state.facingMode === "user" ? "environment" : "user";
+  await startCamera();
+  if (resumeTracking && state.stream) await startTracking();
+});
+
+$("flipBtn")?.addEventListener("click", () => {
+  state.mirrored = !state.mirrored;
+  video.classList.toggle("mirrored", state.mirrored);
+  if ($("flipBtn")) {
+    $("flipBtn").textContent = state.mirrored ? "Mirror Flip ON" : "Mirror Flip OFF";
+  }
+  if (state.faceResults) drawFaceDots(state.faceResults);
+});
+
+$("fullscreenBtn")?.addEventListener("click", async () => {
+  try {
+    if (!document.fullscreenElement) {
+      await document.documentElement.requestFullscreen();
     } else {
+      await document.exitFullscreen();
+    }
+  } catch (error) {
+    toast("Fullscreen unavailable in this browser.");
+  }
+});
 
-      startTracking();
+/* FACE LANDMARKER LOADING — GPU then CPU fallback */
+async function loadFaceLandmarker() {
+  if (state.landmarker) return state.landmarker;
+  if (state.loadingTracking) throw new Error("Model is already loading.");
 
+  state.loadingTracking = true;
+  setTrackingStatus("Loading face model...");
+
+  try {
+    const vision = await import(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm"
+    );
+
+    const files = await vision.FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
+    );
+
+    const options = {
+      baseOptions: {
+        modelAssetPath:
+          "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+        delegate: "GPU"
+      },
+      runningMode: "VIDEO",
+      numFaces: 4,
+      outputFaceBlendshapes: true,
+      outputFacialTransformationMatrixes: true
+    };
+
+    try {
+      state.landmarker = await vision.FaceLandmarker.createFromOptions(files, options);
+    } catch (gpuError) {
+      console.warn("GPU failed; trying CPU:", gpuError);
+      options.baseOptions.delegate = "CPU";
+      state.landmarker = await vision.FaceLandmarker.createFromOptions(files, options);
     }
 
+    setTrackingStatus("Face model loaded");
+    return state.landmarker;
+  } catch (error) {
+    console.error("Face model loading error:", error);
+    state.landmarker = null;
+    setTrackingStatus("Model loading failed");
+    showCameraError("Face tracking failed: " + (error?.message || String(error)));
+    throw error;
+  } finally {
+    state.loadingTracking = false;
   }
-);
+}
 
-/* =====================================================
-   GREEN DOTS BUTTON
-===================================================== */
+async function startTracking() {
+  if (!state.stream) {
+    toast("Start camera first");
+    return;
+  }
+  if (state.tracking || state.loadingTracking) return;
+
+  try {
+    await loadFaceLandmarker();
+    if (!state.stream) throw new Error("Camera stopped.");
+
+    state.tracking = true;
+    state.lastVideoTime = -1;
+    setTrackingStatus("Tracking ON");
+    if ($("trackingBtn")) $("trackingBtn").textContent = "Stop Tracking";
+    trackingLoop();
+  } catch (error) {
+    console.error("Tracking failed:", error);
+    state.tracking = false;
+    setTrackingStatus("Tracking failed");
+    if ($("trackingBtn")) $("trackingBtn").textContent = "Start Tracking";
+  }
+}
+
+$("trackingBtn")?.addEventListener("click", () => {
+  if (state.tracking) stopTracking();
+  else startTracking();
+});
 
 function toggleDots() {
-
-  state.dotsVisible =
-    !state.dotsVisible;
-
-  $("dotsBtn").textContent =
-    state.dotsVisible
-      ? "Green Dots ON"
-      : "Green Dots OFF";
-
-  if (!state.dotsVisible) {
-
-    clearDots();
-
+  state.dotsVisible = !state.dotsVisible;
+  if ($("dotsBtn")) {
+    $("dotsBtn").textContent = state.dotsVisible ? "Green Dots ON" : "Green Dots OFF";
   }
-
+  if (!state.dotsVisible) clearDots();
+  else if (state.faceResults) drawFaceDots(state.faceResults);
 }
 
-$("dotsBtn").addEventListener(
-  "click",
-  toggleDots
-);
-
-/* =====================================================
-   FACE TRACKING LOOP
-===================================================== */
+$("dotsBtn")?.addEventListener("click", toggleDots);
 
 function trackingLoop() {
-
   if (!state.tracking) {
+    state.animationId = null;
     return;
   }
 
   if (
-    video.readyState >=
-    HTMLMediaElement.HAVE_CURRENT_DATA
+    state.stream &&
+    video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA &&
+    video.currentTime !== state.lastVideoTime
   ) {
+    state.lastVideoTime = video.currentTime;
 
-    if (
-      video.currentTime !==
-      state.lastVideoTime
-    ) {
-
-      state.lastVideoTime =
-        video.currentTime;
-
-      try {
-
-        state.faceResults =
-          state.landmarker.detectForVideo(
-            video,
-            performance.now()
-          );
-
-        drawFaceDots(
-          state.faceResults
-        );
-
-        updateFaceModel();
-
-      } catch (error) {
-
-        console.error(
-          "Face detection error:",
-          error
-        );
-
-      }
-
+    try {
+      state.faceResults = state.landmarker.detectForVideo(video, performance.now());
+      drawFaceDots(state.faceResults);
+      updateFaceModel();
+    } catch (error) {
+      console.error("Detection error:", error);
+      setTrackingStatus("Detection error — check console");
     }
-
   }
 
-  state.animationId =
-    requestAnimationFrame(
-      trackingLoop
-    );
-
+  state.animationId = requestAnimationFrame(trackingLoop);
 }
 
-/* =====================================================
-   DRAW FACE DOTS
-===================================================== */
-
 function drawFaceDots(results) {
-
   clearDots();
+  if (!state.dotsVisible) return;
 
-  if (!state.dotsVisible) {
+  if (!results?.faceLandmarks?.length) {
+    setTrackingStatus("Tracking ON • Face not found");
     return;
   }
 
-  if (
-    !results ||
-    !results.faceLandmarks ||
-    results.faceLandmarks.length === 0
-  ) {
+  const w = dotsCanvas.clientWidth;
+  const h = dotsCanvas.clientHeight;
 
-    setTrackingStatus(
-      "Tracking ON • Face not found"
-    );
-
-    return;
-
-  }
-
-  const width =
-    dotsCanvas.clientWidth;
-
-  const height =
-    dotsCanvas.clientHeight;
-
-  dotsCtx.fillStyle =
-    "#00ff66";
-
-  dotsCtx.shadowColor =
-    "#00ff66";
-
+  dotsCtx.fillStyle = "#00ff66";
+  dotsCtx.shadowColor = "#00ff66";
   dotsCtx.shadowBlur = 4;
 
-  for (
-    const landmarks of
-    results.faceLandmarks
-  ) {
-
-    for (
-      const landmark of
-      landmarks
-    ) {
-
-      let x =
-        landmark.x * width;
-
-      let y =
-        landmark.y * height;
-
-      if (state.mirrored) {
-
-        x = width - x;
-
-      }
-
+  for (const face of results.faceLandmarks) {
+    for (const p of face) {
+      const x = (state.mirrored ? 1 - p.x : p.x) * w;
+      const y = p.y * h;
       dotsCtx.beginPath();
-
-      dotsCtx.arc(
-        x,
-        y,
-        2,
-        0,
-        Math.PI * 2
-      );
-
+      dotsCtx.arc(x, y, 2, 0, Math.PI * 2);
       dotsCtx.fill();
-
     }
-
   }
 
   dotsCtx.shadowBlur = 0;
+  setTrackingStatus("Tracking ON • Face detected (" + results.faceLandmarks.length + ")");
+}
+   
+/* AZEEZ AR STUDIO — PART 2/3 */
 
-  setTrackingStatus(
-    "Tracking ON • Face detected"
+function init3D() {
+  state.scene = new THREE.Scene();
+
+  state.camera3D = new THREE.PerspectiveCamera(
+    45,
+    window.innerWidth / window.innerHeight,
+    0.01,
+    1000
   );
+  state.camera3D.position.set(0, 0, 5);
 
-}
-
-/* =====================================================
-   THREE.JS INITIALIZATION
-===================================================== */
-
-async function init3D() {
-
-  if (state.renderer) {
-    return;
-  }
-
-  try {
-
-    const THREE =
-      await import(
-        "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
-      );
-
-    state.three = THREE;
-
-    state.scene =
-      new THREE.Scene();
-
-    state.camera3D =
-      new THREE.PerspectiveCamera(
-        45,
-        window.innerWidth /
-          window.innerHeight,
-        0.01,
-        1000
-      );
-
-    state.camera3D.position.z = 5;
-
-    state.renderer =
-      new THREE.WebGLRenderer({
-
-        canvas: arCanvas,
-
-        alpha: true,
-
-        antialias: true
-
-      });
-
-    state.renderer.setPixelRatio(
-      Math.min(
-        window.devicePixelRatio || 1,
-        2
-      )
-    );
-
-    state.renderer.setSize(
-      window.innerWidth,
-      window.innerHeight
-    );
-
-    state.renderer.setClearColor(
-      0x000000,
-      0
-    );
-
-    render3D();
-
-    setStatus("3D engine ready");
-
-  } catch (error) {
-
-    console.error(
-      "Three.js initialization error:",
-      error
-    );
-
-    showToast(
-      "3D engine failed to load"
-    );
-
-  }
-
-}
-
-/* =====================================================
-   3D RENDER LOOP
-===================================================== */
-
-function render3D() {
-
-  if (
-    state.renderer &&
-    state.scene &&
-    state.camera3D
-  ) {
-
-    state.renderer.render(
-      state.scene,
-      state.camera3D
-    );
-
-  }
-
-  requestAnimationFrame(
-    render3D
-  );
-
-}
-
-/* =====================================================
-   ACTIVE MODEL
-===================================================== */
-
-function getActiveModel() {
-
-  return state.slots[
-    state.activeSlot
-  ];
-
-}
-
-/* =====================================================
-   MODEL SLOT SELECT
-===================================================== */
-
-function selectSlot(index) {
-
-  if (
-    index < 0 ||
-    index >= state.slots.length
-  ) {
-
-    return;
-
-  }
-
-  state.activeSlot = index;
-
-  updateSlotLabels();
-
-  applyModelControls();
-
-  showToast(
-    "Selected Slot " +
-    (index + 1)
-  );
-
-}
-
-/* =====================================================
-   SLOT BUTTONS
-===================================================== */
-
-document
-  .querySelectorAll(".slotBtn")
-  .forEach(button => {
-
-    button.addEventListener(
-      "click",
-      () => {
-
-        const index =
-          Number(
-            button.dataset.slot
-          );
-
-        selectSlot(index);
-
-      }
-    );
-
+  state.renderer = new THREE.WebGLRenderer({
+    canvas: arCanvas,
+    alpha: true,
+    antialias: true,
+    preserveDrawingBuffer: true
   });
 
-/* =====================================================
-   UPDATE SLOT LABELS
-===================================================== */
+  state.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  state.renderer.setSize(window.innerWidth, window.innerHeight, false);
+  state.renderer.setClearColor(0x000000, 0);
 
-function updateSlotLabels() {
+  state.scene.add(new THREE.HemisphereLight(0xffffff, 0x555566, 2));
 
-  document
-    .querySelectorAll(".slotBtn")
-    .forEach(button => {
+  const light = new THREE.DirectionalLight(0xffffff, 2);
+  light.position.set(2, 4, 5);
+  state.scene.add(light);
 
-      const index =
-        Number(
-          button.dataset.slot
-        );
-
-      const model =
-        state.slots[index];
-
-      button.textContent =
-        "Slot " +
-        (index + 1) +
-        (
-          model
-            ? " • Loaded"
-            : " • Empty"
-        );
-
-      button.style.borderColor =
-        index === state.activeSlot
-          ? "#00ff66"
-          : "#333";
-
-    });
-
+  render3D();
 }
 
-/* =====================================================
-   PART 3 CONTINUES
-===================================================== */
-/* =====================================================
-   AZEEZ AR STUDIO
-   JAVASCRIPT PART 3 OF 3
-   MODEL IMPORT + CONTROLS + RECORDING + STARTUP
-===================================================== */
+function render3D() {
+  if (!state.renderer || !state.scene || !state.camera3D) return;
+  state.renderer.render(state.scene, state.camera3D);
+  state.renderFrame = requestAnimationFrame(render3D);
+}
 
-/* =====================================================
-   MODEL IMPORT
-===================================================== */
+function activeModel() {
+  return state.modelSlots[state.activeSlot];
+}
+
+function selectSlot(index) {
+  if (index < 0 || index > 3) return;
+
+  state.activeSlot = index;
+  document.querySelectorAll(".slotBtn").forEach(button => {
+    button.classList.toggle("active", Number(button.dataset.slot) === index);
+  });
+
+  updateSlotLabels();
+  applyModelControls();
+}
+
+document.querySelectorAll(".slotBtn").forEach(button => {
+  button.addEventListener("click", () => selectSlot(Number(button.dataset.slot)));
+});
+
+function updateSlotLabels() {
+  document.querySelectorAll(".slotBtn").forEach(button => {
+    const index = Number(button.dataset.slot);
+    button.textContent = state.modelSlots[index]
+      ? "Slot " + (index + 1) + " ✓"
+      : "Slot " + (index + 1);
+  });
+
+  if ($("modelStatus")) {
+    $("modelStatus").textContent = activeModel()
+      ? "Model loaded in slot " + (state.activeSlot + 1)
+      : "No model in selected slot";
+  }
+}
+
+function centerAndScaleModel(object) {
+  object.updateMatrixWorld(true);
+
+  const box = new THREE.Box3().setFromObject(object);
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+
+  object.position.sub(center);
+
+  const maxSize = Math.max(size.x, size.y, size.z);
+  if (maxSize > 0) object.scale.multiplyScalar(2 / maxSize);
+
+  object.userData.originalScale = object.scale.clone();
+}
+
+async function parseModel(file) {
+  const extension = file.name.split(".").pop().toLowerCase();
+
+  if (extension === "glb" || extension === "gltf") {
+    const loader = new GLTFLoader();
+    const url = URL.createObjectURL(file);
+    try {
+      const gltf = await loader.loadAsync(url);
+      return gltf.scene;
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  if (extension === "obj") {
+    return new OBJLoader().parse(await file.text());
+  }
+
+  if (extension === "fbx") {
+    return new FBXLoader().parse(await file.arrayBuffer(), "");
+  }
+
+  throw new Error("Unsupported file. Choose GLB, GLTF, OBJ, or FBX.");
+}
 
 async function importModel() {
-
-  const fileInput = $("modelFile");
-
-  const file = fileInput.files[0];
+  const picker = $("modelFile");
+  const file = picker?.files?.[0];
 
   if (!file) {
-
-    showToast("Select a 3D model first");
-
+    toast("Choose a 3D model file first");
     return;
-
-  }
-
-  if (!state.renderer) {
-
-    await init3D();
-
-  }
-
-  if (!state.three) {
-
-    showToast("3D engine unavailable");
-
-    return;
-
   }
 
   try {
+    if ($("modelStatus")) $("modelStatus").textContent = "Loading model...";
 
-    showToast("Loading model...");
+    const object = await parseModel(file);
+    const previous = activeModel();
 
-    const THREE = state.three;
-
-    let object = null;
-
-    const extension =
-      file.name
-        .split(".")
-        .pop()
-        .toLowerCase();
-
-    const objectURL =
-      URL.createObjectURL(file);
-
-    if (extension === "glb" || extension === "gltf") {
-
-      const { GLTFLoader } =
-        await import(
-          "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js"
-        );
-
-      const loader =
-        new GLTFLoader();
-
-      const gltf =
-        await loader.loadAsync(
-          objectURL
-        );
-
-      object = gltf.scene;
-
-    } else if (extension === "obj") {
-
-      const { OBJLoader } =
-        await import(
-          "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/OBJLoader.js"
-        );
-
-      const loader =
-        new OBJLoader();
-
-      object =
-        loader.parse(
-          await file.text()
-        );
-
-    } else if (extension === "fbx") {
-
-      const { FBXLoader } =
-        await import(
-          "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/FBXLoader.js"
-        );
-
-      const loader =
-        new FBXLoader();
-
-      object =
-        loader.parse(
-          await file.arrayBuffer()
-        );
-
-    } else {
-
-      throw new Error(
-        "Unsupported model format"
-      );
-
+    if (previous) {
+      state.scene.remove(previous);
+      disposeObject(previous);
     }
 
-    if (!object) {
-
-      throw new Error(
-        "Model could not be loaded"
-      );
-
-    }
-
-    const box =
-      new THREE.Box3()
-        .setFromObject(object);
-
-    const size =
-      box.getSize(
-        new THREE.Vector3()
-      );
-
-    const center =
-      box.getCenter(
-        new THREE.Vector3()
-      );
-
-    object.position.sub(center);
-
-    const maxDimension =
-      Math.max(
-        size.x,
-        size.y,
-        size.z
-      );
-
-    if (maxDimension > 0) {
-
-      object.scale.setScalar(
-        2 / maxDimension
-      );
-
-    }
-
-    object.userData.originalScale =
-      object.scale.clone();
-
-    const oldModel =
-      state.slots[
-        state.activeSlot
-      ];
-
-    if (oldModel) {
-
-      state.scene.remove(
-        oldModel
-      );
-
-    }
-
-    state.slots[
-      state.activeSlot
-    ] = object;
-
-    state.scene.add(
-      object
-    );
-
-    state.modelVisible = true;
-
-    object.visible = true;
-
-    updateSlotLabels();
+    centerAndScaleModel(object);
+    state.modelSlots[state.activeSlot] = object;
+    state.scene.add(object);
 
     applyModelControls();
-
-    $("modelStatus").textContent =
-      file.name;
-
-    $("showModelBtn").textContent =
-      "Hide Model";
-
-    showToast("Model imported");
-
-    URL.revokeObjectURL(
-      objectURL
-    );
-
+    updateSlotLabels();
+    toast("Model imported");
   } catch (error) {
-
-    console.error(
-      "Model import error:",
-      error
-    );
-
-    $("modelStatus").textContent =
-      "Model import failed";
-
-    showToast(
-      error.message ||
-      "Could not import model"
-    );
-
+    console.error("Model import failed:", error);
+    showCameraError("Model import failed: " + error.message);
+    updateSlotLabels();
+  } finally {
+    if (picker) picker.value = "";
   }
-
 }
 
-$("importModelBtn").addEventListener(
-  "click",
-  importModel
-);
+$("importModelBtn")?.addEventListener("click", importModel);
 
-/* =====================================================
-   MODEL POSITION + ROTATION + SCALE
-===================================================== */
+function numberValue(id, fallback = 0) {
+  const el = $(id);
+  if (!el) return fallback;
+  const value = Number(el.value);
+  return Number.isFinite(value) ? value : fallback;
+}
 
 function applyModelControls() {
+  const model = activeModel();
+  if (!model) return;
 
-  const model =
-    getActiveModel();
+  model.position.set(
+    numberValue("posX"),
+    numberValue("posY"),
+    numberValue("posZ")
+  );
 
-  if (!model) {
-    return;
+  model.rotation.set(
+    THREE.MathUtils.degToRad(numberValue("rotX")),
+    THREE.MathUtils.degToRad(numberValue("rotY")),
+    THREE.MathUtils.degToRad(numberValue("rotZ"))
+  );
+
+  const original = model.userData.originalScale || new THREE.Vector3(1, 1, 1);
+  const scale = Math.max(0.001, numberValue("modelScale", 1));
+  model.scale.copy(original).multiplyScalar(scale);
+
+  if ($("showModelBtn")) {
+    $("showModelBtn").textContent = model.visible ? "Hide Model" : "Show Model";
   }
-
-  const value = (id) =>
-    Number($(id).value);
-
-  model.position.x =
-    value("posX") +
-    value("faceX");
-
-  model.position.y =
-    value("posY") +
-    value("faceY");
-
-  model.position.z =
-    value("posZ") +
-    value("faceZ");
-
-  model.rotation.x =
-    value("rotX") *
-    Math.PI / 180;
-
-  model.rotation.y =
-    value("rotY") *
-    Math.PI / 180;
-
-  model.rotation.z =
-    value("rotZ") *
-    Math.PI / 180;
-
-  const originalScale =
-    model.userData.originalScale;
-
-  const scale =
-    value("modelScale") *
-    value("faceSize");
-
-  if (originalScale) {
-
-    model.scale.copy(
-      originalScale
-    );
-
-    model.scale.multiplyScalar(
-      scale
-    );
-
-  }
-
-  model.visible =
-    state.modelVisible;
-
 }
 
-/* =====================================================
-   SLIDER OUTPUTS
-===================================================== */
-
 const sliderIds = [
-
-  "posX",
-  "posY",
-  "posZ",
-
-  "rotX",
-  "rotY",
-  "rotZ",
-
+  "posX", "posY", "posZ",
+  "rotX", "rotY", "rotZ",
   "modelScale",
-
-  "faceX",
-  "faceY",
-  "faceZ",
-
-  "faceSize",
-
-  "leftEye",
-  "rightEye",
-
-  "mouthScale",
-  "mouthOpen",
-
-  "blinkLeft",
-  "blinkRight"
-
+  "faceX", "faceY", "faceZ", "faceSize",
+  "leftEye", "rightEye", "mouthScale",
+  "mouthOpen", "blinkLeft", "blinkRight"
 ];
 
 function updateSliderOutput(id) {
+  const slider = $(id);
+  if (!slider) return;
 
-  const input =
-    $(id);
-
-  const output =
-    $(id + "Out");
-
-  if (!input || !output) {
-    return;
-  }
-
-  const value =
-    Number(input.value);
-
-  output.textContent =
-    value.toFixed(2);
-
+  const output = $(id + "Out") || (id === "modelScale" ? $("scaleOut") : null);
+  if (output) output.textContent = slider.value;
 }
 
 sliderIds.forEach(id => {
+  const slider = $(id);
+  if (!slider) return;
 
-  const input =
-    $(id);
-
-  if (!input) {
-    return;
-  }
-
-  input.addEventListener(
-    "input",
-    () => {
-
-      updateSliderOutput(id);
-
-      applyModelControls();
-
-    }
-  );
+  slider.addEventListener("input", () => {
+    updateSliderOutput(id);
+    applyModelControls();
+  });
 
   updateSliderOutput(id);
-
 });
 
-/* =====================================================
-   RESET TRANSFORM
-===================================================== */
+function setSliderValues(values) {
+  for (const [id, value] of Object.entries(values)) {
+    if ($(id)) $(id).value = value;
+    updateSliderOutput(id);
+  }
+}
 
 function resetTransform() {
-
-  const ids = [
-
-    "posX",
-    "posY",
-    "posZ",
-
-    "rotX",
-    "rotY",
-    "rotZ",
-
-    "modelScale"
-
-  ];
-
-  ids.forEach(id => {
-
-    const input =
-      $(id);
-
-    if (!input) {
-      return;
-    }
-
-    input.value =
-      id === "modelScale"
-        ? "1"
-        : "0";
-
-    updateSliderOutput(id);
-
+  setSliderValues({
+    posX: 0, posY: 0, posZ: 0,
+    rotX: 0, rotY: 0, rotZ: 0,
+    modelScale: 1
   });
-
   applyModelControls();
-
 }
-
-$("resetTransformBtn").addEventListener(
-  "click",
-  resetTransform
-);
-
-/* =====================================================
-   RESET FACE CONTROLS
-===================================================== */
 
 function resetFaceControls() {
-
-  const defaults = {
-
-    faceX: 0,
-    faceY: 0,
-    faceZ: 0,
-
+  setSliderValues({
+    faceX: 0, faceY: 0, faceZ: 0,
     faceSize: 1,
-
-    leftEye: 1,
-    rightEye: 1,
-
-    mouthScale: 1,
-    mouthOpen: 0,
-
-    blinkLeft: 0,
-    blinkRight: 0
-
-  };
-
-  Object.entries(
-    defaults
-  ).forEach(([id, value]) => {
-
-    $(id).value =
-      String(value);
-
-    updateSliderOutput(id);
-
+    leftEye: 1, rightEye: 1,
+    mouthScale: 1, mouthOpen: 0,
+    blinkLeft: 0, blinkRight: 0
   });
-
   applyModelControls();
-
 }
 
-$("resetFaceBtn").addEventListener(
-  "click",
-  resetFaceControls
-);
+$("resetTransformBtn")?.addEventListener("click", resetTransform);
+$("resetFaceBtn")?.addEventListener("click", resetFaceControls);
 
-/* =====================================================
-   RESET ALL
-===================================================== */
-
-function resetAllControls() {
-
+$("resetAllBtn")?.addEventListener("click", () => {
   resetTransform();
-
   resetFaceControls();
 
-  showToast("Controls reset");
+  state.mirrored = false;
+  video.classList.remove("mirrored");
+  if ($("flipBtn")) $("flipBtn").textContent = "Mirror Flip OFF";
+});
 
-}
+$("showModelBtn")?.addEventListener("click", () => {
+  const model = activeModel();
+  if (!model) return toast("Import a model first");
 
-$("resetAllBtn").addEventListener(
-  "click",
-  resetAllControls
-);
-
-/* =====================================================
-   UPDATE FACE MODEL
-===================================================== */
-
-function updateFaceModel() {
-
-  /*
-    Current version:
-    model transform controls only.
-
-    Automatic face attachment,
-    eye animation and mouth animation
-    are not implemented yet.
-  */
-
+  model.visible = !model.visible;
   applyModelControls();
+});
 
-}
+$("removeModelBtn")?.addEventListener("click", () => {
+  const model = activeModel();
+  if (!model) return;
 
-/* =====================================================
-   MODEL VISIBILITY
-===================================================== */
-
-function toggleModelVisibility() {
-
-  const model =
-    getActiveModel();
-
-  if (!model) {
-
-    showToast(
-      "Import a model first"
-    );
-
-    return;
-
-  }
-
-  state.modelVisible =
-    !state.modelVisible;
-
-  model.visible =
-    state.modelVisible;
-
-  $("showModelBtn").textContent =
-    state.modelVisible
-      ? "Hide Model"
-      : "Show Model";
-
-}
-
-$("showModelBtn").addEventListener(
-  "click",
-  toggleModelVisibility
-);
-
-/* =====================================================
-   REMOVE ACTIVE MODEL
-===================================================== */
-
-function removeActiveModel() {
-
-  const model =
-    getActiveModel();
-
-  if (model && state.scene) {
-
-    state.scene.remove(
-      model
-    );
-
-  }
-
-  state.slots[
-    state.activeSlot
-  ] = null;
-
+  state.scene.remove(model);
+  disposeObject(model);
+  state.modelSlots[state.activeSlot] = null;
   updateSlotLabels();
+});
 
-  $("modelStatus").textContent =
-    "No model loaded";
-
-  showToast("Model removed");
-
-}
-
-$("removeModelBtn").addEventListener(
-  "click",
-  removeActiveModel
-);
-
-/* =====================================================
-   CLEAR ALL MODELS
-===================================================== */
-
-function clearAllModels() {
-
-  state.slots.forEach(
-    (model, index) => {
-
-      if (model && state.scene) {
-
-        state.scene.remove(
-          model
-        );
-
-      }
-
-      state.slots[index] =
-        null;
-
+$("clearModelBtn")?.addEventListener("click", () => {
+  state.modelSlots.forEach(model => {
+    if (model) {
+      state.scene.remove(model);
+      disposeObject(model);
     }
-  );
+  });
 
+  state.modelSlots = [null, null, null, null];
   updateSlotLabels();
+});
 
-  $("modelStatus").textContent =
-    "No model loaded";
-
-  showToast("All models cleared");
-
-}
-
-$("clearModelBtn").addEventListener(
-  "click",
-  clearAllModels
-);
-
-/* =====================================================
-   AUTO FIT
-===================================================== */
-
-function autoFitModel() {
-
-  const model =
-    getActiveModel();
-
-  if (!model) {
-
-    showToast(
-      "Import a model first"
-    );
-
-    return;
-
-  }
-
+$("autoFitBtn")?.addEventListener("click", () => {
+  if (!activeModel()) return toast("Import a model first");
   resetTransform();
+});
 
-  showToast("Model fitted");
+function disposeObject(object) {
+  object.traverse(child => {
+    if (child.geometry) child.geometry.dispose();
 
+    if (child.material) {
+      const materials = Array.isArray(child.material)
+        ? child.material
+        : [child.material];
+
+      materials.forEach(material => {
+        for (const value of Object.values(material)) {
+          if (value?.isTexture) value.dispose();
+        }
+        material.dispose();
+      });
+    }
+  });
+       }
+
+/* AZEEZ AR STUDIO — PART 3/3 */
+
+/* Face sliders are manual controls.
+   Automatic eye/mouth deformation requires a compatible rigged model. */
+function updateFaceModel() {
+  // Reserved for future rigged-model face attachment.
+  // Tracking results remain available in state.faceResults.
 }
 
-$("autoFitBtn").addEventListener(
-  "click",
-  autoFitModel
-);
+function toggleCleanPreview(enabled) {
+  state.cleanPreview = enabled;
 
-/* =====================================================
-   RECORDING
-===================================================== */
+  $("topBar")?.classList.toggle("clean-hidden", enabled);
+  $("openOptions")?.classList.toggle("clean-hidden", enabled);
 
-async function startRecording() {
-
-  if (!state.stream) {
-
-    showToast(
-      "Start camera first"
-    );
-
-    return;
-
+  if ($("exitCleanBtn")) {
+    $("exitCleanBtn").style.display = enabled ? "block" : "none";
   }
+}
 
-  if (!window.MediaRecorder) {
+$("cleanScreenBtn")?.addEventListener("click", () => {
+  closeOptions();
+  toggleCleanPreview(true);
+});
 
-    showToast(
-      "Recording unavailable"
-    );
+$("exitCleanBtn")?.addEventListener("click", () => {
+  toggleCleanPreview(false);
+});
 
-    return;
+$("hideSlidersBtn")?.addEventListener("click", () => {
+  $("optionsPanel")?.classList.toggle("sliders-hidden");
+});
 
-  }
+/* RECORD CAMERA VIDEO */
+function recordingMimeType() {
+  if (!window.MediaRecorder) return "";
+  return [
+    "video/webm;codecs=vp9",
+    "video/webm;codecs=vp8",
+    "video/webm"
+  ].find(type => MediaRecorder.isTypeSupported(type)) || "";
+}
+
+function startRecording() {
+  if (!state.stream) return toast("Start camera first");
+  if (!window.MediaRecorder) return toast("Recording not supported");
+
+  if (state.recording?.state === "recording") return;
 
   try {
-
     state.recordingChunks = [];
 
-    const recorder =
-      new MediaRecorder(
-        state.stream
-      );
+    const mimeType = recordingMimeType();
+    state.recording = new MediaRecorder(
+      state.stream,
+      mimeType ? { mimeType } : undefined
+    );
 
-    state.recording =
-      recorder;
+    state.recording.ondataavailable = event => {
+      if (event.data?.size) state.recordingChunks.push(event.data);
+    };
 
-    recorder.ondataavailable =
-      (event) => {
+    state.recording.onerror = event => {
+      console.error("Recording error:", event.error);
+      toast("Recording error");
+    };
 
-        if (
-          event.data &&
-          event.data.size > 0
-        ) {
+    state.recording.onstop = () => {
+      const type = state.recording?.mimeType || "video/webm";
+      const blob = new Blob(state.recordingChunks, { type });
+      const url = URL.createObjectURL(blob);
 
-          state.recordingChunks.push(
-            event.data
-          );
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "azeez-ar-recording.webm";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
 
-        }
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+      state.recordingChunks = [];
+      toast("Recording saved");
+    };
 
-      };
-
-    recorder.onstop =
-      saveRecording;
-
-    recorder.start();
-
-    $("recordBtn").textContent =
-      "Recording...";
-
-    showToast("Recording started");
-
+    state.recording.start(500);
+    if ($("recordBtn")) $("recordBtn").disabled = true;
+    if ($("stopRecordBtn")) $("stopRecordBtn").disabled = false;
+    toast("Recording started");
   } catch (error) {
-
-    console.error(
-      "Recording error:",
-      error
-    );
-
-    showToast(
-      "Recording failed"
-    );
-
+    console.error("Recording start failed:", error);
+    showCameraError("Recording failed: " + error.message);
   }
-
 }
 
 function stopRecording() {
-
-  if (
-    state.recording &&
-    state.recording.state !== "inactive"
-  ) {
-
+  if (state.recording?.state === "recording") {
     state.recording.stop();
-
   }
 
+  if ($("recordBtn")) $("recordBtn").disabled = false;
+  if ($("stopRecordBtn")) $("stopRecordBtn").disabled = true;
 }
 
-function saveRecording() {
+$("recordBtn")?.addEventListener("click", startRecording);
+$("stopRecordBtn")?.addEventListener("click", stopRecording);
 
-  if (
-    state.recordingChunks.length === 0
-  ) {
-
-    showToast(
-      "No recording data"
-    );
-
-    return;
-
-  }
-
-  const blob =
-    new Blob(
-      state.recordingChunks,
-      {
-        type:
-          state.recording.mimeType ||
-          "video/webm"
-      }
-    );
-
-  const url =
-    URL.createObjectURL(
-      blob
-    );
-
-  const link =
-    document.createElement("a");
-
-  link.href = url;
-
-  link.download =
-    "azeez-ar-recording.webm";
-
-  link.click();
-
-  URL.revokeObjectURL(
-    url
-  );
-
-  $("recordBtn").textContent =
-    "Start Recording";
-
-  showToast("Recording saved");
-
-}
-
-$("recordBtn").addEventListener(
-  "click",
-  startRecording
-);
-
-$("stopRecordBtn").addEventListener(
-  "click",
-  stopRecording
-);
-
-/* =====================================================
-   MICROPHONE
-===================================================== */
-
+/* MICROPHONE PERMISSION */
 async function toggleMicrophone() {
-
-  if (state.micEnabled) {
-
-    if (state.micStream) {
-
-      state.micStream
-        .getTracks()
-        .forEach(track => track.stop());
-
-    }
-
+  if (state.micStream) {
+    state.micStream.getTracks().forEach(track => track.stop());
     state.micStream = null;
-
-    state.micEnabled = false;
-
-    $("micBtn").textContent =
-      "Microphone OFF";
-
-    showToast("Microphone stopped");
-
+    if ($("micBtn")) $("micBtn").textContent = "Microphone OFF";
+    toast("Microphone OFF");
     return;
-
   }
 
   try {
+    state.micStream = await navigator.mediaDevices.getUserMedia({
+      audio: true,
+      video: false
+    });
 
-    state.micStream =
-      await navigator.mediaDevices.getUserMedia({
-        audio: true
-      });
-
-    state.micEnabled = true;
-
-    $("micBtn").textContent =
-      "Microphone ON";
-
-    showToast("Microphone enabled");
-
+    if ($("micBtn")) $("micBtn").textContent = "Microphone ON";
+    toast("Microphone permission granted");
   } catch (error) {
-
-    console.error(
-      "Microphone error:",
-      error
-    );
-
-    showToast(
-      "Microphone permission denied"
-    );
-
+    console.error("Microphone error:", error);
+    showCameraError("Microphone unavailable: " + error.message);
   }
-
 }
 
-$("micBtn").addEventListener(
-  "click",
-  toggleMicrophone
-);
+$("micBtn")?.addEventListener("click", toggleMicrophone);
 
-/* =====================================================
-   EXPORT SETTINGS
-===================================================== */
-
+/* SETTINGS EXPORT */
 function exportSettings() {
-
-  const settings = {};
+  const settings = {
+    version: 1,
+    facingMode: state.facingMode,
+    mirrored: state.mirrored,
+    activeSlot: state.activeSlot,
+    sliders: {}
+  };
 
   sliderIds.forEach(id => {
-
-    settings[id] =
-      Number(
-        $(id).value
-      );
-
+    if ($(id)) settings.sliders[id] = $(id).value;
   });
 
-  settings.activeSlot =
-    state.activeSlot;
+  const blob = new Blob(
+    [JSON.stringify(settings, null, 2)],
+    { type: "application/json" }
+  );
 
-  settings.facingMode =
-    state.facingMode;
-
-  settings.mirrored =
-    state.mirrored;
-
-  const blob =
-    new Blob(
-      [
-        JSON.stringify(
-          settings,
-          null,
-          2
-        )
-      ],
-      {
-        type: "application/json"
-      }
-    );
-
-  const url =
-    URL.createObjectURL(
-      blob
-    );
-
-  const link =
-    document.createElement("a");
-
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
   link.href = url;
-
-  link.download =
-    "azeez-ar-settings.json";
-
+  link.download = "azeez-ar-settings.json";
   link.click();
 
-  URL.revokeObjectURL(
-    url
-  );
-
-  showToast("Settings exported");
-
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+  toast("Settings exported");
 }
 
-$("exportSettingsBtn").addEventListener(
-  "click",
-  exportSettings
-);
+$("exportSettingsBtn")?.addEventListener("click", exportSettings);
+$("importSettingsBtn")?.addEventListener("click", () => $("settingsFile")?.click());
 
-/* =====================================================
-   IMPORT SETTINGS
-===================================================== */
+$("settingsFile")?.addEventListener("change", async event => {
+  const file = event.target.files?.[0];
+  if (!file) return;
 
-function openSettingsFile() {
+  try {
+    const settings = JSON.parse(await file.text());
 
-  $("settingsFile").click();
-
-}
-
-$("importSettingsBtn").addEventListener(
-  "click",
-  openSettingsFile
-);
-
-$("settingsFile").addEventListener(
-  "change",
-  async (event) => {
-
-    const file =
-      event.target.files[0];
-
-    if (!file) {
-      return;
-    }
-
-    try {
-
-      const settings =
-        JSON.parse(
-          await file.text()
-        );
-
+    if (settings.sliders && typeof settings.sliders === "object") {
       sliderIds.forEach(id => {
-
-        if (
-          settings[id] !== undefined
-        ) {
-
-          $(id).value =
-            String(
-              settings[id]
-            );
-
+        if (settings.sliders[id] !== undefined && $(id)) {
+          $(id).value = settings.sliders[id];
           updateSliderOutput(id);
-
         }
-
       });
-
-      if (
-        Number.isInteger(
-          settings.activeSlot
-        )
-      ) {
-
-        selectSlot(
-          settings.activeSlot
-        );
-
-      }
-
-      applyModelControls();
-
-      showToast(
-        "Settings imported"
-      );
-
-    } catch (error) {
-
-      console.error(
-        "Settings import error:",
-        error
-      );
-
-      showToast(
-        "Invalid settings file"
-      );
-
     }
 
+    if (typeof settings.mirrored === "boolean") {
+      state.mirrored = settings.mirrored;
+      video.classList.toggle("mirrored", state.mirrored);
+      if ($("flipBtn")) {
+        $("flipBtn").textContent = state.mirrored
+          ? "Mirror Flip ON"
+          : "Mirror Flip OFF";
+      }
+    }
+
+    if (settings.facingMode === "user" || settings.facingMode === "environment") {
+      state.facingMode = settings.facingMode;
+    }
+
+    if (Number.isInteger(settings.activeSlot)) {
+      selectSlot(Math.max(0, Math.min(3, settings.activeSlot)));
+    }
+
+    applyModelControls();
+    toast("Settings imported");
+  } catch (error) {
+    console.error("Settings import failed:", error);
+    showCameraError("Invalid settings file: " + error.message);
+  } finally {
     event.target.value = "";
-
   }
-);
+});
 
-/* =====================================================
-   HIDE OPTIONS
-===================================================== */
-
-$("hideOptionsBtn").addEventListener(
-  "click",
-  closeOptions
-);
-
-/* =====================================================
-   HIDE SLIDERS
-===================================================== */
-
-function toggleSliders() {
-
-  panel.classList.toggle(
-    "sliders-hidden"
-  );
-
-  $("hideSlidersBtn").textContent =
-    panel.classList.contains(
-      "sliders-hidden"
-    )
-      ? "Show Sliders"
-      : "Hide Sliders";
-
-}
-
-$("hideSlidersBtn").addEventListener(
-  "click",
-  toggleSliders
-);
-
-/* =====================================================
-   CLEAN PREVIEW
-===================================================== */
-
-function cleanPreview() {
-
-  panel.classList.remove("open");
-
-  backdrop.classList.remove(
-    "visible"
-  );
-
-  $("topBar").style.display =
-    "none";
-
-  openHandle.style.display =
-    "none";
-
-  showToast(
-    "Clean preview enabled"
-  );
-
-}
-
-function exitCleanPreview() {
-
-  $("topBar").style.display =
-    "flex";
-
-  openHandle.style.display =
-    "flex";
-
-  showToast(
-    "Clean preview disabled"
-  );
-
-}
-
-$("cleanScreenBtn").addEventListener(
-  "click",
-  cleanPreview
-);
-
-$("exitCleanBtn").addEventListener(
-  "click",
-  exitCleanPreview
-);
-
-/* =====================================================
-   INITIALIZE APP
-===================================================== */
-
-async function initializeApp() {
-
+/* STARTUP */
+function initializeApp() {
   resizeCanvases();
-
   updateSlotLabels();
 
-  setStatus(
-    "Camera not started"
-  );
+  if ($("trackingBtn")) $("trackingBtn").textContent = "Start Tracking";
+  if ($("dotsBtn")) $("dotsBtn").textContent = state.dotsVisible
+    ? "Green Dots ON"
+    : "Green Dots OFF";
 
-  setTrackingStatus(
-    "Tracking OFF"
-  );
+  if ($("stopRecordBtn")) $("stopRecordBtn").disabled = true;
 
-  updateCameraMessage(
-    "Start camera from AR Options"
-  );
-
-  await init3D();
-
-  showToast(
-    "Azeez AR Studio ready"
-  );
-
+  init3D();
+  setStatus("Ready");
+  setTrackingStatus("Tracking OFF");
+  showCameraMessage("Press START CAMERA to begin.");
 }
 
-initializeApp();
+window.addEventListener("resize", resizeCanvases);
 
-/* =====================================================
-   PAGE CLEANUP
-===================================================== */
+window.addEventListener("beforeunload", () => {
+  stopTracking();
 
-window.addEventListener(
-  "beforeunload",
-  () => {
-
-    stopTracking();
-
-    if (state.stream) {
-
-      state.stream
-        .getTracks()
-        .forEach(track => track.stop());
-
-    }
-
-    if (state.micStream) {
-
-      state.micStream
-        .getTracks()
-        .forEach(track => track.stop());
-
-    }
-
-    if (state.renderer) {
-
-      state.renderer.dispose();
-
-    }
-
-    if (state.landmarker) {
-
-      state.landmarker.close();
-
-    }
-
+  if (state.stream) {
+    state.stream.getTracks().forEach(track => track.stop());
   }
-);
 
-/* =====================================================
-   END OF AZEEZ AR STUDIO JS
-===================================================== */
-    
+  if (state.micStream) {
+    state.micStream.getTracks().forEach(track => track.stop());
+  }
+
+  if (state.recording?.state === "recording") {
+    state.recording.stop();
+  }
+
+  if (state.landmarker) {
+    try {
+      state.landmarker.close();
+    } catch (error) {
+      console.warn("Could not close face model:", error);
+    }
+  }
+
+  if (state.renderFrame !== null) {
+    cancelAnimationFrame(state.renderFrame);
+  }
+
+  if (state.renderer) {
+    state.renderer.dispose();
+  }
+});
+
+initializeApp();
+     
+                
