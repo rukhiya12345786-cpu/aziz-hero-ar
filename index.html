@@ -1036,6 +1036,54 @@ try {
   setStatus("AR ERROR");
   setNotice("AR layer failed to initialize. Reload and check internet.");
 }
+function setGizmoMode(mode) {
+  if (!transformControls) return;
+
+  transformControls.setMode(mode);
+
+  if (transformControls.object) {
+    transformControls.getHelper().visible = true;
+  }
+
+  const toggle = document.getElementById("gizmoBtn");
+  if (toggle) toggle.textContent = "HIDE GIZMOS";
+}
+
+const gizmoToggleButton = document.getElementById("gizmoBtn");
+const moveGizmoButton = document.getElementById("moveGizmoBtn");
+const rotateGizmoButton = document.getElementById("rotateGizmoBtn");
+const scaleGizmoButton = document.getElementById("scaleGizmoBtn");
+
+if (gizmoToggleButton) {
+  gizmoToggleButton.addEventListener("click", () => {
+    if (!transformControls) return;
+
+    const helper = transformControls.getHelper();
+    helper.visible = !helper.visible;
+
+    gizmoToggleButton.textContent =
+      helper.visible ? "HIDE GIZMOS" : "SHOW GIZMOS";
+  });
+}
+
+if (moveGizmoButton) {
+  moveGizmoButton.addEventListener("click", () => {
+    setGizmoMode("translate");
+  });
+}
+
+if (rotateGizmoButton) {
+  rotateGizmoButton.addEventListener("click", () => {
+    setGizmoMode("rotate");
+  });
+}
+
+if (scaleGizmoButton) {
+  scaleGizmoButton.addEventListener("click", () => {
+    setGizmoMode("scale");
+  });
+}
+  
 </script>
 </body>
 </html>
