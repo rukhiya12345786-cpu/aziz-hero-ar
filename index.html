@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -23,6 +24,7 @@ button:disabled { opacity:.45; cursor:not-allowed; }
 button.active { border-color:var(--accent); color:var(--accent); }
 button.primary { background:#176b42; border-color:#218653; }
 button.danger { background:#702c32; border-color:#9e3b44; }
+a { color:var(--blue); overflow-wrap:anywhere; }
 #app { position:relative; width:100%; height:100%; height:100dvh; overflow:hidden; background:#101114; }
 #cameraVideo,#arCanvas,#dotsCanvas {
   position:absolute; inset:0; width:100%; height:100%;
@@ -163,6 +165,20 @@ input[type=range] { width:100%; accent-color:var(--accent); }
     </div>
 
     <div class="section">
+      <h3>LENS STUDIO WORKFLOW</h3>
+      <p class="smallNote">
+        Create or edit effects in Lens Studio, then use supported export formats
+        where available. Lens Studio projects and effects do not automatically
+        run inside this web app.
+      </p>
+      <div class="buttonGrid">
+        <button id="lensStudioBtn">OPEN LENS STUDIO</button>
+        <button id="lensHelpBtn">LENS ASSET HELP</button>
+      </div>
+      <p class="smallNote">Official site: <a href="https://ar.snap.com/lens-studio" target="_blank" rel="noopener">Lens Studio</a></p>
+    </div>
+
+    <div class="section">
       <h3>3D MODEL</h3>
       <input id="modelFile" type="file" accept=".glb,.gltf,.obj,.fbx">
       <div class="buttonGrid">
@@ -171,7 +187,7 @@ input[type=range] { width:100%; accent-color:var(--accent); }
         <button id="removeModelBtn" class="danger">REMOVE MODEL</button>
         <button id="autoFitBtn">AUTO FIT</button>
       </div>
-      <p id="modelStatus" class="smallNote">3D model renderer is being connected.</p>
+      <p id="modelStatus" class="smallNote">3D model renderer is not connected yet.</p>
     </div>
 
     <div id="sliderSection">
@@ -219,340 +235,482 @@ input[type=range] { width:100%; accent-color:var(--accent); }
 
   <div id="toast"></div>
 
-  
 </div>
+
 <script type="module">
-const $ = id => document.getElementById(id);
-const app = $("app");
+const $ = (id) => document.getElementById(id);
+
 const video = $("cameraVideo");
 const dotsCanvas = $("dotsCanvas");
-const dotsCtx = dotsCanvas.getContext("2d");
 const arCanvas = $("arCanvas");
+const dotsCtx = dotsCanvas.getContext("2d");
 const arCtx = arCanvas.getContext("2d");
 
-let stream = null, tracker = null, running = false, loading = false, busy = false;
-let mirrored = true, showDots = true, showModel = true, micEnabled = false;
-let facingMode = "user", recorder = null, recordedChunks = [], gizmoMode = "";
-let activeSlot = 0, rafId = 0, lastStatus = "";
+let stream = null;
+let tracker = null;
+let cameraOn = false;
+let trackingOn = false;
+let mirrored = false;
+let facingMode = "user";
+let showDots = true;
+let lastVideoTime = -1;
+let animationFrame = null;
+let selectedModelName = "";
+let mediaRecorder = null;
+let recordedChunks = [];
 
-function setStatus(message) { $("status").textContent = message; }
-function setTrackingStatus(message) { $("trackingStatus").textContent = message; }
 function toast(message) {
   const el = $("toast");
+  if (!el) return;
   el.textContent = message;
   el.classList.add("show");
-  clearTimeout(el._timer);
-  el._timer = setTimeout(() => el.classList.remove("show"), 2400);
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => el.classList.remove("show"), 2600);
 }
-function cameraError(message = "") { $("cameraError").textContent = message; }
-function clearDots() { dotsCtx.clearRect(0, 0, dotsCanvas.width, dotsCanvas.height); }
 
 function resizeCanvases() {
-  const w = video.videoWidth || window.innerWidth;
-  const h = video.videoHeight || window.innerHeight;
-  if (dotsCanvas.width !== w || dotsCanvas.height !== h) {
-    dotsCanvas.width = w; dotsCanvas.height = h;
-  }
-  if (arCanvas.width !== w || arCanvas.height !== h) {
-    arCanvas.width = w; arCanvas.height = h;
-  }
-}
-function syncMirror() {
-  video.style.transform = mirrored ? "scaleX(-1)" : "scaleX(1)";
-  $("flipBtn").textContent = "MIRROR: " + (mirrored ? "ON" : "OFF");
-  $("flipBtn").classList.toggle("active", mirrored);
-}
-function updateButtons() {
-  $("trackingBtn").textContent = running ? "STOP TRACKING" : "START TRACKING";
-  $("trackingBtn").classList.toggle("active", running);
-  setTrackingStatus(running ? "TRACKING ON" : "TRACKING OFF");
-  $("dotsBtn").textContent = "GREEN DOTS: " + (showDots ? "ON" : "OFF");
-  $("dotsBtn").classList.toggle("active", showDots);
-  $("showModelBtn").textContent = "MODEL: " + (showModel ? "SHOW" : "HIDE");
-}
-function stopTracks() {
-  if (stream) { stream.getTracks().forEach(track => track.stop()); stream = null; }
-  video.srcObject = null;
-}
-async function openCamera() {
-  if (busy) return;
-  if (stream && stream.getVideoTracks().some(t => t.readyState === "live")) {
-    toast("Camera is already running."); return;
-  }
-  busy = true; cameraError(""); $("startCameraBtn").disabled = true;
-  try {
-    if (!navigator.mediaDevices?.getUserMedia)
-      throw new Error("Open the HTTPS GitHub Pages site in Chrome and allow camera access.");
-    setStatus("Opening camera...");
-    stream = await navigator.mediaDevices.getUserMedia({
-      audio:false,
-      video:{ facingMode:{ideal:facingMode}, width:{ideal:640}, height:{ideal:480} }
-    });
-    video.srcObject = stream;
-    await video.play();
-    $("cameraMessage").style.display = "none";
-    syncMirror(); setStatus("Camera ready. Press START TRACKING."); cameraError("");
-  } catch(err) {
-    stopTracks(); $("cameraMessage").style.display = "grid";
-    setStatus("Camera error: " + (err.message || String(err)));
-    cameraError(err.message || String(err));
-  } finally {
-    busy = false; $("startCameraBtn").disabled = false;
-  }
-}
-async function startTracking() {
-  if (loading || running) return;
-  if (!stream || video.readyState < 2) { toast("Start the camera first."); return; }
-  loading = true; $("trackingBtn").disabled = true; cameraError("");
-  try {
-    setStatus("Loading MediaPipe tracking library...");
-    const mp = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.mjs");
-    const vision = await mp.FilesetResolver.forVisionTasks(
-      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
-    );
-    setStatus("Loading face tracking model...");
-    tracker = await mp.FaceLandmarker.createFromOptions(vision, {
-      baseOptions:{
-        modelAssetPath:"https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-        delegate:"CPU"
-      },
-      runningMode:"VIDEO", numFaces:1
-    });
-    running = true; updateButtons(); setStatus("Tracking running. Look left and right.");
-    rafId = requestAnimationFrame(detectFace);
-  } catch(err) {
-    running = false;
-    if (tracker) { try { tracker.close(); } catch(_) {} tracker = null; }
-    updateButtons(); setStatus("Tracking error: " + (err.message || String(err)));
-    cameraError(err.message || String(err));
-  } finally {
-    loading = false; $("trackingBtn").disabled = false;
-  }
-}
-function detectFace() {
-  if (!running || !tracker) return;
-  try {
-    if (video.readyState >= 2 && video.videoWidth > 0) {
-      resizeCanvases(); clearDots();
-      const result = tracker.detectForVideo(video, performance.now());
-      const faces = result.faceLandmarks || [];
-      if (faces.length > 0) {
-        if (lastStatus !== "face") { setStatus("FACE DETECTED ✓"); lastStatus = "face"; }
-        if (showDots) {
-          dotsCtx.fillStyle = "#00ff66";
-          for (const point of faces[0]) {
-            const x = (mirrored ? 1 - point.x : point.x) * dotsCanvas.width;
-            const y = point.y * dotsCanvas.height;
-            dotsCtx.beginPath(); dotsCtx.arc(x, y, 2, 0, Math.PI * 2); dotsCtx.fill();
-          }
-        }
-      } else if (lastStatus !== "no-face") {
-        setStatus("Tracking running — face not detected."); lastStatus = "no-face";
-      }
+  const width = Math.max(
+    1,
+    Math.round(dotsCanvas.clientWidth || window.innerWidth)
+  );
+  const height = Math.max(
+    1,
+    Math.round(dotsCanvas.clientHeight || window.innerHeight)
+  );
+
+  for (const canvas of [dotsCanvas, arCanvas]) {
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width;
+      canvas.height = height;
     }
-  } catch(err) {
-    stopTracking(); setStatus("Tracking error: " + (err.message || String(err)));
-    cameraError(err.message || String(err)); return;
   }
-  if (running) rafId = requestAnimationFrame(detectFace);
 }
-function stopTracking() {
-  running = false; cancelAnimationFrame(rafId); clearDots();
-  if (tracker) { try { tracker.close(); } catch(_) {} tracker = null; }
-  lastStatus = ""; updateButtons();
-  if (stream) setStatus("Camera running. Tracking stopped.");
+
+function clearDots() {
+  dotsCtx.clearRect(0, 0, dotsCanvas.width, dotsCanvas.height);
 }
+
+function clearAR() {
+  arCtx.clearRect(0, 0, arCanvas.width, arCanvas.height);
+}
+
+function getVideoRect() {
+  const canvasWidth = dotsCanvas.width;
+  const canvasHeight = dotsCanvas.height;
+  const videoWidth = video.videoWidth || canvasWidth;
+  const videoHeight = video.videoHeight || canvasHeight;
+
+  // Match the video's CSS object-fit: contain.
+  const scale = Math.min(
+    canvasWidth / videoWidth,
+    canvasHeight / videoHeight
+  );
+
+  const displayW = videoWidth * scale;
+  const displayH = videoHeight * scale;
+
+  return {
+    offsetX: (canvasWidth - displayW) / 2,
+    offsetY: (canvasHeight - displayH) / 2,
+    displayW,
+    displayH
+  };
+}
+
+function updateMirror() {
+  video.style.transform = mirrored ? "scaleX(-1)" : "scaleX(1)";
+  $("mirrorBtn").textContent = mirrored
+    ? "MIRROR FLIP ON"
+    : "MIRROR FLIP OFF";
+}
+
+function stopTrackingLoop() {
+  trackingOn = false;
+
+  if (animationFrame !== null) {
+    cancelAnimationFrame(animationFrame);
+    animationFrame = null;
+  }
+
+  clearDots();
+
+  const startBtn = $("startTrackingBtn");
+  const stopBtn = $("stopTrackingBtn");
+  if (startBtn) startBtn.disabled = false;
+  if (stopBtn) stopBtn.disabled = true;
+}
+
+async function createTracker() {
+  if (tracker) return tracker;
+
+  toast("Loading face tracking...");
+
+  const mp = await import(
+    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.mjs"
+  );
+
+  const vision = await mp.FilesetResolver.forVisionTasks(
+    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+  );
+
+  tracker = await mp.FaceLandmarker.createFromOptions(vision, {
+    baseOptions: {
+      modelAssetPath:
+        "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+      delegate: "CPU"
+    },
+    runningMode: "VIDEO",
+    numFaces: 1
+  });
+
+  return tracker;
+}
+
+async function startCamera() {
+  try {
+    if (cameraOn) return;
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error("Camera API unavailable. Open this page using HTTPS.");
+    }
+
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: {
+        facingMode: { ideal: facingMode },
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      }
+    });
+
+    video.srcObject = stream;
+    video.muted = true;
+    video.playsInline = true;
+    await video.play();
+
+    cameraOn = true;
+    resizeCanvases();
+    updateMirror();
+
+    $("startCameraBtn").disabled = true;
+    $("stopCameraBtn").disabled = false;
+
+    toast("Camera started.");
+  } catch (error) {
+    console.error(error);
+    toast("Camera error: " + (error.message || "Could not start camera."));
+  }
+}
+
 function stopCamera() {
-  stopTracking();
-  if (recorder && recorder.state !== "inactive") { try { recorder.stop(); } catch(_) {} }
-  stopTracks(); $("cameraMessage").style.display = "grid";
-  setStatus("Camera stopped."); cameraError("");
+  stopTrackingLoop();
+
+  if (stream) {
+    stream.getTracks().forEach(track => track.stop());
+    stream = null;
+  }
+
+  video.srcObject = null;
+  cameraOn = false;
+
+  $("startCameraBtn").disabled = false;
+  $("stopCameraBtn").disabled = true;
+
+  clearDots();
+  clearAR();
+  toast("Camera stopped.");
 }
+
 async function switchCamera() {
-  const wasRunning = running;
-  stopTracking(); stopTracks();
+  const wasOn = cameraOn;
+  if (wasOn) stopCamera();
+
   facingMode = facingMode === "user" ? "environment" : "user";
-  await openCamera();
-  if (stream) setStatus("Camera switched. " + (wasRunning ? "Press START TRACKING again." : "Camera ready."));
+
+  if (wasOn) await startCamera();
+
+  toast(facingMode === "user" ? "Front camera selected." : "Back camera selected.");
 }
+
+async function startTracking() {
+  try {
+    if (!cameraOn) {
+      toast("Start the camera first.");
+      return;
+    }
+
+    await createTracker();
+    trackingOn = true;
+
+    $("startTrackingBtn").disabled = true;
+    $("stopTrackingBtn").disabled = false;
+
+    toast("Face tracking started.");
+    trackFrame();
+  } catch (error) {
+    console.error(error);
+    stopTrackingLoop();
+    toast("Tracking error: " + (error.message || "Could not start tracking."));
+  }
+}
+
+function trackFrame() {
+  if (!trackingOn || !cameraOn || !tracker) return;
+
+  animationFrame = requestAnimationFrame(trackFrame);
+
+  if (video.readyState < 2 || video.currentTime === lastVideoTime) return;
+
+  lastVideoTime = video.currentTime;
+
+  try {
+    const result = tracker.detectForVideo(video, performance.now());
+    clearDots();
+
+    if (!showDots || !result.faceLandmarks?.length) return;
+
+    const points = result.faceLandmarks[0];
+    const rect = getVideoRect();
+
+    dotsCtx.fillStyle = "#00ff66";
+
+    for (const point of points) {
+      // Account for the letterboxed video area and mirror setting.
+      const normalizedX = mirrored ? 1 - point.x : point.x;
+      const x = rect.offsetX + normalizedX * rect.displayW;
+      const y = rect.offsetY + point.y * rect.displayH;
+
+      dotsCtx.beginPath();
+      dotsCtx.arc(x, y, 2, 0, Math.PI * 2);
+      dotsCtx.fill();
+    }
+  } catch (error) {
+    console.error("Face tracking frame error:", error);
+  }
+}
+
+function toggleDots() {
+  showDots = !showDots;
+  $("greenDotsBtn").textContent = showDots ? "GREEN DOTS ON" : "GREEN DOTS OFF";
+  if (!showDots) clearDots();
+  toast(showDots ? "Green dots shown." : "Green dots hidden.");
+}
+
+function toggleMirror() {
+  mirrored = !mirrored;
+  updateMirror();
+}
+
 async function toggleFullscreen() {
   try {
-    if (!document.fullscreenElement) {
-      await app.requestFullscreen(); $("fullscreenBtn").textContent = "EXIT FULL SCREEN";
-    } else { await document.exitFullscreen(); $("fullscreenBtn").textContent = "FULL SCREEN"; }
-  } catch(_) { toast("Fullscreen is not supported here. Try Chrome's menu."); }
-}
-function openPanel() { $("optionsPanel").classList.add("open"); $("panelBackdrop").classList.add("open"); }
-function closePanel() { $("optionsPanel").classList.remove("open"); $("panelBackdrop").classList.remove("open"); }
-function showControls() { app.classList.remove("controls-hidden"); }
-function hideControls() { app.classList.add("controls-hidden"); closePanel(); }
+    const target = $("view") || document.documentElement;
 
-$("startCameraBtn").addEventListener("click", openCamera);
+    if (!document.fullscreenElement) {
+      if (target.requestFullscreen) {
+        await target.requestFullscreen();
+      } else {
+        toast("Fullscreen is not supported by this browser.");
+      }
+    } else {
+      await document.exitFullscreen();
+    }
+
+    setTimeout(resizeCanvases, 100);
+  } catch (error) {
+    console.error(error);
+    toast("Fullscreen could not be opened.");
+  }
+}
+
+function handleModelFile(file) {
+  if (!file) return;
+
+  selectedModelName = file.name;
+  const nameEl = $("selectedModelName");
+  if (nameEl) nameEl.textContent = selectedModelName;
+
+  const ext = file.name.split(".").pop().toLowerCase();
+  const supported = ["glb", "gltf", "obj", "fbx"];
+
+  if (!supported.includes(ext)) {
+    toast("Choose a GLB, GLTF, OBJ, or FBX file.");
+    return;
+  }
+
+  toast("Selected: " + file.name + ". 3D rendering is not connected yet.");
+}
+
+function exportSettings() {
+  const settings = {
+    mirrored,
+    showDots,
+    facingMode,
+    selectedModelName
+  };
+
+  const blob = new Blob(
+    [JSON.stringify(settings, null, 2)],
+    { type: "application/json" }
+  );
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "azeez-ar-settings.json";
+  link.click();
+  URL.revokeObjectURL(url);
+  toast("Settings exported.");
+}
+
+function importSettings(file) {
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    try {
+      const settings = JSON.parse(reader.result);
+
+      if (typeof settings.mirrored === "boolean") {
+        mirrored = settings.mirrored;
+        updateMirror();
+      }
+
+      if (typeof settings.showDots === "boolean") {
+        showDots = settings.showDots;
+        $("greenDotsBtn").textContent = showDots
+          ? "GREEN DOTS ON"
+          : "GREEN DOTS OFF";
+        if (!showDots) clearDots();
+      }
+
+      toast("Settings imported.");
+    } catch (error) {
+      toast("Invalid settings file.");
+    }
+  };
+
+  reader.readAsText(file);
+}
+
+function startRecording() {
+  if (!stream) {
+    toast("Start the camera before recording.");
+    return;
+  }
+
+  if (!window.MediaRecorder) {
+    toast("Recording is not supported in this browser.");
+    return;
+  }
+
+  try {
+    recordedChunks = [];
+    mediaRecorder = new MediaRecorder(stream);
+
+    mediaRecorder.ondataavailable = event => {
+      if (event.data.size) recordedChunks.push(event.data);
+    };
+
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(recordedChunks, { type: "video/webm" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "azeez-ar-recording.webm";
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast("Recording saved.");
+    };
+
+    mediaRecorder.start();
+    $("recordBtn").textContent = "STOP RECORDING";
+    toast("Recording started.");
+  } catch (error) {
+    console.error(error);
+    toast("Could not start recording.");
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state !== "inactive") {
+    mediaRecorder.stop();
+  }
+  $("recordBtn").textContent = "START RECORDING";
+}
+
+function resetControls() {
+  document.querySelectorAll("input[type='range']").forEach(input => {
+    input.value = input.defaultValue;
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+
+  toast("Sliders reset.");
+}
+
+// Main controls
+$("startCameraBtn").addEventListener("click", startCamera);
 $("stopCameraBtn").addEventListener("click", stopCamera);
 $("switchCameraBtn").addEventListener("click", switchCamera);
-$("flipBtn").addEventListener("click", () => { mirrored = !mirrored; syncMirror(); });
+$("mirrorBtn").addEventListener("click", toggleMirror);
 $("fullscreenBtn").addEventListener("click", toggleFullscreen);
+$("startTrackingBtn").addEventListener("click", startTracking);
+$("stopTrackingBtn").addEventListener("click", stopTrackingLoop);
+$("greenDotsBtn").addEventListener("click", toggleDots);
+
+$("modelFileInput").addEventListener("change", event => {
+  handleModelFile(event.target.files?.[0]);
+});
+
+$("exportSettingsBtn").addEventListener("click", exportSettings);
+$("importSettingsInput").addEventListener("change", event => {
+  importSettings(event.target.files?.[0]);
+});
+
+$("recordBtn").addEventListener("click", () => {
+  if (mediaRecorder && mediaRecorder.state !== "inactive") {
+    stopRecording();
+  } else {
+    startRecording();
+  }
+});
+
+$("resetSlidersBtn")?.addEventListener("click", resetControls);
+
+// Lens Studio links
+$("lensStudioBtn")?.addEventListener("click", () => {
+  window.open("https://ar.snap.com/lens-studio", "_blank", "noopener");
+});
+
+$("lensHelpBtn")?.addEventListener("click", () => {
+  window.open("https://developers.snap.com/lens-studio", "_blank", "noopener");
+});
+
+// Keep canvases aligned with the visible camera area.
+window.addEventListener("resize", () => {
+  resizeCanvases();
+  clearDots();
+  clearAR();
+});
+
 document.addEventListener("fullscreenchange", () => {
-  $("fullscreenBtn").textContent = document.fullscreenElement ? "EXIT FULL SCREEN" : "FULL SCREEN";
-});
-$("trackingBtn").addEventListener("click", () => running ? stopTracking() : startTracking());
-$("dotsBtn").addEventListener("click", () => { showDots = !showDots; if (!showDots) clearDots(); updateButtons(); });
-$("hideOptionsBtn").addEventListener("click", hideControls);
-$("openOptions").addEventListener("click", () => { showControls(); openPanel(); });
-$("closeOptions").addEventListener("click", closePanel);
-$("panelBackdrop").addEventListener("click", closePanel);
-$("cleanScreenBtn").addEventListener("click", hideControls);
-$("exitCleanBtn").addEventListener("click", showControls);
-$("hideSlidersBtn").addEventListener("click", () => {
-  app.classList.toggle("sliders-hidden");
-  $("hideSlidersBtn").textContent = app.classList.contains("sliders-hidden") ? "SHOW SLIDERS" : "HIDE SLIDERS";
-});
-document.addEventListener("keydown", e => { if (e.key === "Escape") closePanel(); });
-
-$("showModelBtn").addEventListener("click", () => {
-  showModel = !showModel; updateButtons(); toast("Model visibility setting saved.");
-});
-$("importModelBtn").addEventListener("click", () => $("modelFile").click());
-$("modelFile").addEventListener("change", () => {
-  const file = $("modelFile").files?.[0]; if (!file) return;
-  $("modelStatus").textContent = "Selected: " + file.name + ". Connect the 3D renderer in app.js.";
-  toast("Model selected.");
-});
-$("removeModelBtn").addEventListener("click", () => {
-  $("modelFile").value = ""; $("modelStatus").textContent = "No model selected."; toast("Model selection cleared.");
-});
-$("clearModelBtn").addEventListener("click", () => {
-  $("modelFile").value = ""; $("modelStatus").textContent = "No model selected.";
-});
-$("autoFitBtn").addEventListener("click", () => toast("Auto-fit requires the 3D renderer."));
-$("micBtn").addEventListener("click", () => {
-  micEnabled = !micEnabled; $("micBtn").textContent = "MIC: " + (micEnabled ? "ON" : "OFF");
-  toast("Microphone is not connected to recording yet.");
-});
-$("recordBtn").addEventListener("click", async () => {
-  if (!stream) { toast("Start the camera first."); return; }
-  if (!window.MediaRecorder) { toast("Recording is not supported by this browser."); return; }
-  try {
-    recordedChunks = []; recorder = new MediaRecorder(stream);
-    recorder.ondataavailable = e => { if (e.data && e.data.size) recordedChunks.push(e.data); };
-    recorder.onstop = () => {
-      if (!recordedChunks.length) return;
-      const blob = new Blob(recordedChunks, {type:recorder.mimeType || "video/webm"});
-      const url = URL.createObjectURL(blob); const a = document.createElement("a");
-      a.href = url; a.download = "azeez-ar-recording.webm"; a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1500);
-    };
-    recorder.start(); $("recordBtn").disabled = true; $("stopRecordBtn").disabled = false;
-    toast("Recording started.");
-  } catch(err) { toast("Recording error: " + (err.message || String(err))); }
-});
-$("stopRecordBtn").addEventListener("click", () => {
-  if (recorder && recorder.state !== "inactive") recorder.stop();
-  $("recordBtn").disabled = false; $("stopRecordBtn").disabled = true;
+  setTimeout(resizeCanvases, 100);
 });
 
-const modelDefinitions = [
-  {id:"posX",label:"Position X",min:-2,max:2,step:.01,value:0},
-  {id:"posY",label:"Position Y",min:-2,max:2,step:.01,value:0},
-  {id:"posZ",label:"Position Z",min:-2,max:2,step:.01,value:0},
-  {id:"rotX",label:"Rotation X",min:-180,max:180,step:1,value:0},
-  {id:"rotY",label:"Rotation Y",min:-180,max:180,step:1,value:0},
-  {id:"rotZ",label:"Rotation Z",min:-180,max:180,step:1,value:0},
-  {id:"modelScale",label:"Model scale",min:.1,max:3,step:.05,value:1}
-];
-const faceDefinitions = [
-  {id:"faceX",label:"Face left / right",min:-1,max:1,step:.01,value:0},
-  {id:"faceY",label:"Face up / down",min:-1,max:1,step:.01,value:0},
-  {id:"faceZ",label:"Face depth",min:-1,max:1,step:.01,value:0},
-  {id:"faceSize",label:"Face size",min:.2,max:3,step:.05,value:1},
-  {id:"leftEye",label:"Left eye",min:.2,max:2,step:.05,value:1},
-  {id:"rightEye",label:"Right eye",min:.2,max:2,step:.05,value:1},
-  {id:"mouthScale",label:"Mouth size",min:.2,max:3,step:.05,value:1},
-  {id:"mouthOpen",label:"Mouth open",min:0,max:1,step:.01,value:0},
-  {id:"blinkLeft",label:"Left blink",min:0,max:1,step:.01,value:0},
-  {id:"blinkRight",label:"Right blink",min:0,max:1,step:.01,value:0}
-];
-function buildSliders(containerId, definitions) {
-  const container = $(containerId);
-  for (const d of definitions) {
-    const field = document.createElement("div"); field.className = "field";
-    const head = document.createElement("div"); head.className = "fieldHead";
-    const label = document.createElement("label"); label.htmlFor = d.id; label.textContent = d.label;
-    const output = document.createElement("output"); output.id = d.id + "Out"; output.textContent = String(d.value);
-    const input = document.createElement("input"); input.type = "range"; input.id = d.id;
-    input.min = d.min; input.max = d.max; input.step = d.step; input.value = d.value;
-    input.dataset.default = d.value;
-    input.addEventListener("input", () => { output.textContent = input.value; });
-    head.append(label, output); field.append(head, input); container.append(field);
-  }
-}
-buildSliders("modelSliders", modelDefinitions);
-buildSliders("faceSliders", faceDefinitions);
+video.addEventListener("loadedmetadata", resizeCanvases);
 
-function resetSliders(definitions) {
-  for (const d of definitions) { $(d.id).value = d.value; $(d.id + "Out").textContent = String(d.value); }
-}
-$("resetTransformBtn").addEventListener("click", () => resetSliders(modelDefinitions));
-$("resetFaceBtn").addEventListener("click", () => resetSliders(faceDefinitions));
-$("resetAllBtn").addEventListener("click", () => {
-  resetSliders(modelDefinitions); resetSliders(faceDefinitions); gizmoMode = ""; toast("Sliders reset.");
-});
-for (const button of document.querySelectorAll(".slotBtn")) {
-  button.addEventListener("click", () => {
-    activeSlot = Number(button.dataset.slot);
-    document.querySelectorAll(".slotBtn").forEach(b => b.classList.remove("active"));
-    button.classList.add("active"); toast("Selected slot " + (activeSlot + 1) + ".");
-  });
-}
-function setGizmo(mode) {
-  gizmoMode = mode;
-  for (const id of ["moveGizmoBtn","rotateGizmoBtn","scaleGizmoBtn"]) $(id).classList.remove("active");
-  if (mode) {
-    const map = {move:"moveGizmoBtn",rotate:"rotateGizmoBtn",scale:"scaleGizmoBtn"};
-    $(map[mode]).classList.add("active");
-  }
-  toast("Gizmo controls need the 3D renderer.");
-}
-$("moveGizmoBtn").addEventListener("click", () => setGizmo("move"));
-$("rotateGizmoBtn").addEventListener("click", () => setGizmo("rotate"));
-$("scaleGizmoBtn").addEventListener("click", () => setGizmo("scale"));
-$("hideGizmosBtn").addEventListener("click", () => setGizmo(""));
+// Initial state
+resizeCanvases();
+updateMirror();
 
-$("exportSettingsBtn").addEventListener("click", () => {
-  const settings = {};
-  for (const d of [...modelDefinitions,...faceDefinitions]) settings[d.id] = Number($(d.id).value);
-  settings.mirrored = mirrored; settings.showDots = showDots; settings.showModel = showModel;
-  const blob = new Blob([JSON.stringify(settings,null,2)],{type:"application/json"});
-  const url = URL.createObjectURL(blob); const a = document.createElement("a");
-  a.href = url; a.download = "azeez-ar-settings.json"; a.click();
-  setTimeout(() => URL.revokeObjectURL(url),1500);
-});
-$("importSettingsBtn").addEventListener("click", () => $("settingsFile").click());
-$("settingsFile").addEventListener("change", async () => {
-  const file = $("settingsFile").files?.[0]; if (!file) return;
-  try {
-    const settings = JSON.parse(await file.text());
-    for (const d of [...modelDefinitions,...faceDefinitions]) {
-      if (Number.isFinite(settings[d.id])) {
-        const input = $(d.id);
-        input.value = Math.max(Number(input.min),Math.min(Number(input.max),settings[d.id]));
-        $(d.id+"Out").textContent = input.value;
-      }
-    }
-    if (typeof settings.mirrored === "boolean") mirrored = settings.mirrored;
-    if (typeof settings.showDots === "boolean") showDots = settings.showDots;
-    if (typeof settings.showModel === "boolean") showModel = settings.showModel;
-    syncMirror(); updateButtons(); toast("Settings imported.");
-  } catch(_) { toast("Invalid settings JSON file."); }
-});
-window.addEventListener("pagehide", () => {
-  running = false; cancelAnimationFrame(rafId); stopTracks();
-});
-syncMirror();
-updateButtons();
-clearDots();
-arCtx.clearRect(0,0,arCanvas.width,arCanvas.height);
+$("stopCameraBtn").disabled = true;
+$("stopTrackingBtn").disabled = true;
+
+toast("Azeez AR ready.");
 </script>
+
 <script type="module" src="js/app.js"></script>
 </body>
 </html>
+
+  
