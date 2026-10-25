@@ -516,6 +516,27 @@ currentModel.quaternion.slerp(targetQuaternion.multiply(sliderQuaternion), 0.5);
   }
       }
       const faces = result.faceLandmarks || [];
+      if (currentModel && faces.length > 0) {
+  const nose = faces[0][1];
+
+  if (!facePositionBaseline) {
+    facePositionBaseline = {
+      x: nose.x,
+      y: nose.y
+    };
+  }
+
+  const moveX = (facePositionBaseline.x - nose.x) * 4;
+  const moveY = (nose.y - facePositionBaseline.y) * 3;
+
+  currentModel.position.x +=
+    (Number($("horizontalSlider").value) + moveX -
+      currentModel.position.x) * 0.15;
+
+  currentModel.position.y +=
+    (Number($("verticalSlider").value) + moveY -
+      currentModel.position.y) * 0.15;
+      }
       lastLandmarks = faces;
       drawFaceDots(faces);
       updateFaceCrops(faces);
