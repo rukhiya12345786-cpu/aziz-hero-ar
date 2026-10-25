@@ -515,6 +515,20 @@ currentModel.quaternion.slerp(targetQuaternion.multiply(sliderQuaternion), 0.5);
   }
       }
       const faces = result.faceLandmarks || [];
+      if (currentModel && faces.length > 0) {
+  const face = faces[0];
+
+  const nose = face[1];
+
+  const targetX = (0.5 - nose.x) * 4;
+  const targetY = (0.5 - nose.y) * 3;
+
+  currentModel.position.x +=
+    (targetX - currentModel.position.x) * 0.15;
+
+  currentModel.position.y +=
+    (targetY - currentModel.position.y) * 0.15;
+      }
       lastLandmarks = faces;
       drawFaceDots(faces);
       updateFaceCrops(faces);
