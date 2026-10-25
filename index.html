@@ -480,7 +480,7 @@ function trackLoop() {
     const faceScale = new THREE.Vector3();
 
     faceMatrix.decompose(facePosition, faceQuaternion, faceScale);
-    console.log("Face Position:", facePosition.x, facePosition.y, facePosition.z);
+    
 
     const sliderRotation = new THREE.Euler(
       THREE.MathUtils.degToRad(Number($("rotateXSlider").value)),
