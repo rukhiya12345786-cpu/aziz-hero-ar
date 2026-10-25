@@ -527,7 +527,7 @@ currentModel.quaternion.slerp(targetQuaternion.multiply(sliderQuaternion), 0.5);
   }
 
   const moveX = (facePositionBaseline.x - nose.x) * 4;
-  const moveY = (facePositionBaseline.y - nose.y) * 3;
+  const moveY = (nose.y - facePositionBaseline.y) * 3;
 
   currentModel.position.x +=
     (Number($("horizontalSlider").value) + moveX -
