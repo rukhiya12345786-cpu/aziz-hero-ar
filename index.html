@@ -1313,6 +1313,19 @@ $("mouthCropBtn").addEventListener("click", () => {
 /* Settings */
 $("exportSettingsBtn").addEventListener("click", exportSettings);
 $("importSettingsBtn").addEventListener("click", () => {
+  $("loadModelFitBtn").addEventListener("click", () => {
+  if (!currentModel) {
+    setNotice("Import a model first");
+    return;
+  }
+
+  $("modelFitInput").click();
+});
+
+$("modelFitInput").addEventListener("change", event => {
+  importModelFit(event.target.files[0]);
+  event.target.value = "";
+});
   $("settingsInput").click();
 });
 $("settingsInput").addEventListener("change", event => {
