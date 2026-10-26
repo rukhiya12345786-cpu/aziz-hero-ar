@@ -805,42 +805,55 @@ function clearCurrentModel() {
 
 
 function fitModel(model) {
-  // Get model dimensions
+  // Calculate original model bounds
   const box = new THREE.Box3().setFromObject(model);
 
   const size = box.getSize(new THREE.Vector3());
   const center = box.getCenter(new THREE.Vector3());
 
-  // Center the model geometry
+  // Store original dimensions
+  model.userData.arOriginalSize = {
+    x: size.x,
+    y: size.y,
+    z: size.z
+  };
+
+  // Store original center
+  model.userData.arOriginalCenter = {
+    x: center.x,
+    y: center.y,
+    z: center.z
+  };
+
+  // Store model fitting settings separately
+  model.userData.arFit = {
+    scale: 1,
+    offsetX: 0,
+    offsetY: 0,
+    offsetZ: 0,
+    rotationX: 0,
+    rotationY: 0,
+    rotationZ: 0
+  };
+
+  // Center model geometry
   model.position.sub(center);
 
-  // Normalize initial model size
+  // Normalize initial size
   const largest = Math.max(size.x, size.y, size.z);
 
   if (largest > 0) {
     model.scale.setScalar(2 / largest);
   }
 
-  // Save original model dimensions
-  model.userData.arModelSize = {
-    x: size.x,
-    y: size.y,
-    z: size.z
-  };
+  // Save normalized base scale
   model.userData.arBaseScale = model.scale.x;
 
-  // Save original model center
-  model.userData.arModelCenter = {
-    x: center.x,
-    y: center.y,
-    z: center.z
-  };
-
-  // Default face anchor
-  model.userData.arFaceAnchor = {
-    x: 0,
-    y: 0,
-    z: 0
+  // Save normalized dimensions
+  model.userData.arNormalizedSize = {
+    x: size.x * model.userData.arBaseScale,
+    y: size.y * model.userData.arBaseScale,
+    z: size.z * model.userData.arBaseScale
   };
 
   // Add model to scene
@@ -854,7 +867,7 @@ function fitModel(model) {
 
   showModel = true;
 
-  // Apply existing slider settings
+  // Apply current slider settings
   setModelTransform();
 
   setNotice("3D model loaded");
