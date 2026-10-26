@@ -370,6 +370,9 @@ function initThree() {
   controls.enabled = false;
 transformControls = new TransformControls(arCamera, renderer.domElement);
 transformControls.setMode("translate");
+console.log("Renderer canvas:", renderer.domElement);
+console.log("Transform controls:", transformControls);
+console.log("Gizmo helper:", transformControls.getHelper());
 
 const gizmoHelper = transformControls.getHelper();
 scene.add(gizmoHelper);
