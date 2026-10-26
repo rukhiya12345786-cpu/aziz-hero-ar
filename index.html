@@ -556,8 +556,9 @@ if (videoAspect > stageAspect) {
 }
 
 const screenX = offsetX +
-  (mirrored ? 1 - nose.x : nose.x) * displayWidth;
-const screenY = offsetY + nose.y * displayHeight;
+  (mirrored ? 1 - headCenter.x : headCenter.x) * displayWidth;
+
+const screenY = offsetY + headCenter.y * displayHeight;
 
 const normalizedX = screenX / stageWidth;
 const normalizedY = screenY / stageHeight;
