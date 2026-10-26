@@ -565,7 +565,13 @@ const visibleHeight = 2 * distance *
 const visibleWidth = visibleHeight * arCamera.aspect;
 
 const targetX = (normalizedX - 0.5) * visibleWidth;
-const targetY = (0.5 - normalizedY) * visibleHeight + 0.25;
+const faceHeight = Math.abs(
+  faces[0][152].y - faces[0][10].y
+);
+
+const targetY =
+  (0.5 - normalizedY) * visibleHeight +
+  faceHeight * visibleHeight * 0.3;
 
 const followSpeed = 0.5;
 
