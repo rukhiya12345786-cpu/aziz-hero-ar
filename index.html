@@ -803,6 +803,7 @@ function fitModel(model) {
     y: size.y,
     z: size.z
   };
+  model.userData.arBaseScale = model.scale.x;
 
   // Save original model center
   model.userData.arModelCenter = {
