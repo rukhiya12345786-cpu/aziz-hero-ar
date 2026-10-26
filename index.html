@@ -1284,6 +1284,23 @@ bindSlider("horizontalSlider", "horizontalValue", setModelTransform);
 bindSlider("rotateXSlider", "rotateXValue", setModelTransform);
 bindSlider("rotateYSlider", "rotateYValue", setModelTransform);
 bindSlider("rotateZSlider", "rotateZValue", setModelTransform);
+[
+  "scaleSlider",
+  "depthSlider",
+  "verticalSlider",
+  "horizontalSlider",
+  "rotateXSlider",
+  "rotateYSlider",
+  "rotateZSlider"
+].forEach(id => {
+  const slider = $(id);
+
+  if (slider) {
+    slider.addEventListener("input", () => {
+      setModelTransform();
+    });
+  }
+});
 bindSlider("eyeSizeSlider", "eyeSizeSlider", updateCropSizes);
 bindSlider("mouthSizeSlider", "mouthSizeSlider", updateCropSizes);
 
