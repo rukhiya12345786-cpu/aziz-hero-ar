@@ -847,14 +847,23 @@ function fitModel(model) {
 
   // Store model fitting settings separately
   model.userData.arFit = {
-    scale: 1,
-    offsetX: 0,
-    offsetY: 0,
-    offsetZ: 0,
-    rotationX: 0,
-    rotationY: 0,
-    rotationZ: 0
-  };
+  scale: 1,
+
+  // Model center adjustment
+  offsetX: 0,
+  offsetY: 0,
+  offsetZ: 0,
+
+  // Model rotation adjustment
+  rotationX: 0,
+  rotationY: 0,
+  rotationZ: 0,
+
+  // Head center anchor
+  headCenterX: 0,
+  headCenterY: 0,
+  headCenterZ: 0
+};
 
   // Center model geometry
   model.position.sub(center);
