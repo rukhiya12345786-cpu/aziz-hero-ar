@@ -444,6 +444,7 @@ async function startTracking() {
 
     visionReady = true;
     trackingOn = true;
+    facePositionBaseline = null;
     $("trackingBtn").textContent = "STOP TRACKING";
     setStatus("TRACKING ON");
     setNotice("Face tracking active");
