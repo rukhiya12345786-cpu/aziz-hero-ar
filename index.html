@@ -777,25 +777,62 @@ function clearCurrentModel() {
   }
 }
 
+
 function fitModel(model) {
+  // Get model dimensions
   const box = new THREE.Box3().setFromObject(model);
+
   const size = box.getSize(new THREE.Vector3());
   const center = box.getCenter(new THREE.Vector3());
+
+  // Center the model geometry
   model.position.sub(center);
 
+  // Normalize initial model size
   const largest = Math.max(size.x, size.y, size.z);
+
   if (largest > 0) {
     model.scale.setScalar(2 / largest);
   }
 
+  // Save original model dimensions
+  model.userData.arModelSize = {
+    x: size.x,
+    y: size.y,
+    z: size.z
+  };
+
+  // Save original model center
+  model.userData.arModelCenter = {
+    x: center.x,
+    y: center.y,
+    z: center.z
+  };
+
+  // Default face anchor
+  model.userData.arFaceAnchor = {
+    x: 0,
+    y: 0,
+    z: 0
+  };
+
+  // Add model to scene
   scene.add(model);
+
   currentModel = model;
+
+  // Attach Gizmo
   transformControls.attach(model);
   transformControls.getHelper().visible = true;
+
   showModel = true;
+
+  // Apply existing slider settings
   setModelTransform();
+
   setNotice("3D model loaded");
 }
+  
 
 async function loadModel(file) {
   if (!file) return;
