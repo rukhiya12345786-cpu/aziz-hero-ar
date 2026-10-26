@@ -528,17 +528,49 @@ if (!facePositionBaseline) {
   };
 }
 
-  const moveX = (facePositionBaseline.x - nose.x) * 4;
-const moveY = (nose.y - facePositionBaseline.y) * 3;
+  const stageWidth = stage.clientWidth;
+const stageHeight = stage.clientHeight;
 
-const targetX = facePositionBaseline.modelX + moveX;
-const targetY = facePositionBaseline.modelY + moveY;
+const videoAspect = video.videoWidth / video.videoHeight;
+const stageAspect = stageWidth / stageHeight;
+
+let displayWidth, displayHeight, offsetX, offsetY;
+
+if (videoAspect > stageAspect) {
+  displayWidth = stageWidth;
+  displayHeight = stageWidth / videoAspect;
+  offsetX = 0;
+  offsetY = (stageHeight - displayHeight) / 2;
+} else {
+  displayHeight = stageHeight;
+  displayWidth = stageHeight * videoAspect;
+  offsetX = (stageWidth - displayWidth) / 2;
+  offsetY = 0;
+}
+
+const screenX = offsetX +
+  (mirrored ? 1 - nose.x : nose.x) * displayWidth;
+const screenY = offsetY + nose.y * displayHeight;
+
+const normalizedX = screenX / stageWidth;
+const normalizedY = screenY / stageHeight;
+
+const depth = Number($("depthSlider").value);
+const distance = Math.max(0.1, arCamera.position.z - depth);
+
+const visibleHeight = 2 * distance *
+  Math.tan(THREE.MathUtils.degToRad(arCamera.fov / 2));
+
+const visibleWidth = visibleHeight * arCamera.aspect;
+
+const targetX = (normalizedX - 0.5) * visibleWidth;
+const targetY = (0.5 - normalizedY) * visibleHeight + 0.25;
 
 currentModel.position.x +=
-  (targetX - currentModel.position.x) * 0.15;
+  (targetX - currentModel.position.x) * 0.2;
 
 currentModel.position.y +=
-  (targetY - currentModel.position.y) * 0.15;
+  (targetY - currentModel.position.y) * 0.2;
       }
       lastLandmarks = faces;
       drawFaceDots(faces);
