@@ -738,7 +738,12 @@ function setModelTransform() {
 
   const scale = Number($("scaleSlider").value);
 
-  currentModel.scale.setScalar(scale);
+  const baseScale =
+  currentModel.userData.arBaseScale || 1;
+
+currentModel.scale.setScalar(
+  baseScale * scale
+);
 
   currentModel.position.x =
     Number($("horizontalSlider").value) +
