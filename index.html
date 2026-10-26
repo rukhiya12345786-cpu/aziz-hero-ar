@@ -599,13 +599,28 @@ const targetX = (normalizedX - 0.5) * visibleWidth;
 const targetY =
   (0.5 - normalizedY) * visibleHeight;
 
+const fit = currentModel.userData.arFit;
+
+const finalTargetX =
+  targetX + (fit ? fit.headCenterX : 0);
+
+const finalTargetY =
+  targetY + (fit ? fit.headCenterY : 0);
+
+const finalTargetZ =
+  Number($("depthSlider").value) +
+  (fit ? fit.headCenterZ : 0);
+
 const followSpeed = 0.5;
 
 currentModel.position.x +=
-  (targetX - currentModel.position.x) * followSpeed;
+  (finalTargetX - currentModel.position.x) * followSpeed;
 
 currentModel.position.y +=
-  (targetY - currentModel.position.y) * followSpeed;
+  (finalTargetY - currentModel.position.y) * followSpeed;
+
+currentModel.position.z +=
+  (finalTargetZ - currentModel.position.z) * followSpeed;
       }
       lastLandmarks = faces;
       drawFaceDots(faces);
