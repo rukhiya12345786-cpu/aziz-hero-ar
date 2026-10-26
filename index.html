@@ -965,7 +965,9 @@ function fitModel(model) {
   // Attach Gizmo
   transformControls.attach(model);
   transformControls.getHelper().visible = true;
-
+transformControls.enabled = true;
+transformControls.setMode("translate");
+transformControls.getHelper().visible = true;
   showModel = true;
 
   // Apply current slider settings
