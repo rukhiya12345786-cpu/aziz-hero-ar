@@ -1070,7 +1070,39 @@ function updateCropSizes() {
   mouthCanvas.style.width = mouthSize + "px";
   mouthCanvas.style.height = Math.round(mouthSize * 0.65) + "px";
 }
+function saveCurrentModelFit() {
+  if (!currentModel) {
+    setNotice("Import a model first");
+    return;
+  }
 
+  const settings = {
+    headCenterX: Number($("headCenterXSlider").value),
+    headCenterY: Number($("headCenterYSlider").value),
+    headCenterZ: Number($("headCenterZSlider").value),
+    scale: Number($("scaleSlider").value),
+    horizontal: Number($("horizontalSlider").value),
+    vertical: Number($("verticalSlider").value),
+    depth: Number($("depthSlider").value),
+    rotationX: Number($("rotateXSlider").value),
+    rotationY: Number($("rotateYSlider").value),
+    rotationZ: Number($("rotateZSlider").value)
+  };
+
+  const blob = new Blob(
+    [JSON.stringify(settings, null, 2)],
+    { type: "application/json" }
+  );
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "model-fit-settings.json";
+  link.click();
+
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  setNotice("Model fit settings saved");
+}
 function exportSettings() {
   const settings = {};
 
