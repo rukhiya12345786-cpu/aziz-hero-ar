@@ -1125,7 +1125,53 @@ function exportSettings() {
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+function importModelFit(file) {
+  if (!file) return;
 
+  if (!currentModel) {
+    setNotice("Import a model first");
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    try {
+      const settings = JSON.parse(reader.result);
+
+      const sliderMap = {
+        headCenterX: "headCenterXSlider",
+        headCenterY: "headCenterYSlider",
+        headCenterZ: "headCenterZSlider",
+        scale: "scaleSlider",
+        horizontal: "horizontalSlider",
+        vertical: "verticalSlider",
+        depth: "depthSlider",
+        rotationX: "rotateXSlider",
+        rotationY: "rotateYSlider",
+        rotationZ: "rotateZSlider"
+      };
+
+      for (const [key, id] of Object.entries(sliderMap)) {
+        const input = $(id);
+
+        if (input && Number.isFinite(Number(settings[key]))) {
+          input.value = settings[key];
+          input.dispatchEvent(new Event("input"));
+        }
+      }
+
+      updateHeadCenter();
+      setModelTransform();
+      setNotice("Model fit settings loaded");
+    } catch (error) {
+      console.error(error);
+      setNotice("Invalid model fit file");
+    }
+  };
+
+  reader.readAsText(file);
+}
 function importSettings(file) {
   if (!file) return;
 
