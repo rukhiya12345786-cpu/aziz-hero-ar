@@ -371,8 +371,11 @@ function initThree() {
 transformControls = new TransformControls(arCamera, renderer.domElement);
 transformControls.setMode("translate");
 
-scene.add(transformControls.getHelper());
-transformControls.getHelper().visible = false;
+const gizmoHelper = transformControls.getHelper();
+scene.add(gizmoHelper);
+gizmoHelper.visible = true;
+
+transformControls.enabled = true;
 
 transformControls.addEventListener("dragging-changed", event => {
   if (controls) controls.enabled = !event.value;
