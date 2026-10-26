@@ -1262,7 +1262,10 @@ $("importSettingsBtn").addEventListener("click", () => {
 $("settingsInput").addEventListener("change", event => {
   importSettings(event.target.files[0]);
 });
-
+$("saveModelFitBtn").addEventListener(
+  "click",
+  saveCurrentModelFit
+);
 /* Asset slots: save current selection reference */
 document.querySelectorAll("[data-slot]").forEach(button => {
   button.addEventListener("click", () => {
