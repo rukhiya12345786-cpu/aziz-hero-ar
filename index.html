@@ -734,20 +734,35 @@ function bindSlider(id, valueId, callback) {
 function setModelTransform() {
   if (!currentModel) return;
 
-  currentModel.scale.setScalar(Number($("scaleSlider").value));
-  currentModel.position.x = Number($("horizontalSlider").value);
-  currentModel.position.y = Number($("verticalSlider").value);
-  currentModel.position.z = Number($("depthSlider").value);
+  const fit = currentModel.userData.arFit;
 
-  currentModel.rotation.x = THREE.MathUtils.degToRad(
-    Number($("rotateXSlider").value)
-  );
-  currentModel.rotation.y = THREE.MathUtils.degToRad(
-    Number($("rotateYSlider").value)
-  );
-  currentModel.rotation.z = THREE.MathUtils.degToRad(
-    Number($("rotateZSlider").value)
-  );
+  const scale = Number($("scaleSlider").value);
+
+  currentModel.scale.setScalar(scale);
+
+  currentModel.position.x =
+    Number($("horizontalSlider").value) +
+    (fit ? fit.offsetX : 0);
+
+  currentModel.position.y =
+    Number($("verticalSlider").value) +
+    (fit ? fit.offsetY : 0);
+
+  currentModel.position.z =
+    Number($("depthSlider").value) +
+    (fit ? fit.offsetZ : 0);
+
+  currentModel.rotation.x =
+    THREE.MathUtils.degToRad(Number($("rotateXSlider").value)) +
+    (fit ? fit.rotationX : 0);
+
+  currentModel.rotation.y =
+    THREE.MathUtils.degToRad(Number($("rotateYSlider").value)) +
+    (fit ? fit.rotationY : 0);
+
+  currentModel.rotation.z =
+    THREE.MathUtils.degToRad(Number($("rotateZSlider").value)) +
+    (fit ? fit.rotationZ : 0);
 }
 
 function resetSliders() {
