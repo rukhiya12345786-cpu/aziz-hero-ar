@@ -1105,6 +1105,49 @@ $("hideMainBtn").addEventListener("click", toggleMainButtons);
 $("hideSlidersBtn").addEventListener("click", toggleSliders);
 
 /* Sliders */
+function updateHeadCenter() {
+  if (!currentModel) return;
+
+  if (!currentModel.userData.arFit) {
+    currentModel.userData.arFit = {};
+  }
+
+  currentModel.userData.arFit.headCenterX =
+    Number($("headCenterXSlider").value);
+
+  currentModel.userData.arFit.headCenterY =
+    Number($("headCenterYSlider").value);
+
+  currentModel.userData.arFit.headCenterZ =
+    Number($("headCenterZSlider").value);
+
+  $("headCenterXValue").textContent =
+    currentModel.userData.arFit.headCenterX.toFixed(2);
+
+  $("headCenterYValue").textContent =
+    currentModel.userData.arFit.headCenterY.toFixed(2);
+
+  $("headCenterZValue").textContent =
+    currentModel.userData.arFit.headCenterZ.toFixed(2);
+}
+
+bindSlider(
+  "headCenterXSlider",
+  "headCenterXValue",
+  updateHeadCenter
+);
+
+bindSlider(
+  "headCenterYSlider",
+  "headCenterYValue",
+  updateHeadCenter
+);
+
+bindSlider(
+  "headCenterZSlider",
+  "headCenterZValue",
+  updateHeadCenter
+);  
 bindSlider("scaleSlider", "scaleValue", setModelTransform);
 bindSlider("depthSlider", "depthValue", setModelTransform);
 bindSlider("verticalSlider", "verticalValue", setModelTransform);
