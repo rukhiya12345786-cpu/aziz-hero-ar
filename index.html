@@ -519,12 +519,14 @@ currentModel.quaternion.slerp(targetQuaternion.multiply(sliderQuaternion), 0.5);
       if (currentModel && faces.length > 0) {
   const nose = faces[0][1];
 
-  if (!facePositionBaseline) {
-    facePositionBaseline = {
-      x: nose.x,
-      y: nose.y
-    };
-  }
+if (!facePositionBaseline) {
+  facePositionBaseline = {
+    x: nose.x,
+    y: nose.y,
+    modelX: currentModel.position.x,
+    modelY: currentModel.position.y
+  };
+}
 
   const moveX = (facePositionBaseline.x - nose.x) * 4;
 const moveY = (facePositionBaseline.y - nose.y) * 3;
