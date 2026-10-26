@@ -1529,18 +1529,28 @@ try {
   setNotice("AR layer failed to initialize. Reload and check internet.");
 }
 function setGizmoMode(mode) {
-  if (!transformControls) return;
-
-  transformControls.setMode(mode);
-
-  if (transformControls.object) {
-    transformControls.getHelper().visible = true;
+  if (!transformControls) {
+    setNotice("Gizmo controls are not initialized");
+    return;
   }
+
+  if (!currentModel) {
+    setNotice("Import a 3D model first");
+    return;
+  }
+
+  transformControls.attach(currentModel);
+  transformControls.setMode(mode);
+  transformControls.enabled = true;
+
+  const helper = transformControls.getHelper();
+  if (helper) helper.visible = true;
 
   const toggle = document.getElementById("gizmoBtn");
   if (toggle) toggle.textContent = "HIDE GIZMOS";
-}
 
+  setNotice(mode.toUpperCase() + " gizmo selected");
+  }
 const gizmoToggleButton = document.getElementById("gizmoBtn");
 const moveGizmoButton = document.getElementById("moveGizmoBtn");
 const rotateGizmoButton = document.getElementById("rotateGizmoBtn");
