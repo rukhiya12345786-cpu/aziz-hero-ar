@@ -567,11 +567,13 @@ const visibleWidth = visibleHeight * arCamera.aspect;
 const targetX = (normalizedX - 0.5) * visibleWidth;
 const targetY = (0.5 - normalizedY) * visibleHeight + 0.25;
 
+const followSpeed = 0.5;
+
 currentModel.position.x +=
-  (targetX - currentModel.position.x) * 0.2;
+  (targetX - currentModel.position.x) * followSpeed;
 
 currentModel.position.y +=
-  (targetY - currentModel.position.y) * 0.2;
+  (targetY - currentModel.position.y) * followSpeed;
       }
       lastLandmarks = faces;
       drawFaceDots(faces);
