@@ -520,6 +520,30 @@ currentModel.quaternion.slerp(targetQuaternion.multiply(sliderQuaternion), 0.5);
       if (currentModel && faces.length > 0) {
   // Head center: forehead, chin, left and right sides
 const face = faces[0];
+// Face width for model fitting
+const faceWidth = Math.abs(
+  faces[0][234].x - faces[0][454].x
+);
+
+if (!currentModel.userData.arBaseScale) {
+  currentModel.userData.arBaseScale =
+    currentModel.scale.x;
+}
+
+if (!currentModel.userData.arFaceWidthBaseline) {
+  currentModel.userData.arFaceWidthBaseline =
+    faceWidth;
+}
+
+const widthRatio =
+  faceWidth /
+  currentModel.userData.arFaceWidthBaseline;
+
+const fittedScale =
+  currentModel.userData.arBaseScale *
+  THREE.MathUtils.clamp(widthRatio, 0.7, 1.4);
+
+currentModel.scale.setScalar(fittedScale);        
 
 const headCenter = {
   x: (face[234].x + face[454].x) / 2,
