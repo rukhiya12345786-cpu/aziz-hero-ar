@@ -518,7 +518,13 @@ currentModel.quaternion.slerp(targetQuaternion.multiply(sliderQuaternion), 0.5);
       }
       const faces = result.faceLandmarks || [];
       if (currentModel && faces.length > 0) {
-  const nose = faces[0][1];
+  // Head center: forehead, chin, left and right sides
+const face = faces[0];
+
+const headCenter = {
+  x: (face[234].x + face[454].x) / 2,
+  y: (face[10].y + face[152].y) / 2
+};
 
 if (!facePositionBaseline) {
   facePositionBaseline = {
