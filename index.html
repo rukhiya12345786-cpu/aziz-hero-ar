@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Aziz AI AR Studio</title>
 
 <script type="importmap">
@@ -17,426 +17,969 @@
 </script>
 
 <style>
-*{box-sizing:border-box}
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080b11;color:white;font-family:Arial,sans-serif}
-#container{position:fixed;inset:0;width:100%;height:100%;overflow:hidden}
-#topbar,#toolbar,#status{position:fixed;z-index:20;background:#101724ed;border:1px solid #344258;border-radius:12px;padding:9px}
-#topbar{top:8px;left:8px;right:8px;display:flex;flex-wrap:wrap;gap:7px;align-items:center}
-#toolbar{left:8px;right:8px;bottom:56px;display:flex;flex-wrap:wrap;gap:7px;max-height:42vh;overflow:auto}
-#status{bottom:8px;left:8px;right:8px;font-size:12px}
-button,label{border:1px solid #536781;border-radius:8px;background:#26364d;color:white;padding:10px;font-size:12px;cursor:pointer}
-button.active{background:#087e8b}
-input[type=file]{display:none}
-#modelFileLabel{background:#185c68}
-#toolbar.hidden{display:none}
-#topbar.hidden{display:none}
-#status.hidden{display:none}
-#container.fullscreen-mode{inset:0}
-#recordButton{background:#8c2534}
-@media(orientation:landscape){#toolbar{max-height:35vh;right:auto;max-width:65vw}#topbar{max-width:100vw}}
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #080b11;
+  color: white;
+  font-family: Arial, sans-serif;
+}
+
+#container {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #080b11;
+}
+
+#studioUI {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.panel {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  padding: 9px;
+  border: 1px solid #35445b;
+  border-radius: 12px;
+  background: rgba(14, 22, 35, 0.94);
+  pointer-events: auto;
+}
+
+#topbar {
+  top: max(8px, env(safe-area-inset-top));
+}
+
+#toolbar {
+  bottom: 55px;
+  max-height: 42vh;
+  overflow-y: auto;
+  align-content: flex-start;
+}
+
+#status {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: max(8px, env(safe-area-inset-bottom));
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(14, 22, 35, 0.94);
+  font-size: 12px;
+  pointer-events: auto;
+}
+
+button, label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 9px 11px;
+  border: 1px solid #536781;
+  border-radius: 8px;
+  background: #26364d;
+  color: white;
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+button:active, label:active {
+  background: #087e8b;
+}
+
+button.active {
+  background: #087e8b;
+  border-color: #25c4d0;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+input[type="file"] {
+  display: none;
+}
+
+#importModelLabel {
+  background: #176776;
+}
+
+#recordButton {
+  background: #8c2534;
+}
+
+#hideControlsButton,
+#hideGizmoButton,
+#hideUIButton {
+  background: #51416f;
+}
+
+#showUIButton {
+  position: fixed;
+  z-index: 1000;
+  top: max(10px, env(safe-area-inset-top));
+  right: 10px;
+  display: none;
+  background: #087e8b;
+  pointer-events: auto;
+}
+
+body.ui-hidden #studioUI {
+  display: none;
+}
+
+body.ui-hidden #showUIButton {
+  display: inline-flex;
+}
+
+#toolbar.controls-hidden {
+  display: none;
+}
+
+#status.status-hidden {
+  display: none;
+}
+
+#video-feed {
+  display: none;
+}
+
+#overlayVideo {
+  display: none;
+}
+
+@media (orientation: landscape) {
+  #toolbar {
+    left: 8px;
+    right: auto;
+    bottom: 48px;
+    width: min(68vw, 620px);
+    max-height: 55vh;
+  }
+
+  #topbar {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  button, label {
+    min-height: 36px;
+    padding: 8px;
+    font-size: 11px;
+  }
+
+  #toolbar {
+    max-height: 40vh;
+  }
+}
 </style>
 </head>
+
 <body>
 <div id="container"></div>
 
-<div id="topbar">
-  <button id="startButton">START CAMERA</button>
-  <button id="stopButton">STOP CAMERA</button>
-  <button id="switchButton">SWITCH CAMERA</button>
-  <button id="mirrorButton">MIRROR: OFF</button>
-  <button id="fullscreenButton">FULL SCREEN</button>
-  <button id="hideUIButton">HIDE UI</button>
-  <button id="hideControlsButton">HIDE CONTROLS</button>
+<div id="studioUI">
+
+  <div id="topbar" class="panel">
+    <button id="startButton">START CAMERA</button>
+    <button id="stopButton">STOP CAMERA</button>
+    <button id="switchButton">SWITCH CAMERA</button>
+    <button id="mirrorButton">MIRROR: OFF</button>
+    <button id="fullscreenButton">FULL SCREEN</button>
+    <button id="hideUIButton">HIDE UI</button>
+    <button id="hideControlsButton">HIDE CONTROLS</button>
+  </div>
+
+  <div id="toolbar" class="panel">
+
+    <label id="importModelLabel" for="modelFile">
+      IMPORT 3D MODEL
+    </label>
+    <input
+      id="modelFile"
+      type="file"
+      accept=".glb,.gltf,.obj,.fbx"
+    >
+
+    <button data-gizmo-mode="translate" class="active">
+      MOVE
+    </button>
+    <button data-gizmo-mode="rotate">
+      ROTATE
+    </button>
+    <button data-gizmo-mode="scale">
+      SCALE
+    </button>
+
+    <button id="hideGizmoButton">HIDE GIZMOS</button>
+    <button id="resetButton">RESET MODEL</button>
+    <button id="removeButton">REMOVE MODEL</button>
+
+    <button id="trackingButton">FACE TRACKING: ON</button>
+    <button id="faceDotsButton">FACE DOTS: ON</button>
+
+    <label for="overlayFile">
+      IMPORT EYE/MOUTH IMAGE
+    </label>
+    <input
+      id="overlayFile"
+      type="file"
+      accept="image/*,video/*"
+    >
+
+    <button id="leftEyeButton">LEFT EYE</button>
+    <button id="rightEyeButton">RIGHT EYE</button>
+    <button id="mouthButton">MOUTH</button>
+    <button id="overlayToggleButton">OVERLAYS: OFF</button>
+
+    <button id="recordButton">START RECORDING</button>
+    <button id="stopRecordButton" disabled>
+      STOP RECORDING
+    </button>
+
+    <button id="exportSettingsButton">EXPORT SETTINGS</button>
+    <button id="exportModelButton">EXPORT MODEL</button>
+
+  </div>
+
+  <div id="status">
+    Ready. Start camera or import a 3D model.
+  </div>
+
 </div>
 
-<div id="toolbar">
-  <label id="modelFileLabel" for="modelFile">IMPORT 3D MODEL</label>
-  <input id="modelFile" type="file" accept=".glb,.gltf,.obj,.fbx">
+<button id="showUIButton">SHOW UI</button>
 
-  <button data-mode="translate" class="active">MOVE</button>
-  <button data-mode="rotate">ROTATE</button>
-  <button data-mode="scale">SCALE</button>
-  <button id="resetButton">RESET MODEL</button>
-  <button id="removeButton">REMOVE MODEL</button>
-
-  <button id="trackingButton">FACE TRACKING: ON</button>
-  <button id="recordButton">START RECORDING</button>
-  <button id="exportButton">EXPORT MODEL</button>
-  <button id="exportSettingsButton">EXPORT SETTINGS</button>
-  <label for="overlayFile">IMPORT EYE/MOUTH IMAGE</label>
-  <input id="overlayFile" type="file" accept="image/*,video/*">
-  <button id="overlayButton">EYE/MOUTH OVERLAY: OFF</button>
-  <button id="hideGizmoButton">HIDE GIZMOS</button>
-</div>
-
-<div id="status">Ready. Import a model or start the camera.</div>
-<video id="overlayVideo" playsinline muted loop style="display:none"></video>
+<video id="video-feed" playsinline muted></video>
+<video id="overlayVideo" playsinline muted loop></video>
 
 <script type="module">
 import * as THREE from 'three';
-import {MindARThree} from 'mindar-face-three';
-import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
-import {FBXLoader} from 'three/addons/loaders/FBXLoader.js';
-import {OBJLoader} from 'three/addons/loaders/OBJLoader.js';
-import {TransformControls} from 'three/addons/controls/TransformControls.js';
+import { MindARThree } from 'mindar-face-three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+import { TransformControls } from 'three/addons/controls/TransformControls.js';
 
-const $=id=>document.getElementById(id);
-const container=$('container');
-const status=$('status');
+const $ = id => document.getElementById(id);
 
-let mindar=null,anchor=null,model=null,modelURL=null;
-let transform=null,gizmoHelper=null;
-let cameraStarted=false,trackingOn=true,mirrorOn=false,gizmoOn=true;
-let cameraFacing='user',recording=false,recorder=null;
-let recordedChunks=[],micStream=null,recordCanvasStream=null;
-let overlayURL=null,overlayObject=null,overlayEnabled=false;
-let generation=0;
+const container = $('container');
+const status = $('status');
 
-function say(s){status.textContent=s}
+let mindar = null;
+let anchor = null;
+let transform = null;
+let model = null;
+let modelURL = null;
 
-function disposeObject(obj){
-  obj.traverse(o=>{
-    if(o.geometry)o.geometry.dispose();
-    if(o.material){
-      const mats=Array.isArray(o.material)?o.material:[o.material];
-      mats.forEach(m=>{
-        for(const v of Object.values(m)){
-          if(v && v.isTexture)v.dispose();
+let cameraStarted = false;
+let cameraFacing = 'user';
+let mirrorOn = false;
+let trackingOn = true;
+let dotsOn = true;
+let gizmosOn = true;
+
+let recorder = null;
+let recording = false;
+let chunks = [];
+let recordStream = null;
+let micStream = null;
+let recordTimer = null;
+
+let currentOverlayURL = null;
+let overlayImage = null;
+let overlayTarget = 'leftEye';
+let overlayEnabled = false;
+
+let faceDots = [];
+let lastEstimate = null;
+let generation = 0;
+
+function say(message) {
+  status.textContent = message;
+}
+
+function disposeObject(object) {
+  object.traverse(child => {
+    if (child.geometry) child.geometry.dispose();
+
+    if (child.material) {
+      const materials = Array.isArray(child.material)
+        ? child.material
+        : [child.material];
+
+      materials.forEach(material => {
+        for (const value of Object.values(material)) {
+          if (value?.isTexture) value.dispose();
         }
-        m.dispose();
+        material.dispose();
       });
     }
   });
 }
 
-async function setup(){
-  if(mindar)return;
-  mindar=new MindARThree({
+function clearDots() {
+  if (!anchor) return;
+
+  for (const dot of faceDots) {
+    anchor.group.remove(dot);
+    dot.geometry.dispose();
+    dot.material.dispose();
+  }
+
+  faceDots = [];
+}
+
+async function setupCamera() {
+  if (mindar) return;
+
+  mindar = new MindARThree({
     container,
-    uiLoading:'no',
-    uiScanning:'no',
-    maxTrack:1
+    maxTrack: 1,
+    videoSettings: {
+      facingMode: cameraFacing
+    }
   });
 
-  const scene=mindar.scene;
-  scene.add(new THREE.HemisphereLight(0xffffff,0x777788,2));
-  const light=new THREE.DirectionalLight(0xffffff,2);
-  light.position.set(0,2,3);
+  const scene = mindar.scene;
+
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1.8));
+
+  const light = new THREE.DirectionalLight(0xffffff, 1.5);
+  light.position.set(0, 2, 3);
   scene.add(light);
 
-  // Anchor 1 is a face landmark, not a complete head surface.
-  anchor=mindar.addAnchor(1);
+  anchor = mindar.addAnchor(1);
 
-  transform=new TransformControls(mindar.camera,mindar.renderer.domElement);
+  mindar.renderer.setPixelRatio(
+    Math.min(window.devicePixelRatio || 1, 2)
+  );
+
+  mindar.renderer.setSize(
+    container.clientWidth,
+    container.clientHeight
+  );
+
+  transform = new TransformControls(
+    mindar.camera,
+    mindar.renderer.domElement
+  );
+
   transform.setMode('translate');
   transform.setSpace('local');
-  transform.addEventListener('dragging-changed',e=>{
-    // Reserve the event for future camera interaction controls.
+
+  transform.addEventListener('dragging-changed', event => {
+    // TransformControls handles the actual 3D gizmo interaction.
   });
-  transform.addEventListener('change',()=>{
-    if(mindar)mindar.renderer.render(mindar.scene,mindar.camera);
-  });
-  gizmoHelper=transform.getHelper();
-  scene.add(gizmoHelper);
-  transform.enabled=false;
 
-  mindar.renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
-  mindar.renderer.setSize(container.clientWidth,container.clientHeight);
-  mindar.renderer.setClearColor(0x000000,0);
+  scene.add(transform.getHelper());
 
-  mindar.renderer.setAnimationLoop(()=>{
-    if(!mindar)return;
-    mindar.renderer.render(mindar.scene,mindar.camera);
-  });
-}
+  transform.enabled = false;
 
-async function startCamera(){
-  try{
-    await setup();
-    if(cameraStarted){say('Camera is already running.');return}
-    await mindar.start();
-    cameraStarted=true;
-    say('Camera started. Face the camera.');
-  }catch(e){
-    console.error(e);
-    say('Camera failed. Open this page using HTTPS and allow camera access.');
-  }
-}
+  mindar.renderer.setAnimationLoop(() => {
+    if (!mindar) return;
 
-async function stopCamera(){
-  if(!mindar||!cameraStarted)return;
-  try{await mindar.stop()}catch(e){console.warn(e)}
-  cameraStarted=false;
-  say('Camera stopped.');
-}
-
-async function switchCamera(){
-  // MindAR Face's camera selection depends on its internal camera implementation.
-  // Restarting alone does not reliably change facingMode in every MindAR version.
-  cameraFacing=cameraFacing==='user'?'environment':'user';
-  say('Camera switch requested ('+cameraFacing+'). If the view does not change, this MindAR version needs a camera-source integration.');
-  await stopCamera();
-  // Do not claim that the hardware camera changed unless the browser actually does so.
-  await startCamera();
-}
-
-function removeModel(show=true){
-  if(model&&anchor){
-    anchor.group.remove(model);
-    if(transform)transform.detach();
-    disposeObject(model);
-  }
-  model=null;
-  if(modelURL){URL.revokeObjectURL(modelURL);modelURL=null}
-  if(show)say('Model removed.');
-}
-
-function fitModel(obj){
-  const box=new THREE.Box3().setFromObject(obj);
-  const size=box.getSize(new THREE.Vector3());
-  const center=box.getCenter(new THREE.Vector3());
-  if(size.length()>0){
-    obj.position.sub(center);
-    const maxDim=Math.max(size.x,size.y,size.z);
-    // Initial size is only a starting point; models use different units.
-    obj.scale.setScalar(1.0/Math.max(maxDim,0.0001));
-  }
-}
-
-async function importModel(file){
-  if(!file)return;
-  const ext=file.name.split('.').pop().toLowerCase();
-  if(!['glb','gltf','obj','fbx'].includes(ext)){
-    say('Supported formats: GLB, GLTF, OBJ and FBX.');
-    return;
-  }
-
-  const thisGeneration=++generation;
-  await setup();
-  removeModel(false);
-  say('Loading '+file.name+'...');
-
-  try{
-    modelURL=URL.createObjectURL(file);
-    let obj;
-
-    if(ext==='glb'||ext==='gltf'){
-      const result=await new GLTFLoader().loadAsync(modelURL);
-      obj=result.scene;
-    }else if(ext==='fbx'){
-      obj=await new FBXLoader().loadAsync(modelURL);
-    }else{
-      obj=await new OBJLoader().loadAsync(modelURL);
+    if (trackingOn) {
+      try {
+        lastEstimate = mindar.getLatestEstimate();
+      } catch (error) {
+        lastEstimate = null;
+      }
     }
 
-    if(thisGeneration!==generation){
-      disposeObject(obj);
+    mindar.renderer.render(scene, mindar.camera);
+  });
+}
+
+async function startCamera() {
+  try {
+    await setupCamera();
+
+    if (cameraStarted) {
+      say('Camera is already running.');
       return;
     }
 
-    obj.traverse(child=>{
-      if(child.isMesh&&child.material){
-        const materials=Array.isArray(child.material)?child.material:[child.material];
-        materials.forEach(m=>{
-          m.side=THREE.DoubleSide;
-          m.needsUpdate=true;
+    await mindar.start();
+    cameraStarted = true;
+
+    say('Camera started. Face the camera.');
+  } catch (error) {
+    console.error(error);
+    say('Camera failed. Check HTTPS, camera permission and browser support.');
+  }
+}
+
+async function stopCamera() {
+  if (!mindar || !cameraStarted) {
+    say('Camera is not running.');
+    return;
+  }
+
+  try {
+    await mindar.stop();
+  } catch (error) {
+    console.error(error);
+  }
+
+  cameraStarted = false;
+  say('Camera stopped.');
+}
+
+async function switchCamera() {
+  const wasRunning = cameraStarted;
+
+  try {
+    if (wasRunning) {
+      await mindar.stop();
+      cameraStarted = false;
+    }
+
+    // Recreate MindAR with the requested camera source.
+    if (mindar) {
+      mindar.renderer.setAnimationLoop(null);
+
+      if (transform) {
+        transform.detach();
+        mindar.scene.remove(transform.getHelper());
+        transform.dispose();
+      }
+
+      clearDots();
+
+      if (model && anchor) {
+        anchor.group.remove(model);
+      }
+
+      mindar = null;
+      anchor = null;
+      transform = null;
+    }
+
+    cameraFacing = cameraFacing === 'user' ? 'environment' : 'user';
+
+    await setupCamera();
+
+    if (model) {
+      anchor.group.add(model);
+      transform.attach(model);
+      transform.enabled = gizmosOn;
+    }
+
+    if (wasRunning) {
+      await mindar.start();
+      cameraStarted = true;
+    }
+
+    say('Requested camera: ' + cameraFacing +
+      '. If it does not switch, this MindAR build may not support changing camera source.');
+  } catch (error) {
+    console.error(error);
+    say('Camera switch failed. The browser or MindAR version may not support this camera source.');
+  }
+}
+
+function removeModel() {
+  generation++;
+
+  if (model && anchor) {
+    anchor.group.remove(model);
+
+    if (transform) transform.detach();
+
+    disposeObject(model);
+  }
+
+  model = null;
+
+  if (modelURL) {
+    URL.revokeObjectURL(modelURL);
+    modelURL = null;
+  }
+
+  say('Model removed.');
+}
+
+function centerAndScale(object) {
+  const bounds = new THREE.Box3().setFromObject(object);
+  const size = bounds.getSize(new THREE.Vector3());
+  const center = bounds.getCenter(new THREE.Vector3());
+  const maxDimension = Math.max(size.x, size.y, size.z);
+
+  if (!Number.isFinite(maxDimension) || maxDimension <= 0) {
+    throw new Error('Model has invalid dimensions.');
+  }
+
+  object.position.sub(center);
+  object.scale.setScalar(1 / maxDimension);
+}
+
+async function importModel(file) {
+  if (!file) return;
+
+  const extension = file.name.split('.').pop().toLowerCase();
+
+  if (!['glb', 'gltf', 'obj', 'fbx'].includes(extension)) {
+    say('Use GLB, GLTF, OBJ or FBX.');
+    return;
+  }
+
+  const thisGeneration = ++generation;
+
+  try {
+    await setupCamera();
+
+    say('Loading ' + file.name + '...');
+
+    const url = URL.createObjectURL(file);
+    const oldURL = modelURL;
+    modelURL = url;
+
+    if (model && anchor) {
+      anchor.group.remove(model);
+      if (transform) transform.detach();
+      disposeObject(model);
+      model = null;
+    }
+
+    let loadedModel;
+
+    if (extension === 'glb' || extension === 'gltf') {
+      const result = await new GLTFLoader().loadAsync(url);
+      loadedModel = result.scene;
+    } else if (extension === 'fbx') {
+      loadedModel = await new FBXLoader().loadAsync(url);
+    } else {
+      loadedModel = await new OBJLoader().loadAsync(url);
+    }
+
+    if (thisGeneration !== generation) {
+      disposeObject(loadedModel);
+      URL.revokeObjectURL(url);
+      return;
+    }
+
+    loadedModel.traverse(child => {
+      if (child.isMesh && child.material) {
+        const materials = Array.isArray(child.material)
+          ? child.material
+          : [child.material];
+
+        materials.forEach(material => {
+          material.side = THREE.DoubleSide;
+          material.needsUpdate = true;
         });
       }
     });
 
-    fitModel(obj);
-    obj.position.set(0,0,0);
-    obj.rotation.set(0,0,0);
+    centerAndScale(loadedModel);
+    model = loadedModel;
 
-    model=obj;
     anchor.group.add(model);
     transform.attach(model);
-    transform.enabled=gizmoOn;
+    transform.enabled = gizmosOn;
 
-    say('Model imported. Use MOVE, ROTATE or SCALE gizmos to adjust it.');
-  }catch(e){
-    console.error(e);
-    removeModel(false);
-    say('Import failed. GLTF/OBJ files may need external textures; try a self-contained GLB.');
+    if (oldURL && oldURL !== url) URL.revokeObjectURL(oldURL);
+
+    say('Model loaded. Select MOVE, ROTATE or SCALE and drag a gizmo.');
+  } catch (error) {
+    console.error(error);
+    say('Import failed. GLTF and OBJ may need separate texture files; try a self-contained GLB.');
   }
 }
 
-function resetModel(){
-  if(!model){say('Import a model first.');return}
-  model.position.set(0,0,0);
-  model.rotation.set(0,0,0);
-  fitModel(model);
+function resetModel() {
+  if (!model) {
+    say('Import a model first.');
+    return;
+  }
+
+  model.position.set(0, 0, 0);
+  model.rotation.set(0, 0, 0);
+  centerAndScale(model);
+
   say('Model reset.');
 }
 
-function setMode(mode){
-  if(!transform)return;
+function setGizmoMode(mode) {
+  if (!transform) {
+    say('Start the camera or import a model first.');
+    return;
+  }
+
   transform.setMode(mode);
-  document.querySelectorAll('[data-mode]').forEach(b=>{
-    b.classList.toggle('active',b.dataset.mode===mode);
+
+  document.querySelectorAll('[data-gizmo-mode]').forEach(button => {
+    button.classList.toggle(
+      'active',
+      button.dataset.gizmoMode === mode
+    );
   });
+
+  say(mode.toUpperCase() + ' gizmo selected.');
 }
 
-async function startRecording(){
-  if(recording)return;
-  try{
-    await setup();
-    const canvas=mindar.renderer.domElement;
-    recordCanvasStream=canvas.captureStream(30);
+function toggleGizmos() {
+  gizmosOn = !gizmosOn;
 
-    let tracks=[...recordCanvasStream.getVideoTracks()];
-    try{
-      micStream=await navigator.mediaDevices.getUserMedia({audio:true});
-      tracks.push(...micStream.getAudioTracks());
-    }catch(e){
-      say('Microphone unavailable. Recording video without audio.');
+  if (transform) {
+    transform.enabled = gizmosOn && !!model;
+  }
+
+  $('hideGizmoButton').textContent =
+    gizmosOn ? 'HIDE GIZMOS' : 'SHOW GIZMOS';
+
+  say(gizmosOn ? 'Gizmos enabled.' : 'Gizmos hidden.');
+}
+
+function toggleTracking() {
+  trackingOn = !trackingOn;
+
+  $('trackingButton').textContent =
+    'FACE TRACKING: ' + (trackingOn ? 'ON' : 'OFF');
+
+  say(
+    trackingOn
+      ? 'Tracking display enabled.'
+      : 'Tracking updates paused in this app. MindAR may still run internally.'
+  );
+}
+
+function toggleDots() {
+  dotsOn = !dotsOn;
+
+  $('faceDotsButton').textContent =
+    'FACE DOTS: ' + (dotsOn ? 'ON' : 'OFF');
+
+  faceDots.forEach(dot => {
+    dot.visible = dotsOn;
+  });
+
+  say('Face dots display: ' + (dotsOn ? 'ON' : 'OFF'));
+}
+
+function toggleMirror() {
+  mirrorOn = !mirrorOn;
+
+  // Mirror the rendered canvas visually.
+  const canvas = mindar?.renderer?.domElement;
+
+  if (canvas) {
+    canvas.style.transform = mirrorOn ? 'scaleX(-1)' : 'none';
+  }
+
+  $('mirrorButton').textContent =
+    'MIRROR: ' + (mirrorOn ? 'ON' : 'OFF');
+
+  say('Preview mirror: ' + (mirrorOn ? 'ON' : 'OFF'));
+}
+
+async function toggleFullscreen() {
+  try {
+    if (!document.fullscreenElement) {
+      await document.documentElement.requestFullscreen();
+    } else {
+      await document.exitFullscreen();
+    }
+  } catch (error) {
+    say('Fullscreen unavailable. Use your browser fullscreen option.');
+  }
+}
+
+function hideControls() {
+  const toolbar = $('toolbar');
+  const hidden = toolbar.classList.toggle('controls-hidden');
+
+  $('hideControlsButton').textContent =
+    hidden ? 'SHOW CONTROLS' : 'HIDE CONTROLS';
+}
+
+function hideUI() {
+  document.body.classList.add('ui-hidden');
+  $('showUIButton').style.display = 'inline-flex';
+}
+
+function showUI() {
+  document.body.classList.remove('ui-hidden');
+  $('showUIButton').style.display = 'none';
+}
+
+async function startRecording() {
+  if (recording) return;
+
+  try {
+    await setupCamera();
+
+    if (!cameraStarted) {
+      say('Start the camera before recording.');
+      return;
     }
 
-    const combined=new MediaStream(tracks);
-    const mimeTypes=[
-      'video/webm;codecs=vp9,opus',
+    const canvas = mindar.renderer.domElement;
+
+    // This records the WebGL canvas. Camera video compositing may
+    // require a separate canvas integration for your MindAR build.
+    recordStream = canvas.captureStream(24);
+
+    const tracks = [...recordStream.getVideoTracks()];
+
+    try {
+      micStream = await navigator.mediaDevices.getUserMedia({
+        audio: true
+      });
+
+      tracks.push(...micStream.getAudioTracks());
+    } catch (error) {
+      say('Microphone unavailable; continuing without audio.');
+    }
+
+    const stream = new MediaStream(tracks);
+
+    const mimeTypes = [
       'video/webm;codecs=vp8,opus',
       'video/webm'
     ];
-    const mimeType=mimeTypes.find(t=>MediaRecorder.isTypeSupported(t));
-    recorder=new MediaRecorder(combined,mimeType?{mimeType}:{});
-    recordedChunks=[];
 
-    recorder.ondataavailable=e=>{
-      if(e.data&&e.data.size)recordedChunks.push(e.data);
+    const mimeType = mimeTypes.find(type =>
+      MediaRecorder.isTypeSupported(type)
+    );
+
+    recorder = new MediaRecorder(stream, {
+      ...(mimeType ? { mimeType } : {}),
+      videoBitsPerSecond: 2500000,
+      audioBitsPerSecond: 96000
+    });
+
+    chunks = [];
+
+    recorder.ondataavailable = event => {
+      if (event.data && event.data.size) {
+        chunks.push(event.data);
+      }
     };
-    recorder.onstop=()=>{
-      const blob=new Blob(recordedChunks,{type:recorder.mimeType||'video/webm'});
-      const url=URL.createObjectURL(blob);
-      const a=document.createElement('a');
-      a.href=url;a.download='aziz-ar-recording.webm';a.click();
-      setTimeout(()=>URL.revokeObjectURL(url),30000);
-      say('Recording saved as a WebM video.');
-      if(micStream)micStream.getTracks().forEach(t=>t.stop());
-      if(recordCanvasStream)recordCanvasStream.getTracks().forEach(t=>t.stop());
-      micStream=null;recordCanvasStream=null;
+
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, {
+        type: recorder.mimeType || 'video/webm'
+      });
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+
+      link.href = url;
+      link.download = 'aziz-ar-recording.webm';
+      link.click();
+
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+
+      if (recordStream) {
+        recordStream.getTracks().forEach(track => track.stop());
+      }
+
+      if (micStream) {
+        micStream.getTracks().forEach(track => track.stop());
+      }
+
+      recordStream = null;
+      micStream = null;
+      say('Recording downloaded. Check that the video contains the expected camera view and audio.');
     };
-    recorder.start();
-    recording=true;
-    $('recordButton').textContent='STOP RECORDING';
-    say('Recording video. Microphone audio is included if permission was granted.');
-  }catch(e){
-    console.error(e);
-    say('Recording failed. Try HTTPS in a supported browser.');
+
+    recorder.start(1000);
+    recording = true;
+
+    $('recordButton').disabled = true;
+    $('stopRecordButton').disabled = false;
+
+    // Leave UI visible until the user chooses to hide it.
+    say('Recording started. Use HIDE UI to show only the preview.');
+  } catch (error) {
+    console.error(error);
+    say('Recording failed. Check browser support and HTTPS permissions.');
   }
 }
 
-function stopRecording(){
-  if(recorder&&recording)recorder.stop();
-  recording=false;
-  $('recordButton').textContent='START RECORDING';
+function stopRecording() {
+  if (recorder && recording) {
+    recorder.stop();
+  }
+
+  recording = false;
+  $('recordButton').disabled = false;
+  $('stopRecordButton').disabled = true;
 }
 
-function exportSettings(){
-  const data={
-    position:model?model.position.toArray():null,
-    rotation:model?model.rotation.toArray():null,
-    scale:model?model.scale.toArray():null,
-    gizmoMode:transform?transform.getMode():'translate',
-    trackingOn,mirrorOn,cameraFacing
+function exportSettings() {
+  const settings = {
+    position: model ? model.position.toArray() : null,
+    rotation: model ? model.rotation.toArray() : null,
+    scale: model ? model.scale.toArray() : null,
+    gizmoMode: transform ? transform.getMode() : 'translate',
+    cameraFacing,
+    mirrorOn
   };
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;a.download='aziz-ar-settings.json';a.click();
-  setTimeout(()=>URL.revokeObjectURL(url),30000);
+
+  const blob = new Blob(
+    [JSON.stringify(settings, null, 2)],
+    { type: 'application/json' }
+  );
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+
+  link.href = url;
+  link.download = 'aziz-ar-settings.json';
+  link.click();
+
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+  say('Settings exported.');
 }
 
-function exportModel(){
-  if(!model){say('Import a model first.');return}
-  say('Settings export is available now. Exporting the original GLB/GLTF/OBJ/FBX model file is not implemented in this prototype.');
+function exportModel() {
+  say('Model export is not implemented yet. Export Settings saves the current transform settings.');
 }
 
-$('startButton').onclick=startCamera;
-$('stopButton').onclick=stopCamera;
-$('switchButton').onclick=switchCamera;
-$('modelFile').onchange=e=>{
-  const f=e.target.files?.[0];
-  if(f)importModel(f);
-  e.target.value='';
-};
-$('removeButton').onclick=()=>removeModel();
-$('resetButton').onclick=resetModel;
-$('trackingButton').onclick=()=>{
-  trackingOn=!trackingOn;
-  $('trackingButton').textContent='FACE TRACKING: '+(trackingOn?'ON':'OFF');
-  // MindAR does not expose a universal pause/resume tracker switch.
-  say(trackingOn?'Tracking display set to ON.':'Tracking display set to OFF visually; tracker may still run.');
-};
-document.querySelectorAll('[data-mode]').forEach(b=>{
-  b.onclick=()=>setMode(b.dataset.mode);
-});
-$('hideGizmoButton').onclick=()=>{
-  gizmoOn=!gizmoOn;
-  if(transform)transform.enabled=gizmoOn&&!!model;
-  $('hideGizmoButton').textContent=gizmoOn?'HIDE GIZMOS':'SHOW GIZMOS';
-};
-$('hideControlsButton').onclick=()=>{
-  $('toolbar').classList.toggle('hidden');
-  $('hideControlsButton').textContent=$('toolbar').classList.contains('hidden')?'SHOW CONTROLS':'HIDE CONTROLS';
-};
-$('hideUIButton').onclick=()=>{
-  const hidden=$('topbar').classList.contains('hidden');
-  $('topbar').classList.toggle('hidden');
-  $('toolbar').classList.toggle('hidden');
-  $('status').classList.toggle('hidden');
-  $('hideUIButton').textContent=hidden?'HIDE UI':'SHOW UI';
-};
-$('mirrorButton').onclick=()=>{
-  mirrorOn=!mirrorOn;
-  // This mirrors the rendered canvas only; it does not change the camera source.
-  mindar?.renderer.domElement.style.setProperty('transform',mirrorOn?'scaleX(-1)':'none');
-  $('mirrorButton').textContent='MIRROR: '+(mirrorOn?'ON':'OFF');
-};
-$('fullscreenButton').onclick=async()=>{
-  try{
-    if(!document.fullscreenElement)await document.documentElement.requestFullscreen();
-    else await document.exitFullscreen();
-  }catch(e){say('Fullscreen is not supported by this browser.')}
-};
-$('recordButton').onclick=()=>recording?stopRecording():startRecording();
-$('exportSettingsButton').onclick=exportSettings;
-$('exportButton').onclick=exportModel;
+function selectOverlay(file) {
+  if (!file) return;
 
-$('overlayFile').onchange=e=>{
-  const file=e.target.files?.[0];
-  if(!file)return;
-  if(overlayURL)URL.revokeObjectURL(overlayURL);
-  overlayURL=URL.createObjectURL(file);
-  overlayObject=null;
-  if(file.type.startsWith('video/')){
-    const v=$('overlayVideo');
-    v.src=overlayURL;
-    v.play().catch(()=>{});
-    say('Video selected for future eye/mouth overlay placement.');
-  }else{
-    const img=new Image();
-    img.onload=()=>{
-      overlayObject=img;
-      say('Image selected. Dedicated left-eye/right-eye/mouth crop placement is not implemented yet.');
-    };
-    img.src=overlayURL;
+  if (currentOverlayURL) {
+    URL.revokeObjectURL(currentOverlayURL);
   }
-  e.target.value='';
-};
-$('overlayButton').onclick=()=>{
-  overlayEnabled=!overlayEnabled;
-  $('overlayButton').textContent='EYE/MOUTH OVERLAY: '+(overlayEnabled?'ON':'OFF');
-  say('Overlay toggle changed. Separate eye/mouth crop placement still needs its own face-landmark mapping.');
-};
 
-window.addEventListener('resize',()=>{
-  if(!mindar)return;
-  mindar.renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
-  mindar.renderer.setSize(container.clientWidth,container.clientHeight);
+  currentOverlayURL = URL.createObjectURL(file);
+  overlayImage = null;
+
+  if (file.type.startsWith('image/')) {
+    const image = new Image();
+
+    image.onload = () => {
+      overlayImage = image;
+      say('Overlay image loaded. Landmark-based eye/mouth placement is not implemented in this Part 2.');
+    };
+
+    image.onerror = () => say('Unable to load this image.');
+    image.src = currentOverlayURL;
+  } else if (file.type.startsWith('video/')) {
+    const video = $('overlayVideo');
+    video.src = currentOverlayURL;
+
+    video.play().catch(() => {});
+    say('Overlay video loaded. Eye/mouth placement still needs landmark mapping.');
+  } else {
+    say('Select an image or video.');
+  }
+}
+
+function selectOverlayTarget(target) {
+  overlayTarget = target;
+
+  $('leftEyeButton').classList.toggle('active', target === 'leftEye');
+  $('rightEyeButton').classList.toggle('active', target === 'rightEye');
+  $('mouthButton').classList.toggle('active', target === 'mouth');
+
+  say('Selected overlay target: ' + target + '. Actual placement requires face-landmark mapping.');
+}
+
+function toggleOverlay() {
+  overlayEnabled = !overlayEnabled;
+
+  $('overlayToggleButton').textContent =
+    'OVERLAYS: ' + (overlayEnabled ? 'ON' : 'OFF');
+
+  say('Overlay toggle changed. This prototype does not yet place overlays on tracked landmarks.');
+}
+
+$('startButton').addEventListener('click', startCamera);
+$('stopButton').addEventListener('click', stopCamera);
+$('switchButton').addEventListener('click', switchCamera);
+$('mirrorButton').addEventListener('click', toggleMirror);
+$('fullscreenButton').addEventListener('click', toggleFullscreen);
+$('hideUIButton').addEventListener('click', hideUI);
+$('showUIButton').addEventListener('click', showUI);
+$('hideControlsButton').addEventListener('click', hideControls);
+
+$('modelFile').addEventListener('change', event => {
+  const file = event.target.files?.[0];
+  if (file) importModel(file);
+  event.target.value = '';
 });
 
-say('Ready. Import GLB, GLTF, OBJ or FBX, then start the camera.');
+$('resetButton').addEventListener('click', resetModel);
+$('removeButton').addEventListener('click', removeModel);
+$('hideGizmoButton').addEventListener('click', toggleGizmos);
+$('trackingButton').addEventListener('click', toggleTracking);
+$('faceDotsButton').addEventListener('click', toggleDots);
+
+document.querySelectorAll('[data-gizmo-mode]').forEach(button => {
+  button.addEventListener('click', () => {
+    setGizmoMode(button.dataset.gizmoMode);
+  });
+});
+
+$('recordButton').addEventListener('click', startRecording);
+$('stopRecordButton').addEventListener('click', stopRecording);
+$('exportSettingsButton').addEventListener('click', exportSettings);
+$('exportModelButton').addEventListener('click', exportModel);
+
+$('overlayFile').addEventListener('change', event => {
+  const file = event.target.files?.[0];
+  if (file) selectOverlay(file);
+  event.target.value = '';
+});
+
+$('leftEyeButton').addEventListener('click', () => {
+  selectOverlayTarget('leftEye');
+});
+
+$('rightEyeButton').addEventListener('click', () => {
+  selectOverlayTarget('rightEye');
+});
+
+$('mouthButton').addEventListener('click', () => {
+  selectOverlayTarget('mouth');
+});
+
+$('overlayToggleButton').addEventListener('click', toggleOverlay);
+
+window.addEventListener('resize', () => {
+  if (!mindar) return;
+
+  mindar.renderer.setPixelRatio(
+    Math.min(window.devicePixelRatio || 1, 2)
+  );
+
+  mindar.renderer.setSize(
+    container.clientWidth,
+    container.clientHeight
+  );
+});
+
+window.addEventListener('beforeunload', () => {
+  if (model) disposeObject(model);
+  if (modelURL) URL.revokeObjectURL(modelURL);
+  if (currentOverlayURL) URL.revokeObjectURL(currentOverlayURL);
+});
+
+say('Studio ready. Start the camera or import a model.');
 </script>
 </body>
 </html>
