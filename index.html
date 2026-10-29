@@ -1,1441 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>AZEEZ AI AR STUDIO</title>
 <style>
-  * {
-    box-sizing: border-box;
-  }
-
-  body {
-    margin: 0;
-    background: #080b14;
-    color: #f4f7ff;
-    font-family: Arial, sans-serif;
-  }
-
-  button, select, input {
-    font: inherit;
-  }
-
-  button {
-    border: 1px solid #39435a;
-    border-radius: 9px;
-    padding: 10px 12px;
-    background: #192238;
-    color: #ffffff;
-    cursor: pointer;
-  }
-
-  button:active {
-    transform: scale(0.98);
-  }
-
-  button:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-  }
-
-  select {
-    width: 100%;
-    min-width: 0;
-    padding: 10px;
-    color: white;
-    background: #121a2b;
-    border: 1px solid #39435a;
-    border-radius: 8px;
-  }
-
-  input[type="file"] {
-    width: 100%;
-    color: #cbd5e1;
-    font-size: 12px;
-  }
-
-  .studio {
-    min-height: 100vh;
-    padding: 12px;
-  }
-
-  .studio-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-bottom: 12px;
-  }
-
-  .studio-header h1 {
-    font-size: 21px;
-    margin: 0;
-  }
-
-  .studio-header p {
-    color: #9eabc5;
-    font-size: 12px;
-    margin: 5px 0 0;
-  }
-
-  .studio-layout {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 12px;
-  }
-
-  .panel {
-    background: #101727;
-    border: 1px solid #27334a;
-    border-radius: 13px;
-    padding: 12px;
-    min-width: 0;
-  }
-
-  .panel h2 {
-    font-size: 15px;
-    margin: 0 0 11px;
-  }
-
-  .camera-stage {
-    position: relative;
-    width: 100%;
-    min-height: 260px;
-    height: 56vh;
-    max-height: 680px;
-    overflow: hidden;
-    background: #02040a;
-    border: 1px solid #2b3650;
-    border-radius: 12px;
-    isolation: isolate;
-  }
-
-  .camera-stage video,
-  .camera-stage canvas {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-  }
-
-  .camera-stage video {
-    z-index: 1;
-  }
-
-  .camera-stage canvas {
-    z-index: 2;
-    pointer-events: none;
-  }
-
-  .stage-placeholder {
-    position: absolute;
-    z-index: 0;
-    inset: 0;
-    display: grid;
-    place-items: center;
-    padding: 20px;
-    color: #8d9bb5;
-    text-align: center;
-    font-size: 14px;
-  }
-
-  .status-line {
-    margin: 10px 0 0;
-    padding: 10px;
-    background: #0a1020;
-    border-radius: 8px;
-    color: #a8f0cb;
-    font-size: 12px;
-    overflow-wrap: anywhere;
-  }
-
-  .button-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-  }
-
-  .button-grid button {
-    min-width: 0;
-    overflow-wrap: anywhere;
-  }
-
-  .section-gap {
-    margin-top: 12px;
-  }
-
-  .person-card {
-    background: #0b1220;
-    border: 1px solid #29354c;
-    border-radius: 10px;
-    padding: 10px;
-    margin-bottom: 9px;
-  }
-
-  .person-title {
-    font-size: 13px;
-    font-weight: bold;
-    margin-bottom: 8px;
-  }
-
-  .person-status {
-    font-size: 11px;
-    color: #a8b6cf;
-    margin-top: 7px;
-  }
-
-  .field-label {
-    display: block;
-    color: #aab8d1;
-    font-size: 12px;
-    margin: 9px 0 6px;
-  }
-
-  .small-note {
-    color: #98a7c1;
-    font-size: 11px;
-    line-height: 1.5;
-  }
-
-  .hidden {
-    display: none !important;
-  }
-
-  .primary {
-    background: #5748dc;
-    border-color: #776bff;
-  }
-
-  .danger {
-    background: #55222e;
-    border-color: #8b3446;
-  }
-
-  .wide-button {
-    width: 100%;
-    margin-top: 8px;
-  }
-
-  @media (min-width: 900px) {
-    .studio-layout {
-      grid-template-columns: minmax(0, 1.7fr) minmax(300px, 0.8fr);
-      align-items: start;
-    }
-
-    .camera-stage {
-      height: 68vh;
-    }
-  }
-
-  @media (orientation: landscape) and (max-height: 600px) {
-    .studio {
-      padding: 8px;
-    }
-
-    .studio-header {
-      margin-bottom: 7px;
-    }
-
-    .studio-layout {
-      grid-template-columns: minmax(0, 1.5fr) minmax(250px, 0.8fr);
-    }
-
-    .camera-stage {
-      height: 76vh;
-      min-height: 180px;
-    }
-
-    .panel {
-      padding: 8px;
-    }
-  }
+*{box-sizing:border-box}
+body{margin:0;background:#080c16;color:#fff;font:14px Arial,sans-serif}
+header{padding:14px;text-align:center;background:#14213a;color:#70c5ff;font-size:20px;font-weight:bold}
+#studio{max-width:1100px;margin:auto;padding:10px}
+#cameraStage{position:relative;height:55vh;min-height:270px;background:#000;overflow:hidden;border:1px solid #30435f;border-radius:10px}
+#cameraVideo,#faceCanvas,#threeCanvas{position:absolute;inset:0;width:100%;height:100%}
+#cameraVideo{object-fit:contain;z-index:1}
+#faceCanvas{z-index:2;pointer-events:none}
+#threeCanvas{z-index:3}
+#stagePlaceholder{position:absolute;inset:0;display:grid;place-items:center;color:#9db4d5;z-index:0}
+#statusText{padding:10px;color:#65ffc1}
+.panel{background:#111a2b;border:1px solid #2b3b54;border-radius:9px;margin:9px 0;padding:10px}
+h3{color:#79bdff;margin:2px 0 8px}
+.row{display:flex;flex-wrap:wrap;gap:4px}
+button,select,input{max-width:100%;padding:9px;border-radius:6px;border:1px solid #405371;background:#1c2a41;color:white;margin:2px}
+button{cursor:pointer}
+label{display:inline-flex;align-items:center;gap:4px;margin:4px}
+.hidden{display:none!important}
+#studio:fullscreen{height:100vh;max-width:none;overflow:auto;background:#080c16}
+#studio:fullscreen #cameraStage{height:72vh}
+small{color:#b8c8df}
 </style>
+</head>
+<body>
+<header>AZEEZ AI AR STUDIO</header>
+<div id="studio">
 
-<div id="studio" class="studio">
-  <header class="studio-header">
-    <div>
-      <h1>AZIZ AI AR STUDIO</h1>
-      <p>Face Tracking · 3D Filters · Recording</p>
-    </div>
-    <button id="hideControlsButton">Hide Controls</button>
-  </header>
-
-  <div class="studio-layout">
-    <main>
-      <section class="panel">
-        <h2>Live Camera Studio</h2>
-
-        <div id="cameraStage" class="camera-stage">
-          <div id="stagePlaceholder" class="stage-placeholder">
-            Camera preview will appear here
-          </div>
-        </div>
-
-        <div id="statusText" class="status-line">
-          Ready — start the camera
-        </div>
-
-        <div id="mainControls" class="section-gap">
-          <h2>Camera Controls</h2>
-          <div class="button-grid">
-            <button id="startCameraButton" class="primary">
-              Start Camera
-            </button>
-            <button id="stopCameraButton" class="danger">
-              Stop Camera
-            </button>
-            <button id="switchCameraButton">
-              Switch Camera
-            </button>
-            <button id="mirrorButton">
-              Mirror: Off
-            </button>
-            <button id="fullscreenButton">
-              Full Screen
-            </button>
-            <button id="landscapeButton">
-              Landscape
-            </button>
-          </div>
-
-          <h2 class="section-gap">Face Tracking</h2>
-          <div class="button-grid">
-            <button id="startTrackingButton" class="primary">
-              Start Tracking
-            </button>
-            <button id="stopTrackingButton">
-              Stop Tracking
-            </button>
-            <button id="dotsButton">
-              Green Dots: On
-            </button>
-            <button id="hideDotsButton">
-              Hide Dots
-            </button>
-            <button id="maxFacesButton">
-              Track Up To 4 Faces
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <section id="assetPanel" class="panel section-gap">
-        <h2>Import Assets</h2>
-
-        <label class="field-label" for="modelFileInput">
-          3D Model: GLB, GLTF, OBJ or FBX
-        </label>
-        <input
-          id="modelFileInput"
-          type="file"
-          accept=".glb,.gltf,.obj,.fbx"
-        />
-
-        <label class="field-label" for="imageFileInput">
-          Image Overlay
-        </label>
-        <input
-          id="imageFileInput"
-          type="file"
-          accept="image/*"
-        />
-
-        <label class="field-label" for="videoFileInput">
-          Video Overlay
-        </label>
-        <input
-          id="videoFileInput"
-          type="file"
-          accept="video/*"
-        />
-
-        <p class="small-note">
-          Some GLTF models use external texture or resource files.
-          Those assets may need additional handling.
-        </p>
-      </section>
-
-      <section id="gizmoPanel" class="panel section-gap">
-        <h2>3D Transform Gizmos</h2>
-
-        <div class="button-grid">
-          <button id="moveGizmoButton">Move</button>
-          <button id="rotateGizmoButton">Rotate</button>
-          <button id="scaleGizmoButton">Scale</button>
-          <button id="hideGizmoButton">Show / Hide Gizmo</button>
-          <button id="resetTransformButton">Reset Transform</button>
-          <button id="removeAssetButton" class="danger">Remove Selected</button>
-        </div>
-
-        <p class="small-note">
-          Select a loaded 3D object to manipulate it with the gizmo.
-        </p>
-      </section>
-    </main>
-
-    <aside id="sideControls">
-      <section class="panel">
-        <h2>People & Filters</h2>
-
-        <div class="button-grid">
-          <button id="sameFilterButton">Same Filter</button>
-          <button id="differentFilterButton">Different Filters</button>
-        </div>
-
-        <div class="person-card">
-          <div class="person-title">Person 1</div>
-          <select id="person1Filter">
-            <option value="none">No Filter</option>
-            <option value="helmet">Helmet</option>
-            <option value="mask">Mask</option>
-            <option value="animal">Animal Head</option>
-          </select>
-          <div id="person1Status" class="person-status">Waiting for face</div>
-        </div>
-
-        <div class="person-card">
-          <div class="person-title">Person 2</div>
-          <select id="person2Filter">
-            <option value="none">No Filter</option>
-            <option value="helmet">Helmet</option>
-            <option value="mask">Mask</option>
-            <option value="animal">Animal Head</option>
-          </select>
-          <div id="person2Status" class="person-status">Waiting for face</div>
-        </div>
-
-        <div class="person-card">
-          <div class="person-title">Person 3</div>
-          <select id="person3Filter">
-            <option value="none">No Filter</option>
-            <option value="helmet">Helmet</option>
-            <option value="mask">Mask</option>
-            <option value="animal">Animal Head</option>
-          </select>
-          <div id="person3Status" class="person-status">Waiting for face</div>
-        </div>
-
-        <div class="person-card">
-          <div class="person-title">Person 4</div>
-          <select id="person4Filter">
-            <option value="none">No Filter</option>
-            <option value="helmet">Helmet</option>
-            <option value="mask">Mask</option>
-            <option value="animal">Animal Head</option>
-          </select>
-          <div id="person4Status" class="person-status">Waiting for face</div>
-        </div>
-      </section>
-
-      <section class="panel section-gap">
-        <h2>Face Attachment Points</h2>
-        <div class="button-grid">
-          <button id="leftEyeButton">Left Eye</button>
-          <button id="rightEyeButton">Right Eye</button>
-          <button id="mouthButton">Mouth</button>
-          <button id="headButton">Head</button>
-        </div>
-        <button id="overlayToggleButton" class="wide-button">
-          Show / Hide Overlays
-        </button>
-      </section>
-
-      <section class="panel section-gap">
-        <h2>Recording</h2>
-
-        <div class="button-grid">
-          <button id="recordButton" class="primary">Start Recording</button>
-          <button id="stopRecordButton" class="danger">Stop Recording</button>
-        </div>
-
-        <label class="field-label" for="recordResolution">
-          Recording Resolution
-        </label>
-        <select id="recordResolution">
-          <option value="720">720p</option>
-          <option value="1080">1080p</option>
-          <option value="480">480p</option>
-        </select>
-
-        <label class="field-label" for="recordBitrate">
-          Video Bitrate
-        </label>
-        <select id="recordBitrate">
-          <option value="4">4 Mbps</option>
-          <option value="8">8 Mbps</option>
-          <option value="12">12 Mbps</option>
-        </select>
-
-        <label class="field-label">
-          <input id="recordAudio" type="checkbox" />
-          Include microphone audio
-        </label>
-
-        <button id="downloadVideoButton" class="wide-button">
-          Download Recording
-        </button>
-      </section>
-
-      <section class="panel section-gap">
-        <h2>Project & Interface</h2>
-        <div class="button-grid">
-          <button id="exportSettingsButton">Export Settings</button>
-          <button id="exportProjectButton">Export Project</button>
-          <button id="exportModelButton">Export Model</button>
-          <button id="showControlsButton">Show Controls</button>
-        </div>
-        <button id="resetAllButton" class="wide-button danger">
-          Reset All
-        </button>
-        <p class="small-note">
-          Export options depend on which assets and settings the final
-          application implements.
-        </p>
-      </section>
-    </aside>
-  </div>
+<div id="cameraStage">
+<video id="cameraVideo" autoplay muted playsinline></video>
+<canvas id="faceCanvas"></canvas>
+<canvas id="threeCanvas"></canvas>
+<div id="stagePlaceholder">AZEEZ AR STUDIO — START CAMERA</div>
 </div>
-import { FaceLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm";
-
-const stage2 = document.getElementById("cameraStage");
-const placeholder2 = document.getElementById("stagePlaceholder");
-const statusElement2 = document.getElementById("statusText");
-
-let stream2 = null;
-let video2 = null;
-let canvas2 = null;
-let context2 = null;
-let landmarker2 = null;
-
-let cameraFacing2 = "user";
-let mirrorEnabled2 = false;
-let dotsEnabled2 = true;
-let trackingEnabled2 = false;
-let cameraBusy2 = false;
-let animationFrame2 = 0;
-let lastVideoTime2 = -1;
-let lastFaceCount2 = 0;
-
-const faceStatuses2 = [
-  document.getElementById("person1Status"),
-  document.getElementById("person2Status"),
-  document.getElementById("person3Status"),
-  document.getElementById("person4Status")
-];
-
-function setStatus2(message) {
-  statusElement2.textContent = message;
-}
-
-function ensurePreviewElements2() {
-  if (!video2) {
-    video2 = document.createElement("video");
-    video2.id = "cameraVideo";
-    video2.autoplay = true;
-    video2.muted = true;
-    video2.playsInline = true;
-    video2.style.position = "absolute";
-    video2.style.inset = "0";
-    video2.style.width = "100%";
-    video2.style.height = "100%";
-    video2.style.objectFit = "contain";
-    video2.style.zIndex = "1";
-    stage2.appendChild(video2);
-  }
-
-  if (!canvas2) {
-    canvas2 = document.createElement("canvas");
-    canvas2.id = "faceCanvas";
-    canvas2.style.position = "absolute";
-    canvas2.style.inset = "0";
-    canvas2.style.width = "100%";
-    canvas2.style.height = "100%";
-    canvas2.style.zIndex = "2";
-    canvas2.style.pointerEvents = "none";
-    stage2.appendChild(canvas2);
-    context2 = canvas2.getContext("2d");
-  }
-}
-
-async function loadFaceLandmarker2() {
-  if (landmarker2) return landmarker2;
-
-  setStatus2("Loading face tracking model…");
-
-  const vision = await FilesetResolver.forVisionTasks(
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
-  );
-
-  landmarker2 = await FaceLandmarker.createFromOptions(vision, {
-    baseOptions: {
-      modelAssetPath:
-        "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-      delegate: "CPU"
-    },
-    runningMode: "VIDEO",
-    numFaces: 4,
-    minFaceDetectionConfidence: 0.5,
-    minFacePresenceConfidence: 0.5,
-    minTrackingConfidence: 0.5,
-    outputFaceBlendshapes: true,
-    outputFacialTransformationMatrixes: true
-  });
-
-  return landmarker2;
-}
-
-async function startCamera2() {
-  if (cameraBusy2) return;
-  if (stream2) {
-    setStatus2("Camera is already running.");
-    return;
-  }
-
-  cameraBusy2 = true;
-
-  try {
-    ensurePreviewElements2();
-
-    if (!navigator.mediaDevices?.getUserMedia) {
-      throw new Error("Camera access is unavailable. Use HTTPS in your browser.");
-    }
-
-    stream2 = await navigator.mediaDevices.getUserMedia({
-      audio: false,
-      video: {
-        facingMode: { ideal: cameraFacing2 },
-        width: { ideal: 1280 },
-        height: { ideal: 720 }
-      }
-    });
-
-    video2.srcObject = stream2;
-    await video2.play();
-
-    if (placeholder2) placeholder2.classList.add("hidden");
-
-    resizeFaceCanvas2();
-    setStatus2("Camera started. Start tracking when ready.");
-  } catch (error) {
-    console.error("Camera start error:", error);
-
-    if (stream2) {
-      stream2.getTracks().forEach(track => track.stop());
-      stream2 = null;
-    }
-
-    setStatus2("Camera error: " + (error.message || "Permission denied"));
-  } finally {
-    cameraBusy2 = false;
-  }
-}
-
-function stopTracking2() {
-  trackingEnabled2 = false;
-
-  if (animationFrame2) {
-    cancelAnimationFrame(animationFrame2);
-    animationFrame2 = 0;
-  }
-
-  if (context2 && canvas2) {
-    context2.clearRect(0, 0, canvas2.width, canvas2.height);
-  }
-
-  lastFaceCount2 = 0;
-  updatePersonStatuses2(0);
-}
-
-function stopCamera2() {
-  stopTracking2();
-
-  if (stream2) {
-    stream2.getTracks().forEach(track => track.stop());
-    stream2 = null;
-  }
-
-  if (video2) {
-    video2.pause();
-    video2.srcObject = null;
-  }
-
-  if (placeholder2) placeholder2.classList.remove("hidden");
-
-  if (context2 && canvas2) {
-    context2.clearRect(0, 0, canvas2.width, canvas2.height);
-  }
-
-  setStatus2("Camera stopped.");
-}
-
-async function switchCamera2() {
-  const wasTracking = trackingEnabled2;
-
-  stopCamera2();
-  cameraFacing2 = cameraFacing2 === "user" ? "environment" : "user";
-
-  await startCamera2();
-
-  if (stream2 && wasTracking) {
-    await startTracking2();
-  }
-}
-
-function resizeFaceCanvas2() {
-  if (!canvas2 || !video2) return;
-
-  const width = video2.videoWidth || 640;
-  const height = video2.videoHeight || 480;
-
-  if (canvas2.width !== width || canvas2.height !== height) {
-    canvas2.width = width;
-    canvas2.height = height;
-  }
-}
-
-async function startTracking2() {
-  if (trackingEnabled2) return;
-
-  if (!stream2) {
-    setStatus2("Start the camera first.");
-    return;
-  }
-
-  try {
-    await loadFaceLandmarker2();
-    trackingEnabled2 = true;
-    lastVideoTime2 = -1;
-    setStatus2("Face tracking active.");
-    animationFrame2 = requestAnimationFrame(trackFrame2);
-  } catch (error) {
-    console.error("Tracking initialization error:", error);
-    trackingEnabled2 = false;
-    setStatus2("Tracking error: " + (error.message || "Model failed to load"));
-  }
-}
-
-function updatePersonStatuses2(faceCount) {
-  faceStatuses2.forEach((element, index) => {
-    if (!element) return;
-
-    element.textContent = index < faceCount
-      ? `Face detected: Person ${index + 1}`
-      : "Waiting for face";
-  });
-}
-
-function drawFaceDots2(landmarks) {
-  if (!context2 || !canvas2) return;
-
-  context2.clearRect(0, 0, canvas2.width, canvas2.height);
-
-  if (!dotsEnabled2) return;
-
-  context2.fillStyle = "#20ff76";
-
-  for (const face of landmarks) {
-    for (const point of face) {
-      const x = point.x * canvas2.width;
-      const y = point.y * canvas2.height;
-
-      context2.beginPath();
-      context2.arc(x, y, 1.8, 0, Math.PI * 2);
-      context2.fill();
-    }
-  }
-}
-
-function trackFrame2() {
-  if (!trackingEnabled2 || !video2 || !landmarker2) return;
-
-  if (video2.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-    resizeFaceCanvas2();
-
-    if (video2.currentTime !== lastVideoTime2) {
-      lastVideoTime2 = video2.currentTime;
-
-      try {
-        const result = landmarker2.detectForVideo(
-          video2,
-          performance.now()
-        );
-
-        const faces = result.faceLandmarks || [];
-        lastFaceCount2 = faces.length;
-
-        drawFaceDots2(faces);
-        updatePersonStatuses2(faces.length);
-
-        setStatus2(
-          `Tracking active — ${faces.length} face(s) detected.`
-        );
-      } catch (error) {
-        console.error("Face detection error:", error);
-      }
-    }
-  }
-
-  animationFrame2 = requestAnimationFrame(trackFrame2);
-}
-
-function setMirror2() {
-  if (!video2) return;
-
-  video2.style.transform = mirrorEnabled2 ? "scaleX(-1)" : "none";
-
-  if (canvas2) {
-    canvas2.style.transform = mirrorEnabled2 ? "scaleX(-1)" : "none";
-  }
-
-  document.getElementById("mirrorButton").textContent =
-    `Mirror: ${mirrorEnabled2 ? "On" : "Off"}`;
-}
-
-document.getElementById("startCameraButton").addEventListener(
-  "click",
-  startCamera2
-);
-
-document.getElementById("stopCameraButton").addEventListener(
-  "click",
-  stopCamera2
-);
-
-document.getElementById("switchCameraButton").addEventListener(
-  "click",
-  switchCamera2
-);
-
-document.getElementById("mirrorButton").addEventListener("click", () => {
-  mirrorEnabled2 = !mirrorEnabled2;
-  setMirror2();
-});
-
-document.getElementById("startTrackingButton").addEventListener(
-  "click",
-  startTracking2
-);
-
-document.getElementById("stopTrackingButton").addEventListener("click", () => {
-  stopTracking2();
-  setStatus2(stream2 ? "Tracking stopped. Camera remains on." : "Camera stopped.");
-});
-
-document.getElementById("dotsButton").addEventListener("click", () => {
-  dotsEnabled2 = !dotsEnabled2;
-
-  document.getElementById("dotsButton").textContent =
-    `Green Dots: ${dotsEnabled2 ? "On" : "Off"}`;
-
-  if (!dotsEnabled2 && context2 && canvas2) {
-    context2.clearRect(0, 0, canvas2.width, canvas2.height);
-  }
-});
-
-document.getElementById("hideDotsButton").addEventListener("click", () => {
-  dotsEnabled2 = false;
-
-  const button = document.getElementById("dotsButton");
-  button.textContent = "Green Dots: Off";
-
-  if (context2 && canvas2) {
-    context2.clearRect(0, 0, canvas2.width, canvas2.height);
-  }
-});
-
-document.getElementById("maxFacesButton").addEventListener("click", () => {
-  setStatus2("Face tracker is configured to detect up to 4 faces.");
-});
-
-document.getElementById("fullscreenButton").addEventListener("click", async () => {
-  try {
-    if (!document.fullscreenElement) {
-      await stage2.requestFullscreen();
-    } else {
-      await document.exitFullscreen();
-    }
-  } catch (error) {
-    setStatus2("Fullscreen is unavailable in this browser.");
-  }
-});
-
-document.getElementById("landscapeButton").addEventListener("click", async () => {
-  try {
-    if (screen.orientation?.lock) {
-      await screen.orientation.lock("landscape");
-      setStatus2("Landscape orientation requested.");
-    } else {
-      setStatus2("Rotate your phone to landscape mode.");
-    }
-  } catch {
-    setStatus2("Rotate your phone manually to landscape mode.");
-  }
-});
-
-window.addEventListener("resize", resizeFaceCanvas2);
-
-window.addEventListener("pagehide", () => {
-  stopCamera2();
-});
-      
+<div id="statusText">Ready</div>
+
+<div id="controls">
+
+<section class="panel">
+<h3>Camera Controls</h3>
+<div class="row">
+<button id="startCameraButton">START CAMERA</button>
+<button id="stopCameraButton">STOP CAMERA</button>
+<button id="switchCameraButton">FRONT / BACK</button>
+<button id="mirrorButton">MIRROR / FLIP</button>
+<button id="fullscreenButton">FULL SCREEN</button>
+<button id="landscapeButton">LANDSCAPE</button>
+</div>
+</section>
+
+<section class="panel">
+<h3>Face Tracking</h3>
+<div class="row">
+<button id="startTrackingButton">START TRACKING</button>
+<button id="stopTrackingButton">STOP TRACKING</button>
+<button id="dotsButton">GREEN DOTS ON/OFF</button>
+<button id="hideDotsButton">HIDE DOTS</button>
+<label>Faces
+<select id="maxFacesButton">
+<option value="1">1</option><option value="2">2</option>
+<option value="3">3</option><option value="4" selected>4</option>
+</select>
+</label>
+</div>
+<div class="row">
+<button id="leftEyeButton">LEFT EYE ANCHOR</button>
+<button id="rightEyeButton">RIGHT EYE ANCHOR</button>
+<button id="mouthButton">MOUTH ANCHOR</button>
+<button id="headButton">HEAD ANCHOR</button>
+<button id="overlayToggleButton">OVERLAYS ON/OFF</button>
+</div>
+<div id="person1Status">Person 1: Waiting</div>
+<div id="person2Status">Person 2: Waiting</div>
+<div id="person3Status">Person 3: Waiting</div>
+<div id="person4Status">Person 4: Waiting</div>
+</section>
+
+<section class="panel">
+<h3>Import Assets</h3>
+<div class="row">
+<label>3D Model
+<input id="modelFileInput" type="file" accept=".glb,.gltf,.obj,.fbx">
+</label>
+<label>Image
+<input id="imageFileInput" type="file" accept="image/*">
+</label>
+<label>Video
+<input id="videoFileInput" type="file" accept="video/*">
+</label>
+</div>
+<small>Supported 3D formats: GLB, GLTF, OBJ and FBX.</small>
+</section>
+
+<section class="panel">
+<h3>3D Gizmos</h3>
+<div class="row">
+<button id="moveGizmoButton">MOVE</button>
+<button id="rotateGizmoButton">ROTATE</button>
+<button id="scaleGizmoButton">SCALE</button>
+<button id="hideGizmoButton">HIDE GIZMO</button>
+<button id="resetTransformButton">RESET TRANSFORM</button>
+<button id="removeAssetButton">REMOVE SELECTED</button>
+</div>
+</section>
+
+<section class="panel">
+<h3>Person Filters</h3>
+<div class="row">
+<label>Person 1
+<select id="person1Filter"><option value="none">None</option><option value="mask">Mask</option><option value="helmet">Helmet</option><option value="animal">Animal</option><option value="imported">Imported Model</option></select>
+</label>
+<label>Person 2
+<select id="person2Filter"><option value="none">None</option><option value="mask">Mask</option><option value="helmet">Helmet</option><option value="animal">Animal</option><option value="imported">Imported Model</option></select>
+</label>
+<label>Person 3
+<select id="person3Filter"><option value="none">None</option><option value="mask">Mask</option><option value="helmet">Helmet</option><option value="animal">Animal</option><option value="imported">Imported Model</option></select>
+</label>
+<label>Person 4
+<select id="person4Filter"><option value="none">None</option><option value="mask">Mask</option><option value="helmet">Helmet</option><option value="animal">Animal</option><option value="imported">Imported Model</option></select>
+</label>
+</div>
+<div class="row">
+<button id="sameFilterButton">SAME FILTER</button>
+<button id="differentFilterButton">DIFFERENT FILTERS</button>
+</div>
+</section>
+
+<section class="panel">
+<h3>Recording</h3>
+<div class="row">
+<button id="recordButton">RECORD</button>
+<button id="stopRecordButton">STOP RECORDING</button>
+<button id="downloadVideoButton">DOWNLOAD VIDEO</button>
+<label>Resolution
+<select id="recordResolution"><option value="720">720p</option><option value="1080">1080p</option></select>
+</label>
+<label>Bitrate
+<select id="recordBitrate"><option value="2500000">Standard</option><option value="5000000">High</option></select>
+</label>
+<label><input id="recordAudio" type="checkbox">Audio if available</label>
+</div>
+<video id="recordingPreview" class="hidden" controls playsinline style="width:100%;max-height:250px"></video>
+</section>
+
+<section class="panel">
+<h3>Interface & Export</h3>
+<div class="row">
+<button id="hideControlsButton">HIDE CONTROLS</button>
+<button id="showControlsButton" class="hidden">SHOW CONTROLS</button>
+<button id="exportSettingsButton">EXPORT SETTINGS</button>
+<button id="exportProjectButton">EXPORT PROJECT INFO</button>
+<button id="exportModelButton">EXPORT MODEL INFO</button>
+<button id="resetAllButton">RESET ALL</button>
+</div>
+</section>
+
+</div>
+</div>
+<script type="module">
 import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
-import { GLTFLoader } from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
-import { OBJLoader } from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/OBJLoader.js";
-import { FBXLoader } from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/FBXLoader.js";
-import { TransformControls } from "https://unpkg.com/three@0.160.0/examples/jsm/controls/TransformControls.js";
+import {GLTFLoader} from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
+import {OBJLoader} from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/OBJLoader.js";
+import {FBXLoader} from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/FBXLoader.js";
+import {TransformControls} from "https://unpkg.com/three@0.160.0/examples/jsm/controls/TransformControls.js";
+import {FaceLandmarker,FilesetResolver} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm";
 
-const stage3 = document.getElementById("cameraStage");
+const $=id=>document.getElementById(id);
+const studio=$("studio"),stage=$("cameraStage");
+const video=$("cameraVideo"),faceCanvas=$("faceCanvas");
+const ctx=faceCanvas.getContext("2d"),status=$("statusText");
+const placeholder=$("stagePlaceholder");
+let stream=null,facing="user",mirrored=true;
+let tracking=false,dots=true,overlayVisible=true;
+let landmarker=null,raf=0,lastTime=-1,faceResults=null;
+let currentAnchor="head",recorder=null,recordedChunks=[],recordingURL=null;
+let recordCanvas=null,recordContext=null,recordAnimation=0,recordStream=null;
+let assets=[],selected=null,gizmoVisible=true,gizmoMode="translate";
+let sharedFilter=false;
 
-const filterSelects3 = [1, 2, 3, 4].map((number) =>
-  document.getElementById(`person${number}Filter`)
+const setStatus=t=>status.textContent=t;
+
+function fitCanvases(){
+ const w=stage.clientWidth,h=stage.clientHeight;
+ const d=Math.min(window.devicePixelRatio||1,2);
+ faceCanvas.width=Math.max(1,Math.round(w*d));
+ faceCanvas.height=Math.max(1,Math.round(h*d));
+ faceCanvas.style.width=w+"px";
+ faceCanvas.style.height=h+"px";
+ ctx.setTransform(d,0,0,d,0,0);
+ if(renderer){
+  renderer.setPixelRatio(d);
+  renderer.setSize(w,h,false);
+  camera3D.aspect=w/Math.max(h,1);
+  camera3D.updateProjectionMatrix();
+ }
+}
+window.addEventListener("resize",fitCanvases);
+
+async function startCamera(){
+ stopCamera();
+ try{
+  stream=await navigator.mediaDevices.getUserMedia({
+   video:{facingMode:{ideal:facing},width:{ideal:1280},height:{ideal:720}},
+   audio:$("recordAudio").checked
+  });
+  video.srcObject=stream;
+  await video.play();
+  placeholder.classList.add("hidden");
+  fitCanvases();
+  setStatus("Camera running");
+ }catch(e){
+  stream=null;
+  setStatus("Camera error: "+e.message);
+ }
+}
+
+function stopCamera(){
+ tracking=false;
+ cancelAnimationFrame(raf);
+ if(stream)stream.getTracks().forEach(t=>t.stop());
+ stream=null;
+ video.srcObject=null;
+ ctx.clearRect(0,0,faceCanvas.width,faceCanvas.height);
+ placeholder.classList.remove("hidden");
+ setStatus("Camera stopped");
+}
+
+async function switchCamera(){
+ facing=facing==="user"?"environment":"user";
+ await startCamera();
+}
+
+async function setupTracker(){
+ if(landmarker)return;
+ setStatus("Loading face tracking model...");
+ const vision=await FilesetResolver.forVisionTasks(
+  "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
+ );
+ landmarker=await FaceLandmarker.createFromOptions(vision,{
+  baseOptions:{
+   modelAssetPath:"https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+   delegate:"GPU"
+  },
+  runningMode:"VIDEO",
+  numFaces:Number($("maxFacesButton").value),
+  outputFaceBlendshapes:true,
+  outputFacialTransformationMatrixes:true
+ });
+ setStatus("Face tracking ready");
+}
+
+async function startTracking(){
+ if(!stream){setStatus("Start camera first");return;}
+ try{
+  await setupTracker();
+  tracking=true;
+  lastTime=-1;
+  trackLoop();
+ }catch(e){
+  setStatus("Tracking error: "+e.message);
+ }
+}
+
+function trackLoop(){
+ if(!tracking||!stream)return;
+ if(video.readyState>=2&&video.currentTime!==lastTime){
+  lastTime=video.currentTime;
+  try{
+   faceResults=landmarker.detectForVideo(video,performance.now());
+   drawFaces(faceResults);
+   updatePeople(faceResults);
+  }catch(e){
+   tracking=false;
+   setStatus("Tracking failed: "+e.message);
+  }
+ }
+ if(tracking)raf=requestAnimationFrame(trackLoop);
+}
+
+function drawFaces(results){
+ const w=stage.clientWidth,h=stage.clientHeight;
+ ctx.clearRect(0,0,w,h);
+ if(!dots||!overlayVisible||!results?.faceLandmarks)return;
+
+ const vw=video.videoWidth||1,vh=video.videoHeight||1;
+ const scale=Math.min(w/vw,h/vh);
+ const dw=vw*scale,dh=vh*scale;
+ const ox=(w-dw)/2,oy=(h-dh)/2;
+ ctx.fillStyle="#00ff68";
+
+ for(const face of results.faceLandmarks){
+  for(const p of face){
+   let x=ox+p.x*dw,y=oy+p.y*dh;
+   if(mirrored)x=w-x;
+   ctx.beginPath();
+   ctx.arc(x,y,2,0,Math.PI*2);
+   ctx.fill();
+  }
+ }
+}
+
+function updatePeople(results){
+ const count=results?.faceLandmarks?.length||0;
+ for(let i=1;i<=4;i++){
+  $("person"+i+"Status").textContent=
+   "Person "+i+": "+(i<=count?"Face detected":"Waiting");
+ }
+}
+
+$("startCameraButton").onclick=startCamera;
+$("stopCameraButton").onclick=stopCamera;
+$("switchCameraButton").onclick=switchCamera;
+$("mirrorButton").onclick=()=>{
+ mirrored=!mirrored;
+ video.style.transform=mirrored?"scaleX(-1)":"none";
+ drawFaces(faceResults);
+};
+$("startTrackingButton").onclick=startTracking;
+$("stopTrackingButton").onclick=()=>{
+ tracking=false;
+ cancelAnimationFrame(raf);
+ ctx.clearRect(0,0,faceCanvas.width,faceCanvas.height);
+ setStatus("Tracking stopped");
+};
+$("dotsButton").onclick=()=>{
+ dots=!dots;
+ drawFaces(faceResults);
+ setStatus("Green dots "+(dots?"on":"off"));
+};
+$("hideDotsButton").onclick=()=>{
+ dots=false;
+ ctx.clearRect(0,0,faceCanvas.width,faceCanvas.height);
+};
+$("maxFacesButton").onchange=async()=>{
+ if(landmarker){
+  landmarker.close();
+  landmarker=null;
+ }
+ if(tracking){
+  tracking=false;
+  cancelAnimationFrame(raf);
+  await startTracking();
+ }
+};
+$("fullscreenButton").onclick=async()=>{
+ try{
+  if(!document.fullscreenElement)await studio.requestFullscreen();
+  else await document.exitFullscreen();
+ }catch(e){setStatus("Fullscreen unavailable: "+e.message);}
+};
+$("landscapeButton").onclick=async()=>{
+ try{
+  if(screen.orientation?.lock)await screen.orientation.lock("landscape");
+  else setStatus("Rotate your phone to landscape");
+ }catch(e){setStatus("Rotate your phone to landscape manually");}
+};
+$("leftEyeButton").onclick=()=>{currentAnchor="leftEye";setStatus("Left eye anchor selected");};
+$("rightEyeButton").onclick=()=>{currentAnchor="rightEye";setStatus("Right eye anchor selected");};
+$("mouthButton").onclick=()=>{currentAnchor="mouth";setStatus("Mouth anchor selected");};
+$("headButton").onclick=()=>{currentAnchor="head";setStatus("Head anchor selected");};
+$("overlayToggleButton").onclick=()=>{
+ overlayVisible=!overlayVisible;
+ faceCanvas.style.visibility=overlayVisible?"visible":"hidden";
+};
+
+/* 3D scene */
+const threeCanvas=$("threeCanvas");
+const renderer=new THREE.WebGLRenderer({
+ canvas:threeCanvas,alpha:true,antialias:true
+});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+renderer.setSize(stage.clientWidth,stage.clientHeight,false);
+renderer.setClearColor(0x000000,0);
+
+const scene=new THREE.Scene();
+const camera3D=new THREE.PerspectiveCamera(
+ 45,stage.clientWidth/Math.max(stage.clientHeight,1),0.01,1000
 );
+camera3D.position.set(0,0,5);
+scene.add(new THREE.HemisphereLight(0xffffff,0x526080,2));
+const light=new THREE.DirectionalLight(0xffffff,2);
+light.position.set(2,4,5);
+scene.add(light);
 
-const personGroups3 = [];
-const loadedAssets3 = [];
+const root=new THREE.Group();
+scene.add(root);
 
-let renderer3 = null;
-let scene3 = null;
-let camera3 = null;
-let gizmo3 = null;
-let selectedAsset3 = null;
-let gizmoMode3 = "translate";
-let sharedFilter3 = false;
-let dotsVisible3 = true;
-let overlaysVisible3 = true;
+const gltfLoader=new GLTFLoader();
+const objLoader=new OBJLoader();
+const fbxLoader=new FBXLoader();
+const transform=new TransformControls(camera3D,renderer.domElement);
+scene.add(transform.getHelper());
 
-function status3(message) {
-  const element = document.getElementById("statusText");
-  if (element) element.textContent = message;
+transform.addEventListener("dragging-changed",e=>{
+ if(e.value)renderer.domElement.style.cursor="grabbing";
+ else renderer.domElement.style.cursor="default";
+});
+
+function render3D(){
+ requestAnimationFrame(render3D);
+ renderer.render(scene,camera3D);
+}
+render3D();
+
+function selectAsset(obj){
+ selected=obj;
+ transform.detach();
+ if(selected&&gizmoVisible)transform.attach(selected);
 }
 
-function setup3DScene3() {
-  if (renderer3) return;
+function fitObject(object){
+ const box=new THREE.Box3().setFromObject(object);
+ const size=box.getSize(new THREE.Vector3());
+ const center=box.getCenter(new THREE.Vector3());
+ object.position.sub(center);
+ const max=Math.max(size.x,size.y,size.z);
+ if(Number.isFinite(max)&&max>0){
+  object.scale.multiplyScalar(2/max);
+ }
+ object.position.z=0;
+}
 
-  scene3 = new THREE.Scene();
+async function loadModel(file){
+ const url=URL.createObjectURL(file);
+ try{
+  const name=file.name.toLowerCase();
+  let object;
+  if(name.endsWith(".glb")||name.endsWith(".gltf")){
+   object=await new Promise((resolve,reject)=>{
+    gltfLoader.load(url,g=>resolve(g.scene),undefined,reject);
+   });
+  }else if(name.endsWith(".obj")){
+   object=await new Promise((resolve,reject)=>{
+    objLoader.load(url,resolve,undefined,reject);
+   });
+  }else if(name.endsWith(".fbx")){
+   object=await new Promise((resolve,reject)=>{
+    fbxLoader.load(url,resolve,undefined,reject);
+   });
+  }else{
+   throw new Error("Use GLB, GLTF, OBJ or FBX");
+  }
+  object.name=file.name;
+  fitObject(object);
+  root.add(object);
+  assets.push(object);
+  selectAsset(object);
+  setStatus("Imported "+file.name);
+ }catch(e){
+  setStatus("Model import error: "+e.message);
+ }finally{
+  URL.revokeObjectURL(url);
+ }
+}
 
-  camera3 = new THREE.PerspectiveCamera(
-    45,
-    (stage3.clientWidth || 640) / (stage3.clientHeight || 360),
-    0.01,
-    100
+$("modelFileInput").onchange=e=>{
+ const file=e.target.files[0];
+ if(file)loadModel(file);
+ e.target.value="";
+};
+
+$("imageFileInput").onchange=e=>{
+ const file=e.target.files[0];
+ if(!file)return;
+ const url=URL.createObjectURL(file);
+ const img=new Image();
+ img.onload=()=>{
+  const tex=new THREE.Texture(img);
+  tex.needsUpdate=true;
+  const material=new THREE.MeshBasicMaterial({
+   map:tex,transparent:true,side:THREE.DoubleSide
+  });
+  const obj=new THREE.Mesh(new THREE.PlaneGeometry(2,2),material);
+  obj.name=file.name;
+  root.add(obj);
+  assets.push(obj);
+  selectAsset(obj);
+  URL.revokeObjectURL(url);
+ };
+ img.onerror=()=>{
+  URL.revokeObjectURL(url);
+  setStatus("Could not load image");
+ };
+ img.src=url;
+ e.target.value="";
+};
+
+$("videoFileInput").onchange=e=>{
+ const file=e.target.files[0];
+ if(!file)return;
+ const url=URL.createObjectURL(file);
+ const v=document.createElement("video");
+ v.src=url;v.loop=true;v.muted=true;v.playsInline=true;
+ v.onloadeddata=()=>{
+  const tex=new THREE.VideoTexture(v);
+  const obj=new THREE.Mesh(
+   new THREE.PlaneGeometry(2,2),
+   new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide})
   );
+  obj.name=file.name;
+  root.add(obj);
+  assets.push(obj);
+  selectAsset(obj);
+  v.play().catch(()=>{});
+  setStatus("Imported video "+file.name);
+ };
+ v.onerror=()=>{
+  URL.revokeObjectURL(url);
+  setStatus("Could not load video");
+ };
+ e.target.value="";
+};
+ $("moveGizmoButton").onclick=()=>{
+ gizmoMode="translate";
+ transform.setMode("translate");
+};
+$("rotateGizmoButton").onclick=()=>{
+ gizmoMode="rotate";
+ transform.setMode("rotate");
+};
+$("scaleGizmoButton").onclick=()=>{
+ gizmoMode="scale";
+ transform.setMode("scale");
+};
+$("hideGizmoButton").onclick=()=>{
+ gizmoVisible=!gizmoVisible;
+ if(!gizmoVisible)transform.detach();
+ else if(selected)transform.attach(selected);
+};
+$("resetTransformButton").onclick=()=>{
+ if(!selected)return;
+ selected.position.set(0,0,0);
+ selected.rotation.set(0,0,0);
+ selected.scale.set(1,1,1);
+};
+$("removeAssetButton").onclick=()=>{
+ if(!selected)return;
+ transform.detach();
+ root.remove(selected);
+ selected=null;
+ assets=assets.filter(a=>a!==selected);
+ setStatus("Selected object removed");
+};
 
-  camera3.position.set(0, 0, 5);
-
-  renderer3 = new THREE.WebGLRenderer({
-    alpha: true,
-    antialias: true,
-    preserveDrawingBuffer: true
-  });
-
-  renderer3.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-  renderer3.setSize(stage3.clientWidth || 640, stage3.clientHeight || 360);
-  renderer3.outputColorSpace = THREE.SRGBColorSpace;
-
-  const canvas = renderer3.domElement;
-  canvas.id = "ar3DCanvas";
-  canvas.style.position = "absolute";
-  canvas.style.inset = "0";
-  canvas.style.width = "100%";
-  canvas.style.height = "100%";
-  canvas.style.zIndex = "3";
-  canvas.style.pointerEvents = "auto";
-
-  stage3.appendChild(canvas);
-
-  scene3.add(new THREE.HemisphereLight(0xffffff, 0x45506b, 2));
-
-  const light = new THREE.DirectionalLight(0xffffff, 2);
-  light.position.set(2, 3, 5);
-  scene3.add(light);
-
-  window.addEventListener("resize", resize3D3);
-
-  function animate() {
-    if (!renderer3) return;
-    requestAnimationFrame(animate);
-    renderer3.render(scene3, camera3);
+/* Filter selectors */
+$("sameFilterButton").onclick=()=>{
+ sharedFilter=true;
+ const value=$("person1Filter").value;
+ for(let i=2;i<=4;i++)$("person"+i+"Filter").value=value;
+ setStatus("Same filter selected");
+};
+$("differentFilterButton").onclick=()=>{
+ sharedFilter=false;
+ setStatus("Choose each person's filter separately");
+};
+for(let i=1;i<=4;i++){
+ $("person"+i+"Filter").onchange=()=>{
+  if(sharedFilter&&i===1){
+   for(let j=2;j<=4;j++)$("person"+j+"Filter").value=$("person1Filter").value;
   }
-
-  animate();
+ };
 }
 
-function resize3D3() {
-  if (!renderer3 || !camera3) return;
+/* Hide and show the controls */
+$("hideControlsButton").onclick=()=>{
+ $("controls").classList.add("hidden");
+ $("showControlsButton").classList.remove("hidden");
+};
+$("showControlsButton").onclick=()=>{
+ $("controls").classList.remove("hidden");
+ $("showControlsButton").classList.add("hidden");
+};
 
-  const width = stage3.clientWidth || 640;
-  const height = stage3.clientHeight || 360;
+/* Record a composite of camera, landmarks and 3D canvas */
+function drawRecordingFrame(){
+ if(!recorder||recorder.state!=="recording")return;
+ const w=recordCanvas.width,h=recordCanvas.height;
+ recordContext.fillStyle="#000";
+ recordContext.fillRect(0,0,w,h);
 
-  renderer3.setSize(width, height);
-  camera3.aspect = width / height;
-  camera3.updateProjectionMatrix();
+ if(video.readyState>=2){
+  const vw=video.videoWidth||w,vh=video.videoHeight||h;
+  const scale=Math.min(w/vw,h/vh);
+  const dw=vw*scale,dh=vh*scale;
+  const x=(w-dw)/2,y=(h-dh)/2;
+  if(mirrored){
+   recordContext.save();
+   recordContext.translate(w,0);
+   recordContext.scale(-1,1);
+   recordContext.drawImage(video,x,y,dw,dh);
+   recordContext.restore();
+  }else{
+   recordContext.drawImage(video,x,y,dw,dh);
+  }
+ }
+ if(overlayVisible){
+  recordContext.drawImage(faceCanvas,0,0,w,h);
+ }
+ recordContext.drawImage(threeCanvas,0,0,w,h);
+ recordAnimation=requestAnimationFrame(drawRecordingFrame);
 }
 
-function createPersonGroups3() {
-  setup3DScene3();
+$("recordButton").onclick=()=>{
+ if(!stream){setStatus("Start camera before recording");return;}
+ if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream){
+  setStatus("Recording is not supported by this browser");
+  return;
+ }
+ try{
+  recordedChunks=[];
+  const height=Number($("recordResolution").value);
+  const width=Math.round(height*16/9);
+  recordCanvas=document.createElement("canvas");
+  recordCanvas.width=width;
+  recordCanvas.height=height;
+  recordContext=recordCanvas.getContext("2d");
+  recordStream=recordCanvas.captureStream(30);
 
-  for (let index = 0; index < 4; index++) {
-    if (personGroups3[index]) continue;
-
-    const group = new THREE.Group();
-    group.name = `Person_${index + 1}_Filter`;
-    group.visible = false;
-
-    scene3.add(group);
-    personGroups3[index] = group;
-  }
-}
-
-function makeFilter3(type, index) {
-  const group = new THREE.Group();
-  group.name = `Filter_${index + 1}_${type}`;
-
-  if (type === "none") return group;
-
-  let geometry;
-  let material;
-
-  if (type === "helmet") {
-    geometry = new THREE.SphereGeometry(
-      0.38, 24, 16, 0, Math.PI * 2, 0, Math.PI * 0.58
-    );
-    material = new THREE.MeshStandardMaterial({
-      color: 0x29b6f6,
-      metalness: 0.45,
-      roughness: 0.3
-    });
-  } else if (type === "mask") {
-    geometry = new THREE.BoxGeometry(0.52, 0.22, 0.12);
-    material = new THREE.MeshStandardMaterial({
-      color: 0x21d6a2,
-      roughness: 0.5
-    });
-  } else if (type === "animal") {
-    geometry = new THREE.SphereGeometry(0.32, 20, 16);
-    material = new THREE.MeshStandardMaterial({
-      color: 0xe8a05b,
-      roughness: 0.7
-    });
-  } else {
-    geometry = new THREE.BoxGeometry(0.3, 0.3, 0.3);
-    material = new THREE.MeshStandardMaterial({ color: 0x9b8cff });
+  const options={videoBitsPerSecond:Number($("recordBitrate").value)};
+  if(MediaRecorder.isTypeSupported("video/webm;codecs=vp9")){
+   options.mimeType="video/webm;codecs=vp9";
+  }else if(MediaRecorder.isTypeSupported("video/webm")){
+   options.mimeType="video/webm";
   }
 
-  const mesh = new THREE.Mesh(geometry, material);
-  mesh.position.z = 0.1;
-  group.add(mesh);
-
-  return group;
-}
-
-function disposeObject3(object) {
-  object.traverse?.((child) => {
-    if (child.geometry) child.geometry.dispose();
-
-    if (child.material) {
-      const materials = Array.isArray(child.material)
-        ? child.material
-        : [child.material];
-
-      for (const material of materials) {
-        for (const value of Object.values(material)) {
-          if (value && value.isTexture) value.dispose();
-        }
-        material.dispose();
-      }
-    }
-  });
-}
-
-function clearFilter3(index) {
-  const group = personGroups3[index];
-  if (!group) return;
-
-  while (group.children.length) {
-    const child = group.children[0];
-    group.remove(child);
-    disposeObject3(child);
-  }
-}
-
-function assignFilter3(index, type) {
-  createPersonGroups3();
-  clearFilter3(index);
-
-  if (type === "none") {
-    personGroups3[index].visible = false;
-    return;
-  }
-
-  personGroups3[index].add(makeFilter3(type, index));
-  personGroups3[index].visible = overlaysVisible3;
-}
-
-function applyFilters3() {
-  createPersonGroups3();
-
-  const sharedType = filterSelects3[0]?.value || "none";
-
-  filterSelects3.forEach((select, index) => {
-    const type = sharedFilter3 ? sharedType : select.value;
-    assignFilter3(index, type);
-  });
-
-  status3(
-    sharedFilter3
-      ? "Same filter selected for all four people."
-      : "Individual filter selections applied."
-  );
-}
-
-document.getElementById("sameFilterButton").addEventListener("click", () => {
-  sharedFilter3 = true;
-  applyFilters3();
-});
-
-document.getElementById("differentFilterButton").addEventListener("click", () => {
-  sharedFilter3 = false;
-  applyFilters3();
-});
-
-filterSelects3.forEach((select, index) => {
-  select.addEventListener("change", () => {
-    if (sharedFilter3) {
-      applyFilters3();
-    } else {
-      assignFilter3(index, select.value);
-    }
-  });
-});
-
-function selectAsset3(object) {
-  selectedAsset3 = object;
-
-  if (gizmo3) {
-    gizmo3.detach();
-    scene3.remove(gizmo3.getHelper());
-    gizmo3.dispose();
-    gizmo3 = null;
-  }
-
-  gizmo3 = new TransformControls(camera3, renderer3.domElement);
-  gizmo3.setMode(gizmoMode3);
-  scene3.add(gizmo3.getHelper());
-  gizmo3.attach(object);
-
-  gizmo3.addEventListener("dragging-changed", (event) => {
-    renderer3.domElement.style.touchAction =
-      event.value ? "none" : "auto";
-  });
-}
-
-async function import3DAsset3(file) {
-  setup3DScene3();
-  createPersonGroups3();
-
-  const extension = file.name.split(".").pop().toLowerCase();
-  const url = URL.createObjectURL(file);
-
-  try {
-    let object;
-
-    if (extension === "glb" || extension === "gltf") {
-      const result = await new GLTFLoader().loadAsync(url);
-      object = result.scene;
-    } else if (extension === "obj") {
-      object = await new OBJLoader().loadAsync(url);
-    } else if (extension === "fbx") {
-      object = await new FBXLoader().loadAsync(url);
-    } else {
-      throw new Error("Supported formats: GLB, GLTF, OBJ, FBX");
-    }
-
-    const bounds = new THREE.Box3().setFromObject(object);
-    const size = bounds.getSize(new THREE.Vector3());
-    const largest = Math.max(size.x, size.y, size.z);
-
-    if (largest > 0) object.scale.multiplyScalar(1 / largest);
-
-    object.position.set(0, 0, 0);
-    scene3.add(object);
-
-    loadedAssets3.push({ object, url, name: file.name });
-    selectAsset3(object);
-
-    status3(`3D model loaded: ${file.name}`);
-  } catch (error) {
-    console.error("3D model loading failed:", error);
-    URL.revokeObjectURL(url);
-    status3(`Model loading failed: ${error.message}`);
-  }
-}
-
-document.getElementById("modelFileInput").addEventListener("change", async (event) => {
-  const file = event.target.files?.[0];
-  if (file) await import3DAsset3(file);
-  event.target.value = "";
-});
-
-document.getElementById("moveGizmoButton").addEventListener("click", () => {
-  gizmoMode3 = "translate";
-  gizmo3?.setMode("translate");
-});
-
-document.getElementById("rotateGizmoButton").addEventListener("click", () => {
-  gizmoMode3 = "rotate";
-  gizmo3?.setMode("rotate");
-});
-
-document.getElementById("scaleGizmoButton").addEventListener("click", () => {
-  gizmoMode3 = "scale";
-  gizmo3?.setMode("scale");
-});
-
-document.getElementById("hideGizmoButton").addEventListener("click", () => {
-  if (!gizmo3) return;
-
-  const helper = gizmo3.getHelper();
-  helper.visible = !helper.visible;
-});
-
-document.getElementById("resetTransformButton").addEventListener("click", () => {
-  if (!selectedAsset3) {
-    status3("Import and select a model first.");
-    return;
-  }
-
-  selectedAsset3.position.set(0, 0, 0);
-  selectedAsset3.rotation.set(0, 0, 0);
-  selectedAsset3.scale.set(1, 1, 1);
-});
-
-document.getElementById("removeAssetButton").addEventListener("click", () => {
-  if (!selectedAsset3) {
-    status3("No selected model to remove.");
-    return;
-  }
-
-  gizmo3?.detach();
-  scene3.remove(selectedAsset3);
-  disposeObject3(selectedAsset3);
-
-  const assetIndex = loadedAssets3.findIndex(
-    (asset) => asset.object === selectedAsset3
-  );
-
-  if (assetIndex >= 0) {
-    URL.revokeObjectURL(loadedAssets3[assetIndex].url);
-    loadedAssets3.splice(assetIndex, 1);
-  }
-
-  selectedAsset3 = null;
-  status3("Selected model removed.");
-});
-
-document.getElementById("overlayToggleButton").addEventListener("click", () => {
-  overlaysVisible3 = !overlaysVisible3;
-
-  personGroups3.forEach((group) => {
-    if (group) group.visible = overlaysVisible3 && group.children.length > 0;
-  });
-
-  status3(overlaysVisible3 ? "Placeholder overlays shown." : "Overlays hidden.");
-});
-
-document.getElementById("dotsButton").addEventListener("click", () => {
-  dotsVisible3 = !dotsVisible3;
-
-  const faceCanvas = document.getElementById("faceCanvas");
-  if (faceCanvas) faceCanvas.style.visibility = dotsVisible3 ? "visible" : "hidden";
-});
-
-document.getElementById("hideDotsButton").addEventListener("click", () => {
-  dotsVisible3 = false;
-
-  const faceCanvas = document.getElementById("faceCanvas");
-  if (faceCanvas) faceCanvas.style.visibility = "hidden";
-});
-
-document.getElementById("resetAllButton").addEventListener("click", () => {
-  gizmo3?.detach();
-
-  for (const asset of loadedAssets3) {
-    scene3.remove(asset.object);
-    disposeObject3(asset.object);
-    URL.revokeObjectURL(asset.url);
-  }
-
-  loadedAssets3.length = 0;
-  selectedAsset3 = null;
-
-  for (let index = 0; index < 4; index++) {
-    clearFilter3(index);
-    if (personGroups3[index]) personGroups3[index].visible = false;
-    if (filterSelects3[index]) filterSelects3[index].value = "none";
-  }
-
-  status3("3D assets and filter selections reset.");
-});
-
-document.getElementById("leftEyeButton").addEventListener("click", () => {
-  status3("Left-eye attachment requires face-to-3D tracking integration.");
-});
-
-document.getElementById("rightEyeButton").addEventListener("click", () => {
-  status3("Right-eye attachment requires face-to-3D tracking integration.");
-});
-
-document.getElementById("mouthButton").addEventListener("click", () => {
-  status3("Mouth attachment requires face-to-3D tracking integration.");
-});
-
-document.getElementById("headButton").addEventListener("click", () => {
-  status3("Head attachment requires face-to-3D tracking integration.");
-});
-
-setup3DScene3();
-createPersonGroups3();
-
-let recorder4 = null;
-let recordingChunks4 = [];
-let recordedBlob4 = null;
-let recordingStream4 = null;
-
-const recordButton4 = document.getElementById("recordButton");
-const stopRecordButton4 = document.getElementById("stopRecordButton");
-const downloadVideoButton4 = document.getElementById("downloadVideoButton");
-
-recordButton4.addEventListener("click", async () => {
-  try {
-    if (recorder4 && recorder4.state === "recording") {
-      status3("Recording is already in progress.");
-      return;
-    }
-
-    if (!stream2 || !stream2.getVideoTracks().length) {
-      status3("Start the camera before recording.");
-      return;
-    }
-
-    const videoTrack = stream2.getVideoTracks()[0];
-    recordingStream4 = new MediaStream([videoTrack]);
-
-    const mimeType = [
-      "video/webm;codecs=vp9",
-      "video/webm;codecs=vp8",
-      "video/webm"
-    ].find(type => MediaRecorder.isTypeSupported(type));
-
-    if (!mimeType) {
-      throw new Error("This browser does not support WebM recording.");
-    }
-
-    recordingChunks4 = [];
-    recordedBlob4 = null;
-
-    const bitrateMbps = Number(
-      document.getElementById("recordBitrate").value || 4
-    );
-
-    recorder4 = new MediaRecorder(recordingStream4, {
-      mimeType,
-      videoBitsPerSecond: bitrateMbps * 1000000
-    });
-
-    recorder4.addEventListener("dataavailable", event => {
-      if (event.data && event.data.size > 0) {
-        recordingChunks4.push(event.data);
-      }
-    });
-
-    recorder4.addEventListener("stop", () => {
-      recordedBlob4 = new Blob(recordingChunks4, {
-        type: recorder4.mimeType || "video/webm"
-      });
-
-      recordingStream4 = null;
-      status3("Recording ready. Tap Download Recording.");
-    });
-
-    recorder4.start(1000);
-    status3("Recording started.");
-  } catch (error) {
-    console.error("Recording error:", error);
-    status3("Recording error: " + error.message);
-  }
-});
-
-stopRecordButton4.addEventListener("click", () => {
-  if (recorder4 && recorder4.state === "recording") {
-    recorder4.stop();
-    status3("Finishing recording…");
-  } else {
-    status3("No active recording.");
-  }
-});
-
-downloadVideoButton4.addEventListener("click", () => {
-  if (!recordedBlob4 || recordedBlob4.size === 0) {
-    status3("Record a video first.");
-    return;
-  }
-
-  const url = URL.createObjectURL(recordedBlob4);
-  const link = document.createElement("a");
-
-  link.href = url;
-  link.download = `aziz-ar-recording-${Date.now()}.webm`;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-
-  setTimeout(() => URL.revokeObjectURL(url), 60000);
-  status3("Recording download requested.");
-});
-
-document.getElementById("exportSettingsButton").addEventListener("click", () => {
-  const settings = {
-    app: "AZIZ AI AR STUDIO",
-    mirror: mirrorEnabled2,
-    greenDots: dotsEnabled2,
-    cameraFacing: cameraFacing2,
-    sharedFilter: sharedFilter3,
-    filters: filterSelects3.map(select => select.value),
-    exportedAt: new Date().toISOString()
+  recorder=new MediaRecorder(recordStream,options);
+  recorder.ondataavailable=e=>{
+   if(e.data&&e.data.size)recordedChunks.push(e.data);
   };
+  recorder.onerror=e=>{
+   setStatus("Recording error: "+(e.error?.message||"unknown error"));
+  };
+  recorder.onstop=()=>{
+   cancelAnimationFrame(recordAnimation);
+   const blob=new Blob(recordedChunks,{type:recorder.mimeType||"video/webm"});
+   if(recordingURL)URL.revokeObjectURL(recordingURL);
+   recordingURL=URL.createObjectURL(blob);
+   const preview=$("recordingPreview");
+   preview.src=recordingURL;
+   preview.classList.remove("hidden");
+   if(recordStream)recordStream.getTracks().forEach(t=>t.stop());
+   setStatus("Recording ready to download");
+  };
+  recorder.start(250);
+  drawRecordingFrame();
+  setStatus("Recording...");
+ }catch(e){
+  setStatus("Recording error: "+e.message);
+ }
+};
 
-  const blob = new Blob(
-    [JSON.stringify(settings, null, 2)],
-    { type: "application/json" }
-  );
+$("stopRecordButton").onclick=()=>{
+ if(recorder&&recorder.state!=="inactive")recorder.stop();
+};
+$("downloadVideoButton").onclick=()=>{
+ if(!recordingURL){setStatus("Record a video first");return;}
+ const a=document.createElement("a");
+ a.href=recordingURL;
+ a.download="azeez-ar-recording.webm";
+ document.body.appendChild(a);
+ a.click();
+ a.remove();
+};
 
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
+/* Export */
+function downloadJSON(name,data){
+ const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement("a");
+ a.href=url;a.download=name;
+ document.body.appendChild(a);
+ a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+$("exportSettingsButton").onclick=()=>{
+ downloadJSON("azeez-settings.json",{
+  facing,mirrored,dots,tracking,
+  maxFaces:$("maxFacesButton").value,
+  filters:[1,2,3,4].map(i=>$("person"+i+"Filter").value),
+  anchor:currentAnchor,gizmoMode
+ });
+};
+$("exportProjectButton").onclick=()=>{
+ downloadJSON("azeez-project-info.json",{
+  app:"AZEEZ AI AR STUDIO",
+  assets:assets.map(a=>a.name||"Imported asset"),
+  filters:[1,2,3,4].map(i=>$("person"+i+"Filter").value)
+ });
+};
+$("exportModelButton").onclick=()=>{
+ downloadJSON("azeez-model-info.json",{
+  models:assets.map(a=>({
+   name:a.name,
+   position:a.position.toArray(),
+   rotation:a.rotation.toArray(),
+   scale:a.scale.toArray()
+  }))
+ });
+};
 
-  link.href = url;
-  link.download = "aziz-ar-settings.json";
-  link.click();
+/* Reset */
+$("resetAllButton").onclick=()=>{
+ stopCamera();
+ if(landmarker){landmarker.close();landmarker=null;}
+ transform.detach();
+ for(const asset of assets)root.remove(asset);
+ assets=[];
+ selected=null;
+ for(let i=1;i<=4;i++)$("person"+i+"Filter").value="none";
+ dots=true;mirrored=true;facing="user";
+ overlayVisible=true;sharedFilter=false;
+ faceCanvas.style.visibility="visible";
+ video.style.transform="scaleX(-1)";
+ ctx.clearRect(0,0,faceCanvas.width,faceCanvas.height);
+ setStatus("Studio reset");
+};
 
-  setTimeout(() => URL.revokeObjectURL(url), 60000);
-  status3("Settings export requested.");
+window.addEventListener("beforeunload",()=>{
+ if(stream)stream.getTracks().forEach(t=>t.stop());
+ if(landmarker)landmarker.close();
+ if(recordStream)recordStream.getTracks().forEach(t=>t.stop());
+ if(recordingURL)URL.revokeObjectURL(recordingURL);
 });
+fitCanvases();
+setStatus("Studio loaded — start camera");
 
-document.getElementById("exportProjectButton").addEventListener("click", () => {
-  status3("Project export is not implemented in this version.");
-});
 
-document.getElementById("exportModelButton").addEventListener("click", () => {
-  status3("Model export is not implemented in this version.");
-});
-
-document.getElementById("hideControlsButton").addEventListener("click", () => {
-  document.getElementById("sideControls").classList.add("hidden");
-  document.getElementById("mainControls").classList.add("hidden");
-  document.getElementById("showControlsButton").classList.remove("hidden");
-});
-
-document.getElementById("showControlsButton").addEventListener("click", () => {
-  document.getElementById("sideControls").classList.remove("hidden");
-  document.getElementById("mainControls").classList.remove("hidden");
-  document.getElementById("showControlsButton").classList.add("hidden");
-});
-    
-  </script>
+</script>
 </body>
-  </html>    
+</html>
