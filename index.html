@@ -221,44 +221,63 @@ function fitCanvases(){
 }
 window.addEventListener("resize",fitCanvases);
 
+
 async function startCamera(){
- if(!navigator.mediaDevices?.getUserMedia){
-  setStatus("Camera unavailable. Open this page using HTTPS in Chrome.");
-  return;
- }
+  try {
+    setStatus("Checking camera permission...");
 
- const oldStream=stream;
- stream=null;
- tracking=false;
- cancelAnimationFrame(raf);
- if(oldStream)oldStream.getTracks().forEach(t=>t.stop());
+    if (!window.isSecureContext) {
+      throw new Error("Open the HTTPS GitHub Pages website.");
+    }
 
- try{
-  const newStream=await navigator.mediaDevices.getUserMedia({
-   video:{
-    facingMode:{ideal:facing},
-    width:{ideal:1280},
-    height:{ideal:720}
-   },
-   audio:false
-  });
+    if (!navigator.mediaDevices ||
+        !navigator.mediaDevices.getUserMedia) {
+      throw new Error("Camera API unavailable in this browser.");
+    }
 
-  stream=newStream;
-  video.srcObject=newStream;
-  video.style.transform=mirrored&&facing==="user"?"scaleX(-1)":"none";
-  await video.play();
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      stream = null;
+    }
 
-  placeholder.classList.add("hidden");
-  fitCanvases();
-  setStatus("Camera running");
- }catch(e){
-  if(stream)stream.getTracks().forEach(t=>t.stop());
-  stream=null;
-  video.srcObject=null;
-  placeholder.classList.remove("hidden");
-  setStatus("Camera error: "+(e.name||"Error")+" — "+e.message);
- }
+    const newStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { ideal: facing },
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      },
+      audio: false
+    });
+
+    stream = newStream;
+    video.srcObject = newStream;
+    video.style.transform =
+      mirrored && facing === "user" ? "scaleX(-1)" : "none";
+
+    await video.play();
+
+    placeholder.classList.add("hidden");
+    fitCanvases();
+    setStatus("Camera running successfully");
+
+  } catch (error) {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+    }
+
+    stream = null;
+    video.srcObject = null;
+    placeholder.classList.remove("hidden");
+
+    setStatus(
+      "Camera error: " +
+      (error.name || "Error") +
+      " — " +
+      error.message
+    );
+  }
 }
+ 
 
 function stopCamera(){
  tracking=false;
