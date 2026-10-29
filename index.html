@@ -9,29 +9,37 @@
 body{margin:0;background:#080c16;color:#fff;font:14px Arial,sans-serif}
 header{padding:14px;text-align:center;background:#14213a;color:#70c5ff;font-size:20px;font-weight:bold}
 #studio{max-width:1100px;margin:auto;padding:10px}
-#cameraStage{position:relative;height:55vh;min-height:270px;background:#000;overflow:hidden;border:1px solid #30435f;border-radius:10px}
+#cameraStage{position:relative;height:55vh;min-height:270px;background:#000;overflow:hidden;border:1px solid #30435f;border-radius:10px;touch-action:manipulation}
 #cameraVideo,#faceCanvas,#threeCanvas{position:absolute;inset:0;width:100%;height:100%}
 #cameraVideo{object-fit:contain;z-index:1}
 #faceCanvas{z-index:2;pointer-events:none}
-#threeCanvas{z-index:3}
-#stagePlaceholder{position:absolute;inset:0;display:grid;place-items:center;color:#9db4d5;z-index:0}
-#statusText{padding:10px;color:#65ffc1}
+#threeCanvas{z-index:3;touch-action:none}
+#stagePlaceholder{position:absolute;inset:0;display:grid;place-items:center;color:#9db4d5;z-index:0;text-align:center;padding:15px}
+#statusText{padding:10px;color:#65ffc1;overflow-wrap:anywhere}
 .panel{background:#111a2b;border:1px solid #2b3b54;border-radius:9px;margin:9px 0;padding:10px}
 h3{color:#79bdff;margin:2px 0 8px}
 .row{display:flex;flex-wrap:wrap;gap:4px}
 button,select,input{max-width:100%;padding:9px;border-radius:6px;border:1px solid #405371;background:#1c2a41;color:white;margin:2px}
 button{cursor:pointer}
-label{display:inline-flex;align-items:center;gap:4px;margin:4px}
+label{display:inline-flex;align-items:center;gap:4px;margin:4px;flex-wrap:wrap}
+small{color:#b8c8df}
 .hidden{display:none!important}
 #studio:fullscreen{height:100vh;max-width:none;overflow:auto;background:#080c16}
-#studio:fullscreen #cameraStage{height:72vh}
-small{color:#b8c8df}
+#studio:fullscreen #cameraStage{height:72vh;min-height:220px}
+@media(orientation:landscape){
+ #cameraStage{height:70vh}
+}
+@media(max-width:600px){
+ header{font-size:18px}
+ #studio{padding:6px}
+ .panel{padding:8px}
+ button,select{font-size:12px;padding:8px}
+}
 </style>
 </head>
 <body>
 <header>AZEEZ AI AR STUDIO</header>
 <div id="studio">
-
 <div id="cameraStage">
 <video id="cameraVideo" autoplay muted playsinline></video>
 <canvas id="faceCanvas"></canvas>
@@ -41,7 +49,6 @@ small{color:#b8c8df}
 <div id="statusText">Ready</div>
 
 <div id="controls">
-
 <section class="panel">
 <h3>Camera Controls</h3>
 <div class="row">
@@ -113,22 +120,27 @@ small{color:#b8c8df}
 <h3>Person Filters</h3>
 <div class="row">
 <label>Person 1
-<select id="person1Filter"><option value="none">None</option><option value="mask">Mask</option><option value="helmet">Helmet</option><option value="animal">Animal</option><option value="imported">Imported Model</option></select>
-</label>
+<select id="person1Filter">
+<option value="none">None</option><option value="mask">Mask</option><option value="helmet">Helmet</option><option value="animal">Animal</option><option value="imported">Imported Model</option>
+</select></label>
 <label>Person 2
-<select id="person2Filter"><option value="none">None</option><option value="mask">Mask</option><option value="helmet">Helmet</option><option value="animal">Animal</option><option value="imported">Imported Model</option></select>
-</label>
+<select id="person2Filter">
+<option value="none">None</option><option value="mask">Mask</option><option value="helmet">Helmet</option><option value="animal">Animal</option><option value="imported">Imported Model</option>
+</select></label>
 <label>Person 3
-<select id="person3Filter"><option value="none">None</option><option value="mask">Mask</option><option value="helmet">Helmet</option><option value="animal">Animal</option><option value="imported">Imported Model</option></select>
-</label>
+<select id="person3Filter">
+<option value="none">None</option><option value="mask">Mask</option><option value="helmet">Helmet</option><option value="animal">Animal</option><option value="imported">Imported Model</option>
+</select></label>
 <label>Person 4
-<select id="person4Filter"><option value="none">None</option><option value="mask">Mask</option><option value="helmet">Helmet</option><option value="animal">Animal</option><option value="imported">Imported Model</option></select>
-</label>
+<select id="person4Filter">
+<option value="none">None</option><option value="mask">Mask</option><option value="helmet">Helmet</option><option value="animal">Animal</option><option value="imported">Imported Model</option>
+</select></label>
 </div>
 <div class="row">
 <button id="sameFilterButton">SAME FILTER</button>
 <button id="differentFilterButton">DIFFERENT FILTERS</button>
 </div>
+<small>Filter choices are saved as settings; built-in 3D masks are not included yet.</small>
 </section>
 
 <section class="panel">
@@ -159,9 +171,10 @@ small{color:#b8c8df}
 <button id="resetAllButton">RESET ALL</button>
 </div>
 </section>
+</div>
+</div>
 
-</div>
-</div>
+
 <script type="module">
 import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 import {GLTFLoader} from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
@@ -173,50 +186,77 @@ import {FaceLandmarker,FilesetResolver} from "https://cdn.jsdelivr.net/npm/@medi
 const $=id=>document.getElementById(id);
 const studio=$("studio"),stage=$("cameraStage");
 const video=$("cameraVideo"),faceCanvas=$("faceCanvas");
-const ctx=faceCanvas.getContext("2d"),status=$("statusText");
-const placeholder=$("stagePlaceholder");
+const ctx=faceCanvas.getContext("2d");
+const status=$("statusText"),placeholder=$("stagePlaceholder");
+
 let stream=null,facing="user",mirrored=true;
 let tracking=false,dots=true,overlayVisible=true;
 let landmarker=null,raf=0,lastTime=-1,faceResults=null;
 let currentAnchor="head",recorder=null,recordedChunks=[],recordingURL=null;
 let recordCanvas=null,recordContext=null,recordAnimation=0,recordStream=null;
 let assets=[],selected=null,gizmoVisible=true,gizmoMode="translate";
-let sharedFilter=false;
+let sharedFilter=false,renderer=null,camera3D=null;
+let videoAssets=[];
 
 const setStatus=t=>status.textContent=t;
 
 function fitCanvases(){
- const w=stage.clientWidth,h=stage.clientHeight;
+ const w=Math.max(1,stage.clientWidth);
+ const h=Math.max(1,stage.clientHeight);
  const d=Math.min(window.devicePixelRatio||1,2);
- faceCanvas.width=Math.max(1,Math.round(w*d));
- faceCanvas.height=Math.max(1,Math.round(h*d));
+
+ faceCanvas.width=Math.round(w*d);
+ faceCanvas.height=Math.round(h*d);
  faceCanvas.style.width=w+"px";
  faceCanvas.style.height=h+"px";
  ctx.setTransform(d,0,0,d,0,0);
- if(renderer){
+
+ if(renderer&&camera3D){
   renderer.setPixelRatio(d);
   renderer.setSize(w,h,false);
-  camera3D.aspect=w/Math.max(h,1);
+  camera3D.aspect=w/h;
   camera3D.updateProjectionMatrix();
  }
+ if(faceResults)drawFaces(faceResults);
 }
 window.addEventListener("resize",fitCanvases);
 
 async function startCamera(){
- stopCamera();
+ if(!navigator.mediaDevices?.getUserMedia){
+  setStatus("Camera unavailable. Open this page using HTTPS in Chrome.");
+  return;
+ }
+
+ const oldStream=stream;
+ stream=null;
+ tracking=false;
+ cancelAnimationFrame(raf);
+ if(oldStream)oldStream.getTracks().forEach(t=>t.stop());
+
  try{
-  stream=await navigator.mediaDevices.getUserMedia({
-   video:{facingMode:{ideal:facing},width:{ideal:1280},height:{ideal:720}},
-   audio:$("recordAudio").checked
+  const newStream=await navigator.mediaDevices.getUserMedia({
+   video:{
+    facingMode:{ideal:facing},
+    width:{ideal:1280},
+    height:{ideal:720}
+   },
+   audio:false
   });
-  video.srcObject=stream;
+
+  stream=newStream;
+  video.srcObject=newStream;
+  video.style.transform=mirrored&&facing==="user"?"scaleX(-1)":"none";
   await video.play();
+
   placeholder.classList.add("hidden");
   fitCanvases();
   setStatus("Camera running");
  }catch(e){
+  if(stream)stream.getTracks().forEach(t=>t.stop());
   stream=null;
-  setStatus("Camera error: "+e.message);
+  video.srcObject=null;
+  placeholder.classList.remove("hidden");
+  setStatus("Camera error: "+(e.name||"Error")+" — "+e.message);
  }
 }
 
@@ -226,7 +266,8 @@ function stopCamera(){
  if(stream)stream.getTracks().forEach(t=>t.stop());
  stream=null;
  video.srcObject=null;
- ctx.clearRect(0,0,faceCanvas.width,faceCanvas.height);
+ faceResults=null;
+ ctx.clearRect(0,0,stage.clientWidth,stage.clientHeight);
  placeholder.classList.remove("hidden");
  setStatus("Camera stopped");
 }
@@ -238,11 +279,13 @@ async function switchCamera(){
 
 async function setupTracker(){
  if(landmarker)return;
+
  setStatus("Loading face tracking model...");
  const vision=await FilesetResolver.forVisionTasks(
   "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
  );
- landmarker=await FaceLandmarker.createFromOptions(vision,{
+
+ const options={
   baseOptions:{
    modelAssetPath:"https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
    delegate:"GPU"
@@ -251,7 +294,14 @@ async function setupTracker(){
   numFaces:Number($("maxFacesButton").value),
   outputFaceBlendshapes:true,
   outputFacialTransformationMatrixes:true
- });
+ };
+
+ try{
+  landmarker=await FaceLandmarker.createFromOptions(vision,options);
+ }catch(gpuError){
+  options.baseOptions.delegate="CPU";
+  landmarker=await FaceLandmarker.createFromOptions(vision,options);
+ }
  setStatus("Face tracking ready");
 }
 
@@ -261,14 +311,18 @@ async function startTracking(){
   await setupTracker();
   tracking=true;
   lastTime=-1;
+  cancelAnimationFrame(raf);
   trackLoop();
+  setStatus("Face tracking running");
  }catch(e){
-  setStatus("Tracking error: "+e.message);
+  tracking=false;
+  setStatus("Tracking error: "+(e.message||e));
  }
 }
 
 function trackLoop(){
  if(!tracking||!stream)return;
+
  if(video.readyState>=2&&video.currentTime!==lastTime){
   lastTime=video.currentTime;
   try{
@@ -277,7 +331,7 @@ function trackLoop(){
    updatePeople(faceResults);
   }catch(e){
    tracking=false;
-   setStatus("Tracking failed: "+e.message);
+   setStatus("Tracking failed: "+(e.message||e));
   }
  }
  if(tracking)raf=requestAnimationFrame(trackLoop);
@@ -296,8 +350,9 @@ function drawFaces(results){
 
  for(const face of results.faceLandmarks){
   for(const p of face){
-   let x=ox+p.x*dw,y=oy+p.y*dh;
-   if(mirrored)x=w-x;
+   let x=ox+p.x*dw;
+   const y=oy+p.y*dh;
+   if(mirrored&&facing==="user")x=w-x;
    ctx.beginPath();
    ctx.arc(x,y,2,0,Math.PI*2);
    ctx.fill();
@@ -310,33 +365,38 @@ function updatePeople(results){
  for(let i=1;i<=4;i++){
   $("person"+i+"Status").textContent=
    "Person "+i+": "+(i<=count?"Face detected":"Waiting");
- }
 }
 
+/* Camera and tracking buttons */
 $("startCameraButton").onclick=startCamera;
 $("stopCameraButton").onclick=stopCamera;
 $("switchCameraButton").onclick=switchCamera;
+
 $("mirrorButton").onclick=()=>{
  mirrored=!mirrored;
- video.style.transform=mirrored?"scaleX(-1)":"none";
+ video.style.transform=mirrored&&facing==="user"?"scaleX(-1)":"none";
  drawFaces(faceResults);
 };
+
 $("startTrackingButton").onclick=startTracking;
 $("stopTrackingButton").onclick=()=>{
  tracking=false;
  cancelAnimationFrame(raf);
- ctx.clearRect(0,0,faceCanvas.width,faceCanvas.height);
+ ctx.clearRect(0,0,stage.clientWidth,stage.clientHeight);
  setStatus("Tracking stopped");
 };
+
 $("dotsButton").onclick=()=>{
  dots=!dots;
  drawFaces(faceResults);
  setStatus("Green dots "+(dots?"on":"off"));
 };
+
 $("hideDotsButton").onclick=()=>{
  dots=false;
- ctx.clearRect(0,0,faceCanvas.width,faceCanvas.height);
+ drawFaces(faceResults);
 };
+
 $("maxFacesButton").onchange=async()=>{
  if(landmarker){
   landmarker.close();
@@ -348,30 +408,51 @@ $("maxFacesButton").onchange=async()=>{
   await startTracking();
  }
 };
+
 $("fullscreenButton").onclick=async()=>{
  try{
   if(!document.fullscreenElement)await studio.requestFullscreen();
   else await document.exitFullscreen();
- }catch(e){setStatus("Fullscreen unavailable: "+e.message);}
+  fitCanvases();
+ }catch(e){
+  setStatus("Fullscreen unavailable: "+e.message);
+ }
 };
+
 $("landscapeButton").onclick=async()=>{
  try{
   if(screen.orientation?.lock)await screen.orientation.lock("landscape");
   else setStatus("Rotate your phone to landscape");
- }catch(e){setStatus("Rotate your phone to landscape manually");}
+ }catch(e){
+  setStatus("Rotate your phone to landscape manually");
+ }
 };
-$("leftEyeButton").onclick=()=>{currentAnchor="leftEye";setStatus("Left eye anchor selected");};
-$("rightEyeButton").onclick=()=>{currentAnchor="rightEye";setStatus("Right eye anchor selected");};
-$("mouthButton").onclick=()=>{currentAnchor="mouth";setStatus("Mouth anchor selected");};
-$("headButton").onclick=()=>{currentAnchor="head";setStatus("Head anchor selected");};
+
+$("leftEyeButton").onclick=()=>{
+ currentAnchor="leftEye";
+ setStatus("Left eye anchor selected");
+};
+$("rightEyeButton").onclick=()=>{
+ currentAnchor="rightEye";
+ setStatus("Right eye anchor selected");
+};
+$("mouthButton").onclick=()=>{
+ currentAnchor="mouth";
+ setStatus("Mouth anchor selected");
+};
+$("headButton").onclick=()=>{
+ currentAnchor="head";
+ setStatus("Head anchor selected");
+};
 $("overlayToggleButton").onclick=()=>{
  overlayVisible=!overlayVisible;
  faceCanvas.style.visibility=overlayVisible?"visible":"hidden";
+ drawFaces(faceResults);
 };
 
 /* 3D scene */
 const threeCanvas=$("threeCanvas");
-const renderer=new THREE.WebGLRenderer({
+renderer=new THREE.WebGLRenderer({
  canvas:threeCanvas,alpha:true,antialias:true
 });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
@@ -379,11 +460,12 @@ renderer.setSize(stage.clientWidth,stage.clientHeight,false);
 renderer.setClearColor(0x000000,0);
 
 const scene=new THREE.Scene();
-const camera3D=new THREE.PerspectiveCamera(
+camera3D=new THREE.PerspectiveCamera(
  45,stage.clientWidth/Math.max(stage.clientHeight,1),0.01,1000
 );
 camera3D.position.set(0,0,5);
 scene.add(new THREE.HemisphereLight(0xffffff,0x526080,2));
+
 const light=new THREE.DirectionalLight(0xffffff,2);
 light.position.set(2,4,5);
 scene.add(light);
@@ -398,8 +480,7 @@ const transform=new TransformControls(camera3D,renderer.domElement);
 scene.add(transform.getHelper());
 
 transform.addEventListener("dragging-changed",e=>{
- if(e.value)renderer.domElement.style.cursor="grabbing";
- else renderer.domElement.style.cursor="default";
+ renderer.domElement.style.cursor=e.value?"grabbing":"default";
 });
 
 function render3D(){
@@ -420,10 +501,7 @@ function fitObject(object){
  const center=box.getCenter(new THREE.Vector3());
  object.position.sub(center);
  const max=Math.max(size.x,size.y,size.z);
- if(Number.isFinite(max)&&max>0){
-  object.scale.multiplyScalar(2/max);
- }
- object.position.z=0;
+ if(Number.isFinite(max)&&max>0)object.scale.multiplyScalar(2/max);
 }
 
 async function loadModel(file){
@@ -431,6 +509,7 @@ async function loadModel(file){
  try{
   const name=file.name.toLowerCase();
   let object;
+
   if(name.endsWith(".glb")||name.endsWith(".gltf")){
    object=await new Promise((resolve,reject)=>{
     gltfLoader.load(url,g=>resolve(g.scene),undefined,reject);
@@ -446,6 +525,7 @@ async function loadModel(file){
   }else{
    throw new Error("Use GLB, GLTF, OBJ or FBX");
   }
+
   object.name=file.name;
   fitObject(object);
   root.add(object);
@@ -470,23 +550,29 @@ $("imageFileInput").onchange=e=>{
  if(!file)return;
  const url=URL.createObjectURL(file);
  const img=new Image();
+
  img.onload=()=>{
   const tex=new THREE.Texture(img);
   tex.needsUpdate=true;
-  const material=new THREE.MeshBasicMaterial({
-   map:tex,transparent:true,side:THREE.DoubleSide
-  });
-  const obj=new THREE.Mesh(new THREE.PlaneGeometry(2,2),material);
+  const obj=new THREE.Mesh(
+   new THREE.PlaneGeometry(2,2),
+   new THREE.MeshBasicMaterial({
+    map:tex,transparent:true,side:THREE.DoubleSide
+   })
+  );
   obj.name=file.name;
   root.add(obj);
   assets.push(obj);
   selectAsset(obj);
   URL.revokeObjectURL(url);
+  setStatus("Imported image "+file.name);
  };
+
  img.onerror=()=>{
   URL.revokeObjectURL(url);
   setStatus("Could not load image");
  };
+
  img.src=url;
  e.target.value="";
 };
@@ -494,9 +580,14 @@ $("imageFileInput").onchange=e=>{
 $("videoFileInput").onchange=e=>{
  const file=e.target.files[0];
  if(!file)return;
+
  const url=URL.createObjectURL(file);
  const v=document.createElement("video");
- v.src=url;v.loop=true;v.muted=true;v.playsInline=true;
+ v.src=url;
+ v.loop=true;
+ v.muted=true;
+ v.playsInline=true;
+
  v.onloadeddata=()=>{
   const tex=new THREE.VideoTexture(v);
   const obj=new THREE.Mesh(
@@ -506,80 +597,122 @@ $("videoFileInput").onchange=e=>{
   obj.name=file.name;
   root.add(obj);
   assets.push(obj);
+  videoAssets.push({video:v,url,object:obj});
   selectAsset(obj);
   v.play().catch(()=>{});
   setStatus("Imported video "+file.name);
  };
+
  v.onerror=()=>{
   URL.revokeObjectURL(url);
   setStatus("Could not load video");
  };
+
  e.target.value="";
 };
- $("moveGizmoButton").onclick=()=>{
+ 
+/* 3D gizmos */
+$("moveGizmoButton").onclick=()=>{
  gizmoMode="translate";
  transform.setMode("translate");
+ setStatus("Move gizmo selected");
 };
 $("rotateGizmoButton").onclick=()=>{
  gizmoMode="rotate";
  transform.setMode("rotate");
+ setStatus("Rotate gizmo selected");
 };
 $("scaleGizmoButton").onclick=()=>{
  gizmoMode="scale";
  transform.setMode("scale");
+ setStatus("Scale gizmo selected");
 };
+
 $("hideGizmoButton").onclick=()=>{
  gizmoVisible=!gizmoVisible;
  if(!gizmoVisible)transform.detach();
  else if(selected)transform.attach(selected);
+ setStatus("Gizmo "+(gizmoVisible?"shown":"hidden"));
 };
+
 $("resetTransformButton").onclick=()=>{
- if(!selected)return;
+ if(!selected){setStatus("Select an imported asset first");return;}
  selected.position.set(0,0,0);
  selected.rotation.set(0,0,0);
  selected.scale.set(1,1,1);
-};
-$("removeAssetButton").onclick=()=>{
- if(!selected)return;
- transform.detach();
- root.remove(selected);
- selected=null;
- assets=assets.filter(a=>a!==selected);
- setStatus("Selected object removed");
+ setStatus("Selected asset transform reset");
 };
 
-/* Filter selectors */
+$("removeAssetButton").onclick=()=>{
+ if(!selected){setStatus("Select an asset first");return;}
+ const removed=selected;
+ transform.detach();
+ root.remove(removed);
+ assets=assets.filter(a=>a!==removed);
+
+ const index=videoAssets.findIndex(item=>item.object===removed);
+ if(index!==-1){
+  const item=videoAssets[index];
+  item.video.pause();
+  item.video.removeAttribute("src");
+  item.video.load();
+  URL.revokeObjectURL(item.url);
+  videoAssets.splice(index,1);
+ }
+
+ removed.traverse?.(child=>{
+  if(child.geometry)child.geometry.dispose();
+  if(child.material){
+   const materials=Array.isArray(child.material)?child.material:[child.material];
+   materials.forEach(m=>{
+    if(m.map)m.map.dispose();
+    m.dispose();
+   });
+  }
+ });
+
+ selected=null;
+ setStatus("Selected asset removed");
+};
+
+/* Filter selectors: these store choices, not rendered AR masks */
 $("sameFilterButton").onclick=()=>{
  sharedFilter=true;
  const value=$("person1Filter").value;
  for(let i=2;i<=4;i++)$("person"+i+"Filter").value=value;
- setStatus("Same filter selected");
+ setStatus("Same filter setting applied");
 };
+
 $("differentFilterButton").onclick=()=>{
  sharedFilter=false;
  setStatus("Choose each person's filter separately");
 };
+
 for(let i=1;i<=4;i++){
  $("person"+i+"Filter").onchange=()=>{
   if(sharedFilter&&i===1){
-   for(let j=2;j<=4;j++)$("person"+j+"Filter").value=$("person1Filter").value;
+   for(let j=2;j<=4;j++){
+    $("person"+j+"Filter").value=$("person1Filter").value;
+   }
   }
  };
 }
 
-/* Hide and show the controls */
+/* Hide/show controls */
 $("hideControlsButton").onclick=()=>{
  $("controls").classList.add("hidden");
  $("showControlsButton").classList.remove("hidden");
 };
+
 $("showControlsButton").onclick=()=>{
  $("controls").classList.remove("hidden");
  $("showControlsButton").classList.add("hidden");
 };
 
-/* Record a composite of camera, landmarks and 3D canvas */
+/* Composite recording */
 function drawRecordingFrame(){
  if(!recorder||recorder.state!=="recording")return;
+
  const w=recordCanvas.width,h=recordCanvas.height;
  recordContext.fillStyle="#000";
  recordContext.fillRect(0,0,w,h);
@@ -589,7 +722,8 @@ function drawRecordingFrame(){
   const scale=Math.min(w/vw,h/vh);
   const dw=vw*scale,dh=vh*scale;
   const x=(w-dw)/2,y=(h-dh)/2;
-  if(mirrored){
+
+  if(mirrored&&facing==="user"){
    recordContext.save();
    recordContext.translate(w,0);
    recordContext.scale(-1,1);
@@ -599,7 +733,8 @@ function drawRecordingFrame(){
    recordContext.drawImage(video,x,y,dw,dh);
   }
  }
- if(overlayVisible){
+
+ if(overlayVisible&&dots){
   recordContext.drawImage(faceCanvas,0,0,w,h);
  }
  recordContext.drawImage(threeCanvas,0,0,w,h);
@@ -608,21 +743,28 @@ function drawRecordingFrame(){
 
 $("recordButton").onclick=()=>{
  if(!stream){setStatus("Start camera before recording");return;}
+ if(recorder&&recorder.state==="recording"){
+  setStatus("Recording is already running");
+  return;
+ }
  if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream){
   setStatus("Recording is not supported by this browser");
   return;
  }
+
  try{
   recordedChunks=[];
   const height=Number($("recordResolution").value);
   const width=Math.round(height*16/9);
+
   recordCanvas=document.createElement("canvas");
   recordCanvas.width=width;
   recordCanvas.height=height;
   recordContext=recordCanvas.getContext("2d");
-  recordStream=recordCanvas.captureStream(30);
 
+  recordStream=recordCanvas.captureStream(30);
   const options={videoBitsPerSecond:Number($("recordBitrate").value)};
+
   if(MediaRecorder.isTypeSupported("video/webm;codecs=vp9")){
    options.mimeType="video/webm;codecs=vp9";
   }else if(MediaRecorder.isTypeSupported("video/webm")){
@@ -630,34 +772,48 @@ $("recordButton").onclick=()=>{
   }
 
   recorder=new MediaRecorder(recordStream,options);
+
   recorder.ondataavailable=e=>{
    if(e.data&&e.data.size)recordedChunks.push(e.data);
   };
+
   recorder.onerror=e=>{
    setStatus("Recording error: "+(e.error?.message||"unknown error"));
   };
+
   recorder.onstop=()=>{
    cancelAnimationFrame(recordAnimation);
-   const blob=new Blob(recordedChunks,{type:recorder.mimeType||"video/webm"});
+   const blob=new Blob(recordedChunks,{
+    type:recorder.mimeType||"video/webm"
+   });
+
    if(recordingURL)URL.revokeObjectURL(recordingURL);
    recordingURL=URL.createObjectURL(blob);
+
    const preview=$("recordingPreview");
    preview.src=recordingURL;
    preview.classList.remove("hidden");
+
    if(recordStream)recordStream.getTracks().forEach(t=>t.stop());
-   setStatus("Recording ready to download");
+   recordStream=null;
+   setStatus("Recording ready to preview and download");
   };
+
   recorder.start(250);
   drawRecordingFrame();
   setStatus("Recording...");
  }catch(e){
+  if(recordStream)recordStream.getTracks().forEach(t=>t.stop());
+  recordStream=null;
   setStatus("Recording error: "+e.message);
  }
 };
 
 $("stopRecordButton").onclick=()=>{
  if(recorder&&recorder.state!=="inactive")recorder.stop();
+ else setStatus("No active recording");
 };
+
 $("downloadVideoButton").onclick=()=>{
  if(!recordingURL){setStatus("Record a video first");return;}
  const a=document.createElement("a");
@@ -668,24 +824,30 @@ $("downloadVideoButton").onclick=()=>{
  a.remove();
 };
 
-/* Export */
+/* Export JSON files */
 function downloadJSON(name,data){
- const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+ const blob=new Blob([JSON.stringify(data,null,2)],{
+  type:"application/json"
+ });
  const url=URL.createObjectURL(blob);
  const a=document.createElement("a");
- a.href=url;a.download=name;
+ a.href=url;
+ a.download=name;
  document.body.appendChild(a);
- a.click();a.remove();
+ a.click();
+ a.remove();
  setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
+
 $("exportSettingsButton").onclick=()=>{
  downloadJSON("azeez-settings.json",{
   facing,mirrored,dots,tracking,
   maxFaces:$("maxFacesButton").value,
   filters:[1,2,3,4].map(i=>$("person"+i+"Filter").value),
-  anchor:currentAnchor,gizmoMode
+  anchor:currentAnchor,gizmoMode,overlayVisible
  });
 };
+
 $("exportProjectButton").onclick=()=>{
  downloadJSON("azeez-project-info.json",{
   app:"AZEEZ AI AR STUDIO",
@@ -693,6 +855,7 @@ $("exportProjectButton").onclick=()=>{
   filters:[1,2,3,4].map(i=>$("person"+i+"Filter").value)
  });
 };
+
 $("exportModelButton").onclick=()=>{
  downloadJSON("azeez-model-info.json",{
   models:assets.map(a=>({
@@ -707,17 +870,45 @@ $("exportModelButton").onclick=()=>{
 /* Reset */
 $("resetAllButton").onclick=()=>{
  stopCamera();
- if(landmarker){landmarker.close();landmarker=null;}
+
+ if(landmarker){
+  landmarker.close();
+  landmarker=null;
+ }
+
  transform.detach();
+
  for(const asset of assets)root.remove(asset);
  assets=[];
  selected=null;
- for(let i=1;i<=4;i++)$("person"+i+"Filter").value="none";
- dots=true;mirrored=true;facing="user";
- overlayVisible=true;sharedFilter=false;
+
+ for(const item of videoAssets){
+  item.video.pause();
+  item.video.removeAttribute("src");
+  item.video.load();
+  URL.revokeObjectURL(item.url);
+ }
+ videoAssets=[];
+
+ for(let i=1;i<=4;i++){
+  $("person"+i+"Filter").value="none";
+  $("person"+i+"Status").textContent="Person "+i+": Waiting";
+ }
+
+ dots=true;
+ mirrored=true;
+ facing="user";
+ overlayVisible=true;
+ sharedFilter=false;
+ gizmoVisible=true;
+ gizmoMode="translate";
+ currentAnchor="head";
+
  faceCanvas.style.visibility="visible";
  video.style.transform="scaleX(-1)";
- ctx.clearRect(0,0,faceCanvas.width,faceCanvas.height);
+ transform.setMode("translate");
+ ctx.clearRect(0,0,stage.clientWidth,stage.clientHeight);
+
  setStatus("Studio reset");
 };
 
@@ -726,11 +917,17 @@ window.addEventListener("beforeunload",()=>{
  if(landmarker)landmarker.close();
  if(recordStream)recordStream.getTracks().forEach(t=>t.stop());
  if(recordingURL)URL.revokeObjectURL(recordingURL);
+ for(const item of videoAssets){
+  item.video.pause();
+  URL.revokeObjectURL(item.url);
+ }
 });
+
 fitCanvases();
-setStatus("Studio loaded — start camera");
-
-
+setStatus("Studio loaded — open over HTTPS and start camera");
 </script>
+</body>
+</html>
+
 </body>
 </html>
