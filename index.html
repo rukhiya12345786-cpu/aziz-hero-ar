@@ -1,134 +1,263 @@
-MindAR
-MindAR - Documentation
-More ExamplesThreeJS Blendshapes
-On this page
-ThreeJS Blendshapes
-There is 52 blendshapes scores representing the facial expressions of the detected face. This example shows how you can control a avatar head with the detected blendshapes.
 
-Try it out
-Live Demo
-img
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Aziz AI AR Studio</title>
 
-Credit: the racoon avatar 3D model used in this example comes from mediapipe
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+      "mindar-face-three": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-three.prod.js"
+    }
+  }
+  </script>
 
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #080b11; color: white; font-family: Arial, sans-serif; }
+    #container { position: fixed; inset: 0; width: 100%; height: 100%; }
+    #controls { position: fixed; z-index: 10; top: 10px; left: 10px; right: 10px; display: flex; flex-wrap: wrap; gap: 8px; padding: 10px; background: #101724eF; border-radius: 10px; }
+    button, label { border: 1px solid #56647a; border-radius: 8px; background: #263247; color: white; padding: 10px; font-size: 12px; cursor: pointer; }
+    input[type=file] { display: none; }
+    #status { position: fixed; z-index: 10; bottom: 10px; left: 10px; right: 10px; padding: 10px; border-radius: 8px; background: #101724eF; font-size: 12px; }
+    #video-feed { display: none; }
+  </style>
+</head>
 
-<html>
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script type="importmap">
-    {
-      "imports": {
-        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
-        "mindar-face-three":"https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-three.prod.js"
+<body>
+  <div id="container"></div>
+
+  <div id="controls">
+    <button id="startButton">START CAMERA</button>
+    <button id="stopButton">STOP CAMERA</button>
+
+    <label for="modelFile">IMPORT 3D MODEL</label>
+    <input id="modelFile" type="file" accept=".glb,.gltf,.fbx,.obj,.stl">
+
+    <button id="removeButton">REMOVE MODEL</button>
+    <button id="resetButton">RESET MODEL</button>
+  </div>
+
+  <video id="video-feed" playsinline muted></video>
+  <div id="status">Choose a model or press START CAMERA.</div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { MindARThree } from 'mindar-face-three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+    import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+    import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+
+    const $ = id => document.getElementById(id);
+    const container = $('container');
+    const status = $('status');
+
+    let mindar = null;
+    let anchor = null;
+    let importedModel = null;
+    let modelUrl = null;
+    let cameraStarted = false;
+
+    function say(message) {
+      status.textContent = message;
+    }
+
+    async function setup() {
+      if (mindar) return;
+
+      mindar = new MindARThree({ container });
+      const { scene } = mindar;
+
+      scene.add(new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1.5));
+
+      const light = new THREE.DirectionalLight(0xffffff, 1);
+      light.position.set(0, 1, 2);
+      scene.add(light);
+
+      // Face anchor: the imported model is attached to the tracked face.
+      anchor = mindar.addAnchor(1);
+
+      mindar.renderer.setPixelRatio(
+        Math.min(window.devicePixelRatio || 1, 2)
+      );
+
+      mindar.renderer.setSize(
+        container.clientWidth,
+        container.clientHeight
+      );
+
+      mindar.renderer.setAnimationLoop(() => {
+        mindar.renderer.render(mindar.scene, mindar.camera);
+      });
+    }
+
+    async function startCamera() {
+      try {
+        await setup();
+
+        if (cameraStarted) {
+          say('Camera is already running.');
+          return;
+        }
+
+        await mindar.start();
+        cameraStarted = true;
+        say('Camera started. Face the camera.');
+      } catch (error) {
+        console.error(error);
+        say('Camera failed. Use HTTPS and allow camera permission.');
       }
     }
-    </script>
-    <script type="module">
-      import * as THREE from 'three';
-      import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-      import { MindARThree } from 'mindar-face-three';
-      class Avatar {
-        constructor() {
-          this.gltf = null;
-          this.morphTargetMeshes = [];
-        }
-        async init() {
-          const url = "https://assets.codepen.io/9177687/raccoon_head.glb";
-          const gltf = await new Promise((resolve) => {
-            const loader = new GLTFLoader();
-            loader.load(url, (gltf) => {
-              resolve(gltf);
+
+    function stopCamera() {
+      if (!mindar || !cameraStarted) return;
+
+      try {
+        mindar.stop();
+      } catch (error) {
+        console.warn(error);
+      }
+
+      cameraStarted = false;
+      say('Camera stopped.');
+    }
+
+    function disposeModel(object) {
+      object.traverse(child => {
+        if (child.geometry) child.geometry.dispose();
+
+        if (child.material) {
+          const materials = Array.isArray(child.material)
+            ? child.material
+            : [child.material];
+
+          materials.forEach(material => {
+            Object.values(material).forEach(value => {
+              if (value?.isTexture) value.dispose();
             });
+            material.dispose();
           });
-          gltf.scene.traverse((object) => {
-            if ((object).isBone && !this.root) {
-              this.root = object; // as THREE.Bone;
-            }
-            if (!(object).isMesh) return
-            const mesh = object;
-            if (!mesh.morphTargetDictionary || !mesh.morphTargetInfluences) return
-            this.morphTargetMeshes.push(mesh);
-          });
-          this.gltf = gltf;
         }
-        updateBlendshapes(blendshapes) {
-          const categories = blendshapes.categories;
-          let coefsMap = new Map();
-          for (let i = 0; i < categories.length; ++i) {
-            coefsMap.set(categories[i].categoryName, categories[i].score);
-          }
-          for (const mesh of this.morphTargetMeshes) {
-            if (!mesh.morphTargetDictionary || !mesh.morphTargetInfluences) {
-              continue;
-            }
-            for (const [name, value] of coefsMap) {
-              if (!Object.keys(mesh.morphTargetDictionary).includes(name)) {
-                continue;
-              }
-              const idx = mesh.morphTargetDictionary[name];
-              mesh.morphTargetInfluences[idx] = value;
-            }
-          }
-        }
+      });
+    }
+
+    function removeModel(showStatus = true) {
+      if (importedModel && anchor) {
+        anchor.group.remove(importedModel);
+        disposeModel(importedModel);
       }
-      let mindarThree = null;
-      let avatar = null;
-      const setup = async () => {
-        mindarThree = new MindARThree({
-          container: document.querySelector("#container"),
+
+      importedModel = null;
+
+      if (modelUrl) {
+        URL.revokeObjectURL(modelUrl);
+        modelUrl = null;
+      }
+
+      if (showStatus) say('Model removed.');
+    }
+
+    async function importModel(file) {
+      if (!file) return;
+
+      const extension = file.name.split('.').pop().toLowerCase();
+      const supported = ['glb', 'gltf', 'fbx', 'obj', 'stl'];
+
+      if (!supported.includes(extension)) {
+        say('Unsupported format. Use GLB, GLTF, FBX, OBJ or STL.');
+        return;
+      }
+
+      try {
+        await setup();
+        removeModel(false);
+        say('Loading ' + file.name + '...');
+
+        modelUrl = URL.createObjectURL(file);
+
+        if (extension === 'glb' || extension === 'gltf') {
+          const result = await new GLTFLoader().loadAsync(modelUrl);
+          importedModel = result.scene;
+        } else if (extension === 'fbx') {
+          importedModel = await new FBXLoader().loadAsync(modelUrl);
+        } else if (extension === 'obj') {
+          importedModel = await new OBJLoader().loadAsync(modelUrl);
+        } else if (extension === 'stl') {
+          const geometry = await new STLLoader().loadAsync(modelUrl);
+          geometry.computeVertexNormals();
+
+          importedModel = new THREE.Mesh(
+            geometry,
+            new THREE.MeshStandardMaterial({
+              color: 0xd9dce5,
+              metalness: 0.1,
+              roughness: 0.7
+            })
+          );
+        }
+
+        importedModel.traverse(child => {
+          if (child.isMesh && child.material) {
+            child.material.side = THREE.DoubleSide;
+            child.material.needsUpdate = true;
+          }
         });
-        const { renderer, scene, camera } = mindarThree;
-        const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
-        scene.add(light);
-        const anchor = mindarThree.addAnchor(1);
-        await avatar.init();
-        avatar.gltf.scene.scale.set(2, 2, 2);
-        anchor.group.add(avatar.gltf.scene);
+
+        // Initial test size and position; model units vary by file.
+        importedModel.position.set(0, 0, 0);
+        importedModel.rotation.set(0, 0, 0);
+        importedModel.scale.setScalar(0.1);
+
+        anchor.group.add(importedModel);
+        say('Model imported and attached to the face anchor.');
+      } catch (error) {
+        console.error(error);
+        removeModel(false);
+        say('Import failed. Try a self-contained GLB file.');
       }
-      const start = async () => {
-        if (!mindarThree) {
-          await setup();
-        }
-        await mindarThree.start();
-        const { renderer, scene, camera } = mindarThree;
-        const feedVideo = document.querySelector("#video-feed");
-        feedVideo.srcObject = mindarThree.video.srcObject.clone();
-        feedVideo.play();
-        renderer.setAnimationLoop(() => {
-          const estimate = mindarThree.getLatestEstimate();
-          if (estimate && estimate.blendshapes) {
-            avatar.updateBlendshapes(estimate.blendshapes);
-          }
-          renderer.render(scene, camera);
-        });
+    }
+
+    $('startButton').addEventListener('click', startCamera);
+    $('stopButton').addEventListener('click', stopCamera);
+    $('removeButton').addEventListener('click', () => removeModel());
+
+    $('resetButton').addEventListener('click', () => {
+      if (!importedModel) {
+        say('Import a model first.');
+        return;
       }
-      start();
-    </script>
-    <style>
-      body {
-        margin: 0;
-      }
-      #container {
-        width: 100vw;
-        height: 100vh;
-        position: relative;
-        overflow: hidden;
-      }
-      #video-feed {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        width: 50vw;
-        z-index: 9999999;
-        transform: scaleX(-1);
-      }
-    </style>
-  </head>
-  <body>
-    <div id="container">
-    </div>
-    <video id="video-feed">
-    </video>
-  </body>
+
+      importedModel.position.set(0, 0, 0);
+      importedModel.rotation.set(0, 0, 0);
+      importedModel.scale.setScalar(0.1);
+      say('Model reset.');
+    });
+
+    $('modelFile').addEventListener('change', event => {
+      const file = event.target.files?.[0];
+      if (file) importModel(file);
+      event.target.value = '';
+    });
+
+    window.addEventListener('resize', () => {
+      if (!mindar) return;
+
+      mindar.renderer.setPixelRatio(
+        Math.min(window.devicePixelRatio || 1, 2)
+      );
+
+      mindar.renderer.setSize(
+        container.clientWidth,
+        container.clientHeight
+      );
+    });
+
+    say('Ready. Import a model or start the camera.');
+  </script>
+</body>
 </html>
