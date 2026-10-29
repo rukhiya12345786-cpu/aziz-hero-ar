@@ -1,9 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#080b12">
 <title>Aziz AI AR Studio</title>
 
 <script type="importmap">
@@ -17,309 +17,968 @@
 </script>
 
 <style>
+:root {
+  color-scheme: dark;
+  --bg: #080b12;
+  --panel: rgba(15,20,32,.95);
+  --panel2: #171e2d;
+  --line: #303b50;
+  --text: #f4f7ff;
+  --muted: #a9b4c8;
+  --accent: #7c9cff;
+  --green: #48e5a2;
+  --red: #ff647c;
+}
 * {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
-
 html, body {
   margin: 0;
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #080b11;
-  color: white;
-  font-family: Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, Arial, sans-serif;
 }
-
-#container {
+button, input, select { font: inherit; }
+button {
+  min-height: 39px;
+  padding: 9px 11px;
+  color: var(--text);
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+button:active { transform: scale(.98); }
+button:disabled { opacity: .45; }
+button.primary { background: #526ff0; border-color: #8195ff; }
+button.danger { border-color: #a94257; }
+button.active { background: #284c69; border-color: #55c9ff; }
+input, select {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px;
+  color: var(--text);
+  background: #0b101b;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 12px;
+}
+#studio {
   position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #05070c;
+}
+#container {
+  position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #080b11;
+  z-index: 1;
+  touch-action: none;
 }
+#video-feed {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+  background: #05070c;
+  transform: scaleX(-1);
+}
+#container video { object-fit: cover; }
+#container canvas {
+  position: absolute;
+  inset: 0;
+  max-width: 100%;
+  max-height: 100%;
+}
+#overlayVideo, #overlayImage { display: none; }
 
 #studioUI {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 20;
+  display: flex;
+  flex-direction: column;
   pointer-events: none;
 }
-
-.panel {
-  position: absolute;
-  left: 8px;
-  right: 8px;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 7px;
-  padding: 9px;
-  border: 1px solid #35445b;
-  border-radius: 12px;
-  background: rgba(14, 22, 35, 0.94);
-  pointer-events: auto;
-}
-
 #topbar {
-  top: max(8px, env(safe-area-inset-top));
-}
-
-#toolbar {
-  bottom: 55px;
-  max-height: 42vh;
-  overflow-y: auto;
-  align-content: flex-start;
-}
-
-#status {
-  position: absolute;
-  left: 8px;
-  right: 8px;
-  bottom: max(8px, env(safe-area-inset-bottom));
-  padding: 10px;
-  border-radius: 8px;
-  background: rgba(14, 22, 35, 0.94);
-  font-size: 12px;
-  pointer-events: auto;
-}
-
-button, label {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  justify-content: center;
-  min-height: 38px;
-  padding: 9px 11px;
-  border: 1px solid #536781;
-  border-radius: 8px;
-  background: #26364d;
-  color: white;
-  font-size: 12px;
-  cursor: pointer;
-  user-select: none;
-}
-
-button:active, label:active {
-  background: #087e8b;
-}
-
-button.active {
-  background: #087e8b;
-  border-color: #25c4d0;
-}
-
-button:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-input[type="file"] {
-  display: none;
-}
-
-#importModelLabel {
-  background: #176776;
-}
-
-#recordButton {
-  background: #8c2534;
-}
-
-#hideControlsButton,
-#hideGizmoButton,
-#hideUIButton {
-  background: #51416f;
-}
-
-#showUIButton {
-  position: fixed;
-  z-index: 1000;
-  top: max(10px, env(safe-area-inset-top));
-  right: 10px;
-  display: none;
-  background: #087e8b;
+  justify-content: space-between;
+  gap: 8px;
+  padding: max(9px,env(safe-area-inset-top)) 10px 9px;
+  background: linear-gradient(to bottom,rgba(4,7,14,.94),rgba(4,7,14,.55));
   pointer-events: auto;
 }
+.brand { min-width: 0; }
+.brand h1 {
+  margin: 0;
+  font-size: 16px;
+  letter-spacing: .3px;
+}
+.brand small { color: var(--muted); font-size: 11px; }
+#status {
+  max-width: 48%;
+  overflow-wrap: anywhere;
+  text-align: right;
+  font-size: 11px;
+  color: var(--green);
+}
+#toolbar {
+  align-self: stretch;
+  display: flex;
+  gap: 8px;
+  padding: 8px 10px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  pointer-events: auto;
+  background: rgba(5,8,15,.65);
+}
+#toolbar button { flex: 0 0 auto; }
 
-body.ui-hidden #studioUI {
+#controlPanel {
+  position: absolute;
+  top: 112px;
+  left: 10px;
+  bottom: max(12px,env(safe-area-inset-bottom));
+  width: min(350px,calc(100vw - 20px));
+  max-height: calc(100% - 130px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  padding: 10px;
+  pointer-events: auto;
+  backdrop-filter: blur(12px);
+  scrollbar-width: thin;
+}
+.panelSection {
+  margin-bottom: 10px;
+  padding: 10px;
+  background: rgba(30,39,57,.72);
+  border: 1px solid rgba(90,108,140,.25);
+  border-radius: 12px;
+}
+.panelSection h2 { margin: 0 0 9px; font-size: 13px; }
+.buttonGrid {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 7px;
+}
+.buttonGrid.three { grid-template-columns: repeat(3,minmax(0,1fr)); }
+.buttonGrid button {
+  min-width: 0;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.fileButton {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  min-height: 57px;
+  text-align: center;
+  border-style: dashed;
+}
+.fileButton strong { font-size: 12px; }
+.fileButton small { color: var(--muted); font-size: 10px; }
+.fileInput { display: none; }
+.field { margin-top: 9px; }
+.fieldRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.checkRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 9px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.checkRow input { width: 18px; min-height: 18px; }
+.helper {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+#hideControlsButton {
+  position: fixed;
+  right: 10px;
+  bottom: max(14px,env(safe-area-inset-bottom));
+  z-index: 40;
+  pointer-events: auto;
+}
+#showUIButton {
   display: none;
+  position: fixed;
+  z-index: 100;
+  right: 12px;
+  top: max(12px,env(safe-area-inset-top));
+  min-width: 86px;
+  background: #526ff0;
+  box-shadow: 0 3px 20px #0008;
+  pointer-events: auto;
 }
-
-body.ui-hidden #showUIButton {
-  display: inline-flex;
-}
-
-#toolbar.controls-hidden {
+#showControlsButton {
   display: none;
+  position: fixed;
+  z-index: 41;
+  right: 10px;
+  bottom: max(14px,env(safe-area-inset-bottom));
+  pointer-events: auto;
 }
-
-#status.status-hidden {
+#toast {
+  position: fixed;
+  z-index: 200;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 90vw;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #121a29;
+  font-size: 12px;
+  text-align: center;
   display: none;
+  pointer-events: none;
 }
-
-#video-feed {
+#assetList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+.assetItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  padding: 7px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.assetItem button { min-height: 30px; padding: 5px 8px; }
+#recordingIndicator {
   display: none;
+  color: var(--red);
+  font-weight: 700;
+  font-size: 12px;
 }
+body.ui-hidden #studioUI { display: none; }
+body.controls-hidden #controlPanel { display: none; }
+body.sliders-hidden .transformSettings { display: none; }
 
-#overlayVideo {
-  display: none;
+@media (max-width:600px) {
+  #controlPanel { top:108px; width:min(330px,calc(100vw - 20px)); }
+  .brand h1 { font-size:14px; }
+  #status { font-size:10px; }
 }
-
-@media (orientation: landscape) {
-  #toolbar {
-    left: 8px;
-    right: auto;
-    bottom: 48px;
-    width: min(68vw, 620px);
-    max-height: 55vh;
-  }
-
-  #topbar {
-    max-width: 100%;
-  }
-}
-
-@media (max-width: 420px) {
-  button, label {
-    min-height: 36px;
-    padding: 8px;
-    font-size: 11px;
-  }
-
-  #toolbar {
-    max-height: 40vh;
+@media (orientation:landscape) and (max-height:550px) {
+  #topbar { padding-top:5px; padding-bottom:5px; }
+  #toolbar { padding-top:4px; padding-bottom:4px; }
+  #controlPanel {
+    top:88px;
+    width:min(340px,44vw);
+    max-height:calc(100% - 100px);
   }
 }
 </style>
 </head>
 
 <body>
-<div id="container"></div>
+<div id="studio">
+  <video id="video-feed" autoplay muted playsinline></video>
+  <div id="container"></div>
+  <video id="overlayVideo" autoplay muted loop playsinline></video>
+  <img id="overlayImage" alt="AR image overlay">
 
-<div id="studioUI">
+  <div id="studioUI">
+    <header id="topbar">
+      <div class="brand">
+        <h1>AZIZ AI AR STUDIO</h1>
+        <small>Face Tracking · 3D · Image · Video</small>
+      </div>
+      <div id="status" role="status">Ready</div>
+    </header>
 
-  <div id="topbar" class="panel">
-    <button id="startButton">START CAMERA</button>
-    <button id="stopButton">STOP CAMERA</button>
-    <button id="switchButton">SWITCH CAMERA</button>
-    <button id="mirrorButton">MIRROR: OFF</button>
-    <button id="fullscreenButton">FULL SCREEN</button>
-    <button id="hideUIButton">HIDE UI</button>
-    <button id="hideControlsButton">HIDE CONTROLS</button>
+    <nav id="toolbar" aria-label="Main controls">
+      <button id="startButton" class="primary">START CAMERA</button>
+      <button id="stopButton" class="danger">STOP CAMERA</button>
+      <button id="switchButton">SWITCH CAMERA</button>
+      <button id="mirrorButton" class="active">MIRROR ON</button>
+      <button id="fullscreenButton">FULL SCREEN</button>
+      <button id="trackingButton" class="primary">START TRACKING</button>
+      <button id="recordButton">START RECORDING</button>
+      <button id="stopRecordButton" class="danger" disabled>STOP RECORDING</button>
+      <span id="recordingIndicator">● RECORDING</span>
+      <button id="hideUIButton">HIDE UI</button>
+      <button id="hideControlsButton">HIDE CONTROLS</button>
+    </nav>
+
+    <main id="controlPanel">
+      <section class="panelSection">
+        <h2>Import Assets</h2>
+        <div class="buttonGrid">
+          <button id="importModelButton" class="fileButton">
+            <strong>IMPORT 3D MODEL</strong>
+            <small>GLB · GLTF · OBJ · FBX</small>
+          </button>
+          <button id="importImageButton" class="fileButton">
+            <strong>IMPORT IMAGE</strong>
+            <small>PNG · JPG · WebP</small>
+          </button>
+          <button id="importVideoButton" class="fileButton">
+            <strong>IMPORT VIDEO</strong>
+            <small>MP4 · WebM</small>
+          </button>
+          <button id="addMoreButton" class="fileButton">
+            <strong>ADD MORE ASSETS</strong>
+            <small>Multiple assets</small>
+          </button>
+        </div>
+
+        <input id="modelFile" class="fileInput" type="file" accept=".glb,.gltf,.obj,.fbx">
+        <input id="imageFile" class="fileInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif">
+        <input id="videoFile" class="fileInput" type="file" accept="video/mp4,video/webm,video/quicktime">
+        <input id="multiAssetFile" class="fileInput" type="file" accept=".glb,.gltf,.obj,.fbx,image/*,video/*" multiple>
+
+        <div id="assetList"></div>
+        <p class="helper">GLTF files with separate textures may require their original folder structure.</p>
+      </section>
+
+      <section class="panelSection">
+        <h2>Camera & Display</h2>
+        <div class="buttonGrid">
+          <button id="landscapeButton">LANDSCAPE LAYOUT</button>
+          <button id="resetViewButton">RESET VIEW</button>
+          <button id="faceDotsButton" class="active">GREEN DOTS ON</button>
+          <button id="overlayToggleButton" class="active">OVERLAYS ON</button>
+        </div>
+        <div class="field">
+          <label for="cameraSelect">Camera</label>
+          <select id="cameraSelect">
+            <option value="user">Front Camera</option>
+            <option value="environment">Back Camera</option>
+          </select>
+        </div>
+      </section>
+
+      <section class="panelSection">
+        <h2>Transform Gizmo</h2>
+        <div class="buttonGrid three">
+          <button id="moveGizmoButton" class="active">MOVE</button>
+          <button id="rotateGizmoButton">ROTATE</button>
+          <button id="scaleGizmoButton">SCALE</button>
+        </div>
+        <div class="buttonGrid" style="margin-top:7px">
+          <button id="hideGizmoButton">HIDE GIZMO</button>
+          <button id="resetTransformButton">RESET TRANSFORM</button>
+          <button id="removeModelButton" class="danger">REMOVE SELECTED</button>
+          <button id="resetAllButton">RESET ALL</button>
+        </div>
+
+        <div class="transformSettings">
+          <div class="field">
+            <label for="positionX">Left / Right (X)</label>
+            <input id="positionX" type="range" min="-3" max="3" step=".01" value="0">
+          </div>
+          <div class="field">
+            <label for="positionY">Up / Down (Y)</label>
+            <input id="positionY" type="range" min="-3" max="3" step=".01" value="0">
+          </div>
+          <div class="field">
+            <label for="positionZ">Front / Back (Z)</label>
+            <input id="positionZ" type="range" min="-3" max="3" step=".01" value="0">
+          </div>
+          <div class="field">
+            <label for="rotationX">Rotation X</label>
+            <input id="rotationX" type="range" min="-180" max="180" step="1" value="0">
+          </div>
+          <div class="field">
+            <label for="rotationY">Rotation Y</label>
+            <input id="rotationY" type="range" min="-180" max="180" step="1" value="0">
+          </div>
+          <div class="field">
+            <label for="rotationZ">Rotation Z</label>
+            <input id="rotationZ" type="range" min="-180" max="180" step="1" value="0">
+          </div>
+          <div class="field">
+            <label for="modelScale">Model Scale</label>
+            <input id="modelScale" type="range" min=".01" max="5" step=".01" value="1">
+          </div>
+          <button id="hideSlidersButton" style="margin-top:8px;width:100%">HIDE SLIDERS</button>
+        </div>
+      </section>
+
+      <section class="panelSection">
+        <h2>Face Overlays</h2>
+        <div class="buttonGrid">
+          <button id="leftEyeButton">LEFT EYE</button>
+          <button id="rightEyeButton">RIGHT EYE</button>
+          <button id="mouthButton">MOUTH</button>
+          <button id="clearOverlayButton">CLEAR OVERLAY</button>
+        </div>
+        <div class="field">
+          <label for="overlayTarget">Overlay target</label>
+          <select id="overlayTarget">
+            <option value="head">Head / Face</option>
+            <option value="leftEye">Left Eye</option>
+            <option value="rightEye">Right Eye</option>
+            <option value="mouth">Mouth</option>
+          </select>
+        </div>
+        <p class="helper">Choose an image/video asset and then choose its target.</p>
+      </section>
+
+      <section class="panelSection">
+        <h2>Recording & Export</h2>
+        <div class="field">
+          <label for="recordResolution">Recording resolution</label>
+          <select id="recordResolution">
+            <option value="480">480p</option>
+            <option value="720" selected>720p</option>
+            <option value="1080">1080p</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="recordBitrate">Video bitrate</label>
+          <select id="recordBitrate">
+            <option value="1000000">1 Mbps — smaller file</option>
+            <option value="2500000" selected>2.5 Mbps — balanced</option>
+            <option value="5000000">5 Mbps — higher quality</option>
+          </select>
+        </div>
+        <label class="checkRow">
+          <input id="recordAudio" type="checkbox" checked>
+          Include audio when supported
+        </label>
+        <div class="buttonGrid" style="margin-top:9px">
+          <button id="downloadVideoButton" disabled>DOWNLOAD VIDEO</button>
+          <button id="exportSettingsButton">EXPORT SETTINGS</button>
+          <button id="exportModelButton">EXPORT MODEL</button>
+        </div>
+      </section>
+
+      <section class="panelSection">
+        <h2>Advanced Options</h2>
+        <div class="buttonGrid">
+          <button id="hideControlsPanelButton">HIDE CONTROLS</button>
+          <button id="showSlidersButton">SHOW SLIDERS</button>
+          <button id="showLandmarksButton">SHOW LANDMARKS</button>
+          <button id="exportProjectButton">EXPORT PROJECT SETTINGS</button>
+        </div>
+        <div class="field">
+          <label for="trackingMode">Tracking mode</label>
+          <select id="trackingMode">
+            <option value="face">Face tracking</option>
+            <option value="faceBlendshapes">Face + blendshapes</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="personTarget">Person target</label>
+          <select id="personTarget">
+            <option value="0">Person 1</option>
+            <option value="1">Person 2 (if supported)</option>
+            <option value="2">Person 3 (if supported)</option>
+            <option value="3">Person 4 (if supported)</option>
+          </select>
+        </div>
+        <p class="helper">Multi-person tracking depends on the tracker; this MindAR setup is configured for one face.</p>
+      </section>
+    </main>
   </div>
 
-  <div id="toolbar" class="panel">
-
-    <label id="importModelLabel" for="modelFile">
-      IMPORT 3D MODEL
-    </label>
-    <input
-      id="modelFile"
-      type="file"
-      accept=".glb,.gltf,.obj,.fbx"
-    >
-
-    <button data-gizmo-mode="translate" class="active">
-      MOVE
-    </button>
-    <button data-gizmo-mode="rotate">
-      ROTATE
-    </button>
-    <button data-gizmo-mode="scale">
-      SCALE
-    </button>
-
-    <button id="hideGizmoButton">HIDE GIZMOS</button>
-    <button id="resetButton">RESET MODEL</button>
-    <button id="removeButton">REMOVE MODEL</button>
-
-    <button id="trackingButton">FACE TRACKING: ON</button>
-    <button id="faceDotsButton">FACE DOTS: ON</button>
-
-    <label for="overlayFile">
-      IMPORT EYE/MOUTH IMAGE
-    </label>
-    <input
-      id="overlayFile"
-      type="file"
-      accept="image/*,video/*"
-    >
-
-    <button id="leftEyeButton">LEFT EYE</button>
-    <button id="rightEyeButton">RIGHT EYE</button>
-    <button id="mouthButton">MOUTH</button>
-    <button id="overlayToggleButton">OVERLAYS: OFF</button>
-
-    <button id="recordButton">START RECORDING</button>
-    <button id="stopRecordButton" disabled>
-      STOP RECORDING
-    </button>
-
-    <button id="exportSettingsButton">EXPORT SETTINGS</button>
-    <button id="exportModelButton">EXPORT MODEL</button>
-
-  </div>
-
-  <div id="status">
-    Ready. Start camera or import a 3D model.
-  </div>
-
+  <button id="showUIButton">SHOW UI</button>
+  <button id="showControlsButton">SHOW CONTROLS</button>
+  <div id="toast" role="status"></div>
 </div>
 
-<button id="showUIButton">SHOW UI</button>
-
-<video id="video-feed" playsinline muted></video>
-<video id="overlayVideo" playsinline muted loop></video>
-
 <script type="module">
-import * as THREE from 'three';
-import { MindARThree } from 'mindar-face-three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
-import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
-import { TransformControls } from 'three/addons/controls/TransformControls.js';
+import * as THREE from "three";
+import { MindARThree } from "mindar-face-three";
 
-const $ = id => document.getElementById(id);
+const $ = (id) => document.getElementById(id);
 
-const container = $('container');
-const status = $('status');
+const container = $("container");
+const videoFeed = $("video-feed");
 
-let mindar = null;
-let anchor = null;
-let transform = null;
-let model = null;
-let modelURL = null;
+let mindarThree = null;
+let faceAnchor = null;
+let cameraRunning = false;
+let trackingRunning = false;
+let mirrored = true;
+let cameraFacing = "user";
+let startingCamera = false;
+let sessionId = 0;
 
-let cameraStarted = false;
-let cameraFacing = 'user';
-let mirrorOn = false;
-let trackingOn = true;
-let dotsOn = true;
-let gizmosOn = true;
-
-let recorder = null;
-let recording = false;
-let chunks = [];
-let recordStream = null;
-let micStream = null;
-let recordTimer = null;
-
-let currentOverlayURL = null;
-let overlayImage = null;
-let overlayTarget = 'leftEye';
-let overlayEnabled = false;
-
-let faceDots = [];
-let lastEstimate = null;
-let generation = 0;
-
-function say(message) {
-  status.textContent = message;
+function setStatus(message) {
+  $("status").textContent = message;
 }
 
-function disposeObject(object) {
-  object.traverse(child => {
+function toast(message) {
+  const el = $("toast");
+  el.textContent = message;
+  el.style.display = "block";
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => {
+    el.style.display = "none";
+  }, 2600);
+}
+
+function updateCameraButtons() {
+  $("startButton").disabled = startingCamera || cameraRunning;
+  $("stopButton").disabled = !cameraRunning && !startingCamera;
+  $("trackingButton").textContent =
+    trackingRunning ? "STOP TRACKING" : "START TRACKING";
+  $("cameraSelect").value = cameraFacing;
+  $("mirrorButton").textContent =
+    mirrored ? "MIRROR ON" : "MIRROR OFF";
+  $("mirrorButton").classList.toggle("active", mirrored);
+}
+
+function applyMirror() {
+  videoFeed.style.transform = mirrored ? "scaleX(-1)" : "scaleX(1)";
+
+  container.querySelectorAll("canvas").forEach((canvas) => {
+    canvas.style.transform = "none";
+  });
+}
+
+function getCameraStream() {
+  return videoFeed.srcObject;
+}
+
+function stopVideoStream() {
+  const stream = getCameraStream();
+  if (stream) {
+    stream.getTracks().forEach((track) => track.stop());
+  }
+  videoFeed.srcObject = null;
+}
+
+async function stopCameraInternal() {
+  const oldSession = ++sessionId;
+
+  cameraRunning = false;
+  trackingRunning = false;
+
+  const current = mindarThree;
+  mindarThree = null;
+  faceAnchor = null;
+
+  if (current) {
+    try {
+      await current.stop();
+    } catch (error) {
+      console.warn("MindAR stop:", error);
+    }
+  }
+
+  stopVideoStream();
+
+  videoFeed.pause();
+  videoFeed.style.display = "block";
+
+  setStatus("Camera stopped");
+  updateCameraButtons();
+
+  return oldSession;
+}
+
+async function startCamera() {
+  if (startingCamera || cameraRunning) return;
+
+  startingCamera = true;
+  updateCameraButtons();
+  setStatus("Starting camera…");
+
+  const mySession = ++sessionId;
+
+  try {
+    // Stop any previously opened camera.
+    if (mindarThree) {
+      const previous = mindarThree;
+      mindarThree = null;
+      try {
+        await previous.stop();
+      } catch (error) {
+        console.warn(error);
+      }
+    }
+
+    stopVideoStream();
+
+    // Clear previous WebGL canvas.
+    container.querySelectorAll("canvas").forEach((canvas) => canvas.remove());
+
+    const tracker = new MindARThree({
+      container,
+      maxTrack: 1,
+      uiLoading: "no",
+      uiScanning: "no",
+      uiError: "no"
+    });
+
+    mindarThree = tracker;
+
+    faceAnchor = tracker.addAnchor(1);
+
+    // This event is useful for future 3D assets.
+    faceAnchor.onTargetFound = () => {
+      if (mindarThree === tracker) {
+        setStatus("Face detected");
+      }
+    };
+
+    faceAnchor.onTargetLost = () => {
+      if (mindarThree === tracker && trackingRunning) {
+        setStatus("Searching for face…");
+      }
+    };
+
+    await tracker.start();
+
+    if (mySession !== sessionId || mindarThree !== tracker) {
+      try {
+        await tracker.stop();
+      } catch (error) {
+        console.warn(error);
+      }
+      return;
+    }
+
+    // MindAR owns its camera video. Use that same stream for preview.
+    const trackerVideo = tracker.video;
+
+    if (trackerVideo && trackerVideo.srcObject) {
+      videoFeed.srcObject = trackerVideo.srcObject;
+      videoFeed.muted = true;
+      videoFeed.playsInline = true;
+
+      try {
+        await videoFeed.play();
+      } catch (error) {
+        console.warn("Preview play:", error);
+      }
+    }
+
+    cameraRunning = true;
+    trackingRunning = true;
+
+    applyMirror();
+    setStatus("Camera running · Face tracking active");
+    toast("Camera started");
+  } catch (error) {
+    console.error("Camera start failed:", error);
+
+    if (mySession === sessionId) {
+      cameraRunning = false;
+      trackingRunning = false;
+      mindarThree = null;
+      faceAnchor = null;
+
+      stopVideoStream();
+
+      setStatus("Camera error");
+      toast("Camera failed. Check permission and try again.");
+    }
+  } finally {
+    startingCamera = false;
+    updateCameraButtons();
+  }
+}
+
+async function stopCamera() {
+  await stopCameraInternal();
+  toast("Camera stopped");
+}
+
+async function switchCamera() {
+  const nextFacing = cameraFacing === "user" ? "environment" : "user";
+
+  cameraFacing = nextFacing;
+  $("cameraSelect").value = nextFacing;
+
+  // MindAR's camera selection depends on the device/browser.
+  // Restarting alone may not switch the physical lens on every device.
+  if (cameraRunning || startingCamera) {
+    await stopCameraInternal();
+  }
+
+  toast(
+    nextFacing === "user"
+      ? "Front camera selected"
+      : "Back camera selected"
+  );
+
+  updateCameraButtons();
+}
+
+$("startButton").addEventListener("click", startCamera);
+$("stopButton").addEventListener("click", stopCamera);
+$("switchButton").addEventListener("click", switchCamera);
+
+$("cameraSelect").addEventListener("change", async (event) => {
+  cameraFacing = event.target.value;
+  updateCameraButtons();
+
+  if (cameraRunning) {
+    await stopCameraInternal();
+    toast("Camera stopped. Press START CAMERA.");
+  }
+});
+
+$("mirrorButton").addEventListener("click", () => {
+  mirrored = !mirrored;
+  applyMirror();
+  updateCameraButtons();
+});
+
+$("trackingButton").addEventListener("click", async () => {
+  if (!cameraRunning) {
+    toast("Start the camera first");
+    return;
+  }
+
+  if (trackingRunning) {
+    await stopCameraInternal();
+    toast("Tracking and camera stopped");
+  } else {
+    await startCamera();
+  }
+
+  updateCameraButtons();
+});
+
+$("fullscreenButton").addEventListener("click", async () => {
+  try {
+    if (!document.fullscreenElement) {
+      await $("studio").requestFullscreen();
+    } else {
+      await document.exitFullscreen();
+    }
+  } catch (error) {
+    console.warn("Fullscreen:", error);
+    toast("Fullscreen is not available in this browser");
+  }
+});
+
+document.addEventListener("fullscreenchange", () => {
+  $("fullscreenButton").textContent =
+    document.fullscreenElement ? "EXIT FULL SCREEN" : "FULL SCREEN";
+});
+
+$("landscapeButton").addEventListener("click", async () => {
+  try {
+    if (screen.orientation?.lock) {
+      await screen.orientation.lock("landscape");
+      toast("Landscape requested");
+    } else {
+      toast("Rotate your phone sideways");
+    }
+  } catch (error) {
+    toast("Rotate your phone sideways for landscape");
+  }
+});
+
+$("hideUIButton").addEventListener("click", () => {
+  document.body.classList.add("ui-hidden");
+  $("showUIButton").style.display = "block";
+});
+
+$("showUIButton").addEventListener("click", () => {
+  document.body.classList.remove("ui-hidden");
+  $("showUIButton").style.display = "none";
+});
+
+$("hideControlsButton").addEventListener("click", () => {
+  document.body.classList.add("controls-hidden");
+  $("showControlsButton").style.display = "block";
+});
+
+$("hideControlsPanelButton").addEventListener("click", () => {
+  document.body.classList.add("controls-hidden");
+  $("showControlsButton").style.display = "block";
+});
+
+$("showControlsButton").addEventListener("click", () => {
+  document.body.classList.remove("controls-hidden");
+  $("showControlsButton").style.display = "none";
+});
+
+$("hideSlidersButton").addEventListener("click", () => {
+  document.body.classList.add("sliders-hidden");
+});
+
+$("showSlidersButton").addEventListener("click", () => {
+  document.body.classList.remove("sliders-hidden");
+});
+
+$("resetViewButton").addEventListener("click", () => {
+  mirrored = true;
+  applyMirror();
+  updateCameraButtons();
+  toast("Preview mirror reset");
+});
+
+// Shared state for the next code parts.
+window.azizAR = {
+  THREE,
+  get mindarThree() {
+    return mindarThree;
+  },
+  get faceAnchor() {
+    return faceAnchor;
+  },
+  get cameraRunning() {
+    return cameraRunning;
+  },
+  get trackingRunning() {
+    return trackingRunning;
+  },
+  get cameraFacing() {
+    return cameraFacing;
+  },
+  setStatus,
+  toast
+};
+
+updateCameraButtons();
+setStatus("Ready · Press START CAMERA");
+
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
+import { FBXLoader } from "three/addons/loaders/FBXLoader.js";
+import { TransformControls } from "three/addons/controls/TransformControls.js";
+
+const $3 = (id) => document.getElementById(id);
+const app3 = window.azizAR;
+
+let selectedObject3 = null;
+let gizmo3 = null;
+let gizmoMode3 = "translate";
+let gizmoVisible3 = true;
+
+const assets3 = [];
+const objectUrls3 = [];
+
+function toast3(message) {
+  app3?.toast?.(message);
+}
+
+function setStatus3(message) {
+  app3?.setStatus?.(message);
+}
+
+function getAnchorGroup3() {
+  const anchor = app3?.faceAnchor;
+  return anchor?.group || null;
+}
+
+function getScene3() {
+  return app3?.mindarThree?.scene || null;
+}
+
+function getCamera3() {
+  return app3?.mindarThree?.camera || null;
+}
+
+function getRenderer3() {
+  return app3?.mindarThree?.renderer || null;
+}
+
+function addObjectToScene3(object) {
+  const anchorGroup = getAnchorGroup3();
+
+  if (anchorGroup) {
+    anchorGroup.add(object);
+    return true;
+  }
+
+  const scene = getScene3();
+
+  if (scene) {
+    scene.add(object);
+    return true;
+  }
+
+  toast3("Start the camera before importing assets");
+  return false;
+}
+
+function initGizmo3() {
+  const camera = getCamera3();
+  const renderer = getRenderer3();
+  const scene = getScene3();
+
+  if (!camera || !renderer || !scene) {
+    toast3("Start camera before using the gizmo");
+    return;
+  }
+
+  if (gizmo3) {
+    gizmo3.dispose();
+    gizmo3 = null;
+  }
+
+  gizmo3 = new TransformControls(camera, renderer.domElement);
+  gizmo3.setMode(gizmoMode3);
+  gizmo3.visible = gizmoVisible3;
+
+  scene.add(gizmo3.getHelper());
+
+  gizmo3.addEventListener("dragging-changed", (event) => {
+    // Avoid changing an object while the gizmo is being dragged.
+    if (event.value) {
+      renderer.domElement.style.touchAction = "none";
+    } else {
+      renderer.domElement.style.touchAction = "auto";
+    }
+  });
+
+  if (selectedObject3) {
+    gizmo3.attach(selectedObject3);
+  }
+}
+
+function selectObject3(object) {
+  selectedObject3 = object;
+
+  if (app3?.cameraRunning) {
+    initGizmo3();
+    if (gizmo3 && object) gizmo3.attach(object);
+  }
+
+  updateTransformSliders3();
+  updateAssetList3();
+}
+
+function disposeObject3(object) {
+  object.traverse?.((child) => {
     if (child.geometry) child.geometry.dispose();
 
     if (child.material) {
@@ -327,9 +986,9 @@ function disposeObject(object) {
         ? child.material
         : [child.material];
 
-      materials.forEach(material => {
+      materials.forEach((material) => {
         for (const value of Object.values(material)) {
-          if (value?.isTexture) value.dispose();
+          if (value && value.isTexture) value.dispose();
         }
         material.dispose();
       });
@@ -337,649 +996,772 @@ function disposeObject(object) {
   });
 }
 
-function clearDots() {
-  if (!anchor) return;
-
-  for (const dot of faceDots) {
-    anchor.group.remove(dot);
-    dot.geometry.dispose();
-    dot.material.dispose();
-  }
-
-  faceDots = [];
-}
-
-async function setupCamera() {
-  if (mindar) return;
-
-  mindar = new MindARThree({
-    container,
-    maxTrack: 1,
-    videoSettings: {
-      facingMode: cameraFacing
-    }
-  });
-
-  const scene = mindar.scene;
-
-  scene.add(new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1.8));
-
-  const light = new THREE.DirectionalLight(0xffffff, 1.5);
-  light.position.set(0, 2, 3);
-  scene.add(light);
-
-  anchor = mindar.addAnchor(1);
-
-  mindar.renderer.setPixelRatio(
-    Math.min(window.devicePixelRatio || 1, 2)
-  );
-
-  mindar.renderer.setSize(
-    container.clientWidth,
-    container.clientHeight
-  );
-
-  transform = new TransformControls(
-    mindar.camera,
-    mindar.renderer.domElement
-  );
-
-  transform.setMode('translate');
-  transform.setSpace('local');
-
-  transform.addEventListener('dragging-changed', event => {
-    // TransformControls handles the actual 3D gizmo interaction.
-  });
-
-  scene.add(transform.getHelper());
-
-  transform.enabled = false;
-
-  mindar.renderer.setAnimationLoop(() => {
-    if (!mindar) return;
-
-    if (trackingOn) {
-      try {
-        lastEstimate = mindar.getLatestEstimate();
-      } catch (error) {
-        lastEstimate = null;
-      }
-    }
-
-    mindar.renderer.render(scene, mindar.camera);
-  });
-}
-
-async function startCamera() {
-  try {
-    await setupCamera();
-
-    if (cameraStarted) {
-      say('Camera is already running.');
-      return;
-    }
-
-    await mindar.start();
-    cameraStarted = true;
-
-    say('Camera started. Face the camera.');
-  } catch (error) {
-    console.error(error);
-    say('Camera failed. Check HTTPS, camera permission and browser support.');
-  }
-}
-
-async function stopCamera() {
-  if (!mindar || !cameraStarted) {
-    say('Camera is not running.');
+function removeSelected3() {
+  if (!selectedObject3) {
+    toast3("Select an asset first");
     return;
   }
 
-  try {
-    await mindar.stop();
-  } catch (error) {
-    console.error(error);
-  }
+  if (gizmo3) gizmo3.detach();
 
-  cameraStarted = false;
-  say('Camera stopped.');
+  const object = selectedObject3;
+  object.parent?.remove(object);
+  disposeObject3(object);
+
+  const item = assets3.find((asset) => asset.object === object);
+  if (item) item.removed = true;
+
+  selectedObject3 = null;
+  updateAssetList3();
+  updateTransformSliders3();
+  toast3("Selected asset removed");
 }
 
-async function switchCamera() {
-  const wasRunning = cameraStarted;
-
-  try {
-    if (wasRunning) {
-      await mindar.stop();
-      cameraStarted = false;
-    }
-
-    // Recreate MindAR with the requested camera source.
-    if (mindar) {
-      mindar.renderer.setAnimationLoop(null);
-
-      if (transform) {
-        transform.detach();
-        mindar.scene.remove(transform.getHelper());
-        transform.dispose();
-      }
-
-      clearDots();
-
-      if (model && anchor) {
-        anchor.group.remove(model);
-      }
-
-      mindar = null;
-      anchor = null;
-      transform = null;
-    }
-
-    cameraFacing = cameraFacing === 'user' ? 'environment' : 'user';
-
-    await setupCamera();
-
-    if (model) {
-      anchor.group.add(model);
-      transform.attach(model);
-      transform.enabled = gizmosOn;
-    }
-
-    if (wasRunning) {
-      await mindar.start();
-      cameraStarted = true;
-    }
-
-    say('Requested camera: ' + cameraFacing +
-      '. If it does not switch, this MindAR build may not support changing camera source.');
-  } catch (error) {
-    console.error(error);
-    say('Camera switch failed. The browser or MindAR version may not support this camera source.');
-  }
-}
-
-function removeModel() {
-  generation++;
-
-  if (model && anchor) {
-    anchor.group.remove(model);
-
-    if (transform) transform.detach();
-
-    disposeObject(model);
-  }
-
-  model = null;
-
-  if (modelURL) {
-    URL.revokeObjectURL(modelURL);
-    modelURL = null;
-  }
-
-  say('Model removed.');
-}
-
-function centerAndScale(object) {
-  const bounds = new THREE.Box3().setFromObject(object);
-  const size = bounds.getSize(new THREE.Vector3());
-  const center = bounds.getCenter(new THREE.Vector3());
-  const maxDimension = Math.max(size.x, size.y, size.z);
-
-  if (!Number.isFinite(maxDimension) || maxDimension <= 0) {
-    throw new Error('Model has invalid dimensions.');
-  }
-
-  object.position.sub(center);
-  object.scale.setScalar(1 / maxDimension);
-}
-
-async function importModel(file) {
-  if (!file) return;
-
-  const extension = file.name.split('.').pop().toLowerCase();
-
-  if (!['glb', 'gltf', 'obj', 'fbx'].includes(extension)) {
-    say('Use GLB, GLTF, OBJ or FBX.');
+function resetTransform3() {
+  if (!selectedObject3) {
+    toast3("Select an asset first");
     return;
   }
 
-  const thisGeneration = ++generation;
+  selectedObject3.position.set(0, 0, 0);
+  selectedObject3.rotation.set(0, 0, 0);
+  selectedObject3.scale.setScalar(1);
 
-  try {
-    await setupCamera();
+  updateTransformSliders3();
+}
 
-    say('Loading ' + file.name + '...');
+function updateTransformSliders3() {
+  const object = selectedObject3;
 
-    const url = URL.createObjectURL(file);
-    const oldURL = modelURL;
-    modelURL = url;
+  const map = [
+    ["positionX", object?.position.x ?? 0],
+    ["positionY", object?.position.y ?? 0],
+    ["positionZ", object?.position.z ?? 0],
+    ["rotationX", THREE.MathUtils.radToDeg(object?.rotation.x ?? 0)],
+    ["rotationY", THREE.MathUtils.radToDeg(object?.rotation.y ?? 0)],
+    ["rotationZ", THREE.MathUtils.radToDeg(object?.rotation.z ?? 0)],
+    ["modelScale", object?.scale.x ?? 1]
+  ];
 
-    if (model && anchor) {
-      anchor.group.remove(model);
-      if (transform) transform.detach();
-      disposeObject(model);
-      model = null;
-    }
+  map.forEach(([id, value]) => {
+    const input = $3(id);
+    if (input) input.value = String(value);
+  });
+}
 
-    let loadedModel;
+function updateAssetList3() {
+  const list = $3("assetList");
+  list.replaceChildren();
 
-    if (extension === 'glb' || extension === 'gltf') {
-      const result = await new GLTFLoader().loadAsync(url);
-      loadedModel = result.scene;
-    } else if (extension === 'fbx') {
-      loadedModel = await new FBXLoader().loadAsync(url);
-    } else {
-      loadedModel = await new OBJLoader().loadAsync(url);
-    }
+  assets3.filter((asset) => !asset.removed).forEach((asset) => {
+    const row = document.createElement("div");
+    row.className = "assetItem";
 
-    if (thisGeneration !== generation) {
-      disposeObject(loadedModel);
-      URL.revokeObjectURL(url);
-      return;
-    }
+    const title = document.createElement("span");
+    title.textContent = asset.name;
 
-    loadedModel.traverse(child => {
-      if (child.isMesh && child.material) {
-        const materials = Array.isArray(child.material)
-          ? child.material
-          : [child.material];
+    const controls = document.createElement("div");
 
-        materials.forEach(material => {
-          material.side = THREE.DoubleSide;
-          material.needsUpdate = true;
-        });
-      }
+    const select = document.createElement("button");
+    select.textContent =
+      asset.object === selectedObject3 ? "SELECTED" : "SELECT";
+    select.addEventListener("click", () => selectObject3(asset.object));
+
+    const remove = document.createElement("button");
+    remove.textContent = "REMOVE";
+    remove.addEventListener("click", () => {
+      selectObject3(asset.object);
+      removeSelected3();
     });
 
-    centerAndScale(loadedModel);
-    model = loadedModel;
-
-    anchor.group.add(model);
-    transform.attach(model);
-    transform.enabled = gizmosOn;
-
-    if (oldURL && oldURL !== url) URL.revokeObjectURL(oldURL);
-
-    say('Model loaded. Select MOVE, ROTATE or SCALE and drag a gizmo.');
-  } catch (error) {
-    console.error(error);
-    say('Import failed. GLTF and OBJ may need separate texture files; try a self-contained GLB.');
-  }
+    controls.append(select, remove);
+    row.append(title, controls);
+    list.append(row);
+  });
 }
 
-function resetModel() {
-  if (!model) {
-    say('Import a model first.');
+function registerAsset3(name, object, kind) {
+  assets3.push({ name, object, kind, removed: false });
+  selectObject3(object);
+  updateAssetList3();
+  setStatus3("Imported: " + name);
+}
+
+function normalizeModel3(object) {
+  const box = new THREE.Box3().setFromObject(object);
+  const size = box.getSize(new THREE.Vector3());
+  const maxSize = Math.max(size.x, size.y, size.z);
+
+  if (Number.isFinite(maxSize) && maxSize > 0) {
+    object.scale.multiplyScalar(1.2 / maxSize);
+  }
+
+  object.position.set(0, 0, 0);
+}
+
+async function importModel3(file) {
+  if (!app3?.cameraRunning) {
+    toast3("Start the camera before importing a 3D model");
     return;
   }
 
-  model.position.set(0, 0, 0);
-  model.rotation.set(0, 0, 0);
-  centerAndScale(model);
+  const name = file.name;
+  const extension = name.split(".").pop().toLowerCase();
+  const url = URL.createObjectURL(file);
+  objectUrls3.push(url);
 
-  say('Model reset.');
-}
-
-function setGizmoMode(mode) {
-  if (!transform) {
-    say('Start the camera or import a model first.');
-    return;
-  }
-
-  transform.setMode(mode);
-
-  document.querySelectorAll('[data-gizmo-mode]').forEach(button => {
-    button.classList.toggle(
-      'active',
-      button.dataset.gizmoMode === mode
-    );
-  });
-
-  say(mode.toUpperCase() + ' gizmo selected.');
-}
-
-function toggleGizmos() {
-  gizmosOn = !gizmosOn;
-
-  if (transform) {
-    transform.enabled = gizmosOn && !!model;
-  }
-
-  $('hideGizmoButton').textContent =
-    gizmosOn ? 'HIDE GIZMOS' : 'SHOW GIZMOS';
-
-  say(gizmosOn ? 'Gizmos enabled.' : 'Gizmos hidden.');
-}
-
-function toggleTracking() {
-  trackingOn = !trackingOn;
-
-  $('trackingButton').textContent =
-    'FACE TRACKING: ' + (trackingOn ? 'ON' : 'OFF');
-
-  say(
-    trackingOn
-      ? 'Tracking display enabled.'
-      : 'Tracking updates paused in this app. MindAR may still run internally.'
-  );
-}
-
-function toggleDots() {
-  dotsOn = !dotsOn;
-
-  $('faceDotsButton').textContent =
-    'FACE DOTS: ' + (dotsOn ? 'ON' : 'OFF');
-
-  faceDots.forEach(dot => {
-    dot.visible = dotsOn;
-  });
-
-  say('Face dots display: ' + (dotsOn ? 'ON' : 'OFF'));
-}
-
-function toggleMirror() {
-  mirrorOn = !mirrorOn;
-
-  // Mirror the rendered canvas visually.
-  const canvas = mindar?.renderer?.domElement;
-
-  if (canvas) {
-    canvas.style.transform = mirrorOn ? 'scaleX(-1)' : 'none';
-  }
-
-  $('mirrorButton').textContent =
-    'MIRROR: ' + (mirrorOn ? 'ON' : 'OFF');
-
-  say('Preview mirror: ' + (mirrorOn ? 'ON' : 'OFF'));
-}
-
-async function toggleFullscreen() {
   try {
-    if (!document.fullscreenElement) {
-      await document.documentElement.requestFullscreen();
+    let object;
+
+    if (extension === "glb" || extension === "gltf") {
+      const loader = new GLTFLoader();
+      const gltf = await loader.loadAsync(url);
+      object = gltf.scene;
+
+      if (extension === "gltf") {
+        toast3("For GLTF, keep its external textures beside the file");
+      }
+    } else if (extension === "obj") {
+      object = await new OBJLoader().loadAsync(url);
+    } else if (extension === "fbx") {
+      object = await new FBXLoader().loadAsync(url);
     } else {
-      await document.exitFullscreen();
+      throw new Error("Unsupported model format");
     }
-  } catch (error) {
-    say('Fullscreen unavailable. Use your browser fullscreen option.');
-  }
-}
 
-function hideControls() {
-  const toolbar = $('toolbar');
-  const hidden = toolbar.classList.toggle('controls-hidden');
+    if (!object) throw new Error("Model could not be loaded");
 
-  $('hideControlsButton').textContent =
-    hidden ? 'SHOW CONTROLS' : 'HIDE CONTROLS';
-}
+    normalizeModel3(object);
 
-function hideUI() {
-  document.body.classList.add('ui-hidden');
-  $('showUIButton').style.display = 'inline-flex';
-}
-
-function showUI() {
-  document.body.classList.remove('ui-hidden');
-  $('showUIButton').style.display = 'none';
-}
-
-async function startRecording() {
-  if (recording) return;
-
-  try {
-    await setupCamera();
-
-    if (!cameraStarted) {
-      say('Start the camera before recording.');
+    if (!addObjectToScene3(object)) {
+      disposeObject3(object);
       return;
     }
 
-    const canvas = mindar.renderer.domElement;
+    registerAsset3(name, object, "model");
+    toast3("3D model imported");
+  } catch (error) {
+    console.error("Model import:", error);
+    toast3("Model import failed. Check file format and textures.");
+  }
+}
 
-    // This records the WebGL canvas. Camera video compositing may
-    // require a separate canvas integration for your MindAR build.
-    recordStream = canvas.captureStream(24);
+function makeImagePlane3(texture, aspect = 1) {
+  const height = 0.35;
+  const width = height * aspect;
 
-    const tracks = [...recordStream.getVideoTracks()];
+  const material = new THREE.MeshBasicMaterial({
+    map: texture,
+    transparent: true,
+    side: THREE.DoubleSide,
+    depthWrite: false
+  });
 
-    try {
-      micStream = await navigator.mediaDevices.getUserMedia({
-        audio: true
-      });
+  const mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(width, height),
+    material
+  );
 
-      tracks.push(...micStream.getAudioTracks());
-    } catch (error) {
-      say('Microphone unavailable; continuing without audio.');
+  return mesh;
+}
+
+async function importImage3(file) {
+  if (!app3?.cameraRunning) {
+    toast3("Start the camera before importing an image");
+    return;
+  }
+
+  const url = URL.createObjectURL(file);
+  objectUrls3.push(url);
+
+  try {
+    const texture = await new THREE.TextureLoader().loadAsync(url);
+    const image = texture.image;
+    const aspect = image.width / Math.max(1, image.height);
+    const mesh = makeImagePlane3(texture, aspect);
+
+    if (!addObjectToScene3(mesh)) {
+      disposeObject3(mesh);
+      return;
     }
 
-    const stream = new MediaStream(tracks);
+    registerAsset3(file.name, mesh, "image");
+    toast3("Image imported");
+  } catch (error) {
+    console.error("Image import:", error);
+    toast3("Image could not be loaded");
+  }
+}
 
-    const mimeTypes = [
-      'video/webm;codecs=vp8,opus',
-      'video/webm'
-    ];
+async function importVideo3(file) {
+  if (!app3?.cameraRunning) {
+    toast3("Start the camera before importing a video");
+    return;
+  }
 
-    const mimeType = mimeTypes.find(type =>
-      MediaRecorder.isTypeSupported(type)
-    );
+  const url = URL.createObjectURL(file);
+  objectUrls3.push(url);
 
-    recorder = new MediaRecorder(stream, {
-      ...(mimeType ? { mimeType } : {}),
-      videoBitsPerSecond: 2500000,
-      audioBitsPerSecond: 96000
+  const video = $3("overlayVideo");
+  video.pause();
+  video.src = url;
+  video.muted = true;
+  video.loop = true;
+  video.playsInline = true;
+
+  try {
+    await new Promise((resolve, reject) => {
+      video.onloadeddata = resolve;
+      video.onerror = () => reject(new Error("Video load failed"));
+      video.load();
     });
 
-    chunks = [];
+    const texture = new THREE.VideoTexture(video);
+    texture.colorSpace = THREE.SRGBColorSpace;
 
-    recorder.ondataavailable = event => {
-      if (event.data && event.data.size) {
-        chunks.push(event.data);
-      }
-    };
+    const aspect =
+      video.videoWidth / Math.max(1, video.videoHeight);
 
-    recorder.onstop = () => {
-      const blob = new Blob(chunks, {
-        type: recorder.mimeType || 'video/webm'
-      });
+    const mesh = makeImagePlane3(texture, aspect);
 
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
+    if (!addObjectToScene3(mesh)) {
+      disposeObject3(mesh);
+      return;
+    }
 
-      link.href = url;
-      link.download = 'aziz-ar-recording.webm';
-      link.click();
-
-      setTimeout(() => URL.revokeObjectURL(url), 30000);
-
-      if (recordStream) {
-        recordStream.getTracks().forEach(track => track.stop());
-      }
-
-      if (micStream) {
-        micStream.getTracks().forEach(track => track.stop());
-      }
-
-      recordStream = null;
-      micStream = null;
-      say('Recording downloaded. Check that the video contains the expected camera view and audio.');
-    };
-
-    recorder.start(1000);
-    recording = true;
-
-    $('recordButton').disabled = true;
-    $('stopRecordButton').disabled = false;
-
-    // Leave UI visible until the user chooses to hide it.
-    say('Recording started. Use HIDE UI to show only the preview.');
+    await video.play().catch(() => {});
+    registerAsset3(file.name, mesh, "video");
+    toast3("Video imported");
   } catch (error) {
-    console.error(error);
-    say('Recording failed. Check browser support and HTTPS permissions.');
+    console.error("Video import:", error);
+    toast3("Video could not be loaded");
   }
 }
 
-function stopRecording() {
-  if (recorder && recording) {
-    recorder.stop();
+$3("importModelButton").addEventListener("click", () => {
+  $3("modelFile").click();
+});
+
+$3("importImageButton").addEventListener("click", () => {
+  $3("imageFile").click();
+});
+
+$3("importVideoButton").addEventListener("click", () => {
+  $3("videoFile").click();
+});
+
+$3("addMoreButton").addEventListener("click", () => {
+  $3("multiAssetFile").click();
+});
+
+$3("modelFile").addEventListener("change", async (event) => {
+  const file = event.target.files?.[0];
+  if (file) await importModel3(file);
+  event.target.value = "";
+});
+
+$3("imageFile").addEventListener("change", async (event) => {
+  const file = event.target.files?.[0];
+  if (file) await importImage3(file);
+  event.target.value = "";
+});
+
+$3("videoFile").addEventListener("change", async (event) => {
+  const file = event.target.files?.[0];
+  if (file) await importVideo3(file);
+  event.target.value = "";
+});
+
+$3("multiAssetFile").addEventListener("change", async (event) => {
+  const files = Array.from(event.target.files || []);
+
+  for (const file of files) {
+    const ext = file.name.split(".").pop().toLowerCase();
+
+    if (["glb", "gltf", "obj", "fbx"].includes(ext)) {
+      await importModel3(file);
+    } else if (file.type.startsWith("image/")) {
+      await importImage3(file);
+    } else if (file.type.startsWith("video/")) {
+      await importVideo3(file);
+    }
   }
 
-  recording = false;
-  $('recordButton').disabled = false;
-  $('stopRecordButton').disabled = true;
+  event.target.value = "";
+});
+
+$3("moveGizmoButton").addEventListener("click", () => {
+  gizmoMode3 = "translate";
+  gizmo3?.setMode(gizmoMode3);
+  $3("moveGizmoButton").classList.add("active");
+  $3("rotateGizmoButton").classList.remove("active");
+  $3("scaleGizmoButton").classList.remove("active");
+});
+
+$3("rotateGizmoButton").addEventListener("click", () => {
+  gizmoMode3 = "rotate";
+  gizmo3?.setMode(gizmoMode3);
+  $3("moveGizmoButton").classList.remove("active");
+  $3("rotateGizmoButton").classList.add("active");
+  $3("scaleGizmoButton").classList.remove("active");
+});
+
+$3("scaleGizmoButton").addEventListener("click", () => {
+  gizmoMode3 = "scale";
+  gizmo3?.setMode(gizmoMode3);
+  $3("moveGizmoButton").classList.remove("active");
+  $3("rotateGizmoButton").classList.remove("active");
+  $3("scaleGizmoButton").classList.add("active");
+});
+
+$3("hideGizmoButton").addEventListener("click", () => {
+  gizmoVisible3 = !gizmoVisible3;
+
+  if (gizmo3) {
+    gizmo3.visible = gizmoVisible3;
+    gizmo3.getHelper().visible = gizmoVisible3;
+  }
+
+  $3("hideGizmoButton").textContent =
+    gizmoVisible3 ? "HIDE GIZMO" : "SHOW GIZMO";
+});
+
+[
+  ["positionX", (object, value) => object.position.x = value],
+  ["positionY", (object, value) => object.position.y = value],
+  ["positionZ", (object, value) => object.position.z = value],
+  ["rotationX", (object, value) => object.rotation.x = THREE.MathUtils.degToRad(value)],
+  ["rotationY", (object, value) => object.rotation.y = THREE.MathUtils.degToRad(value)],
+  ["rotationZ", (object, value) => object.rotation.z = THREE.MathUtils.degToRad(value)]
+].forEach(([id, apply]) => {
+  $3(id).addEventListener("input", (event) => {
+    if (!selectedObject3) return;
+    apply(selectedObject3, Number(event.target.value));
+  });
+});
+
+$3("modelScale").addEventListener("input", (event) => {
+  if (!selectedObject3) return;
+  const value = Number(event.target.value);
+  selectedObject3.scale.setScalar(value);
+});
+
+$3("resetTransformButton").addEventListener("click", resetTransform3);
+$3("removeModelButton").addEventListener("click", removeSelected3);
+
+$3("resetAllButton").addEventListener("click", () => {
+  if (gizmo3) gizmo3.detach();
+
+  assets3.filter((asset) => !asset.removed).forEach((asset) => {
+    asset.object.parent?.remove(asset.object);
+    disposeObject3(asset.object);
+    asset.removed = true;
+  });
+
+  selectedObject3 = null;
+  updateAssetList3();
+  updateTransformSliders3();
+  toast3("All imported assets removed");
+});
+
+// Expose asset functions for Part 4.
+window.azizARAssets = {
+  assets: assets3,
+  selectObject: selectObject3,
+  removeSelected: removeSelected3,
+  updateAssetList: updateAssetList3,
+  get selectedObject() {
+    return selectedObject3;
+  }
+};
+
+// Initialize TransformControls whenever the camera becomes available.
+document.addEventListener("click", (event) => {
+  if (
+    event.target?.id === "startButton" &&
+    app3?.cameraRunning
+  ) {
+    initGizmo3();
+  }
+});
+
+// The camera may finish starting after the click handler returns.
+const watchCamera3 = setInterval(() => {
+  if (app3?.cameraRunning && !gizmo3) initGizmo3();
+}, 800);
+
+window.addEventListener("beforeunload", () => {
+  clearInterval(watchCamera3);
+
+  if (gizmo3) gizmo3.dispose();
+
+  objectUrls3.forEach((url) => URL.revokeObjectURL(url));
+});
+</script>
+
+<script type="module">
+const $4 = (id) => document.getElementById(id);
+const app4 = window.azizAR;
+
+let recorder4 = null;
+let recordedChunks4 = [];
+let recordedBlob4 = null;
+let recordingStream4 = null;
+let recordingCanvas4 = null;
+let recordingContext4 = null;
+let recordingFrame4 = null;
+let recordingAudioContext4 = null;
+let recordingAudioDestination4 = null;
+let recordingAudioSource4 = null;
+
+function toast4(message) {
+  app4?.toast?.(message);
 }
 
-function exportSettings() {
+function setStatus4(message) {
+  app4?.setStatus?.(message);
+}
+
+function exportSettings4() {
   const settings = {
-    position: model ? model.position.toArray() : null,
-    rotation: model ? model.rotation.toArray() : null,
-    scale: model ? model.scale.toArray() : null,
-    gizmoMode: transform ? transform.getMode() : 'translate',
-    cameraFacing,
-    mirrorOn
+    app: "Aziz AI AR Studio",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    mirror: $4("mirrorButton").textContent === "MIRROR ON",
+    camera: $4("cameraSelect").value,
+    trackingMode: $4("trackingMode").value,
+    personTarget: $4("personTarget").value,
+    recording: {
+      resolution: $4("recordResolution").value,
+      bitrate: $4("recordBitrate").value,
+      audio: $4("recordAudio").checked
+    },
+    transform: {
+      x: $4("positionX").value,
+      y: $4("positionY").value,
+      z: $4("positionZ").value,
+      rotationX: $4("rotationX").value,
+      rotationY: $4("rotationY").value,
+      rotationZ: $4("rotationZ").value,
+      scale: $4("modelScale").value
+    }
   };
 
   const blob = new Blob(
     [JSON.stringify(settings, null, 2)],
-    { type: 'application/json' }
+    { type: "application/json" }
   );
 
+  downloadBlob4(blob, "aziz-ar-settings.json");
+  toast4("Settings exported");
+}
+
+function downloadBlob4(blob, filename) {
   const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
+  const link = document.createElement("a");
 
   link.href = url;
-  link.download = 'aziz-ar-settings.json';
+  link.download = filename;
+  document.body.appendChild(link);
   link.click();
+  link.remove();
 
-  setTimeout(() => URL.revokeObjectURL(url), 30000);
-  say('Settings exported.');
+  setTimeout(() => URL.revokeObjectURL(url), 3000);
 }
 
-function exportModel() {
-  say('Model export is not implemented yet. Export Settings saves the current transform settings.');
+function getVideoMimeType4() {
+  const types = [
+    "video/webm;codecs=vp9,opus",
+    "video/webm;codecs=vp8,opus",
+    "video/webm"
+  ];
+
+  return types.find((type) =>
+    MediaRecorder.isTypeSupported(type)
+  ) || "";
 }
 
-function selectOverlay(file) {
-  if (!file) return;
+function drawRecordingFrame4() {
+  if (!recordingContext4 || !recordingCanvas4) return;
 
-  if (currentOverlayURL) {
-    URL.revokeObjectURL(currentOverlayURL);
+  const width = recordingCanvas4.width;
+  const height = recordingCanvas4.height;
+
+  recordingContext4.fillStyle = "#080b12";
+  recordingContext4.fillRect(0, 0, width, height);
+
+  const video = $4("video-feed");
+  if (video && video.readyState >= 2 && video.videoWidth > 0) {
+    const sourceAspect = video.videoWidth / video.videoHeight;
+    const targetAspect = width / height;
+
+    let drawWidth = width;
+    let drawHeight = height;
+    let x = 0;
+    let y = 0;
+
+    if (sourceAspect > targetAspect) {
+      drawHeight = height;
+      drawWidth = height * sourceAspect;
+      x = (width - drawWidth) / 2;
+    } else {
+      drawWidth = width;
+      drawHeight = width / sourceAspect;
+      y = (height - drawHeight) / 2;
+    }
+
+    recordingContext4.save();
+
+    if ($4("mirrorButton").textContent === "MIRROR ON") {
+      recordingContext4.translate(width, 0);
+      recordingContext4.scale(-1, 1);
+      recordingContext4.drawImage(video, -x, y, drawWidth, drawHeight);
+    } else {
+      recordingContext4.drawImage(video, x, y, drawWidth, drawHeight);
+    }
+
+    recordingContext4.restore();
   }
 
-  currentOverlayURL = URL.createObjectURL(file);
-  overlayImage = null;
+  // Draw the current WebGL canvas over the camera frame.
+  // This records the visible canvas output, but cannot guarantee
+  // that every tracker/video layer is composited correctly.
+  const webglCanvas = $4("container").querySelector("canvas");
 
-  if (file.type.startsWith('image/')) {
-    const image = new Image();
+  if (webglCanvas && webglCanvas.width > 0 && webglCanvas.height > 0) {
+    recordingContext4.drawImage(webglCanvas, 0, 0, width, height);
+  }
 
-    image.onload = () => {
-      overlayImage = image;
-      say('Overlay image loaded. Landmark-based eye/mouth placement is not implemented in this Part 2.');
+  recordingFrame4 = requestAnimationFrame(drawRecordingFrame4);
+}
+
+async function startRecording4() {
+  if (!app4?.cameraRunning) {
+    toast4("Start the camera before recording");
+    return;
+  }
+
+  if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) {
+    toast4("Recording is not supported in this browser");
+    return;
+  }
+
+  if (recorder4 && recorder4.state === "recording") return;
+
+  try {
+    const requestedHeight = Number($4("recordResolution").value);
+    const requestedWidth = Math.round(requestedHeight * 16 / 9);
+    const bitrate = Number($4("recordBitrate").value);
+
+    recordingCanvas4 = document.createElement("canvas");
+    recordingCanvas4.width = requestedWidth;
+    recordingCanvas4.height = requestedHeight;
+    recordingContext4 = recordingCanvas4.getContext("2d");
+
+    recordingStream4 = recordingCanvas4.captureStream(30);
+
+    if ($4("recordAudio").checked) {
+      const cameraVideo = $4("video-feed");
+      const cameraStream = cameraVideo.srcObject;
+
+      if (cameraStream?.getAudioTracks().length) {
+        recordingStream4.addTrack(cameraStream.getAudioTracks()[0]);
+      } else {
+        toast4("Camera audio is unavailable; recording video only");
+      }
+    }
+
+    const mimeType = getVideoMimeType4();
+    const options = { videoBitsPerSecond: bitrate };
+
+    if (mimeType) options.mimeType = mimeType;
+
+    recorder4 = new MediaRecorder(recordingStream4, options);
+    recordedChunks4 = [];
+    recordedBlob4 = null;
+
+    recorder4.ondataavailable = (event) => {
+      if (event.data && event.data.size > 0) {
+        recordedChunks4.push(event.data);
+      }
     };
 
-    image.onerror = () => say('Unable to load this image.');
-    image.src = currentOverlayURL;
-  } else if (file.type.startsWith('video/')) {
-    const video = $('overlayVideo');
-    video.src = currentOverlayURL;
+    recorder4.onstop = () => {
+      recordedBlob4 = new Blob(recordedChunks4, {
+        type: recorder4.mimeType || "video/webm"
+      });
 
-    video.play().catch(() => {});
-    say('Overlay video loaded. Eye/mouth placement still needs landmark mapping.');
-  } else {
-    say('Select an image or video.');
+      $4("downloadVideoButton").disabled = recordedBlob4.size === 0;
+
+      if (recordingStream4) {
+        recordingStream4.getTracks().forEach((track) => track.stop());
+      }
+
+      recordingStream4 = null;
+
+      if (recordingAudioSource4) {
+        try { recordingAudioSource4.disconnect(); } catch {}
+      }
+
+      if (recordingAudioContext4) {
+        recordingAudioContext4.close().catch(() => {});
+      }
+
+      recordingAudioSource4 = null;
+      recordingAudioContext4 = null;
+      recordingAudioDestination4 = null;
+
+      toast4("Recording ready. Press DOWNLOAD VIDEO.");
+      setStatus4("Recording finished");
+    };
+
+    drawRecordingFrame4();
+    recorder4.start(500);
+
+    $4("recordButton").disabled = true;
+    $4("stopRecordButton").disabled = false;
+    $4("recordingIndicator").style.display = "inline";
+
+    setStatus4("Recording");
+    toast4("Recording started");
+  } catch (error) {
+    console.error("Recording error:", error);
+
+    if (recordingFrame4) cancelAnimationFrame(recordingFrame4);
+
+    recordingStream4?.getTracks().forEach((track) => track.stop());
+    recordingStream4 = null;
+
+    $4("recordButton").disabled = false;
+    $4("stopRecordButton").disabled = true;
+    $4("recordingIndicator").style.display = "none";
+
+    toast4("Could not start recording on this device");
   }
 }
 
-function selectOverlayTarget(target) {
-  overlayTarget = target;
+function stopRecording4() {
+  if (!recorder4 || recorder4.state !== "recording") return;
 
-  $('leftEyeButton').classList.toggle('active', target === 'leftEye');
-  $('rightEyeButton').classList.toggle('active', target === 'rightEye');
-  $('mouthButton').classList.toggle('active', target === 'mouth');
+  recorder4.stop();
 
-  say('Selected overlay target: ' + target + '. Actual placement requires face-landmark mapping.');
+  if (recordingFrame4) {
+    cancelAnimationFrame(recordingFrame4);
+    recordingFrame4 = null;
+  }
+
+  $4("recordButton").disabled = false;
+  $4("stopRecordButton").disabled = true;
+  $4("recordingIndicator").style.display = "none";
 }
 
-function toggleOverlay() {
-  overlayEnabled = !overlayEnabled;
+function downloadRecording4() {
+  if (!recordedBlob4 || !recordedBlob4.size) {
+    toast4("Record a video first");
+    return;
+  }
 
-  $('overlayToggleButton').textContent =
-    'OVERLAYS: ' + (overlayEnabled ? 'ON' : 'OFF');
-
-  say('Overlay toggle changed. This prototype does not yet place overlays on tracked landmarks.');
+  const extension = recordedBlob4.type.includes("mp4") ? "mp4" : "webm";
+  downloadBlob4(recordedBlob4, `aziz-ar-recording.${extension}`);
 }
 
-$('startButton').addEventListener('click', startCamera);
-$('stopButton').addEventListener('click', stopCamera);
-$('switchButton').addEventListener('click', switchCamera);
-$('mirrorButton').addEventListener('click', toggleMirror);
-$('fullscreenButton').addEventListener('click', toggleFullscreen);
-$('hideUIButton').addEventListener('click', hideUI);
-$('showUIButton').addEventListener('click', showUI);
-$('hideControlsButton').addEventListener('click', hideControls);
+function exportProjectSettings4() {
+  const project = {
+    app: "Aziz AI AR Studio",
+    version: 1,
+    settings: {
+      camera: $4("cameraSelect").value,
+      mirror: $4("mirrorButton").textContent === "MIRROR ON",
+      trackingMode: $4("trackingMode").value,
+      personTarget: $4("personTarget").value
+    },
+    note: "This file stores settings only. It does not contain imported model, image, or video files."
+  };
 
-$('modelFile').addEventListener('change', event => {
-  const file = event.target.files?.[0];
-  if (file) importModel(file);
-  event.target.value = '';
+  downloadBlob4(
+    new Blob([JSON.stringify(project, null, 2)], {
+      type: "application/json"
+    }),
+    "aziz-ar-project-settings.json"
+  );
+
+  toast4("Project settings exported");
+}
+
+function exportModel4() {
+  toast4("Model export is not implemented yet. Original imported files are unchanged.");
+}
+
+$4("recordButton").addEventListener("click", startRecording4);
+$4("stopRecordButton").addEventListener("click", stopRecording4);
+$4("downloadVideoButton").addEventListener("click", downloadRecording4);
+$4("exportSettingsButton").addEventListener("click", exportSettings4);
+$4("exportProjectButton").addEventListener("click", exportProjectSettings4);
+$4("exportModelButton").addEventListener("click", exportModel4);
+
+// These buttons currently control the UI state only.
+// Real facial landmark rendering requires a separate landmark tracker.
+$4("faceDotsButton").addEventListener("click", () => {
+  toast4("Green facial landmarks are not connected in this build yet.");
 });
 
-$('resetButton').addEventListener('click', resetModel);
-$('removeButton').addEventListener('click', removeModel);
-$('hideGizmoButton').addEventListener('click', toggleGizmos);
-$('trackingButton').addEventListener('click', toggleTracking);
-$('faceDotsButton').addEventListener('click', toggleDots);
+$4("showLandmarksButton").addEventListener("click", () => {
+  toast4("Landmark visualization is not connected in this build yet.");
+});
 
-document.querySelectorAll('[data-gizmo-mode]').forEach(button => {
-  button.addEventListener('click', () => {
-    setGizmoMode(button.dataset.gizmoMode);
+$4("overlayToggleButton").addEventListener("click", () => {
+  const button = $4("overlayToggleButton");
+  const active = button.classList.toggle("active");
+  button.textContent = active ? "OVERLAYS ON" : "OVERLAYS OFF";
+
+  const assets = window.azizARAssets?.assets || [];
+
+  assets.filter((asset) => !asset.removed).forEach((asset) => {
+    if (asset.kind === "image" || asset.kind === "video") {
+      asset.object.visible = active;
+    }
   });
 });
 
-$('recordButton').addEventListener('click', startRecording);
-$('stopRecordButton').addEventListener('click', stopRecording);
-$('exportSettingsButton').addEventListener('click', exportSettings);
-$('exportModelButton').addEventListener('click', exportModel);
-
-$('overlayFile').addEventListener('change', event => {
-  const file = event.target.files?.[0];
-  if (file) selectOverlay(file);
-  event.target.value = '';
+$4("leftEyeButton").addEventListener("click", () => {
+  $4("overlayTarget").value = "leftEye";
+  toast4("Left Eye target selected; landmark following is not connected yet.");
 });
 
-$('leftEyeButton').addEventListener('click', () => {
-  selectOverlayTarget('leftEye');
+$4("rightEyeButton").addEventListener("click", () => {
+  $4("overlayTarget").value = "rightEye";
+  toast4("Right Eye target selected; landmark following is not connected yet.");
 });
 
-$('rightEyeButton').addEventListener('click', () => {
-  selectOverlayTarget('rightEye');
+$4("mouthButton").addEventListener("click", () => {
+  $4("overlayTarget").value = "mouth";
+  toast4("Mouth target selected; landmark following is not connected yet.");
 });
 
-$('mouthButton').addEventListener('click', () => {
-  selectOverlayTarget('mouth');
+$4("clearOverlayButton").addEventListener("click", () => {
+  const assets = window.azizARAssets?.assets || [];
+
+  assets.filter((asset) => !asset.removed).forEach((asset) => {
+    if (asset.kind === "image" || asset.kind === "video") {
+      asset.object.parent?.remove(asset.object);
+      asset.removed = true;
+    }
+  });
+
+  window.azizARAssets?.updateAssetList?.();
+  toast4("Image/video overlays cleared");
 });
 
-$('overlayToggleButton').addEventListener('click', toggleOverlay);
+window.addEventListener("beforeunload", () => {
+  if (recordingFrame4) cancelAnimationFrame(recordingFrame4);
 
-window.addEventListener('resize', () => {
-  if (!mindar) return;
+  if (recorder4?.state === "recording") {
+    try { recorder4.stop(); } catch {}
+  }
 
-  mindar.renderer.setPixelRatio(
-    Math.min(window.devicePixelRatio || 1, 2)
-  );
-
-  mindar.renderer.setSize(
-    container.clientWidth,
-    container.clientHeight
-  );
+  recordingStream4?.getTracks().forEach((track) => track.stop());
 });
-
-window.addEventListener('beforeunload', () => {
-  if (model) disposeObject(model);
-  if (modelURL) URL.revokeObjectURL(modelURL);
-  if (currentOverlayURL) URL.revokeObjectURL(currentOverlayURL);
-});
-
-say('Studio ready. Start the camera or import a model.');
 </script>
 </body>
 </html>
+
