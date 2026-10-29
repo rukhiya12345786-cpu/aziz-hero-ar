@@ -1,1 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
+  <title>Aziz AI AR Studio</title>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+      "mindar-face-three": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-three.prod.js"
+    }
+  }
+  </script>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #080b11;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+
+    #app, #container {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    #topbar {
+      position: fixed;
+      z-index: 10;
+      top: 8px;
+      left: 8px;
+      right: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      padding: 8px;
+      border-radius: 12px;
+      background: rgba(12, 16, 25, .92);
+    }
+
+    button, .fileButton {
+      padding: 9px 11px;
+      min-height: 36px;
+      border: 1px solid #465064;
+      border-radius: 8px;
+      background: #252e3e;
+      color: white;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    button.active {
+      border-color: #61efa6;
+      color: #61efa6;
+    }
+
+    .fileButton {
+      display: inline-flex;
+      align-items: center;
+    }
+
+    input[type="file"] { display: none; }
+
+    #sidepanel {
+      position: fixed;
+      z-index: 10;
+      right: 8px;
+      top: 130px;
+      width: min(250px, 48vw);
+      max-height: 65vh;
+      overflow: auto;
+      padding: 10px;
+      border-radius: 12px;
+      background: rgba(12, 16, 25, .92);
+    }
+
+    #sidepanel h3 {
+      font-size: 13px;
+      margin: 6px 0;
+    }
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .row button { flex: 1; }
+
+    .hidden { display: none !important; }
+
+    #restoreUI {
+      display: none;
+      position: fixed;
+      z-index: 20;
+      top: 8px;
+      left: 8px;
+    }
+
+    #restoreUI.show { display: block; }
+
+    #status {
+      position: fixed;
+      z-index: 12;
+      bottom: 8px;
+      left: 8px;
+      right: 8px;
+      padding: 9px;
+      border-radius: 8px;
+      background: rgba(12, 16, 25, .92);
+      font-size: 12px;
+    }
+
+    #previewMedia {
+      display: none;
+      position: fixed;
+      z-index: 5;
+      left: 12px;
+      bottom: 55px;
+      width: 30vw;
+      max-height: 25vh;
+      object-fit: contain;
+    }
+
+    #cropFrame {
+      display: none;
+      position: fixed;
+      z-index: 7;
+      left: 25%;
+      top: 25%;
+      width: 50%;
+      height: 50%;
+      border: 2px dashed #61efa6;
+      pointer-events: none;
+    }
+
+    #cropFrame.show { display: block; }
+  </style>
+</head>
+
+<body>
+<div id="app">
+  <div id="container"></div>
+
+  <div id="topbar">
+    <strong>AZIZ AI AR STUDIO</strong>
+
+    <button id="startCamera">START CAMERA</button>
+    <button id="stopCamera">STOP CAMERA</button>
+    <button id="switchCamera">SWITCH CAMERA</button>
+    <button id="mirrorButton">MIRROR ON/OFF</button>
+    <button id="fullscreenButton">FULL SCREEN</button>
+    <button id="trackingButton">TRACKING ON/OFF</button>
+    <button id="dotsButton">FACE MESH ON/OFF</button>
+
+    <label class="fileButton" for="modelInput">IMPORT 3D</label>
+    <input id="modelInput" type="file"
+           accept=".glb,.gltf,.obj,.fbx,.stl">
+
+    <label class="fileButton" for="imageInput">IMPORT IMAGE</label>
+    <input id="imageInput" type="file" accept="image/*">
+
+    <label class="fileButton" for="videoInput">IMPORT VIDEO</label>
+    <input id="videoInput" type="file" accept="video/*">
+
+    <button id="recordButton">RECORD</button>
+    <button id="hideUI">HIDE CONTROLS</button>
+  </div>
+
+  <aside id="sidepanel">
+    <h3>3D GIZMOS</h3>
+
+    <div class="row">
+      <button data-mode="translate">MOVE</button>
+      <button data-mode="rotate">ROTATE</button>
+      <button data-mode="scale">SCALE</button>
+    </div>
+
+    <div class="row">
+      <button id="hideGizmo">HIDE GIZMOS</button>
+      <button id="resetTransform">RESET</button>
+    </div>
+
+    <h3>FACE OPTIONS</h3>
+
+    <div class="row">
+      <button id="leftEyeButton">LEFT EYE</button>
+      <button id="rightEyeButton">RIGHT EYE</button>
+      <button id="mouthButton">MOUTH</button>
+    </div>
+
+    <div class="row">
+      <button id="mirrorOverlayButton">OVERLAY MIRROR</button>
+      <button id="cropButton">CROP</button>
+    </div>
+
+    <h3>MODEL CONTROLS</h3>
+
+    <div class="row">
+      <button id="hideModel">HIDE MODEL</button>
+      <button id="removeModel">REMOVE MODEL</button>
+    </div>
+
+    <p>
+      Gizmos को drag करके model की position, rotation और scale बदलें।
+      कोई sliders नहीं होंगे।
+    </p>
+  </aside>
+
+  <button id="restoreUI">SHOW CONTROLS</button>
+
+  <img id="previewMedia" alt="Uploaded media preview">
+  <div id="cropFrame"></div>
+  <div id="status">Ready — START CAMERA दबाएँ।</div>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import { MindARThree } from 'mindar-face-three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+import { TransformControls } from 'three/addons/controls/TransformControls.js';
+
+const $ = id => document.getElementById(id);
+
+const container = $('container');
+const status = $('status');
+
+let mindar = null;
+let renderer = null;
+let scene = null;
+let camera = null;
+let faceMesh = null;
+let model = null;
+let transformControls = null;
+let cameraStarted = false;
+let trackingOn = true;
+let meshVisible = false;
+let mirrorOn = false;
+let currentModelUrl = null;
+
+const setStatus = message => {
+  status.textContent = message;
+};
+
+function initializeScene() {
+  if (mindar) return;
+
+  mindar = new MindARThree({
+    container: container
+  });
+
+  renderer = mindar.renderer;
+  scene = mindar.scene;
+  camera = mindar.camera;
+
+  renderer.setPixelRatio(
+    Math.min(window.devicePixelRatio || 1, 2)
+  );
+
+  renderer.setSize(
+    container.clientWidth,
+    container.clientHeight
+  );
+
+  scene.add(
+    new THREE.HemisphereLight(
+      0xffffff,
+      0xbbbbff,
+      1.2
+    )
+  );
+
+  const light = new THREE.DirectionalLight(
+    0xffffff,
+    0.8
+  );
+
+  light.position.set(0, 1, 2);
+  scene.add(light);
+
+  // Face mesh used for tracking visualization.
+  faceMesh = mindar.addFaceMesh();
+
+  faceMesh.material = new THREE.MeshBasicMaterial({
+    color: 0x66e6a4,
+    wireframe: true,
+    transparent: true,
+    opacity: 0.45
+  });
+
+  faceMesh.visible = meshVisible;
+  scene.add(faceMesh);
+
+  // Blender-style transform gizmos.
+  transformControls = new TransformControls(
+    camera,
+    renderer.domElement
+  );
+
+  transformControls.setMode('translate');
+  transformControls.setSize(0.8);
+
+  scene.add(transformControls.getHelper());
+
+  transformControls.enabled = false;
+  transformControls.getHelper().visible = false;
+
+  transformControls.addEventListener(
+    'dragging-changed',
+    event => {
+      if (event.value) {
+        setStatus(
+          'Gizmo selected. Drag an axis or rotation ring.'
+        );
+      }
+    }
+  );
+
+  renderer.setAnimationLoop(() => {
+    renderer.render(scene, camera);
+  });
+
+  setStatus('Scene initialized. Press START CAMERA.');
+}
+
+async function startCamera() {
+  try {
+    initializeScene();
+
+    if (cameraStarted) {
+      setStatus('Camera is already running.');
+      return;
+    }
+
+    await mindar.start();
+
+    cameraStarted = true;
+    trackingOn = true;
+
+    setStatus(
+      'Camera started. Allow camera access and face the camera.'
+    );
+  } catch (error) {
+    console.error(error);
+
+    setStatus(
+      'Camera failed. Check HTTPS and camera permission.'
+    );
+  }
+}
+
+function stopCamera() {
+  if (!mindar || !cameraStarted) return;
+
+  try {
+    mindar.stop();
+  } catch (error) {
+    console.warn(error);
+  }
+
+  cameraStarted = false;
+  setStatus('Camera stopped.');
+}
+
+function setGizmoMode(mode) {
+  if (!transformControls) return;
+
+  transformControls.setMode(mode);
+
+  document.querySelectorAll('[data-mode]').forEach(button => {
+    button.classList.toggle(
+      'active',
+      button.dataset.mode === mode
+    );
+  });
+}
+
+function disposeModel(object) {
+  object.traverse(child => {
+    if (child.geometry) {
+      child.geometry.dispose();
+    }
+
+    if (child.material) {
+      const materials = Array.isArray(child.material)
+        ? child.material
+        : [child.material];
+
+      materials.forEach(material => {
+        Object.values(material).forEach(value => {
+          if (value && value.isTexture) {
+            value.dispose();
+          }
+        });
+
+        material.dispose();
+      });
+    }
+  });
+}
+
+async function import3DModel(file) {
+  if (!file) return;
+
+  const extension = file.name
+    .split('.')
+    .pop()
+    .toLowerCase();
+
+  if (!['glb', 'gltf', 'obj', 'fbx', 'stl'].includes(extension)) {
+    setStatus(
+      'Supported formats: GLB, GLTF, OBJ, FBX and STL.'
+    );
+    return;
+  }
+
+  try {
+    initializeScene();
+
+    if (model) {
+      transformControls.detach();
+      scene.remove(model);
+      disposeModel(model);
+      model = null;
+    }
+
+    if (currentModelUrl) {
+      URL.revokeObjectURL(currentModelUrl);
+    }
+
+    currentModelUrl = URL.createObjectURL(file);
+
+    if (extension === 'glb' || extension === 'gltf') {
+      const gltf = await new GLTFLoader().loadAsync(
+        currentModelUrl
+      );
+
+      model = gltf.scene;
+    } else if (extension === 'obj') {
+      model = await new OBJLoader().loadAsync(
+        currentModelUrl
+      );
+    } else if (extension === 'fbx') {
+      model = await new FBXLoader().loadAsync(
+        currentModelUrl
+      );
+    } else {
+      const geometry = await new STLLoader().loadAsync(
+        currentModelUrl
+      );
+
+      geometry.computeVertexNormals();
+
+      model = new THREE.Mesh(
+        geometry,
+        new THREE.MeshStandardMaterial({
+          color: 0xd5d9e2,
+          metalness: 0.1,
+          roughness: 0.65
+        })
+      );
+    }
+
+    model.position.set(0, 0, 0);
+    model.rotation.set(0, 0, 0);
+    model.scale.setScalar(0.1);
+
+    model.traverse(child => {
+      if (child.isMesh) {
+        child.frustumCulled = false;
+
+        if (child.material) {
+          child.material.side = THREE.DoubleSide;
+          child.material.needsUpdate = true;
+        }
+      }
+    });
+
+    scene.add(model);
+
+    transformControls.attach(model);
+    transformControls.enabled = true;
+    transformControls.getHelper().visible = true;
+
+    setStatus(
+      'Model imported. Select MOVE, ROTATE or SCALE gizmo.'
+    );
+  } catch (error) {
+    console.error(error);
+
+    setStatus(
+      'Model failed to load. Try a self-contained GLB file.'
+    );
+  }
+}
+
+function removeModel() {
+  if (!model || !scene) return;
+
+  transformControls.detach();
+  scene.remove(model);
+  disposeModel(model);
+
+  model = null;
+
+  transformControls.getHelper().visible = false;
+  transformControls.enabled = false;
+
+  if (currentModelUrl) {
+    URL.revokeObjectURL(currentModelUrl);
+    currentModelUrl = null;
+  }
+
+  setStatus('Model removed.');
+}
+
+window.azizStudio = {
+  initializeScene,
+  startCamera,
+  stopCamera,
+  setGizmoMode,
+  import3DModel,
+  removeModel,
+  getState: () => ({
+    cameraStarted,
+    trackingOn,
+    meshVisible,
+    mirrorOn,
+    modelLoaded: !!model
+  })
+};
+
+window.addEventListener('resize', () => {
+  if (!renderer) return;
+
+  renderer.setSize(
+    container.clientWidth,
+    container.clientHeight
+  );
+
+  renderer.setPixelRatio(
+    Math.min(window.devicePixelRatio || 1, 2)
+  );
+});
+  
+(() => {
+  const $ = (id) => document.getElementById(id);
+
+  let mirrored = false;
+  let dotsVisible = true;
+  let modelHidden = false;
+  let mediaStream = null;
+  let recorder = null;
+  let recordedChunks = [];
+
+  function status(message) {
+    const el = $("status");
+    if (el) el.textContent = message;
+  }
+
+  function studio() {
+    return window.azizStudio || null;
+  }
+
+  function callStudio(method, ...args) {
+    const app = studio();
+    if (app && typeof app[method] === "function") {
+      return app[method](...args);
+    }
+    status("Studio abhi ready nahi hai. Page reload karke dobara try karo.");
+    return null;
+  }
+
+  function bind(id, event, callback) {
+    const el = $(id);
+    if (el) el.addEventListener(event, callback);
+  }
+
+  bind("startCamera", "click", () => {
+    callStudio("startCamera");
+  });
+
+  bind("stopCamera", "click", () => {
+    callStudio("stopCamera");
+    stopRecording();
+  });
+
+  bind("switchCamera", "click", () => {
+    status("Camera switch ke liye Part 2 mein camera-switch function bhi chahiye.");
+  });
+
+  bind("mirrorButton", "click", () => {
+    mirrored = !mirrored;
+    const container = $("container");
+    if (container) {
+      container.style.transform = mirrored ? "scaleX(-1)" : "";
+    }
+    const button = $("mirrorButton");
+    if (button) button.textContent = mirrored ? "MIRROR ON" : "MIRROR OFF";
+  });
+
+  bind("fullscreenButton", "click", async () => {
+    const target = $("container") || document.documentElement;
+
+    try {
+      if (!document.fullscreenElement) {
+        await target.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch (error) {
+      status("Fullscreen browser mein available nahi hua.");
+    }
+  });
+
+  bind("trackingButton", "click", () => {
+    callStudio("startCamera");
+    status("Tracking camera start karne ki request bhej di.");
+  });
+
+  bind("dotsButton", "click", () => {
+    dotsVisible = !dotsVisible;
+
+    document.querySelectorAll(
+      "#faceMesh, .face-dots, #dotsCanvas"
+    ).forEach((el) => {
+      el.style.display = dotsVisible ? "" : "none";
+    });
+
+    const button = $("dotsButton");
+    if (button) button.textContent = dotsVisible ? "HIDE DOTS" : "SHOW DOTS";
+  });
+
+  bind("modelInput", "change", async (event) => {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+
+    const ext = file.name.split(".").pop().toLowerCase();
+    const allowed = ["glb", "gltf", "obj", "fbx", "stl"];
+
+    if (!allowed.includes(ext)) {
+      status("Supported formats: GLB, GLTF, OBJ, FBX, STL.");
+      event.target.value = "";
+      return;
+    }
+
+    try {
+      await callStudio("import3DModel", file);
+    } catch (error) {
+      status("Model import nahi hua. GLB file try karo.");
+    }
+
+    event.target.value = "";
+  });
+
+  function showMedia(file, type) {
+    const preview = $("previewMedia");
+    if (!preview) {
+      status("Media preview element nahi mila.");
+      return;
+    }
+
+    preview.replaceChildren();
+
+    const url = URL.createObjectURL(file);
+    const media = document.createElement(type === "video" ? "video" : "img");
+
+    media.src = url;
+    media.style.maxWidth = "100%";
+    media.style.maxHeight = "100%";
+    media.style.objectFit = "contain";
+
+    if (type === "video") {
+      media.controls = true;
+      media.loop = true;
+      media.muted = true;
+      media.playsInline = true;
+    }
+
+    preview.appendChild(media);
+    preview.style.display = "block";
+    preview.dataset.objectUrl = url;
+    status(type.toUpperCase() + " preview loaded.");
+  }
+
+  bind("imageInput", "change", (event) => {
+    const file = event.target.files && event.target.files[0];
+    if (file) showMedia(file, "image");
+    event.target.value = "";
+  });
+
+  bind("videoInput", "change", (event) => {
+    const file = event.target.files && event.target.files[0];
+    if (file) showMedia(file, "video");
+    event.target.value = "";
+  });
+
+  bind("hideUI", "click", () => {
+    ["topbar", "sidepanel"].forEach((id) => {
+      const el = $(id);
+      if (el) el.style.display = "none";
+    });
+
+    const restore = $("restoreUI");
+    if (restore) restore.style.display = "block";
+  });
+
+  bind("restoreUI", "click", () => {
+    ["topbar", "sidepanel"].forEach((id) => {
+      const el = $(id);
+      if (el) el.style.display = "";
+    });
+
+    const restore = $("restoreUI");
+    if (restore) restore.style.display = "none";
+  });
+
+  document.querySelectorAll("[data-mode]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const mode = button.dataset.mode;
+      const mapped = {
+        translate: "translate",
+        rotate: "rotate",
+        scale: "scale"
+      };
+
+      callStudio("setGizmoMode", mapped[mode] || mode);
+      status("Gizmo mode: " + mode);
+    });
+  });
+
+  bind("hideGizmo", "click", () => {
+    callStudio("setGizmoVisible", false);
+    status("Gizmo hide request bheji.");
+  });
+
+  bind("resetTransform", "click", () => {
+    callStudio("resetTransform");
+  });
+
+  bind("removeModel", "click", () => {
+    callStudio("removeModel");
+    modelHidden = false;
+  });
+
+  bind("hideModel", "click", () => {
+    modelHidden = !modelHidden;
+    callStudio("setModelVisible", !modelHidden);
+
+    const button = $("hideModel");
+    if (button) button.textContent = modelHidden ? "SHOW MODEL" : "HIDE MODEL";
+  });
+
+  ["leftEyeButton", "rightEyeButton", "mouthButton"].forEach((id) => {
+    bind(id, "click", () => {
+      status("Media preview ready hai; face par eye/mouth placement ke liye tracking anchors add karne honge.");
+    });
+  });
+
+  bind("mirrorOverlayButton", "click", () => {
+    const preview = $("previewMedia");
+    if (preview) {
+      preview.style.transform =
+        preview.style.transform === "scaleX(-1)" ? "" : "scaleX(-1)";
+    }
+  });
+
+  bind("cropButton", "click", () => {
+    const frame = $("cropFrame");
+    if (frame) {
+      frame.style.display =
+        getComputedStyle(frame).display === "none" ? "block" : "none";
+    }
+  });
+
+  function stopRecording() {
+    if (recorder && recorder.state !== "inactive") {
+      recorder.stop();
+    }
+  }
+
+  bind("recordButton", "click", async () => {
+    if (recorder && recorder.state === "recording") {
+      stopRecording();
+      return;
+    }
+
+    const video = document.querySelector("#container video");
+    const canvas = document.querySelector("#container canvas");
+
+    try {
+      if (canvas && canvas.captureStream) {
+        mediaStream = canvas.captureStream(30);
+      } else if (video && video.captureStream) {
+        mediaStream = video.captureStream();
+      } else {
+        status("Recording ke liye camera canvas capture support nahi mila.");
+        return;
+      }
+
+      recordedChunks = [];
+      recorder = new MediaRecorder(mediaStream);
+
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size) recordedChunks.push(event.data);
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(recordedChunks, { type: "video/webm" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "aziz-ar-recording.webm";
+        link.click();
+
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        if (mediaStream) mediaStream.getTracks().forEach((track) => track.stop());
+        mediaStream = null;
+        status("Recording download ready.");
+      };
+
+      recorder.start();
+
+      const button = $("recordButton");
+      if (button) button.textContent = "STOP RECORDING";
+      status("Recording started.");
+    } catch (error) {
+      status("Recording start nahi hui: browser support check karo.");
+    }
+  });
+
+  document.addEventListener("fullscreenchange", () => {
+    const button = $("fullscreenButton");
+    if (button) {
+      button.textContent = document.fullscreenElement
+        ? "EXIT FULLSCREEN"
+        : "FULL SCREEN";
+    }
+  });
+
+  status("P3 button handlers loaded.");
+})();
+  
+</script>
+</body>
+</html>
