@@ -1,7 +1,6 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
 <title>AZEEZ AR STUDIO</title>
@@ -23,11 +22,13 @@
 
 html, body {
   margin: 0;
+  padding: 0;
   width: 100%;
   height: 100%;
   overflow: hidden;
   background: #000;
   font-family: Arial, sans-serif;
+  color: white;
 }
 
 #container {
@@ -39,115 +40,115 @@ html, body {
   touch-action: none;
 }
 
-#container canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 2;
-  touch-action: none;
-}
-
 #panel {
   position: fixed;
+  top: 12px;
+  left: 12px;
   z-index: 10000;
-  top: 10px;
-  left: 10px;
-  width: 245px;
-  max-height: 88vh;
+  width: min(290px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
   overflow-y: auto;
-  padding: 11px;
-  border: 1px solid #777;
-  border-radius: 12px;
-  background: rgba(0,0,0,.88);
-  color: white;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  padding: 13px;
+  border-radius: 14px;
+  background: rgba(12, 15, 25, 0.88);
+  border: 1px solid rgba(255,255,255,.2);
+  backdrop-filter: blur(12px);
+  transition: opacity .2s;
 }
 
-button, .fileButton {
+#panel.panel-hidden {
+  display: none;
+}
+
+h2 {
+  font-size: 18px;
+  margin: 0 0 12px;
+  text-align: center;
+}
+
+.section-title {
+  font-size: 12px;
+  color: #8edcff;
+  margin: 13px 0 7px;
+  font-weight: bold;
+}
+
+button, .file-label {
   border: 0;
-  border-radius: 7px;
-  padding: 11px 8px;
+  border-radius: 8px;
+  padding: 10px 8px;
+  background: #26364e;
   color: white;
-  background: #292929;
   font-size: 12px;
   font-weight: bold;
-  text-align: center;
   cursor: pointer;
-  touch-action: manipulation;
+  text-align: center;
+}
+
+button:active, .file-label:active {
+  opacity: .7;
 }
 
 button.active {
-  background: #ffc400;
-  color: #000;
+  background: #087ee8;
 }
 
-.fileButton {
+.controls-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 7px;
+}
+
+.controls-grid.three {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.file-label {
   display: block;
+  width: 100%;
 }
 
 input[type="file"] {
   display: none;
 }
 
-.row {
-  display: flex;
-  gap: 5px;
-}
-
-.row button {
-  flex: 1;
-}
-
-.sectionTitle {
-  color: #ffc400;
-  font-size: 12px;
-  font-weight: bold;
-  margin-top: 5px;
-}
-
 #sizeSlider {
   width: 100%;
-  height: 35px;
-  accent-color: #ffc400;
-}
-
-#sizeValue, #status {
-  font-size: 11px;
-  overflow-wrap: anywhere;
+  accent-color: #00c8ff;
+  height: 32px;
 }
 
 #sizeValue {
-  color: #ffc400;
-}
-
-#status {
-  color: #ddd;
+  text-align: center;
+  font-size: 12px;
+  color: #b8eaff;
 }
 
 #panelToggle {
   position: fixed;
   z-index: 10002;
-  top: 10px;
-  right: 10px;
-  background: #ffc400;
-  color: #000;
+  right: 12px;
+  top: 12px;
+  padding: 12px 15px;
+  background: #087ee8;
 }
 
-.hidden {
-  display: none !important;
+#status {
+  font-size: 11px;
+  color: #b8eaff;
+  text-align: center;
+  margin-top: 10px;
+  overflow-wrap: anywhere;
 }
 
-#video-feed {
-  display: none;
+#container canvas {
+  touch-action: none;
 }
 
 @media (orientation: landscape) {
   #panel {
-    max-height: 92vh;
-    width: 220px;
+    width: 260px;
+    max-height: calc(100dvh - 20px);
   }
 }
 </style>
@@ -161,70 +162,57 @@ input[type="file"] {
 
 <div id="panel">
 
-  <div class="sectionTitle">AZEEZ AR STUDIO</div>
+  <h2>AZEEZ AR STUDIO</h2>
 
-  <div class="sectionTitle">CAMERA</div>
+  <div class="section-title">CAMERA</div>
 
-  <button id="startBtn">START CAMERA</button>
-
-  <div class="row">
-    <button id="frontBtn">FRONT</button>
-    <button id="backBtn">BACK</button>
+  <div class="controls-grid">
+    <button id="switchCamera">SWITCH CAMERA</button>
+    <button id="fullscreenBtn">FULL SCREEN</button>
   </div>
 
-  <button id="stopBtn">STOP CAMERA</button>
+  <div class="section-title">IMPORT 3D MODEL</div>
 
-  <div class="sectionTitle">IMPORT 3D MODEL</div>
+  <div class="controls-grid">
+    <label class="file-label" for="gltfFile">GLTF / GLB</label>
+    <label class="file-label" for="objFile">OBJ</label>
+    <label class="file-label" for="fbxFile">FBX</label>
+    <button id="removeModel">REMOVE MODEL</button>
+  </div>
 
-  <label class="fileButton" for="modelInput">
-    IMPORT GLB / GLTF / OBJ / FBX
-  </label>
-  <input id="modelInput" type="file"
-    accept=".glb,.gltf,.obj,.fbx">
+  <input id="gltfFile" type="file" accept=".gltf,.glb">
+  <input id="objFile" type="file" accept=".obj">
+  <input id="fbxFile" type="file" accept=".fbx">
 
-  <div class="sectionTitle">IMPORT IMAGE</div>
+  <div class="section-title">IMPORT IMAGE</div>
 
-  <label class="fileButton" for="imageInput">
-    IMPORT IMAGE
-  </label>
-  <input id="imageInput" type="file"
-    accept="image/*">
+  <label class="file-label" for="imageFile">IMPORT IMAGE</label>
+  <input id="imageFile" type="file" accept="image/*">
 
-  <div class="sectionTitle">IMPORT VIDEO</div>
+  <div class="section-title">TRANSFORM GIZMO</div>
 
-  <label class="fileButton" for="videoInput">
-    IMPORT VIDEO
-  </label>
-  <input id="videoInput" type="file"
-    accept="video/*">
-
-  <div class="sectionTitle">TRANSFORM GIZMOS</div>
-
-  <div class="row">
+  <div class="controls-grid three">
     <button id="moveBtn">MOVE</button>
     <button id="rotateBtn">ROTATE</button>
     <button id="scaleBtn">SCALE</button>
   </div>
 
-  <button id="gizmoToggle">HIDE GIZMOS</button>
+  <div class="section-title">MODEL SIZE</div>
 
-  <div class="sectionTitle">MODEL SIZE</div>
+  <input id="sizeSlider" type="range"
+         min="1" max="2000" value="500">
 
-  <input id="sizeSlider"
-    type="range"
-    min="0"
-    max="1000"
-    value="500">
+  <div id="sizeValue">SIZE: 100%</div>
 
-  <div id="sizeValue">Size: 1.00x</div>
+  <div class="section-title">GIZMO DISPLAY</div>
 
-  <button id="removeModelBtn">REMOVE SELECTED MODEL</button>
+  <button id="gizmoToggle" style="width:100%">
+    HIDE GIZMO
+  </button>
 
-  <div id="status">Ready. Start camera.</div>
+  <div id="status">Starting camera...</div>
 
 </div>
-
-<video id="video-feed" playsinline muted></video>
 
 <script type="module">
 
@@ -245,52 +233,49 @@ import { TransformControls } from
 import { MindARThree } from "mindar-face-three";
 
 
-// =====================================
-// GLOBAL VARIABLES
-// =====================================
+/* ===============================
+   GLOBAL VARIABLES
+================================ */
 
 let mindarThree = null;
 let avatar = null;
-
 let anchor = null;
-let raccoonObject = null;
+
+let renderer = null;
+let scene = null;
+let camera = null;
 
 let transformControls = null;
 let gizmoHelper = null;
 
 let activeObject = null;
-let activeBaseScale = new THREE.Vector3(1,1,1);
-
 let importedObjects = [];
 
 let currentMode = "translate";
-
 let gizmosVisible = true;
 
-let facingMode = "user";
+let cameraStarted = false;
+let cameraFacing = "user";
 
-let isRunning = false;
-let isStarting = false;
-let isSwitching = false;
+const container = document.querySelector("#container");
+const statusBox = document.querySelector("#status");
 
-let videoElements = [];
-
-const container =
-  document.querySelector("#container");
-
-const statusText =
-  document.querySelector("#status");
-
-const sizeSlider =
-  document.querySelector("#sizeSlider");
-
-const sizeValue =
-  document.querySelector("#sizeValue");
+const sizeSlider = document.querySelector("#sizeSlider");
+const sizeValue = document.querySelector("#sizeValue");
 
 
-// =====================================
-// ORIGINAL RACCOON AVATAR
-// =====================================
+/* ===============================
+   STATUS
+================================ */
+
+function setStatus(message) {
+  statusBox.textContent = message;
+}
+
+
+/* ===============================
+   AVATAR CLASS
+================================ */
 
 class Avatar {
 
@@ -301,121 +286,106 @@ class Avatar {
 
   async init() {
 
-    const loader = new GLTFLoader();
-
     const url =
       "https://assets.codepen.io/9177687/raccoon_head.glb";
 
-    const gltf = await loader.loadAsync(url);
+    const loader = new GLTFLoader();
 
-    gltf.scene.traverse((object) => {
+    this.gltf = await loader.loadAsync(url);
 
-      if (object.isBone && !this.root) {
-        this.root = object;
-      }
+    this.gltf.scene.traverse((object) => {
 
       if (!object.isMesh) return;
 
       if (
-        !object.morphTargetDictionary ||
-        !object.morphTargetInfluences
-      ) return;
-
-      this.morphTargetMeshes.push(object);
+        object.morphTargetDictionary &&
+        object.morphTargetInfluences
+      ) {
+        this.morphTargetMeshes.push(object);
+      }
 
     });
-
-    this.gltf = gltf;
   }
 
   updateBlendshapes(blendshapes) {
 
     if (!blendshapes || !blendshapes.categories) return;
 
-    const categoryMap = new Map();
+    const categories = blendshapes.categories;
 
-    for (const item of blendshapes.categories) {
-      categoryMap.set(item.categoryName, item.score);
+    const values = new Map();
+
+    for (const category of categories) {
+      values.set(
+        category.categoryName,
+        category.score
+      );
     }
 
     for (const mesh of this.morphTargetMeshes) {
 
-      if (
-        !mesh.morphTargetDictionary ||
-        !mesh.morphTargetInfluences
-      ) continue;
+      const dictionary = mesh.morphTargetDictionary;
+      const influences = mesh.morphTargetInfluences;
 
-      for (const [name, value] of categoryMap) {
+      if (!dictionary || !influences) continue;
 
-        const index = mesh.morphTargetDictionary[name];
+      for (const [name, value] of values) {
 
-        if (index === undefined) continue;
+        const index = dictionary[name];
 
-        mesh.morphTargetInfluences[index] = value;
+        if (index !== undefined) {
+          influences[index] = value;
+        }
+
       }
     }
   }
 }
 
 
-// =====================================
-// INITIALIZE MINDAR
-// =====================================
+/* ===============================
+   SCENE SETUP
+================================ */
 
 async function setup() {
-
-  if (mindarThree) return;
-
-  statusText.textContent = "Preparing face tracking...";
 
   mindarThree = new MindARThree({
     container: container
   });
 
-  const scene = mindarThree.scene;
-  const camera = mindarThree.camera;
-  const renderer = mindarThree.renderer;
+  renderer = mindarThree.renderer;
+  scene = mindarThree.scene;
+  camera = mindarThree.camera;
 
-  renderer.setPixelRatio(
-    Math.min(window.devicePixelRatio || 1, 2)
-  );
-
-  renderer.domElement.style.touchAction = "none";
-
-  const hemisphere = new THREE.HemisphereLight(
+  const light = new THREE.HemisphereLight(
     0xffffff,
     0xbbbbff,
-    1.2
+    1.5
   );
 
-  scene.add(hemisphere);
+  scene.add(light);
 
-  const directional = new THREE.DirectionalLight(
+  const directionalLight = new THREE.DirectionalLight(
     0xffffff,
     1
   );
 
-  directional.position.set(0, 2, 3);
-  scene.add(directional);
+  directionalLight.position.set(0, 1, 2);
+  scene.add(directionalLight);
 
   anchor = mindarThree.addAnchor(1);
 
-  // Load original Raccoon.
   avatar = new Avatar();
 
   await avatar.init();
 
-  raccoonObject = avatar.gltf.scene;
+  avatar.gltf.scene.scale.set(2, 2, 2);
 
-  raccoonObject.scale.set(2, 2, 2);
+  anchor.group.add(avatar.gltf.scene);
 
-  anchor.group.add(raccoonObject);
 
-  activeObject = raccoonObject;
+  /* TRANSFORM CONTROLS */
 
-  activeBaseScale.copy(raccoonObject.scale);
-
-  // TransformControls.
   transformControls = new TransformControls(
     camera,
     renderer.domElement
@@ -432,12 +402,14 @@ async function setup() {
   transformControls.showY = true;
   transformControls.showZ = true;
 
-  gizmoHelper.visible = gizmosVisible;
+  gizmoHelper.visible = false;
 
   transformControls.addEventListener(
     "dragging-changed",
     (event) => {
-      // Keep MindAR rendering active while dragging.
+      if (mindarThree && mindarThree.video) {
+        mindarThree.video.pause?.();
+      }
     }
   );
 
@@ -446,33 +418,25 @@ async function setup() {
     updateSizeLabel
   );
 
-  transformControls.attach(activeObject);
-
-  statusText.textContent = "Raccoon loaded";
+  setStatus("AR scene ready");
 }
 
 
-// =====================================
-// CAMERA START
-// =====================================
+/* ===============================
+   CAMERA START
+================================ */
 
 async function startCamera() {
 
-  if (isRunning || isStarting || isSwitching) return;
-
-  isStarting = true;
-
-  statusText.textContent = "Starting camera...";
-
   try {
+
+    setStatus("Loading AR...");
 
     await setup();
 
-    await mindarThree.start({
-      facingMode: facingMode
-    });
+    await mindarThree.start();
 
-    const { renderer, scene, camera } = mindarThree;
+    cameraStarted = true;
 
     renderer.setAnimationLoop(() => {
 
@@ -492,209 +456,187 @@ async function startCamera() {
 
     });
 
-    isRunning = true;
-
-    statusText.textContent =
-      facingMode === "user"
-      ? "Front camera running"
-      : "Back camera running";
-
-  } catch (error) {
-
-    console.error("Camera start error:", error);
-
-    isRunning = false;
-
-    statusText.textContent =
-      "Camera error: " + error.message;
-
-  } finally {
-
-    isStarting = false;
-  }
-}
-
-
-// =====================================
-// CAMERA STOP
-// =====================================
-
-async function stopCamera() {
-
-  if (!mindarThree || !isRunning || isSwitching) return;
-
-  try {
-
-    mindarThree.renderer.setAnimationLoop(null);
-
-    await mindarThree.stop();
-
-    isRunning = false;
-
-    statusText.textContent = "Camera stopped";
+    setStatus("Camera running");
 
   } catch (error) {
 
     console.error(error);
 
-    statusText.textContent =
-      "Stop error: " + error.message;
+    setStatus("Camera error: " + error.message);
+
   }
 }
 
 
-// =====================================
-// FRONT / BACK CAMERA
-// =====================================
+/* ===============================
+   CAMERA SWITCH
+================================ */
 
-async function switchCamera(targetMode) {
+document
+  .querySelector("#switchCamera")
+  .addEventListener("click", async () => {
 
-  if (
-    !mindarThree ||
-    !isRunning ||
-    isStarting ||
-    isSwitching
-  ) return;
+    if (!cameraStarted) return;
 
-  if (targetMode === facingMode) return;
+    try {
 
-  isSwitching = true;
+      await mindarThree.switchCamera();
 
-  statusText.textContent = "Switching camera...";
+      setStatus("Camera switched");
 
-  try {
+    } catch (error) {
 
-    await mindarThree.switchCamera();
+      setStatus("Switch error: " + error.message);
 
-    facingMode = targetMode;
+    }
 
-    statusText.textContent =
-      facingMode === "user"
-      ? "Front camera running"
-      : "Back camera running";
-
-  } catch (error) {
-
-    console.error(error);
-
-    statusText.textContent =
-      "Camera switch failed: " + error.message;
-
-  } finally {
-
-    isSwitching = false;
-  }
-}
+  });
 
 
-// =====================================
-// SELECT OBJECT
-// =====================================
+/* ===============================
+   FULLSCREEN
+================================ */
 
-function selectObject(object) {
+document
+  .querySelector("#fullscreenBtn")
+  .addEventListener("click", async () => {
 
-  if (!transformControls || !object) return;
+    try {
 
-  transformControls.detach();
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
 
-  activeObject = object;
+    } catch (error) {
 
-  activeBaseScale.copy(object.scale);
+      setStatus("Fullscreen unavailable");
 
-  sizeSlider.value = 500;
+    }
 
-  transformControls.attach(object);
-
-  transformControls.setMode(currentMode);
-
-  gizmoHelper.visible = gizmosVisible;
-
-  updateSizeLabel();
-}
+  });
 
 
-// =====================================
-// GIZMO MODES
-// =====================================
+/* ===============================
+   PANEL HIDE / SHOW
+================================ */
+
+document
+  .querySelector("#panelToggle")
+  .addEventListener("click", () => {
+
+    const panel = document.querySelector("#panel");
+
+    panel.classList.toggle("panel-hidden");
+
+    document.querySelector("#panelToggle").textContent =
+      panel.classList.contains("panel-hidden")
+        ? "SHOW PANEL"
+        : "HIDE PANEL";
+
+  });
+
+
+/* ===============================
+   GIZMO MODE BUTTONS
+================================ */
 
 function setGizmoMode(mode, buttonId) {
 
   currentMode = mode;
 
   if (transformControls) {
-
     transformControls.setMode(mode);
-
-    transformControls.enabled = true;
-
-    if (activeObject) {
-      transformControls.attach(activeObject);
-    }
   }
 
-  document.querySelectorAll(
-    "#moveBtn, #rotateBtn, #scaleBtn"
-  ).forEach(button => {
-    button.classList.remove("active");
-  });
+  document
+    .querySelectorAll("#moveBtn, #rotateBtn, #scaleBtn")
+    .forEach(button => button.classList.remove("active"));
 
-  document.querySelector("#" + buttonId)
+  document
+    .querySelector("#" + buttonId)
     .classList.add("active");
 
-  if (gizmoHelper) {
-    gizmoHelper.visible = gizmosVisible;
-  }
 }
 
+document
+  .querySelector("#moveBtn")
+  .addEventListener("click", () => {
+    setGizmoMode("translate", "moveBtn");
+  });
 
-// =====================================
-// SIZE SLIDER
-// =====================================
+document
+  .querySelector("#rotateBtn")
+  .addEventListener("click", () => {
+    setGizmoMode("rotate", "rotateBtn");
+  });
 
-function getSizeMultiplier(value) {
+document
+  .querySelector("#scaleBtn")
+  .addEventListener("click", () => {
+    setGizmoMode("scale", "scaleBtn");
+  });
 
-  return Math.pow(10, (value - 500) / 166.6667);
-}
+
+/* ===============================
+   GIZMO VISIBILITY
+================================ */
+
+document
+  .querySelector("#gizmoToggle")
+  .addEventListener("click", () => {
+
+    gizmosVisible = !gizmosVisible;
+
+    if (gizmoHelper) {
+      gizmoHelper.visible =
+        gizmosVisible && !!activeObject;
+    }
+
+    document.querySelector("#gizmoToggle").textContent =
+      gizmosVisible ? "HIDE GIZMO" : "SHOW GIZMO";
+
+  });
+
+
+/* ===============================
+   UPDATE SIZE LABEL
+================================ */
 
 function updateSizeLabel() {
 
-  if (!activeObject) {
-    sizeValue.textContent = "No model selected";
-    return;
-  }
+  if (!activeObject) return;
 
-  const factor = getSizeMultiplier(
-    Number(sizeSlider.value)
-  );
-
-  activeObject.scale.copy(activeBaseScale);
-
-  activeObject.scale.multiplyScalar(factor);
+  const scale = activeObject.scale.x;
 
   sizeValue.textContent =
-    "Size: " + factor.toExponential(2) + "x";
+    "SIZE: " + Math.round(scale * 100) + "%";
+
 }
 
-sizeSlider.addEventListener(
-  "input",
-  updateSizeLabel
-);
-
-
-// =====================================
-// PREPARE IMPORTED MODEL
-// =====================================
+</script>
+/* ===============================
+   IMPORTED MODEL PREPARATION
+================================ */
 
 function prepareModel(object, name) {
 
   if (!anchor) {
-    throw new Error("Start camera before importing.");
+    setStatus("Camera is not ready");
+    return null;
   }
+
+  object.updateMatrixWorld(true);
 
   const box = new THREE.Box3().setFromObject(object);
 
-  const dimensions = new THREE.Vector3();
+  if (box.isEmpty()) {
+    setStatus("Model has no visible geometry");
+    return null;
+  }
 
+  const dimensions = new THREE.Vector3();
   box.getSize(dimensions);
 
   const maxDimension = Math.max(
@@ -703,39 +645,166 @@ function prepareModel(object, name) {
     dimensions.z
   );
 
-  if (maxDimension > 0) {
-    object.scale.multiplyScalar(1 / maxDimension);
+  if (!Number.isFinite(maxDimension) || maxDimension <= 0) {
+    setStatus("Invalid model dimensions");
+    return null;
   }
 
-  const center = new THREE.Box3()
-    .setFromObject(object)
-    .getCenter(new THREE.Vector3());
-
-  object.position.sub(center);
-
+  // Normalize model size without changing its geometry.
   const wrapper = new THREE.Group();
-
   wrapper.name = name;
 
-  wrapper.add(object);
+  const center = box.getCenter(new THREE.Vector3());
 
+  object.position.sub(center);
+  object.scale.multiplyScalar(1 / maxDimension);
+
+  wrapper.add(object);
   anchor.group.add(wrapper);
 
   importedObjects.push(wrapper);
 
   selectObject(wrapper);
 
-  statusText.textContent = name + " imported";
+  setStatus(name + " imported");
 
   return wrapper;
 }
 
 
-// =====================================
-// IMPORT 3D MODEL
-// =====================================
+/* ===============================
+   SELECT IMPORTED MODEL
+================================ */
 
-document.querySelector("#modelInput")
+function selectObject(object) {
+
+  if (!object || !transformControls) return;
+
+  if (activeObject) {
+    transformControls.detach();
+  }
+
+  activeObject = object;
+
+  transformControls.attach(activeObject);
+  transformControls.setMode(currentMode);
+
+  gizmoHelper.visible = gizmosVisible;
+
+  // Every newly selected model starts at 100%.
+  sizeSlider.value = 500;
+
+  activeBaseScale.copy(activeObject.scale);
+
+  updateSizeLabel();
+}
+
+
+/* ===============================
+   BASE SCALE
+================================ */
+
+const activeBaseScale = new THREE.Vector3(1, 1, 1);
+
+
+/* ===============================
+   SIZE SLIDER
+================================ */
+
+sizeSlider.addEventListener("input", () => {
+
+  if (!activeObject) {
+    setStatus("Import a model first");
+    return;
+  }
+
+  const value = Number(sizeSlider.value);
+
+  // 500 = 100%, 1 = 0.2%, 2000 = 400%.
+  const multiplier = value / 500;
+
+  activeObject.scale.set(
+    activeBaseScale.x * multiplier,
+    activeBaseScale.y * multiplier,
+    activeBaseScale.z * multiplier
+  );
+
+  sizeValue.textContent =
+    "SIZE: " + Math.round(multiplier * 100) + "%";
+
+});
+
+
+/* ===============================
+   REMOVE SELECTED MODEL
+================================ */
+
+document
+  .querySelector("#removeModel")
+  .addEventListener("click", () => {
+
+    if (!activeObject) {
+      setStatus("No imported model selected");
+      return;
+    }
+
+    transformControls.detach();
+
+    anchor.group.remove(activeObject);
+
+    activeObject.traverse((child) => {
+
+      if (child.geometry) {
+        child.geometry.dispose();
+      }
+
+      if (child.material) {
+
+        const materials = Array.isArray(child.material)
+          ? child.material
+          : [child.material];
+
+        materials.forEach(material => {
+
+          for (const key in material) {
+
+            const value = material[key];
+
+            if (value && value.isTexture) {
+              value.dispose();
+            }
+
+          }
+
+          material.dispose();
+
+        });
+
+      }
+
+    });
+
+    importedObjects = importedObjects.filter(
+      item => item !== activeObject
+    );
+
+    activeObject = null;
+
+    gizmoHelper.visible = false;
+
+    sizeValue.textContent = "SIZE: 100%";
+
+    setStatus("Imported model removed");
+
+  });
+
+
+/* ===============================
+   GLTF / GLB IMPORT
+================================ */
+
+document
+  .querySelector("#gltfFile")
   .addEventListener("change", async (event) => {
 
     const file = event.target.files[0];
@@ -744,89 +813,136 @@ document.querySelector("#modelInput")
 
     try {
 
-      if (!anchor) {
-        throw new Error("Start camera before importing.");
-      }
+      setStatus("Loading GLTF / GLB...");
 
-      const extension =
-        file.name.split(".").pop().toLowerCase();
-
-      let object = null;
+      const loader = new GLTFLoader();
 
       const url = URL.createObjectURL(file);
 
-      if (extension === "glb" || extension === "gltf") {
+      const gltf = await loader.loadAsync(url);
 
-        const loader = new GLTFLoader();
+      prepareModel(gltf.scene, file.name);
 
-        const gltf = await loader.loadAsync(url);
-
-        object = gltf.scene;
-
-      } else if (extension === "obj") {
-
-        const loader = new OBJLoader();
-
-        object = loader.parse(
-          await file.text()
-        );
-
-      } else if (extension === "fbx") {
-
-        const loader = new FBXLoader();
-
-        object = loader.parse(
-          await file.arrayBuffer(),
-          ""
-        );
-
-      } else {
-
-        throw new Error("Unsupported 3D model format");
+      // Keep the object URL alive while the model uses its resources.
+      if (activeObject) {
+        activeObject.userData.sourceURL = url;
       }
-
-      prepareModel(object, file.name);
-
-      URL.revokeObjectURL(url);
 
     } catch (error) {
 
       console.error(error);
+      setStatus("GLTF / GLB error: " + error.message);
 
-      statusText.textContent =
-        "Import error: " + error.message;
     }
 
     event.target.value = "";
+
   });
 
 
-// =====================================
-// IMPORT IMAGE
-// =====================================
+/* ===============================
+   OBJ IMPORT
+================================ */
 
-document.querySelector("#imageInput")
-  .addEventListener("change", (event) => {
+document
+  .querySelector("#objFile")
+  .addEventListener("change", async (event) => {
 
     const file = event.target.files[0];
 
     if (!file) return;
 
-    if (!anchor) {
-      statusText.textContent = "Start camera first";
-      return;
+    try {
+
+      setStatus("Loading OBJ...");
+
+      const loader = new OBJLoader();
+
+      const text = await file.text();
+
+      const object = loader.parse(text);
+
+      prepareModel(object, file.name);
+
+    } catch (error) {
+
+      console.error(error);
+      setStatus("OBJ error: " + error.message);
+
     }
 
-    const url = URL.createObjectURL(file);
+    event.target.value = "";
 
-    const textureLoader = new THREE.TextureLoader();
+  });
 
-    textureLoader.load(url, (texture) => {
+
+/* ===============================
+   FBX IMPORT
+================================ */
+
+document
+  .querySelector("#fbxFile")
+  .addEventListener("change", async (event) => {
+
+    const file = event.target.files[0];
+
+    if (!file) return;
+
+    try {
+
+      setStatus("Loading FBX...");
+
+      const loader = new FBXLoader();
+
+      const buffer = await file.arrayBuffer();
+
+      const object = loader.parse(buffer, "");
+
+      prepareModel(object, file.name);
+
+    } catch (error) {
+
+      console.error(error);
+      setStatus("FBX error: " + error.message);
+
+    }
+
+    event.target.value = "";
+
+  });
+
+
+/* ===============================
+   IMAGE IMPORT
+================================ */
+
+document
+  .querySelector("#imageFile")
+  .addEventListener("change", async (event) => {
+
+    const file = event.target.files[0];
+
+    if (!file) return;
+
+    try {
+
+      setStatus("Loading image...");
+
+      const url = URL.createObjectURL(file);
+
+      const texture = await new THREE.TextureLoader().loadAsync(url);
 
       texture.colorSpace = THREE.SRGBColorSpace;
 
-      const geometry =
-        new THREE.PlaneGeometry(1, 1);
+      const imageWidth = texture.image.width || 1;
+      const imageHeight = texture.image.height || 1;
+
+      const aspect = imageWidth / imageHeight;
+
+      const geometry = new THREE.PlaneGeometry(
+        aspect,
+        1
+      );
 
       const material = new THREE.MeshBasicMaterial({
         map: texture,
@@ -834,254 +950,88 @@ document.querySelector("#imageInput")
         side: THREE.DoubleSide
       });
 
-      const imageMesh = new THREE.Mesh(
+      const imagePlane = new THREE.Mesh(
         geometry,
         material
       );
 
-      prepareModel(imageMesh, file.name);
+      imagePlane.userData.sourceURL = url;
 
-      URL.revokeObjectURL(url);
-    });
+      prepareModel(imagePlane, file.name);
+
+      if (activeObject) {
+        activeObject.userData.sourceURL = url;
+      }
+
+    } catch (error) {
+
+      console.error(error);
+      setStatus("Image error: " + error.message);
+
+    }
 
     event.target.value = "";
+
   });
 
 
-// =====================================
-// IMPORT VIDEO
-// =====================================
+/* ===============================
+   SELECT IMPORTED MODEL BY TAP
+================================ */
 
-document.querySelector("#videoInput")
-  .addEventListener("change", (event) => {
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
 
-    const file = event.target.files[0];
+renderer.domElement.addEventListener(
+  "pointerdown",
+  (event) => {
 
-    if (!file) return;
+    if (!cameraStarted || importedObjects.length === 0) return;
 
-    if (!anchor) {
-      statusText.textContent = "Start camera first";
-      return;
-    }
+    // Do not interfere with an active gizmo drag.
+    if (transformControls && transformControls.dragging) return;
 
-    const url = URL.createObjectURL(file);
+    const rect = renderer.domElement.getBoundingClientRect();
 
-    const video = document.createElement("video");
+    pointer.x =
+      ((event.clientX - rect.left) / rect.width) * 2 - 1;
 
-    video.src = url;
-    video.loop = true;
-    video.muted = true;
-    video.playsInline = true;
-    video.autoplay = true;
+    pointer.y =
+      -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
-    videoElements.push(video);
+    raycaster.setFromCamera(pointer, camera);
 
-    video.play().catch(() => {});
-
-    video.addEventListener("loadeddata", () => {
-
-      const texture = new THREE.VideoTexture(video);
-
-      texture.colorSpace = THREE.SRGBColorSpace;
-
-      const geometry =
-        new THREE.PlaneGeometry(1, 1);
-
-      const material = new THREE.MeshBasicMaterial({
-        map: texture,
-        side: THREE.DoubleSide
-      });
-
-      const videoMesh = new THREE.Mesh(
-        geometry,
-        material
-      );
-
-      prepareModel(videoMesh, file.name);
-    });
-
-    event.target.value = "";
-  });
-
-
-// =====================================
-// REMOVE SELECTED IMPORT
-// =====================================
-
-function removeSelectedImport() {
-
-  if (!activeObject) {
-    statusText.textContent = "No model selected";
-    return;
-  }
-
-  if (!importedObjects.includes(activeObject)) {
-    statusText.textContent =
-      "Original Raccoon cannot be removed";
-    return;
-  }
-
-  transformControls.detach();
-
-  const index = importedObjects.indexOf(activeObject);
-
-  if (index !== -1) {
-    importedObjects.splice(index, 1);
-  }
-
-  anchor.group.remove(activeObject);
-
-  activeObject.traverse((object) => {
-
-    if (object.geometry) {
-      object.geometry.dispose();
-    }
-
-    if (object.material) {
-
-      const materials = Array.isArray(object.material)
-        ? object.material
-        : [object.material];
-
-      materials.forEach(material => {
-
-        if (material.map) {
-          material.map.dispose();
-        }
-
-        material.dispose();
-      });
-    }
-  });
-
-  activeObject = raccoonObject;
-
-  if (raccoonObject) {
-
-    activeBaseScale.copy(raccoonObject.scale);
-
-    transformControls.attach(raccoonObject);
-  }
-
-  sizeSlider.value = 500;
-
-  updateSizeLabel();
-
-  statusText.textContent = "Imported model removed";
-}
-
-
-// =====================================
-// GIZMO VISIBILITY
-// =====================================
-
-document.querySelector("#gizmoToggle")
-  .addEventListener("click", () => {
-
-    gizmosVisible = !gizmosVisible;
-
-    if (gizmoHelper) {
-      gizmoHelper.visible = gizmosVisible;
-    }
-
-    document.querySelector("#gizmoToggle").textContent =
-      gizmosVisible
-      ? "HIDE GIZMOS"
-      : "SHOW GIZMOS";
-  });
-
-
-// =====================================
-// PANEL VISIBILITY
-// =====================================
-
-document.querySelector("#panelToggle")
-  .addEventListener("click", () => {
-
-    const panel = document.querySelector("#panel");
-
-    panel.classList.toggle("hidden");
-
-    document.querySelector("#panelToggle").textContent =
-      panel.classList.contains("hidden")
-      ? "SHOW PANEL"
-      : "HIDE PANEL";
-  });
-
-
-// =====================================
-// BUTTON EVENTS
-// =====================================
-
-document.querySelector("#moveBtn")
-  .addEventListener("click", () => {
-    setGizmoMode("translate", "moveBtn");
-  });
-
-document.querySelector("#rotateBtn")
-  .addEventListener("click", () => {
-    setGizmoMode("rotate", "rotateBtn");
-  });
-
-document.querySelector("#scaleBtn")
-  .addEventListener("click", () => {
-    setGizmoMode("scale", "scaleBtn");
-  });
-
-document.querySelector("#startBtn")
-  .addEventListener("click", startCamera);
-
-document.querySelector("#stopBtn")
-  .addEventListener("click", stopCamera);
-
-document.querySelector("#frontBtn")
-  .addEventListener("click", () => {
-    switchCamera("user");
-  });
-
-document.querySelector("#backBtn")
-  .addEventListener("click", () => {
-    switchCamera("environment");
-  });
-
-document.querySelector("#removeModelBtn")
-  .addEventListener("click", removeSelectedImport);
-
-
-// =====================================
-// INITIAL BUTTON STATE
-// =====================================
-
-document.querySelector("#moveBtn").classList.add("active");
-
-
-// =====================================
-// WINDOW RESIZE
-// =====================================
-
-window.addEventListener("resize", () => {
-
-  if (mindarThree && mindarThree.renderer) {
-
-    mindarThree.renderer.setSize(
-      window.innerWidth,
-      window.innerHeight
+    const hits = raycaster.intersectObjects(
+      importedObjects,
+      true
     );
+
+    if (hits.length > 0) {
+
+      let selected = hits[0].object;
+
+      while (
+        selected.parent &&
+        !importedObjects.includes(selected)
+      ) {
+        selected = selected.parent;
+      }
+
+      if (importedObjects.includes(selected)) {
+        selectObject(selected);
+      }
+
+    }
+
   }
-});
+);
 
 
-// =====================================
-// ERROR HANDLING
-// =====================================
+/* ===============================
+   START CAMERA AUTOMATICALLY
+================================ */
 
-window.addEventListener("error", (event) => {
-
-  console.error("Application error:", event.error);
-
-  statusText.textContent =
-    "Error: " + event.message;
-});
+startCamera();
 
 </script>
 </body>
