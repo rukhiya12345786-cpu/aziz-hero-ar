@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#080b12">
 <title>AZEEZ AI AR STUDIO</title>
 
 <script type="importmap">
@@ -21,164 +20,169 @@
   box-sizing: border-box;
 }
 
-body {
+html, body {
   margin: 0;
-  background: #080b12;
-  color: white;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #111;
   font-family: Arial, sans-serif;
 }
 
-header {
-  padding: 15px;
-  text-align: center;
-  background: #111b2b;
-}
-
-header h1 {
-  margin: 0;
-  font-size: 21px;
-  letter-spacing: 2px;
-}
-
-header p {
-  margin: 6px 0 0;
-  color: #9eb5d0;
-  font-size: 12px;
-}
-
-#controls {
-  padding: 12px;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-}
-
-button {
-  padding: 13px 8px;
-  border: 0;
-  border-radius: 8px;
-  background: #294361;
-  color: white;
-  font-weight: bold;
-  font-size: 12px;
-}
-
-.start {
-  background: #087da9;
-}
-
-.stop {
-  background: #a52e42;
-}
-
-#status {
-  margin: 0 12px 12px;
-  padding: 12px;
-  background: #111b2b;
-  border-radius: 8px;
-  color: #80e3ff;
-  font-size: 13px;
-  overflow-wrap: anywhere;
-}
-
 #container {
-  width: 100%;
-  height: 65vh;
-  min-height: 300px;
-  position: relative;
-  overflow: hidden;
-  background: #111827;
-}
-
-#container video,
-#container canvas {
-  position: absolute;
+  position: fixed;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  overflow: hidden;
+  background: #111;
 }
 
+/* Camera video layer */
+#container video {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  z-index: 1 !important;
+}
+
+/* 3D overlay layer */
 #container canvas {
-  z-index: 2;
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 2 !important;
+  pointer-events: none;
 }
 
-#container.camera-hidden {
-  visibility: hidden;
+#topbar {
+  position: fixed;
+  top: 12px;
+  left: 10px;
+  right: 10px;
+  z-index: 10;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: white;
+  gap: 8px;
 }
 
-#container.camera-hidden::after {
-  content: "CAMERA PREVIEW HIDDEN";
-  visibility: visible;
-  position: absolute;
-  inset: 0;
+#brand {
+  background: #0009;
+  padding: 10px;
+  border-radius: 10px;
+  font-weight: bold;
+}
+
+#status {
+  background: #000b;
+  padding: 9px;
+  border-radius: 10px;
+  font-size: 12px;
+  color: #fff;
+}
+
+#controls {
+  position: fixed;
+  bottom: 18px;
+  left: 10px;
+  right: 10px;
+  z-index: 20;
   display: flex;
   justify-content: center;
-  align-items: center;
-  background: #111827;
-  color: white;
-  z-index: 5;
+  flex-wrap: wrap;
+  gap: 9px;
 }
 
-.note {
-  padding: 12px;
-  color: #94a9c3;
+button {
+  border: 0;
+  border-radius: 10px;
+  padding: 12px 15px;
+  color: white;
+  background: #202020eF;
+  font-weight: bold;
+  font-size: 13px;
+}
+
+button:disabled {
+  opacity: 0.45;
+}
+
+#message {
+  position: fixed;
+  left: 10px;
+  right: 10px;
+  bottom: 90px;
+  z-index: 15;
+  color: white;
+  background: #0009;
+  padding: 10px;
+  border-radius: 8px;
   font-size: 12px;
-  line-height: 1.5;
+  text-align: center;
+}
+
+@media (orientation: landscape) {
+  #controls {
+    left: auto;
+    right: 12px;
+    bottom: 12px;
+    width: 190px;
+    flex-direction: column;
+  }
+
+  #message {
+    bottom: 12px;
+    left: 12px;
+    right: 210px;
+  }
 }
 </style>
 </head>
 
 <body>
 
-<header>
-  <h1>AZEEZ AI AR STUDIO</h1>
-  <p>MINDAR FACE TRACKING TEST</p>
-</header>
-
-<div id="controls">
-  <button class="start" id="startButton">START CAMERA</button>
-  <button class="stop" id="stopButton">STOP CAMERA</button>
-  <button id="switchButton">SWITCH CAMERA</button>
-  <button id="hideButton">HIDE CAMERA</button>
-</div>
-
-<div id="status">Ready. Press START CAMERA.</div>
-
 <div id="container"></div>
 
-<p class="note">
-  First allow camera permission. Keep your face in front of the camera.
-  Internet connection is required to load the tracking model.
-</p>
+<div id="topbar">
+  <div id="brand">AZEEZ AI AR STUDIO</div>
+  <div id="status">Camera stopped</div>
+</div>
+
+<div id="message">
+  Allow camera permission and keep your face in front of the camera.
+</div>
+
+<div id="controls">
+  <button id="startBtn">START CAMERA</button>
+  <button id="switchBtn">SWITCH CAMERA</button>
+  <button id="stopBtn">STOP CAMERA</button>
+  <button id="fullBtn">FULL SCREEN</button>
+</div>
 
 <script type="module">
 import * as THREE from "three";
-
-import { GLTFLoader } from
-  "three/addons/loaders/GLTFLoader.js";
-
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { MindARThree } from "mindar-face-three";
 
 const container = document.querySelector("#container");
-const status = document.querySelector("#status");
+const statusBox = document.querySelector("#status");
+const messageBox = document.querySelector("#message");
 
-const startButton = document.querySelector("#startButton");
-const stopButton = document.querySelector("#stopButton");
-const switchButton = document.querySelector("#switchButton");
-const hideButton = document.querySelector("#hideButton");
+const startBtn = document.querySelector("#startBtn");
+const stopBtn = document.querySelector("#stopBtn");
+const switchBtn = document.querySelector("#switchBtn");
+const fullBtn = document.querySelector("#fullBtn");
 
 let mindarThree = null;
 let avatar = null;
-let anchor = null;
-
+let facingMode = "user";
 let running = false;
-let cameraFacing = "user";
-let cameraHidden = false;
-
-function setStatus(message) {
-  status.textContent = message;
-}
+let starting = false;
 
 class Avatar {
   constructor() {
@@ -187,7 +191,8 @@ class Avatar {
   }
 
   async init() {
-    const url = "https://storage.googleapis.com/mediapipe-tasks/face_landmarker/raccoon_head.glb";
+    const url =
+      "https://storage.googleapis.com/mediapipe-tasks/face_landmarker/raccoon_head.glb";
 
     const loader = new GLTFLoader();
 
@@ -204,21 +209,15 @@ class Avatar {
         this.morphTargetMeshes.push(object);
       }
     });
-
-    if (this.morphTargetMeshes.length === 0) {
-      console.warn("Avatar has no morph targets.");
-    }
   }
 
   updateBlendshapes(blendshapes) {
     if (!blendshapes || !blendshapes.categories) return;
 
-    const categories = blendshapes.categories;
-
     const values = new Map();
 
-    for (const category of categories) {
-      values.set(category.categoryName, category.score);
+    for (const item of blendshapes.categories) {
+      values.set(item.categoryName, item.score);
     }
 
     for (const mesh of this.morphTargetMeshes) {
@@ -226,168 +225,154 @@ class Avatar {
       const influences = mesh.morphTargetInfluences;
 
       for (const [name, value] of values) {
-        if (dictionary[name] === undefined) continue;
-
         const index = dictionary[name];
-        influences[index] = value;
+
+        if (index !== undefined) {
+          influences[index] = value;
+        }
       }
     }
   }
 }
 
-async function setup() {
-  setStatus("Loading avatar...");
-
-  avatar = new Avatar();
-  await avatar.init();
-
-  setStatus("Preparing face tracking camera...");
-
-  mindarThree = new MindARThree({
-    container: container,
-    faceCamera: cameraFacing,
-    maxTrack: 1
-  });
-
-  const scene = mindarThree.scene;
-  const camera = mindarThree.camera;
-  const renderer = mindarThree.renderer;
-
-  const light = new THREE.HemisphereLight(
-    0xffffff,
-    0xbbbbff,
-    1.5
-  );
-
-  scene.add(light);
-
-  const directionalLight = new THREE.DirectionalLight(
-    0xffffff,
-    1.5
-  );
-
-  directionalLight.position.set(0, 1, 2);
-  scene.add(directionalLight);
-
-  anchor = mindarThree.addAnchor(1);
-
-  avatar.gltf.scene.scale.set(2, 2, 2);
-
-  anchor.group.add(avatar.gltf.scene);
-
-  await mindarThree.start();
-
-  running = true;
-
-  renderer.setAnimationLoop(() => {
-    if (!running) return;
-
-    const estimate = mindarThree.getLatestEstimate();
-
-    if (estimate && estimate.blendshapes) {
-      avatar.updateBlendshapes(estimate.blendshapes);
-    }
-
-    renderer.render(scene, camera);
-  });
-
-  setStatus("Camera running. Face tracking active.");
-}
-
 async function startCamera() {
-  if (running) {
-    setStatus("Camera is already running.");
-    return;
-  }
+  if (starting || running) return;
 
-  startButton.disabled = true;
+  starting = true;
+  startBtn.disabled = true;
 
   try {
-    await setup();
+    statusBox.textContent = "Starting camera...";
+    messageBox.textContent = "Please allow camera permission.";
+
+    if (!avatar) {
+      avatar = new Avatar();
+      await avatar.init();
+    }
+
+    mindarThree = new MindARThree({
+      container: container,
+      faceCamera: facingMode,
+      maxTrack: 1
+    });
+
+    const { renderer, scene, camera } = mindarThree;
+
+    scene.background = null;
+
+    const light = new THREE.HemisphereLight(
+      0xffffff,
+      0xbbbbff,
+      1.5
+    );
+    scene.add(light);
+
+    const anchor = mindarThree.addAnchor(1);
+
+    avatar.gltf.scene.scale.set(2, 2, 2);
+    anchor.group.add(avatar.gltf.scene);
+
+    await mindarThree.start();
+
+    running = true;
+
+    statusBox.textContent = "Camera running";
+    messageBox.textContent =
+      "Camera is active. Keep your face in front of the camera.";
+
+    renderer.setAnimationLoop(() => {
+      const estimate = mindarThree.getLatestEstimate();
+
+      if (estimate && estimate.blendshapes) {
+        avatar.updateBlendshapes(estimate.blendshapes);
+      }
+
+      renderer.render(scene, camera);
+    });
+
   } catch (error) {
     console.error(error);
-
-    running = false;
-
-    setStatus(
-      "START ERROR: " +
-      (error.message || "Camera or model could not load.")
-    );
+    statusBox.textContent = "Camera error";
+    messageBox.textContent = error.message || "Unable to start camera.";
 
     if (mindarThree) {
       try {
         mindarThree.stop();
-      } catch (e) {
-        console.error(e);
-      }
+      } catch (e) {}
     }
 
     mindarThree = null;
-    avatar = null;
+    running = false;
+
   } finally {
-    startButton.disabled = false;
+    starting = false;
+    startBtn.disabled = false;
   }
 }
 
-function stopCamera() {
-  running = false;
+async function stopCamera() {
+  if (!mindarThree) return;
 
-  if (mindarThree) {
-    try {
-      mindarThree.renderer.setAnimationLoop(null);
-      mindarThree.stop();
-    } catch (error) {
-      console.error(error);
-    }
+  try {
+    mindarThree.renderer.setAnimationLoop(null);
+    await mindarThree.stop();
+  } catch (error) {
+    console.error(error);
   }
 
   mindarThree = null;
-  avatar = null;
-  anchor = null;
+  running = false;
 
   container.innerHTML = "";
 
-  setStatus("Camera stopped.");
+  statusBox.textContent = "Camera stopped";
+  messageBox.textContent = "Press START CAMERA to begin.";
 }
 
-async function switchCamera() {
+startBtn.addEventListener("click", startCamera);
+
+stopBtn.addEventListener("click", async () => {
+  await stopCamera();
+});
+
+switchBtn.addEventListener("click", async () => {
+  if (starting) return;
+
   const wasRunning = running;
 
-  cameraFacing =
-    cameraFacing === "user" ? "environment" : "user";
+  if (wasRunning) {
+    await stopCamera();
+  }
 
-  setStatus(
-    "Selected camera: " +
-    (cameraFacing === "user" ? "Front" : "Back")
-  );
+  facingMode = facingMode === "user" ? "environment" : "user";
+
+  messageBox.textContent =
+    facingMode === "user"
+      ? "Front camera selected."
+      : "Back camera selected.";
 
   if (wasRunning) {
-    stopCamera();
     await startCamera();
   }
-}
+});
 
-function toggleCameraPreview() {
-  cameraHidden = !cameraHidden;
+fullBtn.addEventListener("click", async () => {
+  try {
+    if (!document.fullscreenElement) {
+      await document.documentElement.requestFullscreen();
+    } else {
+      await document.exitFullscreen();
+    }
+  } catch (error) {
+    messageBox.textContent = "Fullscreen is not supported here.";
+  }
+});
 
-  container.classList.toggle(
-    "camera-hidden",
-    cameraHidden
-  );
-
-  hideButton.textContent =
-    cameraHidden ? "SHOW CAMERA" : "HIDE CAMERA";
-}
-
-startButton.addEventListener("click", startCamera);
-
-stopButton.addEventListener("click", stopCamera);
-
-switchButton.addEventListener("click", switchCamera);
-
-hideButton.addEventListener("click", toggleCameraPreview);
-
-setStatus("Studio ready. Press START CAMERA.");
+window.addEventListener("beforeunload", () => {
+  if (mindarThree) {
+    mindarThree.stop();
+  }
+});
 
 </script>
 </body>
