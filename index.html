@@ -385,6 +385,10 @@ function updatePeople(results){
   $("person"+i+"Status").textContent=
    "Person "+i+": "+(i<=count?"Face detected":"Waiting");
 }
+ /* Camera and tracking buttons */
+$("startCameraButton").onclick=startCamera;
+$("stopCameraButton").onclick=stopCamera;
+$("switchCameraButton").onclick=switchCamera;
 
 /* Camera and tracking buttons */
 $("startCameraButton").onclick=startCamera;
