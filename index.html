@@ -333,7 +333,7 @@ async function startCamera() {
     transformControls.setSize(0.8);
     transformControls.enabled = false;
 
-    scene.add(transformControls.getHelper());
+    scene.add(transformControls);
 
     await mindarThree.start();
 
