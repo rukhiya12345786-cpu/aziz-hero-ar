@@ -381,28 +381,37 @@ async function setupAR() {
   avatar.gltf.scene.scale.set(2, 2, 2);
   anchor.group.add(avatar.gltf.scene);
 
-  /* TRANSFORM CONTROLS */
 
-  transformControls = new TransformControls(
-    camera,
-    renderer.domElement
-  );
+/* TRANSFORM CONTROLS */
 
-  transformControls.setMode("translate");
-  transformControls.setSpace("local");
-  transformControls.setSize(0.8);
+transformControls = new TransformControls(
+  camera,
+  renderer.domElement
+);
 
-  const helper = transformControls.getHelper();
-  scene.add(helper);
-  helper.visible = false;
+transformControls.setMode("translate");
+transformControls.setSpace("world");
+transformControls.setSize(1.5);
 
-  transformControls.addEventListener("dragging-changed", event => {
-    if (event.value) {
-      renderer.domElement.style.touchAction = "none";
-    } else {
-      renderer.domElement.style.touchAction = "pan-y";
-    }
-  });
+const helper = transformControls.getHelper();
+scene.add(helper);
+helper.visible = false;
+
+transformControls.addEventListener("dragging-changed", event => {
+  if (event.value) {
+    renderer.domElement.style.touchAction = "none";
+  } else {
+    renderer.domElement.style.touchAction = "pan-y";
+  }
+});
+
+transformControls.addEventListener("change", () => {
+  if (renderer && scene && camera) {
+    renderer.render(scene, camera);
+  }
+});
+  
+  
 
   status("Face tracking ready.");
 }
