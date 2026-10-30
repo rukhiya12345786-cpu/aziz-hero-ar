@@ -661,27 +661,43 @@ sizeSlider.addEventListener("input", () => {
 
 /* SAVE BASE SCALE WHEN SELECTING */
 
-const originalSelectObject = selectObject;
 
-selectObject = function(object) {
-  activeObject = object;
-
-  if (transformControls) {
-    transformControls.detach();
-    transformControls.attach(object);
-    transformControls.setMode(currentMode);
-    transformControls.getHelper().visible = gizmoVisible;
+function selectObject(object) {
+  if (!object || !transformControls) {
+    status("Gizmo is not initialized.");
+    return;
   }
 
-  const multiplier = object.userData.sizeMultiplier || 1;
+  activeObject = object;
+
+  transformControls.detach();
+  transformControls.attach(activeObject);
+  transformControls.setMode(currentMode);
+  transformControls.setSpace("world");
+  transformControls.setSize(1.5);
+
+  const helper = transformControls.getHelper();
+  helper.visible = gizmoVisible;
+  helper.updateMatrixWorld(true);
+
+  activeObject.updateMatrixWorld(true);
 
   sizeSlider.value = Math.max(
     1,
-    Math.min(10000, Math.round(multiplier * 1000))
+    Math.min(
+      10000,
+      Math.round(
+        (activeObject.userData.sizeMultiplier || 1) * 1000
+      )
+    )
   );
 
   updateSizeLabel();
-};
+  renderer.render(scene, camera);
+
+  status("Model selected. Gizmo attached.");
+           }
+  
 
 /* REMOVE SELECTED IMPORTED MODEL */
 
