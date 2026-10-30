@@ -378,17 +378,14 @@ function drawFaces(results){
   }
  }
 }
-
 function updatePeople(results){
  const count=results?.faceLandmarks?.length||0;
+
  for(let i=1;i<=4;i++){
   $("person"+i+"Status").textContent=
    "Person "+i+": "+(i<=count?"Face detected":"Waiting");
+ }
 }
- /* Camera and tracking buttons */
-$("startCameraButton").onclick=startCamera;
-$("stopCameraButton").onclick=stopCamera;
-$("switchCameraButton").onclick=switchCamera;
 
 /* Camera and tracking buttons */
 $("startCameraButton").onclick=startCamera;
