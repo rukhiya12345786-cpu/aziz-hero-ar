@@ -224,6 +224,7 @@ window.addEventListener("resize",fitCanvases);
 
 async function startCamera(){
   try {
+   setStatus("START BUTTON FUNCTION RUNNING");
     setStatus("Checking camera permission...");
 
     if (!window.isSecureContext) {
