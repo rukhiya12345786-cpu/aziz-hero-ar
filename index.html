@@ -2,953 +2,745 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#080b12">
 <title>AZEEZ AI AR STUDIO</title>
+
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#080c16;color:#fff;font:14px Arial,sans-serif}
-header{padding:14px;text-align:center;background:#14213a;color:#70c5ff;font-size:20px;font-weight:bold}
-#studio{max-width:1100px;margin:auto;padding:10px}
-#cameraStage{position:relative;height:55vh;min-height:270px;background:#000;overflow:hidden;border:1px solid #30435f;border-radius:10px;touch-action:manipulation}
-#cameraVideo,#faceCanvas,#threeCanvas{position:absolute;inset:0;width:100%;height:100%}
-#cameraVideo{object-fit:contain;z-index:1}
-#faceCanvas{z-index:2;pointer-events:none}
-#threeCanvas{z-index:3;touch-action:none}
-#stagePlaceholder{position:absolute;inset:0;display:grid;place-items:center;color:#9db4d5;z-index:0;text-align:center;padding:15px}
-#statusText{padding:10px;color:#65ffc1;overflow-wrap:anywhere}
-.panel{background:#111a2b;border:1px solid #2b3b54;border-radius:9px;margin:9px 0;padding:10px}
-h3{color:#79bdff;margin:2px 0 8px}
-.row{display:flex;flex-wrap:wrap;gap:4px}
-button,select,input{max-width:100%;padding:9px;border-radius:6px;border:1px solid #405371;background:#1c2a41;color:white;margin:2px}
-button{cursor:pointer}
-label{display:inline-flex;align-items:center;gap:4px;margin:4px;flex-wrap:wrap}
-small{color:#b8c8df}
-.hidden{display:none!important}
-#studio:fullscreen{height:100vh;max-width:none;overflow:auto;background:#080c16}
-#studio:fullscreen #cameraStage{height:72vh;min-height:220px}
-@media(orientation:landscape){
- #cameraStage{height:70vh}
+body{
+ margin:0;background:#080b12;color:#fff;
+ font-family:Arial,sans-serif;overflow-x:hidden
 }
-@media(max-width:600px){
- header{font-size:18px}
- #studio{padding:6px}
- .panel{padding:8px}
- button,select{font-size:12px;padding:8px}
+header{
+ padding:14px;text-align:center;
+ background:#101827;border-bottom:1px solid #26344b
+}
+header h1{
+ margin:0;font-size:22px;letter-spacing:2px
+}
+header p{margin:6px 0 0;color:#9fb1c9;font-size:12px}
+#studio{max-width:1000px;margin:auto;padding:12px}
+#cameraStage{
+ position:relative;width:100%;aspect-ratio:4/3;
+ max-height:70vh;background:#111827;
+ border:1px solid #34445d;border-radius:14px;
+ overflow:hidden
+}
+#cameraVideo{
+ position:absolute;width:100%;height:100%;
+ inset:0;object-fit:cover;transform-origin:center;
+}
+#faceCanvas,#modelCanvas{
+ position:absolute;inset:0;width:100%;height:100%;
+ pointer-events:none
+}
+#modelCanvas{z-index:3}
+#faceCanvas{z-index:2}
+#stagePlaceholder{
+ position:absolute;inset:0;display:flex;
+ align-items:center;justify-content:center;
+ text-align:center;color:#9fb1c9;padding:20px;
+ z-index:4;pointer-events:none
+}
+.hidden{display:none!important}
+#statusText{
+ margin:10px 0;padding:10px;
+ background:#111827;border-radius:8px;
+ color:#9ee7ff;font-size:13px;overflow-wrap:anywhere
+}
+.section{
+ margin-top:12px;padding:13px;
+ background:#111827;border:1px solid #26344b;
+ border-radius:12px
+}
+.section h2{font-size:15px;margin:0 0 12px}
+.controls{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:8px
+}
+button,.fileButton{
+ border:0;border-radius:8px;padding:12px 8px;
+ color:white;background:#263b59;font-weight:bold;
+ font-size:13px;cursor:pointer;text-align:center
+}
+button:active,.fileButton:active{opacity:.7}
+.primary{background:#087eae}
+.danger{background:#a52e42}
+.good{background:#16784f}
+input[type=file]{display:none}
+label.sliderRow{
+ display:block;margin:13px 0;font-size:13px;color:#cbd8e8
+}
+.sliderRow input{display:block;width:100%;margin-top:8px}
+.value{color:#70d7ff;float:right}
+#peopleStatus{
+ display:grid;grid-template-columns:repeat(2,1fr);
+ gap:7px;font-size:12px;color:#b9c8dc
+}
+.person{
+ padding:8px;background:#1b293d;border-radius:7px
+}
+.smallNote{font-size:11px;color:#93a6bf;line-height:1.5}
+#modelInfo{font-size:12px;color:#a9c8e8;margin-top:8px}
+@media(min-width:700px){
+ .controls{grid-template-columns:repeat(4,minmax(0,1fr))}
 }
 </style>
 </head>
+
 <body>
-<header>AZEEZ AI AR STUDIO</header>
-<div id="studio">
-<div id="cameraStage">
-<video id="cameraVideo" autoplay muted playsinline></video>
-<canvas id="faceCanvas"></canvas>
-<canvas id="threeCanvas"></canvas>
-<div id="stagePlaceholder">AZEEZ AR STUDIO — START CAMERA</div>
-</div>
-<div id="statusText">Ready</div>
+<header>
+ <h1>AZEEZ AI AR STUDIO</h1>
+ <p>FACE TRACKING • 3D MODEL STUDIO</p>
+</header>
 
-<div id="controls">
-<section class="panel">
-<h3>Camera Controls</h3>
-<div class="row">
-<button id="startCameraButton">START CAMERA</button>
-<button id="stopCameraButton">STOP CAMERA</button>
-<button id="switchCameraButton">FRONT / BACK</button>
-<button id="mirrorButton">MIRROR / FLIP</button>
-<button id="fullscreenButton">FULL SCREEN</button>
-<button id="landscapeButton">LANDSCAPE</button>
-</div>
-</section>
+<main id="studio">
 
-<section class="panel">
-<h3>Face Tracking</h3>
-<div class="row">
-<button id="startTrackingButton">START TRACKING</button>
-<button id="stopTrackingButton">STOP TRACKING</button>
-<button id="dotsButton">GREEN DOTS ON/OFF</button>
-<button id="hideDotsButton">HIDE DOTS</button>
-<label>Faces
-<select id="maxFacesButton">
-<option value="1">1</option><option value="2">2</option>
-<option value="3">3</option><option value="4" selected>4</option>
-</select>
-</label>
-</div>
-<div class="row">
-<button id="leftEyeButton">LEFT EYE ANCHOR</button>
-<button id="rightEyeButton">RIGHT EYE ANCHOR</button>
-<button id="mouthButton">MOUTH ANCHOR</button>
-<button id="headButton">HEAD ANCHOR</button>
-<button id="overlayToggleButton">OVERLAYS ON/OFF</button>
-</div>
-<div id="person1Status">Person 1: Waiting</div>
-<div id="person2Status">Person 2: Waiting</div>
-<div id="person3Status">Person 3: Waiting</div>
-<div id="person4Status">Person 4: Waiting</div>
-</section>
+ <div id="cameraStage">
+  <video id="cameraVideo" autoplay muted playsinline></video>
+  <canvas id="faceCanvas"></canvas>
+  <canvas id="modelCanvas"></canvas>
+  <div id="stagePlaceholder">
+   <div>
+    <h2>AZEEZ AR STUDIO</h2>
+    <p>Press START CAMERA to begin</p>
+   </div>
+  </div>
+ </div>
 
-<section class="panel">
-<h3>Import Assets</h3>
-<div class="row">
-<label>3D Model
-<input id="modelFileInput" type="file" accept=".glb,.gltf,.obj,.fbx">
-</label>
-<label>Image
-<input id="imageFileInput" type="file" accept="image/*">
-</label>
-<label>Video
-<input id="videoFileInput" type="file" accept="video/*">
-</label>
-</div>
-<small>Supported 3D formats: GLB, GLTF, OBJ and FBX.</small>
-</section>
+ <div id="statusText">Ready. Press START CAMERA.</div>
 
-<section class="panel">
-<h3>3D Gizmos</h3>
-<div class="row">
-<button id="moveGizmoButton">MOVE</button>
-<button id="rotateGizmoButton">ROTATE</button>
-<button id="scaleGizmoButton">SCALE</button>
-<button id="hideGizmoButton">HIDE GIZMO</button>
-<button id="resetTransformButton">RESET TRANSFORM</button>
-<button id="removeAssetButton">REMOVE SELECTED</button>
-</div>
-</section>
+ <section class="section">
+  <h2>CAMERA CONTROLS</h2>
+  <div class="controls">
+   <button class="primary" id="startCameraButton">START CAMERA</button>
+   <button class="danger" id="stopCameraButton">STOP CAMERA</button>
+   <button id="switchCameraButton">SWITCH CAMERA</button>
+   <button id="mirrorButton">MIRROR: ON</button>
+   <button id="fullscreenButton">FULL SCREEN</button>
+  </div>
+ </section>
 
-<section class="panel">
-<h3>Person Filters</h3>
-<div class="row">
-<label>Person 1
-<select id="person1Filter">
-<option value="none">None</option><option value="mask">Mask</option><option value="helmet">Helmet</option><option value="animal">Animal</option><option value="imported">Imported Model</option>
-</select></label>
-<label>Person 2
-<select id="person2Filter">
-<option value="none">None</option><option value="mask">Mask</option><option value="helmet">Helmet</option><option value="animal">Animal</option><option value="imported">Imported Model</option>
-</select></label>
-<label>Person 3
-<select id="person3Filter">
-<option value="none">None</option><option value="mask">Mask</option><option value="helmet">Helmet</option><option value="animal">Animal</option><option value="imported">Imported Model</option>
-</select></label>
-<label>Person 4
-<select id="person4Filter">
-<option value="none">None</option><option value="mask">Mask</option><option value="helmet">Helmet</option><option value="animal">Animal</option><option value="imported">Imported Model</option>
-</select></label>
-</div>
-<div class="row">
-<button id="sameFilterButton">SAME FILTER</button>
-<button id="differentFilterButton">DIFFERENT FILTERS</button>
-</div>
-<small>Filter choices are saved as settings; built-in 3D masks are not included yet.</small>
-</section>
+ <section class="section">
+  <h2>FACE TRACKING</h2>
+  <div class="controls">
+   <button class="good" id="startTrackingButton">START TRACKING</button>
+   <button class="danger" id="stopTrackingButton">STOP TRACKING</button>
+   <button id="dotsButton">GREEN DOTS: ON</button>
+  </div>
+  <div id="peopleStatus" style="margin-top:12px">
+   <div class="person" id="person1Status">Person 1: Waiting</div>
+   <div class="person" id="person2Status">Person 2: Waiting</div>
+   <div class="person" id="person3Status">Person 3: Waiting</div>
+   <div class="person" id="person4Status">Person 4: Waiting</div>
+  </div>
+ </section>
 
-<section class="panel">
-<h3>Recording</h3>
-<div class="row">
-<button id="recordButton">RECORD</button>
-<button id="stopRecordButton">STOP RECORDING</button>
-<button id="downloadVideoButton">DOWNLOAD VIDEO</button>
-<label>Resolution
-<select id="recordResolution"><option value="720">720p</option><option value="1080">1080p</option></select>
-</label>
-<label>Bitrate
-<select id="recordBitrate"><option value="2500000">Standard</option><option value="5000000">High</option></select>
-</label>
-<label><input id="recordAudio" type="checkbox">Audio if available</label>
-</div>
-<video id="recordingPreview" class="hidden" controls playsinline style="width:100%;max-height:250px"></video>
-</section>
+ <section class="section">
+  <h2>3D MODEL IMPORT</h2>
+  <div class="controls">
+   <label class="fileButton primary" for="modelFile">IMPORT 3D MODEL</label>
+   <input id="modelFile" type="file"
+    accept=".glb,.gltf,.obj,.fbx">
+   <button id="removeModelButton" class="danger">REMOVE MODEL</button>
+   <button id="resetModelButton">RESET MODEL</button>
+  </div>
+  <div id="modelInfo">No model imported.</div>
+  <p class="smallNote">
+   Supported formats: GLB, GLTF, OBJ and FBX.
+   For GLTF files, keep their external texture files together.
+  </p>
+ </section>
+  <section class="section">
+  <h2>MODEL POSITION & SIZE</h2>
 
-<section class="panel">
-<h3>Interface & Export</h3>
-<div class="row">
-<button id="hideControlsButton">HIDE CONTROLS</button>
-<button id="showControlsButton" class="hidden">SHOW CONTROLS</button>
-<button id="exportSettingsButton">EXPORT SETTINGS</button>
-<button id="exportProjectButton">EXPORT PROJECT INFO</button>
-<button id="exportModelButton">EXPORT MODEL INFO</button>
-<button id="resetAllButton">RESET ALL</button>
-</div>
-</section>
-</div>
-</div>
+  <label class="sliderRow">
+   Model Scale <span class="value" id="scaleValue">1.0</span>
+   <input id="scaleSlider" type="range"
+    min="0.1" max="3" step="0.05" value="1">
+  </label>
 
+  <label class="sliderRow">
+   Left / Right <span class="value" id="xValue">0</span>
+   <input id="xSlider" type="range"
+    min="-2" max="2" step="0.01" value="0">
+  </label>
+
+  <label class="sliderRow">
+   Up / Down <span class="value" id="yValue">0</span>
+   <input id="ySlider" type="range"
+    min="-2" max="2" step="0.01" value="0">
+  </label>
+
+  <label class="sliderRow">
+   Front / Back <span class="value" id="zValue">0</span>
+   <input id="zSlider" type="range"
+    min="-2" max="2" step="0.01" value="0">
+  </label>
+
+  <label class="sliderRow">
+   Rotate X <span class="value" id="rxValue">0°</span>
+   <input id="rxSlider" type="range"
+    min="-180" max="180" value="0">
+  </label>
+
+  <label class="sliderRow">
+   Rotate Y <span class="value" id="ryValue">0°</span>
+   <input id="rySlider" type="range"
+    min="-180" max="180" value="0">
+  </label>
+
+  <label class="sliderRow">
+   Rotate Z <span class="value" id="rzValue">0°</span>
+   <input id="rzSlider" type="range"
+    min="-180" max="180" value="0">
+  </label>
+ </section>
+
+ <section class="section">
+  <h2>DISPLAY CONTROLS</h2>
+  <div class="controls">
+   <button id="hideControlsButton">HIDE MAIN CONTROLS</button>
+   <button id="hideSlidersButton">HIDE SLIDERS</button>
+  </div>
+ </section>
+
+ <p class="smallNote">
+  Note: This is a mobile-friendly starter studio. The face landmarks
+  are displayed on the camera, while imported 3D models can be
+  positioned and adjusted using the sliders. Automatic face-attached
+  model anchoring is not included in this version.
+ </p>
+
+</main>
 
 <script type="module">
-import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
-import {GLTFLoader} from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
-import {OBJLoader} from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/OBJLoader.js";
-import {FBXLoader} from "https://unpkg.com/three@0.160.0/examples/jsm/loaders/FBXLoader.js";
-import {TransformControls} from "https://unpkg.com/three@0.160.0/examples/jsm/controls/TransformControls.js";
-import {FaceLandmarker,FilesetResolver} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm";
+import * as THREE from
+ "https://unpkg.com/three@0.160.0/build/three.module.js";
 
-const $=id=>document.getElementById(id);
-const studio=$("studio"),stage=$("cameraStage");
-const video=$("cameraVideo"),faceCanvas=$("faceCanvas");
-const ctx=faceCanvas.getContext("2d");
-const status=$("statusText"),placeholder=$("stagePlaceholder");
+import {GLTFLoader} from
+ "https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
 
-let stream=null,facing="user",mirrored=true;
-let tracking=false,dots=true,overlayVisible=true;
-let landmarker=null,raf=0,lastTime=-1,faceResults=null;
-let currentAnchor="head",recorder=null,recordedChunks=[],recordingURL=null;
-let recordCanvas=null,recordContext=null,recordAnimation=0,recordStream=null;
-let assets=[],selected=null,gizmoVisible=true,gizmoMode="translate";
-let sharedFilter=false,renderer=null,camera3D=null;
-let videoAssets=[];
+import {OBJLoader} from
+ "https://unpkg.com/three@0.160.0/examples/jsm/loaders/OBJLoader.js";
 
-const setStatus=t=>status.textContent=t;
+import {FBXLoader} from
+ "https://unpkg.com/three@0.160.0/examples/jsm/loaders/FBXLoader.js";
+
+import {FaceLandmarker,FilesetResolver} from
+ "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm";
+
+const $ = id => document.getElementById(id);
+
+const video = $("cameraVideo");
+const stage = $("cameraStage");
+const faceCanvas = $("faceCanvas");
+const ctx = faceCanvas.getContext("2d");
+const placeholder = $("stagePlaceholder");
+const statusText = $("statusText");
+const modelInfo = $("modelInfo");
+
+let stream = null;
+let facing = "user";
+let mirrored = true;
+let landmarker = null;
+let tracking = false;
+let dotsVisible = true;
+let animationFrame = 0;
+let lastVideoTime = -1;
+
+let scene = null;
+let camera3D = null;
+let renderer = null;
+let currentModel = null;
+
+let modelScale = 1;
+let modelX = 0;
+let modelY = 0;
+let modelZ = 0;
+let modelRX = 0;
+let modelRY = 0;
+let modelRZ = 0;
+
+function setStatus(message){
+ statusText.textContent = message;
+}
 
 function fitCanvases(){
- const w=Math.max(1,stage.clientWidth);
- const h=Math.max(1,stage.clientHeight);
- const d=Math.min(window.devicePixelRatio||1,2);
+ const width = stage.clientWidth;
+ const height = stage.clientHeight;
 
- faceCanvas.width=Math.round(w*d);
- faceCanvas.height=Math.round(h*d);
- faceCanvas.style.width=w+"px";
- faceCanvas.style.height=h+"px";
- ctx.setTransform(d,0,0,d,0,0);
+ if(!width || !height) return;
 
- if(renderer&&camera3D){
-  renderer.setPixelRatio(d);
-  renderer.setSize(w,h,false);
-  camera3D.aspect=w/h;
+ const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+ faceCanvas.width = Math.round(width*dpr);
+ faceCanvas.height = Math.round(height*dpr);
+ faceCanvas.style.width = width+"px";
+ faceCanvas.style.height = height+"px";
+
+ ctx.setTransform(dpr,0,0,dpr,0,0);
+
+ if(renderer){
+  renderer.setPixelRatio(dpr);
+  renderer.setSize(width,height,false);
+  camera3D.aspect = width/height;
   camera3D.updateProjectionMatrix();
  }
- if(faceResults)drawFaces(faceResults);
 }
+
 window.addEventListener("resize",fitCanvases);
 
+function updateCameraMirror(){
+ video.style.transform =
+  mirrored && facing==="user" ? "scaleX(-1)" : "none";
+ faceCanvas.style.transform =
+  mirrored && facing==="user" ? "scaleX(-1)" : "none";
+}
 
 async function startCamera(){
-  try {
-   setStatus("START BUTTON FUNCTION RUNNING");
-    setStatus("Checking camera permission...");
-
-    if (!window.isSecureContext) {
-      throw new Error("Open the HTTPS GitHub Pages website.");
-    }
-
-    if (!navigator.mediaDevices ||
-        !navigator.mediaDevices.getUserMedia) {
-      throw new Error("Camera API unavailable in this browser.");
-    }
-
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      stream = null;
-    }
-
-    const newStream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: { ideal: facing },
-        width: { ideal: 1280 },
-        height: { ideal: 720 }
-      },
-      audio: false
-    });
-
-    stream = newStream;
-    video.srcObject = newStream;
-    video.style.transform =
-      mirrored && facing === "user" ? "scaleX(-1)" : "none";
-
-    await video.play();
-
-    placeholder.classList.add("hidden");
-    fitCanvases();
-    setStatus("Camera running successfully");
-
-  } catch (error) {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-    }
-
-    stream = null;
-    video.srcObject = null;
-    placeholder.classList.remove("hidden");
-
-    setStatus(
-      "Camera error: " +
-      (error.name || "Error") +
-      " — " +
-      error.message
-    );
+ try{
+  if(!window.isSecureContext){
+   throw new Error("Open this website using HTTPS.");
   }
+
+  if(!navigator.mediaDevices?.getUserMedia){
+   throw new Error("Camera API is unavailable. Use a supported browser.");
+  }
+
+  if(stream){
+   stream.getTracks().forEach(track=>track.stop());
+   stream=null;
+  }
+
+  const newStream=await navigator.mediaDevices.getUserMedia({
+   video:{
+    facingMode:{ideal:facing},
+    width:{ideal:1280},
+    height:{ideal:720}
+   },
+   audio:false
+  });
+
+  stream=newStream;
+  video.srcObject=stream;
+  await video.play();
+
+  updateCameraMirror();
+  placeholder.classList.add("hidden");
+  fitCanvases();
+  setStatus("Camera is running.");
+ }catch(error){
+  if(stream){
+   stream.getTracks().forEach(track=>track.stop());
+   stream=null;
+  }
+
+  setStatus("Camera error: "+error.name+" — "+error.message);
+ }
 }
- 
 
 function stopCamera(){
- tracking=false;
- cancelAnimationFrame(raf);
- if(stream)stream.getTracks().forEach(t=>t.stop());
- stream=null;
+ stopTracking();
+
+ if(stream){
+  stream.getTracks().forEach(track=>track.stop());
+  stream=null;
+ }
+
  video.srcObject=null;
- faceResults=null;
  ctx.clearRect(0,0,stage.clientWidth,stage.clientHeight);
  placeholder.classList.remove("hidden");
- setStatus("Camera stopped");
+ setStatus("Camera stopped.");
 }
 
 async function switchCamera(){
  facing=facing==="user"?"environment":"user";
- await startCamera();
+
+ if(stream){
+  await startCamera();
+ }else{
+  updateCameraMirror();
+  setStatus("Camera selected: "+facing);
+ }
 }
 
 async function setupTracker(){
- if(landmarker)return;
+ if(landmarker) return;
 
  setStatus("Loading face tracking model...");
+
  const vision=await FilesetResolver.forVisionTasks(
   "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
  );
 
- const options={
+ landmarker=await FaceLandmarker.createFromOptions(vision,{
   baseOptions:{
-   modelAssetPath:"https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+   modelAssetPath:
+    "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
    delegate:"GPU"
   },
   runningMode:"VIDEO",
-  numFaces:Number($("maxFacesButton").value),
-  outputFaceBlendshapes:true,
-  outputFacialTransformationMatrixes:true
- };
+  numFaces:4
+ });
 
- try{
-  landmarker=await FaceLandmarker.createFromOptions(vision,options);
- }catch(gpuError){
-  options.baseOptions.delegate="CPU";
-  landmarker=await FaceLandmarker.createFromOptions(vision,options);
- }
- setStatus("Face tracking ready");
+ setStatus("Face tracking model loaded.");
 }
 
 async function startTracking(){
- if(!stream){setStatus("Start camera first");return;}
  try{
+  if(!stream){
+   await startCamera();
+  }
+
+  if(!stream) return;
+
   await setupTracker();
   tracking=true;
-  lastTime=-1;
-  cancelAnimationFrame(raf);
+  lastVideoTime=-1;
+  setStatus("Face tracking started.");
   trackLoop();
-  setStatus("Face tracking running");
- }catch(e){
+ }catch(error){
   tracking=false;
-  setStatus("Tracking error: "+(e.message||e));
+  setStatus("Tracking error: "+error.message);
  }
+
+}
+ function stopTracking(){
+ tracking=false;
+ cancelAnimationFrame(animationFrame);
+ ctx.clearRect(0,0,stage.clientWidth,stage.clientHeight);
+ updatePeople(0);
+ setStatus("Tracking stopped.");
 }
 
-function trackLoop(){
- if(!tracking||!stream)return;
-
- if(video.readyState>=2&&video.currentTime!==lastTime){
-  lastTime=video.currentTime;
-  try{
-   faceResults=landmarker.detectForVideo(video,performance.now());
-   drawFaces(faceResults);
-   updatePeople(faceResults);
-  }catch(e){
-   tracking=false;
-   setStatus("Tracking failed: "+(e.message||e));
-  }
- }
- if(tracking)raf=requestAnimationFrame(trackLoop);
-}
-
-function drawFaces(results){
- const w=stage.clientWidth,h=stage.clientHeight;
- ctx.clearRect(0,0,w,h);
- if(!dots||!overlayVisible||!results?.faceLandmarks)return;
-
- const vw=video.videoWidth||1,vh=video.videoHeight||1;
- const scale=Math.min(w/vw,h/vh);
- const dw=vw*scale,dh=vh*scale;
- const ox=(w-dw)/2,oy=(h-dh)/2;
- ctx.fillStyle="#00ff68";
-
- for(const face of results.faceLandmarks){
-  for(const p of face){
-   let x=ox+p.x*dw;
-   const y=oy+p.y*dh;
-   if(mirrored&&facing==="user")x=w-x;
-   ctx.beginPath();
-   ctx.arc(x,y,2,0,Math.PI*2);
-   ctx.fill();
-  }
- }
-}
-function updatePeople(results){
- const count=results?.faceLandmarks?.length||0;
-
+function updatePeople(count){
  for(let i=1;i<=4;i++){
   $("person"+i+"Status").textContent=
    "Person "+i+": "+(i<=count?"Face detected":"Waiting");
  }
 }
 
-/* Camera and tracking buttons */
-$("startCameraButton").onclick=startCamera;
-$("stopCameraButton").onclick=stopCamera;
-$("switchCameraButton").onclick=switchCamera;
-
-$("mirrorButton").onclick=()=>{
- mirrored=!mirrored;
- video.style.transform=mirrored&&facing==="user"?"scaleX(-1)":"none";
- drawFaces(faceResults);
-};
-
-$("startTrackingButton").onclick=startTracking;
-$("stopTrackingButton").onclick=()=>{
- tracking=false;
- cancelAnimationFrame(raf);
- ctx.clearRect(0,0,stage.clientWidth,stage.clientHeight);
- setStatus("Tracking stopped");
-};
-
-$("dotsButton").onclick=()=>{
- dots=!dots;
- drawFaces(faceResults);
- setStatus("Green dots "+(dots?"on":"off"));
-};
-
-$("hideDotsButton").onclick=()=>{
- dots=false;
- drawFaces(faceResults);
-};
-
-$("maxFacesButton").onchange=async()=>{
- if(landmarker){
-  landmarker.close();
-  landmarker=null;
+function trackLoop(){
+ if(!tracking || !landmarker || video.readyState<2) {
+  animationFrame=requestAnimationFrame(trackLoop);
+  return;
  }
- if(tracking){
-  tracking=false;
-  cancelAnimationFrame(raf);
-  await startTracking();
+
+ if(video.currentTime!==lastVideoTime){
+  lastVideoTime=video.currentTime;
+
+  const results=landmarker.detectForVideo(
+   video,performance.now()
+  );
+
+  drawFaces(results);
  }
-};
 
-$("fullscreenButton").onclick=async()=>{
- try{
-  if(!document.fullscreenElement)await studio.requestFullscreen();
-  else await document.exitFullscreen();
-  fitCanvases();
- }catch(e){
-  setStatus("Fullscreen unavailable: "+e.message);
- }
-};
-
-$("landscapeButton").onclick=async()=>{
- try{
-  if(screen.orientation?.lock)await screen.orientation.lock("landscape");
-  else setStatus("Rotate your phone to landscape");
- }catch(e){
-  setStatus("Rotate your phone to landscape manually");
- }
-};
-
-$("leftEyeButton").onclick=()=>{
- currentAnchor="leftEye";
- setStatus("Left eye anchor selected");
-};
-$("rightEyeButton").onclick=()=>{
- currentAnchor="rightEye";
- setStatus("Right eye anchor selected");
-};
-$("mouthButton").onclick=()=>{
- currentAnchor="mouth";
- setStatus("Mouth anchor selected");
-};
-$("headButton").onclick=()=>{
- currentAnchor="head";
- setStatus("Head anchor selected");
-};
-$("overlayToggleButton").onclick=()=>{
- overlayVisible=!overlayVisible;
- faceCanvas.style.visibility=overlayVisible?"visible":"hidden";
- drawFaces(faceResults);
-};
-
-/* 3D scene */
-const threeCanvas=$("threeCanvas");
-renderer=new THREE.WebGLRenderer({
- canvas:threeCanvas,alpha:true,antialias:true
-});
-renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
-renderer.setSize(stage.clientWidth,stage.clientHeight,false);
-renderer.setClearColor(0x000000,0);
-
-const scene=new THREE.Scene();
-camera3D=new THREE.PerspectiveCamera(
- 45,stage.clientWidth/Math.max(stage.clientHeight,1),0.01,1000
-);
-camera3D.position.set(0,0,5);
-scene.add(new THREE.HemisphereLight(0xffffff,0x526080,2));
-
-const light=new THREE.DirectionalLight(0xffffff,2);
-light.position.set(2,4,5);
-scene.add(light);
-
-const root=new THREE.Group();
-scene.add(root);
-
-const gltfLoader=new GLTFLoader();
-const objLoader=new OBJLoader();
-const fbxLoader=new FBXLoader();
-const transform=new TransformControls(camera3D,renderer.domElement);
-scene.add(transform.getHelper());
-
-transform.addEventListener("dragging-changed",e=>{
- renderer.domElement.style.cursor=e.value?"grabbing":"default";
-});
-
-function render3D(){
- requestAnimationFrame(render3D);
- renderer.render(scene,camera3D);
-}
-render3D();
-
-function selectAsset(obj){
- selected=obj;
- transform.detach();
- if(selected&&gizmoVisible)transform.attach(selected);
+ animationFrame=requestAnimationFrame(trackLoop);
 }
 
-function fitObject(object){
+function drawFaces(results){
+ const width=stage.clientWidth;
+ const height=stage.clientHeight;
+
+ ctx.clearRect(0,0,width,height);
+
+ const faces=results.faceLandmarks||[];
+ updatePeople(faces.length);
+
+ if(!dotsVisible) return;
+
+ for(const landmarks of faces){
+  for(const point of landmarks){
+   const x=point.x*width;
+   const y=point.y*height;
+
+   ctx.beginPath();
+   ctx.arc(x,y,2,0,Math.PI*2);
+   ctx.fillStyle="#00ff55";
+   ctx.fill();
+  }
+ }
+}
+
+function setup3D(){
+ if(renderer) return;
+
+ scene=new THREE.Scene();
+
+ camera3D=new THREE.PerspectiveCamera(
+  45,stage.clientWidth/stage.clientHeight,0.1,100
+ );
+ camera3D.position.set(0,0,6);
+
+ renderer=new THREE.WebGLRenderer({
+  canvas:$("modelCanvas"),
+  alpha:true,
+  antialias:true
+ });
+
+ renderer.setPixelRatio(
+  Math.min(window.devicePixelRatio||1,2)
+ );
+
+ renderer.setSize(stage.clientWidth,stage.clientHeight,false);
+
+ scene.add(new THREE.AmbientLight(0xffffff,2));
+
+ const light=new THREE.DirectionalLight(0xffffff,2);
+ light.position.set(2,4,5);
+ scene.add(light);
+
+ fitCanvases();
+ animate3D();
+}
+
+function animate3D(){
+ requestAnimationFrame(animate3D);
+
+ if(renderer && scene && camera3D){
+  renderer.render(scene,camera3D);
+ }
+}
+
+function applyModelSettings(){
+ if(!currentModel) return;
+
+ currentModel.scale.setScalar(modelScale);
+ currentModel.position.set(modelX,modelY,modelZ);
+
+ currentModel.rotation.set(
+  THREE.MathUtils.degToRad(modelRX),
+  THREE.MathUtils.degToRad(modelRY),
+  THREE.MathUtils.degToRad(modelRZ)
+ );
+}
+
+function clearCurrentModel(){
+ if(!currentModel || !scene) return;
+
+ scene.remove(currentModel);
+
+ currentModel.traverse(object=>{
+  if(object.geometry) object.geometry.dispose();
+
+  if(object.material){
+   const materials=Array.isArray(object.material)
+    ?object.material:[object.material];
+
+   materials.forEach(material=>{
+    for(const key in material){
+     const value=material[key];
+     if(value && value.isTexture) value.dispose();
+    }
+    material.dispose();
+   });
+  }
+ });
+
+ currentModel=null;
+}
+
+function centerModel(object){
  const box=new THREE.Box3().setFromObject(object);
- const size=box.getSize(new THREE.Vector3());
  const center=box.getCenter(new THREE.Vector3());
+
  object.position.sub(center);
- const max=Math.max(size.x,size.y,size.z);
- if(Number.isFinite(max)&&max>0)object.scale.multiplyScalar(2/max);
-}
 
-async function loadModel(file){
- const url=URL.createObjectURL(file);
- try{
-  const name=file.name.toLowerCase();
-  let object;
+ const size=box.getSize(new THREE.Vector3());
+ const maxDimension=Math.max(size.x,size.y,size.z);
 
-  if(name.endsWith(".glb")||name.endsWith(".gltf")){
-   object=await new Promise((resolve,reject)=>{
-    gltfLoader.load(url,g=>resolve(g.scene),undefined,reject);
-   });
-  }else if(name.endsWith(".obj")){
-   object=await new Promise((resolve,reject)=>{
-    objLoader.load(url,resolve,undefined,reject);
-   });
-  }else if(name.endsWith(".fbx")){
-   object=await new Promise((resolve,reject)=>{
-    fbxLoader.load(url,resolve,undefined,reject);
-   });
-  }else{
-   throw new Error("Use GLB, GLTF, OBJ or FBX");
-  }
-
-  object.name=file.name;
-  fitObject(object);
-  root.add(object);
-  assets.push(object);
-  selectAsset(object);
-  setStatus("Imported "+file.name);
- }catch(e){
-  setStatus("Model import error: "+e.message);
- }finally{
-  URL.revokeObjectURL(url);
+ if(maxDimension>0){
+  const factor=2/maxDimension;
+  object.scale.multiplyScalar(factor);
  }
+
+ currentModel=object;
+ scene.add(currentModel);
+
+ modelScale=1;
+ modelX=0;
+ modelY=0;
+ modelZ=0;
+ modelRX=0;
+ modelRY=0;
+ modelRZ=0;
+
+ setSliderValues();
+ applyModelSettings();
 }
 
-$("modelFileInput").onchange=e=>{
- const file=e.target.files[0];
- if(file)loadModel(file);
- e.target.value="";
-};
+function loadModel(file){
+ if(!file) return;
 
-$("imageFileInput").onchange=e=>{
- const file=e.target.files[0];
- if(!file)return;
+ setup3D();
+
+ const extension=file.name.split(".").pop().toLowerCase();
  const url=URL.createObjectURL(file);
- const img=new Image();
 
- img.onload=()=>{
-  const tex=new THREE.Texture(img);
-  tex.needsUpdate=true;
-  const obj=new THREE.Mesh(
-   new THREE.PlaneGeometry(2,2),
-   new THREE.MeshBasicMaterial({
-    map:tex,transparent:true,side:THREE.DoubleSide
-   })
+ modelInfo.textContent="Loading "+file.name+"...";
+
+ const success=object=>{
+  clearCurrentModel();
+  centerModel(object);
+  modelInfo.textContent="Loaded: "+file.name;
+  URL.revokeObjectURL(url);
+ };
+
+ const failure=error=>{
+  modelInfo.textContent="Model loading failed. Check the file format.";
+  setStatus("Model error: "+(error?.message||"Unable to load model."));
+  URL.revokeObjectURL(url);
+ };
+
+ if(extension==="glb" || extension==="gltf"){
+  new GLTFLoader().load(url,
+   result=>success(result.scene),
+   undefined,failure
   );
-  obj.name=file.name;
-  root.add(obj);
-  assets.push(obj);
-  selectAsset(obj);
-  URL.revokeObjectURL(url);
-  setStatus("Imported image "+file.name);
- };
-
- img.onerror=()=>{
-  URL.revokeObjectURL(url);
-  setStatus("Could not load image");
- };
-
- img.src=url;
- e.target.value="";
-};
-
-$("videoFileInput").onchange=e=>{
- const file=e.target.files[0];
- if(!file)return;
-
- const url=URL.createObjectURL(file);
- const v=document.createElement("video");
- v.src=url;
- v.loop=true;
- v.muted=true;
- v.playsInline=true;
-
- v.onloadeddata=()=>{
-  const tex=new THREE.VideoTexture(v);
-  const obj=new THREE.Mesh(
-   new THREE.PlaneGeometry(2,2),
-   new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide})
-  );
-  obj.name=file.name;
-  root.add(obj);
-  assets.push(obj);
-  videoAssets.push({video:v,url,object:obj});
-  selectAsset(obj);
-  v.play().catch(()=>{});
-  setStatus("Imported video "+file.name);
- };
-
- v.onerror=()=>{
-  URL.revokeObjectURL(url);
-  setStatus("Could not load video");
- };
-
- e.target.value="";
-};
- 
-/* 3D gizmos */
-$("moveGizmoButton").onclick=()=>{
- gizmoMode="translate";
- transform.setMode("translate");
- setStatus("Move gizmo selected");
-};
-$("rotateGizmoButton").onclick=()=>{
- gizmoMode="rotate";
- transform.setMode("rotate");
- setStatus("Rotate gizmo selected");
-};
-$("scaleGizmoButton").onclick=()=>{
- gizmoMode="scale";
- transform.setMode("scale");
- setStatus("Scale gizmo selected");
-};
-
-$("hideGizmoButton").onclick=()=>{
- gizmoVisible=!gizmoVisible;
- if(!gizmoVisible)transform.detach();
- else if(selected)transform.attach(selected);
- setStatus("Gizmo "+(gizmoVisible?"shown":"hidden"));
-};
-
-$("resetTransformButton").onclick=()=>{
- if(!selected){setStatus("Select an imported asset first");return;}
- selected.position.set(0,0,0);
- selected.rotation.set(0,0,0);
- selected.scale.set(1,1,1);
- setStatus("Selected asset transform reset");
-};
-
-$("removeAssetButton").onclick=()=>{
- if(!selected){setStatus("Select an asset first");return;}
- const removed=selected;
- transform.detach();
- root.remove(removed);
- assets=assets.filter(a=>a!==removed);
-
- const index=videoAssets.findIndex(item=>item.object===removed);
- if(index!==-1){
-  const item=videoAssets[index];
-  item.video.pause();
-  item.video.removeAttribute("src");
-  item.video.load();
-  URL.revokeObjectURL(item.url);
-  videoAssets.splice(index,1);
+ }else if(extension==="obj"){
+  new OBJLoader().load(url,success,undefined,failure);
+ }else if(extension==="fbx"){
+  new FBXLoader().load(url,success,undefined,failure);
+ }else{
+  failure(new Error("Unsupported file type."));
  }
-
- removed.traverse?.(child=>{
-  if(child.geometry)child.geometry.dispose();
-  if(child.material){
-   const materials=Array.isArray(child.material)?child.material:[child.material];
-   materials.forEach(m=>{
-    if(m.map)m.map.dispose();
-    m.dispose();
-   });
-  }
- });
-
- selected=null;
- setStatus("Selected asset removed");
-};
-
-/* Filter selectors: these store choices, not rendered AR masks */
-$("sameFilterButton").onclick=()=>{
- sharedFilter=true;
- const value=$("person1Filter").value;
- for(let i=2;i<=4;i++)$("person"+i+"Filter").value=value;
- setStatus("Same filter setting applied");
-};
-
-$("differentFilterButton").onclick=()=>{
- sharedFilter=false;
- setStatus("Choose each person's filter separately");
-};
-
-for(let i=1;i<=4;i++){
- $("person"+i+"Filter").onchange=()=>{
-  if(sharedFilter&&i===1){
-   for(let j=2;j<=4;j++){
-    $("person"+j+"Filter").value=$("person1Filter").value;
-   }
-  }
- };
 }
 
-/* Hide/show controls */
-$("hideControlsButton").onclick=()=>{
- $("controls").classList.add("hidden");
- $("showControlsButton").classList.remove("hidden");
-};
+function setSliderValues(){
+ const values={
+  scaleSlider:modelScale,
+  xSlider:modelX,
+  ySlider:modelY,
+  zSlider:modelZ,
+  rxSlider:modelRX,
+  rySlider:modelRY,
+  rzSlider:modelRZ
+ };
 
-$("showControlsButton").onclick=()=>{
- $("controls").classList.remove("hidden");
- $("showControlsButton").classList.add("hidden");
-};
-
-/* Composite recording */
-function drawRecordingFrame(){
- if(!recorder||recorder.state!=="recording")return;
-
- const w=recordCanvas.width,h=recordCanvas.height;
- recordContext.fillStyle="#000";
- recordContext.fillRect(0,0,w,h);
-
- if(video.readyState>=2){
-  const vw=video.videoWidth||w,vh=video.videoHeight||h;
-  const scale=Math.min(w/vw,h/vh);
-  const dw=vw*scale,dh=vh*scale;
-  const x=(w-dw)/2,y=(h-dh)/2;
-
-  if(mirrored&&facing==="user"){
-   recordContext.save();
-   recordContext.translate(w,0);
-   recordContext.scale(-1,1);
-   recordContext.drawImage(video,x,y,dw,dh);
-   recordContext.restore();
-  }else{
-   recordContext.drawImage(video,x,y,dw,dh);
-  }
+ for(const id in values){
+  $(id).value=values[id];
  }
 
- if(overlayVisible&&dots){
-  recordContext.drawImage(faceCanvas,0,0,w,h);
- }
- recordContext.drawImage(threeCanvas,0,0,w,h);
- recordAnimation=requestAnimationFrame(drawRecordingFrame);
+ updateSliderLabels();
 }
 
-$("recordButton").onclick=()=>{
- if(!stream){setStatus("Start camera before recording");return;}
- if(recorder&&recorder.state==="recording"){
-  setStatus("Recording is already running");
-  return;
- }
- if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream){
-  setStatus("Recording is not supported by this browser");
-  return;
- }
-
- try{
-  recordedChunks=[];
-  const height=Number($("recordResolution").value);
-  const width=Math.round(height*16/9);
-
-  recordCanvas=document.createElement("canvas");
-  recordCanvas.width=width;
-  recordCanvas.height=height;
-  recordContext=recordCanvas.getContext("2d");
-
-  recordStream=recordCanvas.captureStream(30);
-  const options={videoBitsPerSecond:Number($("recordBitrate").value)};
-
-  if(MediaRecorder.isTypeSupported("video/webm;codecs=vp9")){
-   options.mimeType="video/webm;codecs=vp9";
-  }else if(MediaRecorder.isTypeSupported("video/webm")){
-   options.mimeType="video/webm";
-  }
-
-  recorder=new MediaRecorder(recordStream,options);
-
-  recorder.ondataavailable=e=>{
-   if(e.data&&e.data.size)recordedChunks.push(e.data);
-  };
-
-  recorder.onerror=e=>{
-   setStatus("Recording error: "+(e.error?.message||"unknown error"));
-  };
-
-  recorder.onstop=()=>{
-   cancelAnimationFrame(recordAnimation);
-   const blob=new Blob(recordedChunks,{
-    type:recorder.mimeType||"video/webm"
-   });
-
-   if(recordingURL)URL.revokeObjectURL(recordingURL);
-   recordingURL=URL.createObjectURL(blob);
-
-   const preview=$("recordingPreview");
-   preview.src=recordingURL;
-   preview.classList.remove("hidden");
-
-   if(recordStream)recordStream.getTracks().forEach(t=>t.stop());
-   recordStream=null;
-   setStatus("Recording ready to preview and download");
-  };
-
-  recorder.start(250);
-  drawRecordingFrame();
-  setStatus("Recording...");
- }catch(e){
-  if(recordStream)recordStream.getTracks().forEach(t=>t.stop());
-  recordStream=null;
-  setStatus("Recording error: "+e.message);
- }
-};
-
-$("stopRecordButton").onclick=()=>{
- if(recorder&&recorder.state!=="inactive")recorder.stop();
- else setStatus("No active recording");
-};
-
-$("downloadVideoButton").onclick=()=>{
- if(!recordingURL){setStatus("Record a video first");return;}
- const a=document.createElement("a");
- a.href=recordingURL;
- a.download="azeez-ar-recording.webm";
- document.body.appendChild(a);
- a.click();
- a.remove();
-};
-
-/* Export JSON files */
-function downloadJSON(name,data){
- const blob=new Blob([JSON.stringify(data,null,2)],{
-  type:"application/json"
- });
- const url=URL.createObjectURL(blob);
- const a=document.createElement("a");
- a.href=url;
- a.download=name;
- document.body.appendChild(a);
- a.click();
- a.remove();
- setTimeout(()=>URL.revokeObjectURL(url),1000);
+function updateSliderLabels(){
+ $("scaleValue").textContent=Number($("scaleSlider").value).toFixed(2);
+ $("xValue").textContent=$("xSlider").value;
+ $("yValue").textContent=$("ySlider").value;
+ $("zValue").textContent=$("zSlider").value;
+ $("rxValue").textContent=$("rxSlider").value+"°";
+ $("ryValue").textContent=$("rySlider").value+"°";
+ $("rzValue").textContent=$("rzSlider").value+"°";
 }
 
-$("exportSettingsButton").onclick=()=>{
- downloadJSON("azeez-settings.json",{
-  facing,mirrored,dots,tracking,
-  maxFaces:$("maxFacesButton").value,
-  filters:[1,2,3,4].map(i=>$("person"+i+"Filter").value),
-  anchor:currentAnchor,gizmoMode,overlayVisible
- });
-};
+function readSliders(){
+ modelScale=Number($("scaleSlider").value);
+ modelX=Number($("xSlider").value);
+ modelY=Number($("ySlider").value);
+ modelZ=Number($("zSlider").value);
+ modelRX=Number($("rxSlider").value);
+ modelRY=Number($("rySlider").value);
+ modelRZ=Number($("rzSlider").value);
 
-$("exportProjectButton").onclick=()=>{
- downloadJSON("azeez-project-info.json",{
-  app:"AZEEZ AI AR STUDIO",
-  assets:assets.map(a=>a.name||"Imported asset"),
-  filters:[1,2,3,4].map(i=>$("person"+i+"Filter").value)
- });
-};
+ updateSliderLabels();
+ applyModelSettings();
+}
 
-$("exportModelButton").onclick=()=>{
- downloadJSON("azeez-model-info.json",{
-  models:assets.map(a=>({
-   name:a.name,
-   position:a.position.toArray(),
-   rotation:a.rotation.toArray(),
-   scale:a.scale.toArray()
-  }))
- });
-};
+const sliderIds=[
+ "scaleSlider","xSlider","ySlider","zSlider",
+ "rxSlider","rySlider","rzSlider"
+];
 
-/* Reset */
-$("resetAllButton").onclick=()=>{
- stopCamera();
+sliderIds.forEach(id=>{
+ $(id).addEventListener("input",readSliders);
+});
 
- if(landmarker){
-  landmarker.close();
-  landmarker=null;
- }
+$("startCameraButton").addEventListener("click",startCamera);
+$("stopCameraButton").addEventListener("click",stopCamera);
+$("switchCameraButton").addEventListener("click",switchCamera);
 
- transform.detach();
+$("mirrorButton").addEventListener("click",()=>{
+ mirrored=!mirrored;
+ updateCameraMirror();
+ $("mirrorButton").textContent=
+  "MIRROR: "+(mirrored?"ON":"OFF");
+});
 
- for(const asset of assets)root.remove(asset);
- assets=[];
- selected=null;
+$("startTrackingButton").addEventListener("click",startTracking);
+$("stopTrackingButton").addEventListener("click",stopTracking);
 
- for(const item of videoAssets){
-  item.video.pause();
-  item.video.removeAttribute("src");
-  item.video.load();
-  URL.revokeObjectURL(item.url);
- }
- videoAssets=[];
+$("dotsButton").addEventListener("click",()=>{
+ dotsVisible=!dotsVisible;
 
- for(let i=1;i<=4;i++){
-  $("person"+i+"Filter").value="none";
-  $("person"+i+"Status").textContent="Person "+i+": Waiting";
- }
+ $("dotsButton").textContent=
+  "GREEN DOTS: "+(dotsVisible?"ON":"OFF");
 
- dots=true;
- mirrored=true;
- facing="user";
- overlayVisible=true;
- sharedFilter=false;
- gizmoVisible=true;
- gizmoMode="translate";
- currentAnchor="head";
-
- faceCanvas.style.visibility="visible";
- video.style.transform="scaleX(-1)";
- transform.setMode("translate");
- ctx.clearRect(0,0,stage.clientWidth,stage.clientHeight);
-
- setStatus("Studio reset");
-};
-
-window.addEventListener("beforeunload",()=>{
- if(stream)stream.getTracks().forEach(t=>t.stop());
- if(landmarker)landmarker.close();
- if(recordStream)recordStream.getTracks().forEach(t=>t.stop());
- if(recordingURL)URL.revokeObjectURL(recordingURL);
- for(const item of videoAssets){
-  item.video.pause();
-  URL.revokeObjectURL(item.url);
+ if(!dotsVisible){
+  ctx.clearRect(0,0,stage.clientWidth,stage.clientHeight);
  }
 });
 
-fitCanvases();
-setStatus("Studio loaded — open over HTTPS and start camera");
-</script>
-</body>
-</html>
+$("modelFile").addEventListener("change",event=>{
+ const file=event.target.files?.[0];
+ if(file) loadModel(file);
+ event.target.value="";
+});
 
+$("removeModelButton").addEventListener("click",()=>{
+ clearCurrentModel();
+ modelInfo.textContent="Model removed.";
+});
+
+$("resetModelButton").addEventListener("click",()=>{
+ modelScale=1;
+ modelX=0;
+ modelY=0;
+ modelZ=0;
+ modelRX=0;
+ modelRY=0;
+ modelRZ=0;
+
+ setSliderValues();
+ applyModelSettings();
+});
+
+$("fullscreenButton").addEventListener("click",async()=>{
+ try{
+  if(!document.fullscreenElement){
+   await stage.requestFullscreen();
+  }else{
+   await document.exitFullscreen();
+  }
+ }catch(error){
+  setStatus("Fullscreen error: "+error.message);
+ }
+});
+
+$("hideControlsButton").addEventListener("click",()=>{
+ const sections=document.querySelectorAll(".section");
+ sections.forEach(section=>{
+  if(section.querySelector("#startCameraButton")){
+   section.classList.toggle("hidden");
+  }
+ });
+});
+
+$("hideSlidersButton").addEventListener("click",()=>{
+ const sliderSection=$("scaleSlider").closest(".section");
+ sliderSection.classList.toggle("hidden");
+
+ $("hideSlidersButton").textContent=
+  sliderSection.classList.contains("hidden")
+  ?"SHOW SLIDERS":"HIDE SLIDERS";
+});
+
+setSliderValues();
+setStatus("Studio ready. Press START CAMERA.");
+
+</script>
 </body>
 </html>
