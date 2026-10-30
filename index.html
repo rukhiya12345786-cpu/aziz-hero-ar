@@ -537,11 +537,13 @@ panelToggle.onclick = () => {
 
 /* GIZMO MODES */
 
+
 function setGizmoMode(mode) {
   currentMode = mode;
 
   if (transformControls) {
     transformControls.setMode(mode);
+    transformControls.setSize(1.5);
   }
 
   document.querySelector("#moveMode").classList.toggle(
@@ -605,6 +607,7 @@ function prepareModel(object, name, sourceURL = null) {
   wrapper.userData.modelName = name;
   wrapper.userData.sourceURL = sourceURL;
   wrapper.userData.sizeMultiplier = 1;
+  wrapper.userData.baseScale = wrapper.scale.x;
 
   anchor.group.add(wrapper);
   importedObjects.push(wrapper);
@@ -614,53 +617,7 @@ function prepareModel(object, name, sourceURL = null) {
   status("Imported: " + name);
 }
 
-function selectObject(object) {
-  activeObject = object;
-
-  if (transformControls) {
-    transformControls.detach();
-    transformControls.attach(object);
-    transformControls.setMode(currentMode);
-    transformControls.getHelper().visible = gizmoVisible;
-  }
-
-  const multiplier = object.userData.sizeMultiplier || 1;
-
-  document.querySelector("#sizeSlider").value =
-    Math.max(1, Math.min(10000, Math.round(multiplier * 1000)));
-
-  updateSizeLabel();
-}
-
-/* SINGLE LARGE-RANGE SIZE SLIDER */
-
-const sizeSlider = document.querySelector("#sizeSlider");
-
-function updateSizeLabel() {
-  const multiplier = Number(sizeSlider.value) / 1000;
-
-  document.querySelector("#sizeValue").textContent =
-    Math.round(multiplier * 100) + "%";
-}
-
-sizeSlider.addEventListener("input", () => {
-  if (!activeObject) {
-    updateSizeLabel();
-    return;
-  }
-
-  const multiplier = Number(sizeSlider.value) / 1000;
-
-  activeObject.userData.sizeMultiplier = multiplier;
-  activeObject.scale.setScalar(
-    (activeObject.userData.baseScale || 1) * multiplier
-  );
-
-  updateSizeLabel();
-});
-
-/* SAVE BASE SCALE WHEN SELECTING */
-
+/* SELECT MODEL AND ATTACH GIZMO */
 
 function selectObject(object) {
   if (!object || !transformControls) {
@@ -693,12 +650,36 @@ function selectObject(object) {
   );
 
   updateSizeLabel();
-  renderer.render(scene, camera);
+}
 
-  status("Model selected. Gizmo attached.");
-           }
+/* SINGLE LARGE-RANGE SIZE SLIDER */
+
+const sizeSlider = document.querySelector("#sizeSlider");
+
+function updateSizeLabel() {
+  const multiplier = Number(sizeSlider.value) / 1000;
+
+  document.querySelector("#sizeValue").textContent =
+    Math.round(multiplier * 100) + "%";
+}
+
+sizeSlider.addEventListener("input", () => {
+  if (!activeObject) {
+    updateSizeLabel();
+    return;
+  }
+
+  const multiplier = Number(sizeSlider.value) / 1000;
+
+  activeObject.userData.sizeMultiplier = multiplier;
+
+  activeObject.scale.setScalar(
+    activeObject.userData.baseScale * multiplier
+  );
+
+  updateSizeLabel();
+});
   
-
 /* REMOVE SELECTED IMPORTED MODEL */
 
 function disposeObject(object) {
