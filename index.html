@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -16,9 +17,7 @@
 </script>
 
 <style>
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 html, body {
   margin: 0;
@@ -38,7 +37,6 @@ html, body {
   background: #111;
 }
 
-/* Camera video layer */
 #container video {
   position: absolute !important;
   inset: 0 !important;
@@ -48,97 +46,124 @@ html, body {
   z-index: 1 !important;
 }
 
-/* 3D overlay layer */
 #container canvas {
   position: absolute !important;
   inset: 0 !important;
   width: 100% !important;
   height: 100% !important;
   z-index: 2 !important;
-  pointer-events: none;
 }
 
 #topbar {
   position: fixed;
-  top: 12px;
-  left: 10px;
-  right: 10px;
-  z-index: 10;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: white;
-  gap: 8px;
-}
-
-#brand {
-  background: #0009;
-  padding: 10px;
-  border-radius: 10px;
-  font-weight: bold;
-}
-
-#status {
-  background: #000b;
-  padding: 9px;
-  border-radius: 10px;
-  font-size: 12px;
-  color: #fff;
-}
-
-#controls {
-  position: fixed;
-  bottom: 18px;
+  top: 10px;
   left: 10px;
   right: 10px;
   z-index: 20;
   display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  pointer-events: none;
+}
+
+#brand, #status {
+  color: white;
+  background: #000b;
+  padding: 10px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+#controls {
+  position: fixed;
+  left: 8px;
+  right: 8px;
+  bottom: 12px;
+  z-index: 30;
+  display: flex;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 9px;
+  gap: 7px;
 }
 
 button {
-  border: 0;
-  border-radius: 10px;
-  padding: 12px 15px;
+  background: #202020ee;
   color: white;
-  background: #202020eF;
+  border: 1px solid #555;
+  border-radius: 9px;
+  padding: 11px 12px;
+  font-size: 12px;
   font-weight: bold;
-  font-size: 13px;
+}
+
+button.active {
+  background: #075fc5;
 }
 
 button:disabled {
-  opacity: 0.45;
+  opacity: .45;
 }
 
 #message {
   position: fixed;
+  z-index: 25;
+  bottom: 92px;
   left: 10px;
   right: 10px;
-  bottom: 90px;
-  z-index: 15;
-  color: white;
+  padding: 9px;
   background: #0009;
-  padding: 10px;
+  color: white;
   border-radius: 8px;
-  font-size: 12px;
   text-align: center;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+#fileInput {
+  display: none;
+}
+
+#transformPanel {
+  position: fixed;
+  top: 62px;
+  right: 10px;
+  z-index: 35;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  width: 125px;
+}
+
+#transformPanel button {
+  width: 100%;
+}
+
+#container.gizmo-hidden canvas {
+  pointer-events: none;
+}
+
+#controls.hidden,
+#transformPanel.hidden {
+  display: none;
 }
 
 @media (orientation: landscape) {
   #controls {
     left: auto;
-    right: 12px;
-    bottom: 12px;
-    width: 190px;
-    flex-direction: column;
+    right: 10px;
+    bottom: 10px;
+    width: 180px;
+  }
+
+  #controls button {
+    flex: 1 1 75px;
   }
 
   #message {
-    bottom: 12px;
-    left: 12px;
-    right: 210px;
+    bottom: 10px;
+    left: 10px;
+    right: 200px;
   }
 }
 </style>
@@ -153,36 +178,58 @@ button:disabled {
   <div id="status">Camera stopped</div>
 </div>
 
-<div id="message">
-  Allow camera permission and keep your face in front of the camera.
+<div id="message">Press START CAMERA and allow camera permission.</div>
+
+<div id="transformPanel">
+  <button id="moveBtn" class="active">MOVE</button>
+  <button id="rotateBtn">ROTATE</button>
+  <button id="scaleBtn">SCALE</button>
+  <button id="hideGizmoBtn">HIDE GIZMO</button>
 </div>
 
 <div id="controls">
   <button id="startBtn">START CAMERA</button>
   <button id="switchBtn">SWITCH CAMERA</button>
   <button id="stopBtn">STOP CAMERA</button>
+  <button id="importBtn">IMPORT 3D</button>
+  <button id="disposeBtn">DISPOSE MODEL</button>
+  <button id="hideControlsBtn">HIDE CONTROLS</button>
   <button id="fullBtn">FULL SCREEN</button>
 </div>
+
+<input
+  id="fileInput"
+  type="file"
+  accept=".glb,.gltf,.obj,.fbx"
+>
 
 <script type="module">
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
+import { FBXLoader } from "three/addons/loaders/FBXLoader.js";
+import { TransformControls } from "three/addons/controls/TransformControls.js";
 import { MindARThree } from "mindar-face-three";
 
 const container = document.querySelector("#container");
 const statusBox = document.querySelector("#status");
 const messageBox = document.querySelector("#message");
+const fileInput = document.querySelector("#fileInput");
 
 const startBtn = document.querySelector("#startBtn");
-const stopBtn = document.querySelector("#stopBtn");
 const switchBtn = document.querySelector("#switchBtn");
-const fullBtn = document.querySelector("#fullBtn");
+const stopBtn = document.querySelector("#stopBtn");
 
 let mindarThree = null;
+let anchor = null;
 let avatar = null;
-let facingMode = "user";
+let importedModel = null;
+let transformControls = null;
 let running = false;
 let starting = false;
+let gizmoVisible = true;
+let controlsVisible = true;
+let currentMode = "translate";
 
 class Avatar {
   constructor() {
@@ -235,69 +282,86 @@ class Avatar {
   }
 }
 
+function setStatus(text) {
+  statusBox.textContent = text;
+}
+
+function setMessage(text) {
+  messageBox.textContent = text;
+}
+
 async function startCamera() {
   if (starting || running) return;
 
   starting = true;
   startBtn.disabled = true;
+  setStatus("Starting...");
+  setMessage("Loading face tracking. Please wait.");
 
   try {
-    statusBox.textContent = "Starting camera...";
-    messageBox.textContent = "Please allow camera permission.";
+    mindarThree = new MindARThree({
+      container,
+      maxTrack: 1
+    });
+
+    const { renderer, scene, camera } = mindarThree;
+
+    scene.add(
+      new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1.5)
+    );
+
+    const light = new THREE.DirectionalLight(0xffffff, 1);
+    light.position.set(0, 1, 2);
+    scene.add(light);
+
+    anchor = mindarThree.addAnchor(1);
 
     if (!avatar) {
       avatar = new Avatar();
       await avatar.init();
     }
 
-    mindarThree = new MindARThree({
-      container: container,
-      faceCamera: facingMode,
-      maxTrack: 1
-    });
-
-    const { renderer, scene, camera } = mindarThree;
-
-    scene.background = null;
-
-    const light = new THREE.HemisphereLight(
-      0xffffff,
-      0xbbbbff,
-      1.5
-    );
-    scene.add(light);
-
-    const anchor = mindarThree.addAnchor(1);
-
     avatar.gltf.scene.scale.set(2, 2, 2);
     anchor.group.add(avatar.gltf.scene);
+
+    transformControls = new TransformControls(
+      camera,
+      renderer.domElement
+    );
+
+    transformControls.setMode(currentMode);
+    transformControls.setSize(0.8);
+    transformControls.enabled = false;
+
+    scene.add(transformControls.getHelper());
 
     await mindarThree.start();
 
     running = true;
-
-    statusBox.textContent = "Camera running";
-    messageBox.textContent =
-      "Camera is active. Keep your face in front of the camera.";
+    setStatus("Camera running");
+    setMessage("Face tracking active.");
 
     renderer.setAnimationLoop(() => {
       const estimate = mindarThree.getLatestEstimate();
 
-      if (estimate && estimate.blendshapes) {
+      if (estimate && estimate.blendshapes && avatar) {
         avatar.updateBlendshapes(estimate.blendshapes);
       }
 
       renderer.render(scene, camera);
     });
 
+    attachGizmo(avatar.gltf.scene);
+
   } catch (error) {
     console.error(error);
-    statusBox.textContent = "Camera error";
-    messageBox.textContent = error.message || "Unable to start camera.";
+    setStatus("Start error");
+    setMessage(error.message || "Camera could not start.");
 
     if (mindarThree) {
       try {
-        mindarThree.stop();
+        mindarThree.renderer?.setAnimationLoop(null);
+        await mindarThree.stop();
       } catch (e) {}
     }
 
@@ -310,53 +374,218 @@ async function startCamera() {
   }
 }
 
+function attachGizmo(object) {
+  if (!transformControls || !object) return;
+
+  transformControls.attach(object);
+  transformControls.enabled = gizmoVisible;
+  transformControls.visible = gizmoVisible;
+}
+
 async function stopCamera() {
   if (!mindarThree) return;
 
   try {
-    mindarThree.renderer.setAnimationLoop(null);
+    transformControls?.detach();
+    transformControls?.dispose();
+
+    mindarThree.renderer?.setAnimationLoop(null);
     await mindarThree.stop();
   } catch (error) {
     console.error(error);
   }
 
   mindarThree = null;
+  transformControls = null;
+  anchor = null;
   running = false;
 
   container.innerHTML = "";
 
-  statusBox.textContent = "Camera stopped";
-  messageBox.textContent = "Press START CAMERA to begin.";
+  setStatus("Camera stopped");
+  setMessage("Press START CAMERA to begin.");
 }
 
 startBtn.addEventListener("click", startCamera);
-
-stopBtn.addEventListener("click", async () => {
-  await stopCamera();
-});
+stopBtn.addEventListener("click", stopCamera);
 
 switchBtn.addEventListener("click", async () => {
-  if (starting) return;
-
-  const wasRunning = running;
-
-  if (wasRunning) {
-    await stopCamera();
+  if (!running || !mindarThree) {
+    setMessage("Start the camera first.");
+    return;
   }
 
-  facingMode = facingMode === "user" ? "environment" : "user";
-
-  messageBox.textContent =
-    facingMode === "user"
-      ? "Front camera selected."
-      : "Back camera selected.";
-
-  if (wasRunning) {
-    await startCamera();
+  try {
+    setMessage("Switching camera...");
+    await mindarThree.switchCamera();
+    setMessage("Camera switched.");
+  } catch (error) {
+    console.error(error);
+    setMessage("Camera switch failed: " + error.message);
   }
 });
 
-fullBtn.addEventListener("click", async () => {
+document.querySelector("#moveBtn").addEventListener("click", () => {
+  currentMode = "translate";
+  transformControls?.setMode("translate");
+  setActiveMode("moveBtn");
+});
+
+document.querySelector("#rotateBtn").addEventListener("click", () => {
+  currentMode = "rotate";
+  transformControls?.setMode("rotate");
+  setActiveMode("rotateBtn");
+});
+
+document.querySelector("#scaleBtn").addEventListener("click", () => {
+  currentMode = "scale";
+  transformControls?.setMode("scale");
+  setActiveMode("scaleBtn");
+});
+
+function setActiveMode(id) {
+  ["moveBtn", "rotateBtn", "scaleBtn"].forEach((buttonId) => {
+    document.getElementById(buttonId).classList.toggle(
+      "active",
+      buttonId === id
+    );
+  });
+}
+
+document.querySelector("#hideGizmoBtn").addEventListener("click", () => {
+  gizmoVisible = !gizmoVisible;
+
+  if (transformControls) {
+    transformControls.enabled = gizmoVisible;
+    transformControls.visible = gizmoVisible;
+  }
+
+  document.querySelector("#hideGizmoBtn").textContent =
+    gizmoVisible ? "HIDE GIZMO" : "SHOW GIZMO";
+});
+
+document.querySelector("#hideControlsBtn").addEventListener("click", () => {
+  controlsVisible = !controlsVisible;
+  document.querySelector("#controls").classList.toggle(
+    "hidden",
+    !controlsVisible
+  );
+
+  document.querySelector("#hideControlsBtn").textContent =
+    controlsVisible ? "HIDE CONTROLS" : "SHOW CONTROLS";
+});
+
+document.querySelector("#importBtn").addEventListener("click", () => {
+  fileInput.click();
+});
+
+fileInput.addEventListener("change", async (event) => {
+  const file = event.target.files[0];
+
+  if (!file) return;
+
+  if (!running || !anchor) {
+    setMessage("Start the camera before importing a model.");
+    fileInput.value = "";
+    return;
+  }
+
+  setMessage("Loading 3D model...");
+
+  const extension = file.name.split(".").pop().toLowerCase();
+  const objectURL = URL.createObjectURL(file);
+
+  try {
+    let model = null;
+
+    if (extension === "glb" || extension === "gltf") {
+      const loader = new GLTFLoader();
+      const gltf = await loader.loadAsync(objectURL);
+      model = gltf.scene;
+    } else if (extension === "obj") {
+      const loader = new OBJLoader();
+      model = await loader.loadAsync(objectURL);
+    } else if (extension === "fbx") {
+      const loader = new FBXLoader();
+      model = await loader.loadAsync(objectURL);
+    } else {
+      throw new Error("Unsupported model format.");
+    }
+
+    if (importedModel) {
+      removeModel(importedModel);
+    }
+
+    if (avatar?.gltf?.scene) {
+      avatar.gltf.scene.visible = false;
+    }
+
+    importedModel = model;
+    anchor.add(importedModel);
+
+    importedModel.position.set(0, 0, 0);
+    importedModel.rotation.set(0, 0, 0);
+    importedModel.scale.set(1, 1, 1);
+
+    attachGizmo(importedModel);
+
+    setMessage("3D model imported. Use Move, Rotate and Scale.");
+
+  } catch (error) {
+    console.error(error);
+    setMessage("Import error: " + error.message);
+  } finally {
+    URL.revokeObjectURL(objectURL);
+    fileInput.value = "";
+  }
+});
+
+function removeModel(object) {
+  if (!object) return;
+
+  transformControls?.detach();
+
+  object.traverse((child) => {
+    if (child.geometry) {
+      child.geometry.dispose();
+    }
+
+    if (child.material) {
+      const materials = Array.isArray(child.material)
+        ? child.material
+        : [child.material];
+
+      materials.forEach((material) => {
+        for (const key in material) {
+          const value = material[key];
+          if (value && value.isTexture) value.dispose();
+        }
+        material.dispose();
+      });
+    }
+  });
+
+  object.removeFromParent();
+}
+
+document.querySelector("#disposeBtn").addEventListener("click", () => {
+  if (!importedModel) {
+    setMessage("No imported model to dispose.");
+    return;
+  }
+
+  removeModel(importedModel);
+  importedModel = null;
+
+  if (avatar?.gltf?.scene) {
+    avatar.gltf.scene.visible = true;
+    attachGizmo(avatar.gltf.scene);
+  }
+
+  setMessage("Imported model removed.");
+});
+
+document.querySelector("#fullBtn").addEventListener("click", async () => {
   try {
     if (!document.fullscreenElement) {
       await document.documentElement.requestFullscreen();
@@ -364,14 +593,14 @@ fullBtn.addEventListener("click", async () => {
       await document.exitFullscreen();
     }
   } catch (error) {
-    messageBox.textContent = "Fullscreen is not supported here.";
+    setMessage("Fullscreen is not available.");
   }
 });
 
 window.addEventListener("beforeunload", () => {
-  if (mindarThree) {
-    mindarThree.stop();
-  }
+  try {
+    mindarThree?.stop();
+  } catch (error) {}
 });
 
 </script>
