@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -54,13 +53,13 @@ button {
 button.active { background: #075fc5; }
 button:disabled { opacity: .45; }
 #message {
-  position: fixed; z-index: 25; bottom: 145px;
+  position: fixed; z-index: 25; bottom: 190px;
   left: 10px; right: 10px; padding: 9px;
   background: #0009; color: white; border-radius: 8px;
   text-align: center; font-size: 12px; pointer-events: none;
 }
 #controls {
-  position: fixed; left: 8px; right: 8px; bottom: 85px;
+  position: fixed; left: 8px; right: 8px; bottom: 8px;
   z-index: 30; display: flex; justify-content: center;
   flex-wrap: wrap; gap: 7px;
 }
@@ -70,7 +69,7 @@ button:disabled { opacity: .45; }
 }
 #transformPanel button { width: 100%; }
 #sizePanel {
-  position: fixed; left: 10px; right: 10px; bottom: 10px;
+  position: fixed; left: 10px; right: 10px; bottom: 112px;
   z-index: 35; padding: 9px 14px; border-radius: 10px;
   background: #000d; color: white; font-size: 13px;
 }
@@ -98,11 +97,13 @@ button:disabled { opacity: .45; }
 
 @media (orientation: landscape) {
   #controls {
-    left: auto; right: 10px; bottom: 75px; width: 190px;
+    left: auto; right: 10px; bottom: 8px; width: 190px;
   }
   #controls button { flex: 1 1 75px; }
   #message { bottom: 10px; left: 10px; right: 210px; }
-  #sizePanel { right: 210px; }
+  #sizePanel {
+    left: 210px; right: 210px; bottom: 8px;
+  }
   #partsPanel { top: 62px; left: 10px; }
 }
 </style>
@@ -151,6 +152,7 @@ button:disabled { opacity: .45; }
   <button id="importBtn">IMPORT 3D</button>
   <button id="imageBtn">IMPORT IMAGE</button>
   <button id="videoBtn">IMPORT VIDEO</button>
+  <button id="remove3DBtn">REMOVE 3D MODEL</button>
   <button id="disposeBtn">DISPOSE</button>
   <button id="fullBtn">FULL SCREEN</button>
 </div>
@@ -302,8 +304,7 @@ function createFaceParts() {
     faceParts.mouth
   );
 }
-
-function cropLandmarkPart(mesh, video, landmarks, indices, padding = 1.6) {
+function cropLandmarkPart(mesh, video, landmarks, indices) {
   if (!video || !landmarks || !mesh) return;
 
   const points = indices.map(index => landmarks[index]).filter(Boolean);
@@ -312,32 +313,39 @@ function cropLandmarkPart(mesh, video, landmarks, indices, padding = 1.6) {
   const xs = points.map(point => point.x * video.videoWidth);
   const ys = points.map(point => point.y * video.videoHeight);
 
-  let minX = Math.min(...xs);
-  let maxX = Math.max(...xs);
-  let minY = Math.min(...ys);
-  let maxY = Math.max(...ys);
+  const minX = Math.max(0, Math.min(...xs));
+  const maxX = Math.min(video.videoWidth, Math.max(...xs));
+  const minY = Math.max(0, Math.min(...ys));
+  const maxY = Math.min(video.videoHeight, Math.max(...ys));
 
-  const centerX = (minX + maxX) / 2;
-  const centerY = (minY + maxY) / 2;
-  let width = Math.max(8, (maxX - minX) * padding);
-  let height = Math.max(8, (maxY - minY) * padding);
-
-  minX = Math.max(0, centerX - width / 2);
-  minY = Math.max(0, centerY - height / 2);
-  width = Math.min(video.videoWidth - minX, width);
-  height = Math.min(video.videoHeight - minY, height);
+  const width = Math.max(2, maxX - minX);
+  const height = Math.max(2, maxY - minY);
 
   const canvas = mesh.userData.cropCanvas;
   const ctx = canvas.getContext("2d");
+
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-
   ctx.save();
-  ctx.beginPath();
-  ctx.ellipse(128, 128, 118, 118, 0, 0, Math.PI * 2);
-  ctx.clip();
-  ctx.drawImage(video, minX, minY, width, height, 0, 0, 256, 256);
-  ctx.restore();
 
+  // Clip to the actual landmark outline, not a circle or oval.
+  ctx.beginPath();
+  points.forEach((point, index) => {
+    const x = ((point.x * video.videoWidth - minX) / width) * 256;
+    const y = ((point.y * video.videoHeight - minY) / height) * 256;
+
+    if (index === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.closePath();
+  ctx.clip();
+
+  ctx.drawImage(
+    video,
+    minX, minY, width, height,
+    0, 0, 256, 256
+  );
+
+  ctx.restore();
   mesh.userData.cropTexture.needsUpdate = true;
   mesh.visible = partsVisible;
 }
@@ -360,24 +368,24 @@ function updateFaceParts() {
 
   const points = result.faceLandmarks[0];
 
-  // MediaPipe FaceLandmarker eye and mouth landmark groups.
   const leftEyeIndices = [
-    33, 133, 157, 158, 159, 160, 161, 173,
-    246, 7, 163, 144, 145, 153, 154, 155
-  ];
-  const rightEyeIndices = [
-    362, 263, 384, 385, 386, 387, 388, 398,
-    466, 249, 390, 373, 374, 380, 381, 382
-  ];
-  const mouthIndices = [
-    61, 146, 91, 181, 84, 17, 314, 405,
-    321, 375, 291, 308, 78, 95, 88, 178,
-    87, 14, 317, 402, 318, 324, 308
+    33, 246, 161, 160, 159, 158, 157, 173,
+    133, 155, 154, 153, 145, 144, 163
   ];
 
-  cropLandmarkPart(faceParts.leftEye, faceVideo, points, leftEyeIndices, 2.0);
-  cropLandmarkPart(faceParts.rightEye, faceVideo, points, rightEyeIndices, 2.0);
-  cropLandmarkPart(faceParts.mouth, faceVideo, points, mouthIndices, 1.8);
+  const rightEyeIndices = [
+    362, 398, 384, 385, 386, 387, 388, 466,
+    263, 249, 390, 373, 374, 380, 381
+  ];
+
+  const mouthIndices = [
+    61, 185, 40, 39, 37, 0, 267, 269, 270, 409,
+    291, 375, 321, 405, 314, 17, 84, 181, 91, 146
+  ];
+
+  cropLandmarkPart(faceParts.leftEye, faceVideo, points, leftEyeIndices);
+  cropLandmarkPart(faceParts.rightEye, faceVideo, points, rightEyeIndices);
+  cropLandmarkPart(faceParts.mouth, faceVideo, points, mouthIndices);
 }
 
 function attachGizmo(object) {
@@ -527,7 +535,7 @@ function selectFacePart(part, buttonId) {
     item.material.color.set(0xffffff);
   });
 
-  part.material.color.set(0xbbe4ff);
+  part.material.color.set(0xffffff);
   attachGizmo(part);
 
   ["selectMaskBtn", "leftEyeBtn", "rightEyeBtn", "mouthBtn"]
@@ -781,6 +789,22 @@ videoInput.addEventListener("change", event => {
   videoInput.value = "";
 });
 
+document.querySelector("#remove3DBtn").addEventListener("click", () => {
+  if (!importedContent) {
+    setMessage("No imported 3D model to remove.");
+    return;
+  }
+
+  removeContent();
+
+  if (avatar?.gltf?.scene) {
+    avatar.gltf.scene.visible = true;
+    attachGizmo(avatar.gltf.scene);
+  }
+
+  setMessage("Imported 3D model removed.");
+});
+
 document.querySelector("#disposeBtn").addEventListener("click", () => {
   if (!importedContent) {
     setMessage("No imported content to dispose.");
@@ -842,4 +866,3 @@ window.addEventListener("beforeunload", () => {
 </script>
 </body>
 </html>
-
